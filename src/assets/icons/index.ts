@@ -3,4 +3,8 @@ export { default as ClinicSvg } from "./ClinicSvg";
 export { default as HomeSvg } from "./HomeSvg";
 export { default as SettingSvg } from "./SettingSvg";
 export { default as HistorySvg } from "./HistorySvg";
+export { default as BackSvg } from "./BackSvg";
+export { default as AmericaFlgSvg } from "./AmericaFlgSvg";
+export { default as SaudiFlgSvg } from "./SaudiFlgSvg";
+
 

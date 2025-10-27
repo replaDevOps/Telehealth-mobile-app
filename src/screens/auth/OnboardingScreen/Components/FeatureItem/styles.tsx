@@ -8,14 +8,15 @@ export const styles = StyleSheet.create({
     gap: mvs(110),
     alignItems: 'center',
     padding: mvs(20),
-    paddingTop: mvs(30),
   },
   image: {
     width: '80%',
     height: mvs(300),
-    backgroundColor: '#F1F3F8',
+    backgroundColor: colors.gray,
     borderRadius: 20,
-    marginTop: mvs(20),
+    alignSelf: 'center',
+    marginBottom: mvs(20),
+    marginTop: '30%',
   },
   title: {
     alignItems: 'center',

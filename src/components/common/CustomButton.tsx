@@ -1,25 +1,30 @@
 import React from 'react';
-import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
-import { colors } from '../../config/colors';
+import {
+  TouchableOpacity,
+  Text,
+  StyleSheet,
+  TouchableOpacityProps,
+  TextProps,
+  ViewStyle,
+} from 'react-native';
+import { colors } from '../../styles/colors';
+import { mvs } from '../../config/metrices';
 
-interface CustomButtonProps {
+interface CustomButtonProps extends TouchableOpacityProps {
   title: string;
-  onPress: () => void;
-  disabled?: boolean;
+  textStyle?: TextProps['style'];
+  style?: ViewStyle;
 }
 
 const CustomButton: React.FC<CustomButtonProps> = ({
   title,
-  onPress,
-  disabled = false,
+  textStyle,
+  style,
+  ...props
 }) => {
   return (
-    <TouchableOpacity
-      style={[styles.button, disabled && styles.disabledButton]}
-      onPress={onPress}
-      disabled={disabled}
-    >
-      <Text style={styles.buttonText}>{title}</Text>
+    <TouchableOpacity style={[styles.button, style]} {...props}>
+      <Text style={[styles.buttonText, textStyle]}>{title}</Text>
     </TouchableOpacity>
   );
 };
@@ -27,20 +32,15 @@ const CustomButton: React.FC<CustomButtonProps> = ({
 const styles = StyleSheet.create({
   button: {
     backgroundColor: colors.primary,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: mvs(12),
+    borderRadius: mvs(8),
     alignItems: 'center',
     justifyContent: 'center',
-    width: '90%',
-    alignSelf: 'center',
-  },
-  disabledButton: {
-    backgroundColor: '#D3D3D3',
-    opacity: 0.5,
+    marginVertical: mvs(10),
   },
   buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
+    color: colors.white,
+    fontSize: mvs(16),
     fontWeight: 'bold',
   },
 });

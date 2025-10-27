@@ -5,6 +5,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { mvs } from '../../config/metrices';
 import { colors } from '../../config/colors';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { BackSvg } from '../../assets/icons';
 
 type RootStackParamList = {
   [key: string]: undefined;
@@ -37,7 +38,7 @@ const Header2: React.FC<Header2Props> = ({
   title,
   showEdit = false,
   onEditPress,
-  showNotification = true,
+  showNotification = false,
   back = true,
   useCancel = false,
   useDownload = false,
@@ -70,7 +71,7 @@ const Header2: React.FC<Header2Props> = ({
           {useCancel ? (
             <Text style={styles.cancelText}>Cancel</Text>
           ) : (
-            <Ionicons name="chevron-back" size={25} color={colors.black} />
+            <BackSvg />
           )}
         </TouchableOpacity>
       )}
@@ -138,11 +139,12 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   borderIcon: {
-    paddingHorizontal: 10,
-    paddingVertical: 10,
+    padding: mvs(10),
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: '50%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   textc: {
     flex: 1,

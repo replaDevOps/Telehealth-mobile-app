@@ -30,12 +30,12 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
           if (token) {
             navigation.replace('Main', { screen: 'Home' });
           } else {
-            navigation.replace('Auth', { screen: 'Onboarding' });
+            navigation.replace('Auth', { screen: 'LanguageSelection' });
           }
         }, 3000);
       } catch (error) {
         console.error('Error checking token:', error);
-        navigation.replace('Auth', { screen: 'Onboarding' });
+        navigation.replace('Auth', { screen: 'LanguageSelection' });
       }
     };
 

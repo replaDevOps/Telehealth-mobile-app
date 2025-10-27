@@ -1,11 +1,22 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, TextProps } from 'react-native';
+
 import React from 'react';
 
-const CustomText = ({ text }: { text: string }) => {
+interface CustomTextProps extends TextProps {
+  text?: string;
+  children?: React.ReactNode;
+}
+
+export const CustomText = ({
+  text,
+  children,
+  style,
+  ...rest
+}: CustomTextProps) => {
   return (
-    <View>
-      <Text style={styles.text}>{text}</Text>
-    </View>
+    <Text style={[styles.text, style]} {...rest}>
+      {text || children}
+    </Text>
   );
 };
 
@@ -13,7 +24,6 @@ export default CustomText;
 
 const styles = StyleSheet.create({
   text: {
-    fontFamily: 'HelveticaNeueItalic',
     fontSize: 22,
     fontWeight: '600',
   },

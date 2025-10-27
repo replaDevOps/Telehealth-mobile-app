@@ -1,10 +1,12 @@
 import { StyleSheet } from 'react-native';
 import { colors } from '../../../styles/colors';
+import { mvs } from '../../../config/metrices';
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.white,
+    paddingHorizontal: mvs(20),
   },
   skipButton: {
     position: 'absolute',

@@ -5,11 +5,15 @@ import { CustomButton } from '../../../components/common/CustomButton';
 import { styles } from './styles';
 import { FeatureItem } from './Components';
 import { ONBOARDING_STEPS } from '../../../constants';
+import { mvs } from '../../../config/metrices';
+import { colors } from '../../../styles/colors';
 
 export default function OnboardingScreen({ navigation }: any) {
   const handleNext = () => {
     console.log('Next button pressed');
-    setCurrentStep(prev => (prev === 2 ? prev : ++prev));
+    setCurrentStep(prev =>
+      prev === 2 ? navigation.navigate('SignUp') : ++prev,
+    );
   };
 
   const [currentStep, setCurrentStep] = useState<number>(0);
@@ -36,6 +40,28 @@ export default function OnboardingScreen({ navigation }: any) {
         content={activeStep?.content}
         imgSrc={activeStep?.imgSrc}
       />
+
+      <View
+        style={{
+          flexDirection: 'row',
+          justifyContent: 'center',
+          marginVertical: mvs(20),
+        }}
+      >
+        {ONBOARDING_STEPS.map((_, index) => (
+          <View
+            key={index}
+            style={{
+              width: mvs(30),
+              height: mvs(5),
+              borderRadius: mvs(3),
+              marginHorizontal: mvs(5),
+              backgroundColor:
+                index === currentStep ? colors.primary : colors.border,
+            }}
+          />
+        ))}
+      </View>
 
       <CustomButton title="Next" onPress={handleNext} disabled={false} />
     </View>

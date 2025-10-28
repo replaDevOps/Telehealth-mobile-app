@@ -1,19 +1,21 @@
 import React, { useState } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import Icon from 'react-native-vector-icons/MaterialIcons';
 import { KeyboardAvoidScrollview } from '../../../components/common/keyboard-avoid-scrollview';
-import { colors } from '../../../styles/colors';
-import { mvs } from '../../../config/metrices';
+
 import { CustomTextInput } from '../../../components/common/CustomTextInput';
 import { CustomDropdown } from '../../../components/common/CustomDropdwon';
 import UserProfile from '../../../components/common/UserProfile';
 import { CustomButton } from '../../../components/common/CustomButton';
 import { Header2 } from '../../../components/common/Header2';
+import CustomText from '../../../components/common/CustomText';
+import { styles } from './style';
+import PhoneNumberInput from '../../../components/common/PhoneTextInput';
+import { colors } from '../../../styles/colors';
 
 type RootStackParamList = {
   SetupProfile: undefined;
-  NextScreen: undefined; // Replace with actual next screen
+  SignIn: undefined; // Replace with actual next screen
 };
 
 type NavProps = StackNavigationProp<RootStackParamList, 'SetupProfile'>;
@@ -28,17 +30,21 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [city, setCity] = useState('');
   const [age, setAge] = useState('');
   const [profileImage, setProfileImage] = useState('');
+  const [phone, setPhone] = useState('');
+  const [isChecked, setIsChecked] = useState(false);
+  const [countryCode, setCountryCode] = useState('PK');
+  const [phoneError, setPhoneError] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isPhoneValid, setIsPhoneValid] = useState(false);
 
-  const handleImageSelected = uri => {
+  const handleImageSelected = (uri: string) => {
     setProfileImage(uri);
-    // Add logic to upload to backend if needed
   };
 
   const handleSaveAndContinue = () => {
-    // Validate and navigate to next screen
-    if (fullName && gender && city && age) {
-      navigation.navigate('NextScreen'); // Replace with actual screen name
-    }
+    // if (fullName && gender && city && age && (phone||email)) {
+    navigation.navigate('SignIn');
+    // }
   };
 
   return (
@@ -51,14 +57,35 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
           onImageSelected={handleImageSelected}
         />
 
-        <Text style={styles.title}>Setup Your Profile</Text>
-        <Text style={styles.subtitle}>
-          Setup your profile with a basic details.
-        </Text>
+        <View style={styles.content}>
+          <CustomText text="Setup Your Profile" />
+          <Text style={styles.TextContent}>
+            Setup your profile with a basic details.
+          </Text>
+        </View>
 
         <CustomTextInput
           label="Full Name"
           placeholder="Enter full name"
+          value={fullName}
+          onChangeText={setFullName}
+        />
+
+        <Text style={styles.label}>Phone Number</Text>
+        <PhoneNumberInput
+          phone={phone}
+          setPhone={setPhone}
+          countryCode={countryCode}
+          setCountryCode={setCountryCode}
+          phoneError={phoneError}
+          errorMessage={errorMessage}
+          onValidationChange={setIsPhoneValid}
+          CustomStyle={{ backgroundColor: colors.white }}
+        />
+
+        <CustomTextInput
+          label="Email Address"
+          placeholder="Enter email address"
           value={fullName}
           onChangeText={setFullName}
         />
@@ -94,70 +121,9 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
           onChangeText={setAge}
           keyboardType="numeric"
         />
-
-        <CustomButton title="Save & Continue" />
       </View>
+      <CustomButton title="Save & Continue" onPress={handleSaveAndContinue} />
     </KeyboardAvoidScrollview>
   );
 };
-
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: mvs(16),
-    alignItems: 'center',
-  },
-  language: {
-    fontSize: mvs(14),
-    color: colors.black,
-  },
-  container: {
-    padding: mvs(16),
-  },
-  profileImageContainer: {
-    position: 'relative',
-    marginBottom: mvs(20),
-  },
-  profileImage: {
-    width: mvs(100),
-    height: mvs(100),
-    borderRadius: mvs(50),
-    borderWidth: 2,
-    borderColor: colors.primary,
-  },
-  editIcon: {
-    position: 'absolute',
-    bottom: mvs(5),
-    right: mvs(5),
-    backgroundColor: colors.primary,
-    borderRadius: mvs(10),
-    padding: mvs(4),
-  },
-  title: {
-    fontSize: mvs(20),
-    fontWeight: 'bold',
-    color: colors.black,
-    marginBottom: mvs(10),
-  },
-  subtitle: {
-    fontSize: mvs(14),
-    color: colors.gray,
-    textAlign: 'center',
-    marginBottom: mvs(20),
-  },
-  button: {
-    backgroundColor: colors.primary,
-    paddingVertical: mvs(12),
-    paddingHorizontal: mvs(40),
-    borderRadius: mvs(10),
-    marginTop: mvs(20),
-  },
-  buttonText: {
-    color: colors.white,
-    fontSize: mvs(16),
-    fontWeight: '600',
-  },
-});
-
 export default ProfileScreen;

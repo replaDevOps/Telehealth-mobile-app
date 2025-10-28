@@ -4,6 +4,8 @@ import { StatusBar, StyleSheet } from 'react-native';
 import AppNavigator from './src/navigation/root-navigation';
 import { colors } from './src/styles/colors';
 import { setGlobalFont } from './src/utils/overrideText';
+StatusBar.setBackgroundColor('transparent', true);
+StatusBar.setTranslucent(false);
 
 setGlobalFont();
 

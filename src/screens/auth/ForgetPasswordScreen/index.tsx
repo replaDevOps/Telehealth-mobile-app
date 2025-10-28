@@ -14,17 +14,17 @@ import { colors } from '../../../styles/colors';
 import { mvs } from '../../../config/metrices';
 import { CustomButton } from '../../../components/common/CustomButton';
 import { Header2 } from '../../../components/common/Header2';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import AntDesign from 'react-native-vector-icons/AntDesign';
 import { LogoSvg } from '../../../assets/icons';
 import { CustomText } from '../../../components/common/CustomText';
 import PhoneNumberInput from '../../../components/common/PhoneTextInput';
 
-interface SignUpScreenProps {
+interface ForgetPasswordScreenProps {
   navigation: any;
 }
 
-export default function SignUpScreen({ navigation }: SignUpScreenProps) {
+export default function ForgetPasswordScreen({
+  navigation,
+}: ForgetPasswordScreenProps) {
   const [selectedTab, setSelectedTab] = useState<'email' | 'phone'>('email');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -33,9 +33,6 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
   const [phoneError, setPhoneError] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isPhoneValid, setIsPhoneValid] = useState(false);
-
-  const headerTitle =
-    selectedTab === 'email' ? 'Sign up → Email' : 'Sign up → Phone';
 
   return (
     <KeyboardAvoidingView
@@ -55,11 +52,11 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
         </View>
 
         <View style={{ ...styles.title }}>
-          <CustomText text="Sign up" />
+          <CustomText text="Forget Password" />
         </View>
         <View style={styles.content}>
           <Text style={styles.TextContent}>
-            Join and start your healthy journey today!
+            Enter the email address or phone number to send you the OTP code.
           </Text>
         </View>
 
@@ -137,13 +134,13 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
         </View>
 
         <CustomButton
-          title="Sign up"
+          title="Next"
           onPress={() => {
             console.log(
-              'Sign up with:',
+              'Forget Password with:',
               selectedTab === 'email' ? email : phone,
             );
-            navigation.navigate('OTPScreen');
+            navigation.navigate('SetPassword');
           }}
           // disabled={
           //   !isChecked ||
@@ -152,52 +149,10 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
         />
 
         <View style={styles.signinRow}>
-          <Text style={styles.TextContent}>Already have an account? </Text>
+          <Text style={styles.TextContent}>Remember Password? </Text>
           <TouchableOpacity onPress={() => navigation.navigate('SignIn')}>
             <Text style={styles.signinLink}>Sign in</Text>
           </TouchableOpacity>
-        </View>
-
-        <View style={styles.dividerContainer}>
-          <View style={styles.line} />
-          <Text style={styles.orText}>or</Text>
-          <View style={styles.line} />
-        </View>
-
-        <TouchableOpacity
-          style={styles.appleButton}
-          onPress={() => console.log('Apple Sign Up')}
-        >
-          <AntDesign name="apple1" size={20} color={colors.white} />
-          <Text style={styles.appleText}>Sign up with Apple</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.googleButton}
-          onPress={() => console.log('Google Sign Up')}
-        >
-          <AntDesign name="google" size={20} color="#4285F4" />
-          <Text style={styles.googleText}>Sign up with Google</Text>
-        </TouchableOpacity>
-
-        {/* Terms & Conditions */}
-        <View style={styles.termsRow}>
-          <TouchableOpacity
-            onPress={() => setIsChecked(!isChecked)}
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: isChecked }}
-          >
-            <Ionicons
-              name={isChecked ? 'checkbox' : 'square-outline'}
-              size={22}
-              color={isChecked ? colors.primary : colors.gray}
-            />
-          </TouchableOpacity>
-          <Text style={styles.TextContent}>
-            By continuing, you agree to Vena's{' '}
-            <Text style={styles.linkText}>Terms & Conditions</Text> and{' '}
-            <Text style={styles.linkText}>Privacy Policy</Text>
-          </Text>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -231,6 +186,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     color: colors.secondaryText,
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: mvs(13),

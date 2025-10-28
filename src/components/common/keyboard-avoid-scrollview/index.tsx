@@ -1,10 +1,10 @@
-import React from "react";
-import { StyleProp, StyleSheet, ViewStyle } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import { mvs } from "../../../config/metrices";
-import { colors } from "../../../config/colors";
+import React from 'react';
+import { StyleProp, StyleSheet, ViewStyle } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { mvs } from '../../../config/metrices';
+import { colors } from '../../../styles/colors';
 type props = {
-  keyboardShouldPersistTaps?: "always" | "never" | "handled";
+  keyboardShouldPersistTaps?: 'always' | 'never' | 'handled';
   contentContainerStyle?: StyleProp<ViewStyle>;
   children?: JSX.Element | JSX.Element[];
 };
@@ -12,7 +12,7 @@ export const KeyboardAvoidScrollview = (props: props) => {
   const {
     children,
     contentContainerStyle,
-    keyboardShouldPersistTaps = "never",
+    keyboardShouldPersistTaps = 'never',
   } = props;
   return (
     <KeyboardAwareScrollView

@@ -12,6 +12,13 @@ export const colors = {
   secondary:"#424242",
   secondaryText:"#545A65",
   gray:"#F1F3F8",
+  // blue: '#2075D9',
+  // skyBlue: '#295FC833',
+  // yellow: '#FEEF06',
+  // grey: '#A8A8A9',
+  // grey1: '#000314',
+  // line: '#48494B',
+  // header: '#F4F5F6',
   shadow: {
     shadowColor: '#000',
     shadowOffset: {

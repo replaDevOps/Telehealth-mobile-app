@@ -6,5 +6,6 @@ export { default as HistorySvg } from "./HistorySvg";
 export { default as BackSvg } from "./BackSvg";
 export { default as AmericaFlgSvg } from "./AmericaFlgSvg";
 export { default as SaudiFlgSvg } from "./SaudiFlgSvg";
+export { default as EditSvg } from "./EditSvg";
 
 

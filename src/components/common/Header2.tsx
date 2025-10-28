@@ -3,9 +3,9 @@ import React from 'react';
 import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { mvs } from '../../config/metrices';
-import { colors } from '../../config/colors';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BackSvg } from '../../assets/icons';
+import { colors } from '../../styles/colors';
 
 type RootStackParamList = {
   [key: string]: undefined;
@@ -64,6 +64,10 @@ const Header2: React.FC<Header2Props> = ({
     }
   };
 
+  const handleLanguage = () => {
+    navigation.navigate('LanguageSelection');
+  };
+
   return (
     <View style={styles.container}>
       {back && (
@@ -108,9 +112,10 @@ const Header2: React.FC<Header2Props> = ({
           </View>
         </TouchableOpacity>
       ) : showLanguage ? (
-        <TouchableOpacity style={styles.icon}>
-          <Ionicons name="globe" size={25} color={colors.black} />
+        <TouchableOpacity style={styles.icon} onPress={() => handleLanguage()}>
+          <Ionicons name="globe" size={18} color={colors.black} />
           <Text style={styles.languageText}>Eng</Text>
+          <Ionicons name="chevron-down" size={16} color={colors.black} />
         </TouchableOpacity>
       ) : showEdit ? (
         <TouchableOpacity style={styles.icon} onPress={onEditPress}>
@@ -135,8 +140,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   icon: {
+    flexDirection: 'row',
+    gap: mvs(2),
     paddingHorizontal: 10,
     paddingVertical: 10,
+    alignItems: 'center',
   },
   borderIcon: {
     padding: mvs(10),

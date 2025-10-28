@@ -1,62 +1,70 @@
-import React, { useState, useEffect } from 'react';
 import {
   Image,
   StyleSheet,
   View,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useState, useCallback } from 'react';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { mvs } from '../../config/metrices';
 import { colors } from '../../styles/colors';
+import { EditSvg } from '../../assets/icons';
 
-const UserProfile = ({
-  profileImage: initialProfileImage,
+interface UserProfileProps {
+  /** Current profile picture URL (may be empty) */
+  profileImage?: string;
+  /** Called after a new picture is selected */
+  onImageSelected?: (uri: string) => void;
+}
+
+const UserProfile: React.FC<UserProfileProps> = ({
+  profileImage: initialProfileImage = '',
   onImageSelected,
 }) => {
-  const [profileImage, setProfileImage] = useState(initialProfileImage || '');
-  const [userId, setUserId] = useState(null);
+  const [profileImage, setProfileImage] = useState(initialProfileImage);
   const [isUploading, setIsUploading] = useState(false);
 
-  useEffect(() => {
-    const fetchUserId = async () => {
-      try {
-        const storedUserId = await AsyncStorage.getItem('userId');
-        if (storedUserId) {
-          setUserId(storedUserId);
-        }
-      } catch (error) {
-        console.error('Error fetching user ID:', error);
-      }
-    };
-    fetchUserId();
-  }, []);
-
-  const openImagePicker = () => {
-    if (!userId) {
-      return; // Handle user ID not available silently or with a UI feedback
-    }
-
+  /* --------------------------------------------------------------------- *
+   *  Open the image library (no permission request)
+   * --------------------------------------------------------------------- */
+  const openImagePicker = useCallback(() => {
     const options = {
-      mediaType: 'photo',
-      includeBase64: false, // Adjust based on your backend needs
+      mediaType: 'photo' as const,
+      quality: 0.8,
     };
 
-    launchImageLibrary(options, response => {
-      if (response.didCancel) return;
+    launchImageLibrary(options, async response => {
+      if (response.didCancel) {
+        console.log('User cancelled image picker');
+        return;
+      }
       if (response.errorCode) {
         console.log('ImagePicker Error:', response.errorMessage);
+        Alert.alert('Error', response.errorMessage ?? 'Unknown error');
         return;
       }
 
-      const selectedImageUri = response.assets?.[0]?.uri;
-      if (selectedImageUri) {
-        setProfileImage(selectedImageUri);
-        if (onImageSelected) onImageSelected(selectedImageUri);
+      const uri = response.assets?.[0]?.uri;
+      if (!uri) return;
+
+      // ----> Simulate upload – replace with your real mutation <----
+      setIsUploading(true);
+      try {
+        // Example: await uploadToBackend(uri);
+        await new Promise(resolve => setTimeout(resolve, 1000)); // demo delay
+
+        setProfileImage(uri);
+        onImageSelected?.(uri);
+      } catch (e) {
+        console.error('Upload failed', e);
+        Alert.alert('Upload failed', 'Please try again.');
+      } finally {
+        setIsUploading(false);
       }
     });
-  };
+  }, [onImageSelected]);
 
   const imageSource = profileImage
     ? { uri: profileImage }
@@ -64,35 +72,35 @@ const UserProfile = ({
 
   return (
     <View style={styles.container}>
-      <View style={styles.profileImageContainer}>
-        <View style={styles.profilePic}>
-          <Image
-            source={imageSource}
-            style={styles.profileImage}
-            resizeMode="cover"
-          />
-          {isUploading ? (
-            <View style={styles.loadingOverlay}>
-              <ActivityIndicator size="small" color={colors.white} />
-            </View>
-          ) : (
-            <TouchableOpacity
-              onPress={openImagePicker}
-              style={styles.iconOverlay}
-              disabled={!userId || isUploading}
-            >
-              <Image
-                source={require('../../assets/images/image.png')}
-                style={styles.editIcon}
-              />
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
+      <TouchableOpacity
+        style={styles.profileImageContainer}
+        onPress={openImagePicker}
+        activeOpacity={0.8}
+        disabled={isUploading}
+      >
+        <Image
+          source={imageSource}
+          style={[styles.profileImage, styles.profilePic]}
+        />
+
+        {/* Edit / Loading overlay */}
+        {isUploading ? (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="small" color={colors.white} />
+          </View>
+        ) : (
+          <View style={styles.iconOverlay}>
+            <EditSvg style={styles.editIcon} />
+          </View>
+        )}
+      </TouchableOpacity>
     </View>
   );
 };
 
+/* --------------------------------------------------------------------- *
+ *  Styles (unchanged)
+ * --------------------------------------------------------------------- */
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
@@ -100,6 +108,7 @@ const styles = StyleSheet.create({
     paddingTop: mvs(15),
   },
   profileImageContainer: {
+    position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -112,15 +121,14 @@ const styles = StyleSheet.create({
     borderRadius: mvs(45),
     borderWidth: 1,
     borderColor: colors.gray,
-    position: 'relative',
   },
   iconOverlay: {
     position: 'absolute',
     bottom: mvs(5),
-    right: mvs(5),
+    right: mvs(0),
     width: mvs(28),
     height: mvs(28),
-    backgroundColor: colors.black,
+    backgroundColor: colors.primary,
     borderRadius: mvs(14),
     borderWidth: 1,
     borderColor: colors.gray,

@@ -24,6 +24,11 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+<string>This app requires access to your photo library.</string>
+<key>NSCameraUsageDescription</key>
+<string>This app requires access to your camera.</string>
+
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSAppTransportSecurity</key>

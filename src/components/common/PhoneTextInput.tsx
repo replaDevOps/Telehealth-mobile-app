@@ -1,12 +1,30 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
 import PhoneInput from 'react-native-phone-number-input';
 import { parsePhoneNumberFromString } from 'libphonenumber-js';
+
 import { mvs } from '../../config/metrices';
 import { colors } from '../../styles/colors';
 
-const PhoneNumberInput = ({
-  phone,
+// ✅ Props Interface
+interface PhoneNumberInputProps {
+  phone?: string;
+  setPhone?: (phone: string) => void;
+  countryCode?: string;
+  setCountryCode?: (code: string) => void;
+  placeholder?: string;
+  containerStyle?: ViewStyle;
+  phoneError?: string;
+  errorMessage?: string;
+  editable?: boolean;
+  maxLength?: number;
+  onValidationChange?: (isValid: boolean) => void;
+  initialValue?: string;
+  CustomStyle?: ViewStyle;
+}
+
+const PhoneNumberInput: React.FC<PhoneNumberInputProps> = ({
+  phone = '',
   setPhone,
   countryCode,
   setCountryCode,
@@ -20,65 +38,53 @@ const PhoneNumberInput = ({
   initialValue = '',
   CustomStyle,
 }) => {
-  const [value, setValue] = useState('');
-  const [isValid, setIsValid] = useState(false);
-  const [hasBeenTouched, setHasBeenTouched] = useState(false);
-  const [selectedCountryCode, setSelectedCountryCode] = useState('PK');
-  const [componentKey, setComponentKey] = useState(0);
-  const phoneInput = useRef(null);
-  const hasUserTypedRef = useRef(false);
+  const [value, setValue] = useState<string>(initialValue || '');
+  const [isValid, setIsValid] = useState<boolean>(false);
+  const [hasBeenTouched, setHasBeenTouched] = useState<boolean>(false);
+  const [selectedCountryCode, setSelectedCountryCode] = useState<string>('PK');
+  const [componentKey, setComponentKey] = useState<number>(0);
+
+  const phoneInput = useRef<PhoneInput | null>(null);
+  const hasUserTypedRef = useRef<boolean>(false);
 
   const safeSetCountryCode = setCountryCode || (() => {});
   const safeSetPhone = setPhone || (() => {});
 
   useEffect(() => {
-    console.log('🔄 PhoneNumberInput received:', { phone, countryCode });
-
     if (!hasBeenTouched) {
       if (phone && phone !== value) {
         setValue(phone);
-        console.log('✅ Set value to:', phone);
         setComponentKey(prev => prev + 1);
       }
 
       if (countryCode && countryCode !== selectedCountryCode) {
         setSelectedCountryCode(countryCode);
-        console.log('✅ Set country code to:', countryCode);
         setComponentKey(prev => prev + 1);
       }
     }
   }, [phone, countryCode]);
 
-  // --- Keep validation updated ---
   useEffect(() => {
     if (value && phoneInput.current) {
-      const isValidNumber = phoneInput.current.isValidNumber(value);
-      setIsValid(isValidNumber === true);
-
-      if (onValidationChange) {
-        onValidationChange(isValidNumber && value.trim() !== '');
-      }
+      const valid = phoneInput.current.isValidNumber(value);
+      setIsValid(valid === true);
+      onValidationChange?.(valid && value.trim() !== '');
     }
-  }, [value, selectedCountryCode, onValidationChange]);
+  }, [value, selectedCountryCode]);
 
-  const handleTextChange = text => {
-    console.log('📝 User typing:', text);
+  const handleTextChange = (text: string) => {
     setValue(text);
     setHasBeenTouched(true);
     hasUserTypedRef.current = true;
 
     if (phoneInput.current) {
-      const isValidNumber = phoneInput.current.isValidNumber(text);
-      setIsValid(isValidNumber === true);
+      const valid = phoneInput.current.isValidNumber(text);
+      setIsValid(valid === true);
     }
   };
 
-  const handleFormattedTextChange = formattedText => {
-    if (!hasUserTypedRef.current) {
-      return;
-    }
-
-    console.log('📱 Formatted text:', formattedText);
+  const handleFormattedTextChange = (formattedText: string) => {
+    if (!hasUserTypedRef.current) return;
 
     const parsed = parsePhoneNumberFromString(formattedText);
     const digitsOnly = parsed
@@ -88,33 +94,25 @@ const PhoneNumberInput = ({
     safeSetPhone(digitsOnly);
 
     if (formattedText && phoneInput.current) {
-      const isValidFormatted = phoneInput.current.isValidNumber(formattedText);
-      setIsValid(isValidFormatted === true);
+      const valid = phoneInput.current.isValidNumber(formattedText);
+      setIsValid(valid === true);
     }
   };
 
-  // --- Handle country change ---
-  const handleCountryChange = country => {
-    console.log('🌍 Country changed to:', country.cca2);
+  const handleCountryChange = (country: any) => {
     setSelectedCountryCode(country.cca2);
     safeSetCountryCode(country.cca2);
     setHasBeenTouched(true);
 
     if (value.trim() && phoneInput.current) {
-      const isValidNumber = phoneInput.current.isValidNumber(value);
-      setIsValid(isValidNumber === true);
+      const valid = phoneInput.current.isValidNumber(value);
+      setIsValid(valid === true);
     }
   };
 
   const hasError =
     ((phoneError || errorMessage) && hasBeenTouched) ||
     (!isValid && hasBeenTouched && value);
-
-  console.log('🎨 Rendering PhoneInput with:', {
-    value,
-    selectedCountryCode,
-    componentKey,
-  });
 
   return (
     <View>
@@ -130,7 +128,7 @@ const PhoneNumberInput = ({
           key={componentKey}
           ref={phoneInput}
           defaultValue={value}
-          defaultCode={selectedCountryCode}
+          defaultCode={selectedCountryCode as any}
           layout="second"
           withDarkTheme={false}
           withShadow={false}
@@ -140,6 +138,7 @@ const PhoneNumberInput = ({
           textInputProps={{
             placeholderTextColor: colors.gray,
             editable: editable,
+            maxLength,
           }}
           onChangeText={handleTextChange}
           onChangeCountry={handleCountryChange}
@@ -168,7 +167,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: mvs(8),
-    marginBottom: mvs(10),
+    marginBottom: mvs(16),
     overflow: 'hidden',
   },
   errorContainer: {

@@ -7,6 +7,8 @@ import NumberVerification from '../screens/auth/OTPScreen';
 import LanguageScreen from '../screens/auth/LanguageScreen';
 import CreatePassword from '../screens/auth/CreatePasswordScreen';
 import ProfileScreen from '../screens/auth/ProfileScreen';
+import ForgetPasswordScreen from '../screens/auth/ForgetPasswordScreen';
+import SetPassword from '../screens/auth/SetPasswordScreen';
 
 export type AuthStackParamList = {
   SignIn: undefined;
@@ -16,6 +18,8 @@ export type AuthStackParamList = {
   OTPScreen: { email?: string };
   CreatePassword: undefined;
   Profile: undefined;
+  ForgetPassword: undefined;
+  SetPassword: undefined;
 };
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
@@ -33,6 +37,8 @@ const AuthNavigator = () => {
       <Stack.Screen name="OTPScreen" component={NumberVerification} />
       <Stack.Screen name="CreatePassword" component={CreatePassword} />
       <Stack.Screen name="Profile" component={ProfileScreen} />
+      <Stack.Screen name="ForgetPassword" component={ForgetPasswordScreen} />
+      <Stack.Screen name="SetPassword" component={SetPassword} />
     </Stack.Navigator>
   );
 };

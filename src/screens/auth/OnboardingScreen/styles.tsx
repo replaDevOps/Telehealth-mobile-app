@@ -7,6 +7,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.white,
     paddingHorizontal: mvs(20),
+    justifyContent: 'space-around',
   },
   skipButton: {
     position: 'absolute',

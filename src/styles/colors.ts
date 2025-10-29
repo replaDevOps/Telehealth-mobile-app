@@ -3,9 +3,12 @@ export const colors = {
   primary2: '#0D0121',
   white: '#FFFFFF',
   black: '#151515',
+  text: '#151515',
+
   neutral: '#2A2A2A',
   red: '#FB3748',
   green: '#1FC16B ',
+  yellow:"#EBAD00",
   transparent: 'transparent',
   border: '#E2E2E2',
   border2: '#F1F1F1',

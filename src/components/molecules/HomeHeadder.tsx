@@ -5,9 +5,11 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
+  Platform,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { colors } from '../../styles/colors';
+import LinearGradient from 'react-native-linear-gradient';
 
 interface HomeHeaderProps {
   location?: string;
@@ -31,91 +33,99 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   cartItemCount = 0,
 }) => {
   return (
-    <View style={styles.headerContainer}>
-      {/* Location and Icons Row */}
-      <View style={styles.topRow}>
-        <View style={styles.locationContainer}>
-          <Text style={styles.locationLabel}>Location</Text>
-          <TouchableOpacity
-            style={styles.locationButton}
-            onPress={onLocationPress}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="location" size={18} color={colors.white} />
-            <Text style={styles.locationText}>{location}</Text>
-            <Ionicons name="chevron-down" size={18} color={colors.white} />
-          </TouchableOpacity>
+    <LinearGradient
+      colors={['#7625D7', '#591CA2', '#3E1371']}
+      start={{ x: 0.5, y: 0 }}
+      end={{ x: 0.5, y: 1 }}
+      style={styles.LinearGradientContainer}
+    >
+      <View style={styles.headerContainer}>
+        {/* Location and Icons Row */}
+        <View style={styles.topRow}>
+          <View style={styles.locationContainer}>
+            <Text style={styles.locationLabel}>Location</Text>
+            <TouchableOpacity
+              style={styles.locationButton}
+              onPress={onLocationPress}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="location" size={18} color={colors.white} />
+              <Text style={styles.locationText}>{location}</Text>
+              <Ionicons name="chevron-down" size={18} color={colors.white} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.iconContainer}>
+            {/* Cart Icon with Badge */}
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={onCartPress}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="cart-outline" size={24} />
+              {cartItemCount > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{cartItemCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            {/* Notification Icon */}
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={onNotificationPress}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="notifications-outline" size={24} />
+            </TouchableOpacity>
+          </View>
         </View>
 
-        <View style={styles.iconContainer}>
-          {/* Cart Icon with Badge */}
+        {/* Search Bar Row */}
+        <View style={styles.searchRow}>
           <TouchableOpacity
-            style={styles.iconButton}
-            onPress={onCartPress}
-            activeOpacity={0.7}
+            style={styles.searchContainer}
+            onPress={onSearchPress}
+            activeOpacity={0.8}
           >
-            <Ionicons name="cart-outline" size={24} />
-            {cartItemCount > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{cartItemCount}</Text>
-              </View>
-            )}
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search clinic"
+              placeholderTextColor="#999"
+              // editable={false}
+              pointerEvents="none"
+            />
+            <Ionicons
+              name="search"
+              size={22}
+              color={colors.black}
+              style={styles.searchIcon}
+            />
           </TouchableOpacity>
 
-          {/* Notification Icon */}
+          {/* QR Code Button */}
           <TouchableOpacity
-            style={styles.iconButton}
-            onPress={onNotificationPress}
+            style={styles.qrButton}
+            onPress={onQRPress}
             activeOpacity={0.7}
           >
-            <Ionicons name="notifications-outline" size={24} />
+            <Ionicons name="qr-code-outline" size={24} color={colors.primary} />
           </TouchableOpacity>
         </View>
       </View>
-
-      {/* Search Bar Row */}
-      <View style={styles.searchRow}>
-        <TouchableOpacity
-          style={styles.searchContainer}
-          onPress={onSearchPress}
-          activeOpacity={0.8}
-        >
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search clinic"
-            placeholderTextColor="#999"
-            // editable={false}
-            pointerEvents="none"
-          />
-          <Ionicons
-            name="search"
-            size={22}
-            color="#666"
-            style={styles.searchIcon}
-          />
-        </TouchableOpacity>
-
-        {/* QR Code Button */}
-        <TouchableOpacity
-          style={styles.qrButton}
-          onPress={onQRPress}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="qr-code-outline" size={24} color={colors.primary} />
-        </TouchableOpacity>
-      </View>
-    </View>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
+  LinearGradientContainer: {
+    borderBottomLeftRadius: 15,
+    borderBottomRightRadius: 15,
+  },
   headerContainer: {
-    backgroundColor: colors.primary,
     paddingTop: 30,
     paddingBottom: 30,
     paddingHorizontal: 20,
-    borderBottomLeftRadius: 15,
-    borderBottomRightRadius: 15,
   },
   topRow: {
     flexDirection: 'row',

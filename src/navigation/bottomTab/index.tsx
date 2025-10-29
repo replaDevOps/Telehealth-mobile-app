@@ -2,11 +2,23 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { colors } from '../../styles/colors';
-import ClinicScreen from '../../screens/bottomTab/ClinicScreen';
-import HistoryScreen from '../../screens/bottomTab/HistoryScreen';
-import SettingScreen from '../../screens/bottomTab/SettingScreen';
-import HomeScreen from '../../screens/bottomTab/HomeScreen';
-import { ClinicSvg, HomeSvg, SettingSvg, HistorySvg } from '../../assets/icons'; // Adjust the import path as needed
+
+import {
+  ClinicSvg,
+  HomeSvg,
+  SettingSvg,
+  HistorySvg,
+  FHomeSvg,
+  FClinicSvg,
+  fSettingSvg,
+  fHistorySvg,
+} from '../../assets/icons'; // Adjust the import path as needed
+import {
+  ClinicNavigator,
+  HistoryNavigator,
+  HomeNavigator,
+  SettingNavigator,
+} from '@navigation/MainNavigator';
 
 export type TabParamList = {
   Home: undefined;
@@ -26,34 +38,36 @@ export default function CustomTabBar() {
         tabBarShowLabel: false,
         tabBarStyle: styles.tabBar,
         tabBarIcon: ({ focused }) => {
-          let SvgComponent = null;
+          let SvgComponent;
           let label = '';
           switch (route.name) {
             case 'Home':
-              SvgComponent = HomeSvg;
+              SvgComponent = focused ? FHomeSvg : HomeSvg;
               label = 'Home';
               break;
             case 'Clinic':
               SvgComponent = ClinicSvg;
+              SvgComponent = focused ? FClinicSvg : ClinicSvg;
+
               label = 'Clinic';
               break;
             case 'History':
               SvgComponent = HistorySvg;
+              SvgComponent = focused ? fHistorySvg : HistorySvg;
+
               label = 'History';
               break;
             case 'Setting':
               SvgComponent = SettingSvg;
+              SvgComponent = focused ? fSettingSvg : SettingSvg;
+
               label = 'Setting';
               break;
           }
           return (
             <View style={styles.iconLabelWrapper}>
               {SvgComponent && (
-                <SvgComponent
-                  width={24}
-                  height={24}
-                  fill={focused ? colors.primary : colors.secondary}
-                />
+                <SvgComponent width={24} height={24} fill={''} />
               )}
               <Text
                 numberOfLines={1}
@@ -69,10 +83,10 @@ export default function CustomTabBar() {
         },
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Clinic" component={ClinicScreen} />
-      <Tab.Screen name="History" component={HistoryScreen} />
-      <Tab.Screen name="Setting" component={SettingScreen} />
+      <Tab.Screen name="Home" component={HomeNavigator} />
+      <Tab.Screen name="Clinic" component={ClinicNavigator} />
+      <Tab.Screen name="History" component={HistoryNavigator} />
+      <Tab.Screen name="Setting" component={SettingNavigator} />
     </Tab.Navigator>
   );
 }

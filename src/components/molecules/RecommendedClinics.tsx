@@ -130,7 +130,6 @@ const styles = StyleSheet.create({
   clinicImage: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#E0E0E0',
     borderRadius: mvs(10),
   },
   featuredBadge: {
@@ -151,7 +150,7 @@ const styles = StyleSheet.create({
   featuredText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: colors.text,
   },
   cardContent: {
     padding: 12,
@@ -166,7 +165,11 @@ const styles = StyleSheet.create({
   specialtyText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#7B68EE',
+    color: colors.primary,
+    backgroundColor: colors.white,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 10,
   },
   ratingContainer: {
     flexDirection: 'row',
@@ -176,12 +179,12 @@ const styles = StyleSheet.create({
   ratingText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: colors.secondaryText,
   },
   clinicName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: colors.text,
     marginBottom: 6,
   },
   locationRow: {
@@ -190,7 +193,7 @@ const styles = StyleSheet.create({
   },
   locationText: {
     fontSize: 13,
-    color: '#666666',
+    color: colors.secondaryText,
     flex: 1,
   },
 });

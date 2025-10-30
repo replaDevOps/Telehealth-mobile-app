@@ -5,6 +5,8 @@ import { HomeScreen, NearbyClinics, SelectLocation } from '@screens';
 import ClinicScreen from '@screens/ManageClinic';
 import HistoryScreen from '@screens/ManageHistory';
 import SettingScreen from '@screens/ManageSetting';
+import { FilterScreen } from '@screens/ManageClinic/FilterScreen';
+import ClinicDetailScreen from '@screens/ManageClinic/ClinicDetail';
 export type MainStackParamList = {
   Home: undefined;
   Clinic: undefined;
@@ -18,10 +20,10 @@ const Stack = createNativeStackNavigator();
 export const MainNavigator = () => {
   return (
     <Stack.Navigator
-      initialRouteName="Home"
+      initialRouteName="EntryPoint"
       screenOptions={{ headerShown: false }}
     >
-      <Stack.Screen name="Home" component={CustomTabBar} />
+      <Stack.Screen name="EntryPoint" component={CustomTabBar} />
     </Stack.Navigator>
   );
 };
@@ -40,6 +42,8 @@ export const ClinicNavigator = () => {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="ClinicScreen" component={ClinicScreen} />
+      <Stack.Screen name="FilterScreen" component={FilterScreen} />
+      <Stack.Screen name="ClinicDetail" component={ClinicDetailScreen} />
     </Stack.Navigator>
   );
 };

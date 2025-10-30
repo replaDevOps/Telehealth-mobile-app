@@ -10,6 +10,7 @@ import {
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { colors } from '../../styles/colors';
 import LinearGradient from 'react-native-linear-gradient';
+import { FilterSvg } from '@assets/icons';
 
 interface HomeHeaderProps {
   location?: string;
@@ -109,7 +110,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
             onPress={onQRPress}
             activeOpacity={0.7}
           >
-            <Ionicons name="qr-code-outline" size={24} color={colors.primary} />
+            <FilterSvg />
           </TouchableOpacity>
         </View>
       </View>
@@ -123,7 +124,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 15,
   },
   headerContainer: {
-    paddingTop: 30,
+    paddingTop: 60,
     paddingBottom: 30,
     paddingHorizontal: 20,
   },

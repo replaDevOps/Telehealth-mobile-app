@@ -70,6 +70,14 @@ export const HomeScreen = ({ navigation }) => {
       location: 'Makkah, Saudi Arabia',
       image: require('@assets/images/recommandationImage.jpg'),
     },
+    {
+      id: '3',
+      name: 'Eden Center',
+      specialty: 'Dermatology',
+      rating: 4.9,
+      location: 'Makkah, Saudi Arabia',
+      image: require('@assets/images/recommandationImage.jpg'),
+    },
     // Add more clinics...
   ];
 

@@ -15,6 +15,7 @@ export const colors = {
   secondary:"#424242",
   secondaryText:"#545A65",
   gray:"#F1F3F8",
+  lightGray:"#E9EDF7",
   // blue: '#2075D9',
   // skyBlue: '#295FC833',
   // yellow: '#FEEF06',

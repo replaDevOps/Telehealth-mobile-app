@@ -71,7 +71,7 @@ const Header2: React.FC<Header2Props> = ({
   return (
     <View style={styles.container}>
       {back && (
-        <TouchableOpacity style={styles.borderIcon} onPress={onBackPress}>
+        <TouchableOpacity style={styles.headerButton} onPress={onBackPress}>
           {useCancel ? (
             <Text style={styles.cancelText}>Cancel</Text>
           ) : (
@@ -137,7 +137,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     width: '100%',
-    paddingHorizontal: 10,
+    paddingHorizontal: mvs(15),
+    paddingVertical: mvs(10),
   },
   icon: {
     flexDirection: 'row',
@@ -146,11 +147,11 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     alignItems: 'center',
   },
-  borderIcon: {
-    padding: mvs(10),
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: '50%',
+  headerButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -160,7 +161,8 @@ const styles = StyleSheet.create({
   },
   text: {
     color: colors.black,
-    fontSize: 16,
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   cancelText: {
     fontSize: mvs(16),

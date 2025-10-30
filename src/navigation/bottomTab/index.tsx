@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { colors } from '../../styles/colors';
+import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 
 import {
   ClinicSvg,
@@ -36,7 +37,24 @@ export default function CustomTabBar() {
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarShowLabel: false,
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: (() => {
+          const routeName = getFocusedRouteNameFromRoute(route) ?? '';
+
+          // Only show tab bar on these screens:
+          const showTabScreens = [
+            'HomeScreen',
+            'ClinicScreen',
+            'HistoryScreen',
+            'SettingScreen',
+          ];
+
+          if (!showTabScreens.includes(routeName) && routeName !== '') {
+            return { display: 'none' };
+          }
+
+          return styles.tabBar;
+        })(),
+
         tabBarIcon: ({ focused }) => {
           let SvgComponent;
           let label = '';

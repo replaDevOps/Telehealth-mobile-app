@@ -1,20 +1,18 @@
 import React from 'react';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { StatusBar, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import AppNavigator from './src/navigation/root-navigation';
 import { colors } from './src/styles/colors';
 import { setGlobalFont } from './src/utils/overrideText';
-StatusBar.setBackgroundColor('transparent', true);
-StatusBar.setTranslucent(false);
 
 setGlobalFont();
 
 const App = () => {
   return (
     <SafeAreaProvider>
-      <SafeAreaView style={styles.safeArea}>
-        <AppNavigator />
-      </SafeAreaView>
+      {/* <SafeAreaView style={styles.safeArea}> */}
+      <AppNavigator />
+      {/* </SafeAreaView> */}
     </SafeAreaProvider>
   );
 };

@@ -11,6 +11,8 @@ interface ServiceCardProps {
   price: string;
   duration: string;
   onPress: () => void;
+  description?: string;
+  procedure?: string;
 }
 
 export const ServiceCard: React.FC<ServiceCardProps> = ({
@@ -20,6 +22,8 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
   serviceName,
   price,
   duration,
+  description,
+  procedure,
   onPress,
 }) => {
   return (

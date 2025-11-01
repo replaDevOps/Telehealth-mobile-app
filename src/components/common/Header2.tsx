@@ -4,7 +4,7 @@ import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { mvs } from '../../config/metrices';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { BackSvg } from '../../assets/icons';
+import { BackSvg, SingleLogo } from '../../assets/icons';
 import { colors } from '../../styles/colors';
 
 type RootStackParamList = {
@@ -31,6 +31,7 @@ interface Header2Props {
   handleDownload?: () => void;
   handleSave?: () => void;
   saveDisabled?: boolean;
+  logo?: boolean;
   handleBackPress?: () => void;
 }
 
@@ -53,6 +54,7 @@ const Header2: React.FC<Header2Props> = ({
   saveDisabled = false,
   handleBackPress,
   handleSkip,
+  logo = false,
 }) => {
   const navigation = useNavigation<NavigationProp>();
 
@@ -81,7 +83,11 @@ const Header2: React.FC<Header2Props> = ({
       )}
 
       <View style={styles.textc}>
-        <Text style={styles.text}>{title}</Text>
+        {logo ? (
+          <SingleLogo width={30} height={30} />
+        ) : (
+          <Text style={styles.text}>{title}</Text>
+        )}
       </View>
 
       {useSave ? (
@@ -102,8 +108,11 @@ const Header2: React.FC<Header2Props> = ({
         <TouchableOpacity style={styles.icon} onPress={handleSkip}>
           <Text style={styles.skipText}>Skip</Text>
         </TouchableOpacity>
-      ) : showCart && cartCount > 0 ? (
-        <TouchableOpacity style={styles.icon} onPress={handleNotification}>
+      ) : showCart ? (
+        <TouchableOpacity
+          style={styles.headerButton}
+          onPress={handleNotification}
+        >
           <View style={styles.cartContainer}>
             <Ionicons name="cart" size={25} color={colors.black} />
             <View style={styles.badge}>
@@ -154,6 +163,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   textc: {
     flex: 1,

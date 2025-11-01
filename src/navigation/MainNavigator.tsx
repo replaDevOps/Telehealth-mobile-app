@@ -7,6 +7,10 @@ import HistoryScreen from '@screens/ManageHistory';
 import SettingScreen from '@screens/ManageSetting';
 import { FilterScreen } from '@screens/ManageClinic/FilterScreen';
 import ClinicDetailScreen from '@screens/ManageClinic/ClinicDetail';
+import ChatOnboarding from '@screens/ManageClinic/ChatScreens/ChatOnboarding';
+import ChatScreen from '@screens/ManageClinic/ChatScreens/ChatScreen';
+import CheckoutScreen from '@screens/ManageClinic/Checkout';
+import CartScreen from '@screens/ManageClinic/Cart';
 export type MainStackParamList = {
   Home: undefined;
   Clinic: undefined;
@@ -44,6 +48,10 @@ export const ClinicNavigator = () => {
       <Stack.Screen name="ClinicScreen" component={ClinicScreen} />
       <Stack.Screen name="FilterScreen" component={FilterScreen} />
       <Stack.Screen name="ClinicDetail" component={ClinicDetailScreen} />
+      <Stack.Screen name="ChatOnboarding" component={ChatOnboarding} />
+      <Stack.Screen name="ChatScreen" component={ChatScreen} />
+      <Stack.Screen name="CheckoutScreen" component={CheckoutScreen} />
+      <Stack.Screen name="CartScreen" component={CartScreen} />
     </Stack.Navigator>
   );
 };

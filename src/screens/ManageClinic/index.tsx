@@ -6,6 +6,7 @@ import { mvs } from '@config/metrices';
 import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const ClinicScreen = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -54,7 +55,7 @@ const ClinicScreen = () => {
     // Add more clinics...
   ];
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Header2 title="Clinic" />
       <SearchServicesBar
         value={searchQuery}
@@ -78,7 +79,7 @@ const ClinicScreen = () => {
           onSeeAllPress={() => console.log('button is pressed')}
         />
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 

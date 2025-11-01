@@ -7,10 +7,10 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
 } from 'react-native';
 import { BackSvg } from '@assets/icons';
 import { mvs } from '@config/metrices';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface FilterState {
   clinicTypes: { [key: string]: boolean };

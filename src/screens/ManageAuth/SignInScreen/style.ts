@@ -2,7 +2,6 @@
 import { StyleSheet } from 'react-native';
 import { colors } from '../../../styles/colors';
 import { mvs } from '../../../config/metrices';
-import { CheckBox } from '@rneui/base';
 
 export const styles = StyleSheet.create({
   container: {

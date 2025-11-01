@@ -243,7 +243,7 @@ const ClinicDetailScreen = ({ navigation }) => {
 
   const handleChatPress = () => {
     console.log('Chat with Vena AI pressed');
-    // Navigate to AI chat screen
+    navigation.navigate('ChatOnboarding');
   };
   const handleAddToCart = service => {
     console.log('Added to cart:', service);

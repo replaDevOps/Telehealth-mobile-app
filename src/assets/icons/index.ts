@@ -19,5 +19,7 @@ export { default as StcPaySvg } from "./StcPaySvg";
 export { default as TamaraSvg } from "./TamaraSvg";
 export { default as TabbySvg } from "./TabbySvg";
 export { default as MastercardSvg } from "./MastercardSvg";
-
+export { default as ChatSvg } from "./ChatSvg";
+export { default as AudioSvg } from "./AudioSvg";
+export { default as VedioSvg } from "./VedioSvg";
 

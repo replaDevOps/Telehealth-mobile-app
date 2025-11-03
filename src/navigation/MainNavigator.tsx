@@ -11,6 +11,8 @@ import ChatOnboarding from '@screens/ManageClinic/ChatScreens/ChatOnboarding';
 import ChatScreen from '@screens/ManageClinic/ChatScreens/ChatScreen';
 import CheckoutScreen from '@screens/ManageClinic/Checkout';
 import CartScreen from '@screens/ManageClinic/Cart';
+import ChatConsultationPayment from '@screens/ManageClinic/ChatConsulationPayment';
+import { PrescriptionScreen } from '@screens/ManageClinic/PrescriptionScreen';
 export type MainStackParamList = {
   Home: undefined;
   Clinic: undefined;
@@ -52,6 +54,11 @@ export const ClinicNavigator = () => {
       <Stack.Screen name="ChatScreen" component={ChatScreen} />
       <Stack.Screen name="CheckoutScreen" component={CheckoutScreen} />
       <Stack.Screen name="CartScreen" component={CartScreen} />
+      <Stack.Screen
+        name="ChatConsultationPayment"
+        component={ChatConsultationPayment}
+      />
+      <Stack.Screen name="PrescriptionScreen" component={PrescriptionScreen} />
     </Stack.Navigator>
   );
 };

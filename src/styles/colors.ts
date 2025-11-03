@@ -7,7 +7,7 @@ export const colors = {
 
   neutral: '#2A2A2A',
   red: '#FB3748',
-  green: '#1FC16B ',
+  green: '#1FC16B',
   yellow:"#EBAD00",
   transparent: 'transparent',
   border: '#E2E2E2',

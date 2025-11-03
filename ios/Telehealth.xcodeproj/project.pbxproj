@@ -12,9 +12,9 @@
 		1A5C03C04E9243CBB61EC906 /* HelveticaNeueItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A80F961E02B54DE285985320 /* HelveticaNeueItalic.ttf */; };
 		24353B45C5F14D88A3F7C86A /* HelveticaNeueBlackItalic.otf in Resources */ = {isa = PBXBuildFile; fileRef = B4C6FBFF1A754AAAB5F61191 /* HelveticaNeueBlackItalic.otf */; };
 		24CFB6230AA14F849404689A /* HelveticaNeueBoldItalic.otf in Resources */ = {isa = PBXBuildFile; fileRef = 199CF1B8D4FE408AB6E4EB0A /* HelveticaNeueBoldItalic.otf */; };
-		266DD85EDEA91DFFE22AE968 /* libPods-Telehealth.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8B6601DEB0B40A256523D2B5 /* libPods-Telehealth.a */; };
 		2E4B981A599547EDA741F71C /* HelveticaNeueUltraLightItalic.otf in Resources */ = {isa = PBXBuildFile; fileRef = EF7351648A704026B6B5CA5B /* HelveticaNeueUltraLightItalic.otf */; };
 		422FED2037B348A2A4E4BA9C /* HelveticaNeueMedium.otf in Resources */ = {isa = PBXBuildFile; fileRef = 2BEF982D0EA942B7A7447248 /* HelveticaNeueMedium.otf */; };
+		59BDA0809BCA398D1046DAD4 /* libPods-Telehealth.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D9F0DA333ED35FF9F1AAC86F /* libPods-Telehealth.a */; };
 		68D470B5E15B4F978D01A7EE /* HelveticaNeueHeavy.otf in Resources */ = {isa = PBXBuildFile; fileRef = BF62E3BAE4A0442DACBCA43A /* HelveticaNeueHeavy.otf */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
@@ -44,17 +44,17 @@
 		3D5A63B12F574879A2D16D03 /* HelveticaNeueThin.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueThin.otf; path = ../src/assets/fonts/HelveticaNeueThin.otf; sourceTree = "<group>"; };
 		3FDB99F366B04FB5AF9857E5 /* HelveticaNeueHeavyItalic.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueHeavyItalic.otf; path = ../src/assets/fonts/HelveticaNeueHeavyItalic.otf; sourceTree = "<group>"; };
 		47D479C574A143E1860FBF50 /* HelveticaNeueThinItalic.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueThinItalic.otf; path = ../src/assets/fonts/HelveticaNeueThinItalic.otf; sourceTree = "<group>"; };
-		545D8A1168ADC63A40F29D87 /* Pods-Telehealth.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Telehealth.release.xcconfig"; path = "Target Support Files/Pods-Telehealth/Pods-Telehealth.release.xcconfig"; sourceTree = "<group>"; };
+		5E6D756AAD80EE8765E162FC /* Pods-Telehealth.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Telehealth.debug.xcconfig"; path = "Target Support Files/Pods-Telehealth/Pods-Telehealth.debug.xcconfig"; sourceTree = "<group>"; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = Telehealth/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = Telehealth/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		860318F928C948BFBA2EEC8C /* HelveticaNeueLight.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueLight.otf; path = ../src/assets/fonts/HelveticaNeueLight.otf; sourceTree = "<group>"; };
-		8B6601DEB0B40A256523D2B5 /* libPods-Telehealth.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-Telehealth.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		A0724F5E9C2D4E4197DE0368 /* HelveticaNeueMediumItalic.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueMediumItalic.otf; path = ../src/assets/fonts/HelveticaNeueMediumItalic.otf; sourceTree = "<group>"; };
-		A1AA8B851579CDF82A76062E /* Pods-Telehealth.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Telehealth.debug.xcconfig"; path = "Target Support Files/Pods-Telehealth/Pods-Telehealth.debug.xcconfig"; sourceTree = "<group>"; };
 		A80F961E02B54DE285985320 /* HelveticaNeueItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueItalic.ttf; path = ../src/assets/fonts/HelveticaNeueItalic.ttf; sourceTree = "<group>"; };
 		B4C6FBFF1A754AAAB5F61191 /* HelveticaNeueBlackItalic.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueBlackItalic.otf; path = ../src/assets/fonts/HelveticaNeueBlackItalic.otf; sourceTree = "<group>"; };
 		BF62E3BAE4A0442DACBCA43A /* HelveticaNeueHeavy.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueHeavy.otf; path = ../src/assets/fonts/HelveticaNeueHeavy.otf; sourceTree = "<group>"; };
+		D10BD3FDF94DD71EFEFD27F9 /* Pods-Telehealth.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Telehealth.release.xcconfig"; path = "Target Support Files/Pods-Telehealth/Pods-Telehealth.release.xcconfig"; sourceTree = "<group>"; };
 		D3C210EECC2A4DFE9FFC6643 /* HelveticaNeueRoman.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueRoman.otf; path = ../src/assets/fonts/HelveticaNeueRoman.otf; sourceTree = "<group>"; };
+		D9F0DA333ED35FF9F1AAC86F /* libPods-Telehealth.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-Telehealth.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		EF7351648A704026B6B5CA5B /* HelveticaNeueUltraLightItalic.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueUltraLightItalic.otf; path = ../src/assets/fonts/HelveticaNeueUltraLightItalic.otf; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -64,7 +64,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				266DD85EDEA91DFFE22AE968 /* libPods-Telehealth.a in Frameworks */,
+				59BDA0809BCA398D1046DAD4 /* libPods-Telehealth.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -87,7 +87,7 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				8B6601DEB0B40A256523D2B5 /* libPods-Telehealth.a */,
+				D9F0DA333ED35FF9F1AAC86F /* libPods-Telehealth.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -148,8 +148,8 @@
 		BBD78D7AC51CEA395F1C20DB /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				A1AA8B851579CDF82A76062E /* Pods-Telehealth.debug.xcconfig */,
-				545D8A1168ADC63A40F29D87 /* Pods-Telehealth.release.xcconfig */,
+				5E6D756AAD80EE8765E162FC /* Pods-Telehealth.debug.xcconfig */,
+				D10BD3FDF94DD71EFEFD27F9 /* Pods-Telehealth.release.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
@@ -161,13 +161,13 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "Telehealth" */;
 			buildPhases = (
-				8187F1278C47730B8A7696F6 /* [CP] Check Pods Manifest.lock */,
+				86196CF7B2E0C785DA492F77 /* [CP] Check Pods Manifest.lock */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
-				FA667F5AEB6C2B149C7B4660 /* [CP] Embed Pods Frameworks */,
-				0FD4B0571A2E57442C2CEF7C /* [CP] Copy Pods Resources */,
+				8A073674C012208BAC24519F /* [CP] Embed Pods Frameworks */,
+				7E88C4DE413F5C5C3B25C57C /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -255,7 +255,7 @@
 			shellPath = /bin/sh;
 			shellScript = "set -e\n\nWITH_ENVIRONMENT=\"$REACT_NATIVE_PATH/scripts/xcode/with-environment.sh\"\nREACT_NATIVE_XCODE=\"$REACT_NATIVE_PATH/scripts/react-native-xcode.sh\"\n\n/bin/sh -c \"$WITH_ENVIRONMENT $REACT_NATIVE_XCODE\"\n";
 		};
-		0FD4B0571A2E57442C2CEF7C /* [CP] Copy Pods Resources */ = {
+		7E88C4DE413F5C5C3B25C57C /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -272,7 +272,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Telehealth/Pods-Telehealth-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		8187F1278C47730B8A7696F6 /* [CP] Check Pods Manifest.lock */ = {
+		86196CF7B2E0C785DA492F77 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -294,7 +294,7 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		FA667F5AEB6C2B149C7B4660 /* [CP] Embed Pods Frameworks */ = {
+		8A073674C012208BAC24519F /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -327,7 +327,7 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = A1AA8B851579CDF82A76062E /* Pods-Telehealth.debug.xcconfig */;
+			baseConfigurationReference = 5E6D756AAD80EE8765E162FC /* Pods-Telehealth.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -355,7 +355,7 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 545D8A1168ADC63A40F29D87 /* Pods-Telehealth.release.xcconfig */;
+			baseConfigurationReference = D10BD3FDF94DD71EFEFD27F9 /* Pods-Telehealth.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;

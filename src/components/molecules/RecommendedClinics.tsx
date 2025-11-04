@@ -12,14 +12,13 @@ import { colors } from '../../styles/colors';
 import { mvs } from '../../config/metrices';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
-// Define the shape of a clinic item
 interface Clinic {
   id: string;
   name: string;
   specialty: string;
   rating: number | string;
   location: string;
-  image?: { uri: string } | number; // Can be remote URI or local require()
+  image?: { uri: string } | number;
   isFeatured?: boolean;
 }
 
@@ -35,7 +34,7 @@ interface RecommendedClinicsProps {
   onClinicPress: (clinic: Clinic) => void;
 }
 
-const ClinicCard: React.FC<ClinicCardProps> = ({ item, onPress }) => {
+const ClinicCard = ({ item, onPress }: ClinicCardProps) => {
   console.log('item: ', JSON.stringify(item, null, 4));
   return (
     <TouchableOpacity style={styles.card} onPress={() => onPress(item)}>
@@ -77,10 +76,10 @@ const ClinicCard: React.FC<ClinicCardProps> = ({ item, onPress }) => {
   );
 };
 
-const RecommendedClinics: React.FC<RecommendedClinicsProps> = ({
+const RecommendedClinics = ({
   clinics,
   onClinicPress,
-}) => {
+}: RecommendedClinicsProps) => {
   const renderItem: ListRenderItem<Clinic> = ({ item }) => (
     <ClinicCard item={item} onPress={onClinicPress} />
   );

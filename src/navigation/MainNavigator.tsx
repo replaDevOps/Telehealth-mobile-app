@@ -2,19 +2,22 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import CustomTabBar from './bottomTab';
 import { HomeScreen, NearbyClinics, SelectLocation } from '@screens';
-import ClinicScreen from '@screens/ManageClinic';
 import HistoryScreen from '@screens/ManageHistory';
 import SettingScreen from '@screens/ManageSetting';
-import { FilterScreen } from '@screens/ManageClinic/FilterScreen';
-import ClinicDetailScreen from '@screens/ManageClinic/ClinicDetail';
-import ChatOnboarding from '@screens/ManageClinic/ChatScreens/ChatOnboarding';
-import ChatScreen from '@screens/ManageClinic/ChatScreens/ChatScreen';
-import CheckoutScreen from '@screens/ManageClinic/Checkout';
-import CartScreen from '@screens/ManageClinic/Cart';
-import { AudioConsultation } from '@screens/ManageClinic/AudioConsultation';
-import { ConsultationPayment } from '@screens/ManageClinic/ConsulationPayment';
-import { PrescriptionScreen } from '@screens/ManageClinic/PrescriptionScreen';
-import { VideoConsultation } from '@screens/ManageClinic/VedioConultation';
+import {
+  FilterScreen,
+  ClinicDetailScreen,
+  CheckoutScreen,
+  CartScreen,
+  ConsultationPayment,
+  PrescriptionScreen,
+  AudioConsultation,
+  VideoConsultation,
+  ChatOnboarding,
+  ChatScreen,
+  ClinicScreen,
+} from '@screens/ManageClinic';
+
 export type MainStackParamList = {
   Home: undefined;
   Clinic: undefined;
@@ -23,7 +26,22 @@ export type MainStackParamList = {
   CustomTabBar: undefined;
 };
 
+export type ClinicStackParamList = {
+  ClinicScreen: undefined;
+  FilterScreen: undefined;
+  ClinicDetail: undefined;
+  ChatOnboarding: undefined;
+  ChatScreen: undefined;
+  CheckoutScreen: undefined;
+  CartScreen: undefined;
+  ConsultationPayment: undefined;
+  PrescriptionScreen: undefined;
+  AudioConsultation: undefined;
+  VideoConsultation: undefined;
+};
+
 const Stack = createNativeStackNavigator();
+const ClinicStack = createNativeStackNavigator<ClinicStackParamList>();
 
 export const MainNavigator = () => {
   return (
@@ -48,22 +66,34 @@ export const HomeNavigator = () => {
 
 export const ClinicNavigator = () => {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="ClinicScreen" component={ClinicScreen} />
-      <Stack.Screen name="FilterScreen" component={FilterScreen} />
-      <Stack.Screen name="ClinicDetail" component={ClinicDetailScreen} />
-      <Stack.Screen name="ChatOnboarding" component={ChatOnboarding} />
-      <Stack.Screen name="ChatScreen" component={ChatScreen} />
-      <Stack.Screen name="CheckoutScreen" component={CheckoutScreen} />
-      <Stack.Screen name="CartScreen" component={CartScreen} />
-      <Stack.Screen
+    <ClinicStack.Navigator
+      screenOptions={{ headerShown: false }}
+      initialRouteName="ClinicScreen"
+    >
+      <ClinicStack.Screen name="ClinicScreen" component={ClinicScreen} />
+      <ClinicStack.Screen name="FilterScreen" component={FilterScreen} />
+      <ClinicStack.Screen name="ClinicDetail" component={ClinicDetailScreen} />
+      <ClinicStack.Screen name="ChatOnboarding" component={ChatOnboarding} />
+      <ClinicStack.Screen name="ChatScreen" component={ChatScreen} />
+      <ClinicStack.Screen name="CheckoutScreen" component={CheckoutScreen} />
+      <ClinicStack.Screen name="CartScreen" component={CartScreen} />
+      <ClinicStack.Screen
         name="ConsultationPayment"
         component={ConsultationPayment}
       />
-      <Stack.Screen name="PrescriptionScreen" component={PrescriptionScreen} />
-      <Stack.Screen name="AudioConsultation" component={AudioConsultation} />
-      <Stack.Screen name="VideoConsultation" component={VideoConsultation} />
-    </Stack.Navigator>
+      <ClinicStack.Screen
+        name="PrescriptionScreen"
+        component={PrescriptionScreen}
+      />
+      <ClinicStack.Screen
+        name="AudioConsultation"
+        component={AudioConsultation}
+      />
+      <ClinicStack.Screen
+        name="VideoConsultation"
+        component={VideoConsultation}
+      />
+    </ClinicStack.Navigator>
   );
 };
 

@@ -4,7 +4,7 @@ import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { mvs } from '../../config/metrices';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { BackSvg, SingleLogo } from '../../assets/icons';
+import { BackSvg, ShopingCartSvg, SingleLogo } from '../../assets/icons';
 import { colors } from '../../styles/colors';
 
 type RootStackParamList = {
@@ -114,7 +114,7 @@ const Header2: React.FC<Header2Props> = ({
           onPress={handleNotification}
         >
           <View style={styles.cartContainer}>
-            <Ionicons name="cart" size={25} color={colors.black} />
+            <ShopingCartSvg />
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{cartCount}</Text>
             </View>

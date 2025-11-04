@@ -7,8 +7,6 @@ import RecommendedClinics from '../../../components/molecules/RecommendedClinics
 import NearbyClinics from '../../../components/molecules/ClinicListItem';
 import { NEARBYCLINICS, SAMPLECLINICS } from '@constants';
 
-// Type the props using NativeStackScreenProps
-
 export const HomeScreen = ({ navigation }) => {
   const handleLocationPress = () => {
     console.log('Location pressed');
@@ -27,7 +25,7 @@ export const HomeScreen = ({ navigation }) => {
     // navigation.navigate('Search');
   };
 
-  const handleQRPress = () => {
+  const handleSLPress = () => {
     navigation.navigate('SelectLocation');
   };
 
@@ -40,7 +38,7 @@ export const HomeScreen = ({ navigation }) => {
         onCartPress={handleCartPress}
         onNotificationPress={handleNotificationPress}
         onSearchPress={handleSearchPress}
-        onQRPress={handleQRPress}
+        onSLPress={handleSLPress}
         cartItemCount={4}
       />
 
@@ -57,11 +55,7 @@ export const HomeScreen = ({ navigation }) => {
 
         <NearbyClinics
           clinics={NEARBYCLINICS}
-          onClinicPress={(clinic: any) =>
-            // navigation.navigate('ClinicDetail', { clinic })
-            console.log(clinic)
-          }
-          onSeeAllPress={() => console.log('button is pressed')}
+          onClinicPress={(clinic: any) => console.log(clinic)}
         />
       </ScrollView>
     </View>

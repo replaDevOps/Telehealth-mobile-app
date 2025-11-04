@@ -1,26 +1,20 @@
-// src/components/SearchBarRow.tsx
 import React from 'react';
 import { View, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { colors } from '../../styles/colors'; // keep your own path
+import { colors } from '../../styles/colors';
 
 interface SearchBarRowProps {
-  /** Placeholder text inside the input */
   placeholder?: string;
-  /** Called when the whole search area is tapped */
+
   onSearchPress?: () => void;
-  /** Called when the QR/Filter button is tapped */
-  onQRPress?: () => void;
 }
 
 export const SearchBarRow: React.FC<SearchBarRowProps> = ({
   placeholder = 'Search clinic',
   onSearchPress,
-  onQRPress,
 }) => {
   return (
     <View style={styles.searchRow}>
-      {/* SEARCH INPUT (non-editable, just a tap target) */}
       <TouchableOpacity
         style={styles.searchContainer}
         onPress={onSearchPress}
@@ -30,8 +24,7 @@ export const SearchBarRow: React.FC<SearchBarRowProps> = ({
           style={styles.searchInput}
           placeholder={placeholder}
           placeholderTextColor="#999"
-          pointerEvents="none" // blocks native editing
-          // editable={false}          // optional – kept for clarity
+          onChangeText={onSearchPress}
         />
         <Ionicons
           name="search"
@@ -44,9 +37,6 @@ export const SearchBarRow: React.FC<SearchBarRowProps> = ({
   );
 };
 
-/* -------------------------------------------------
-   Styles – copied verbatim from your original file
-   ------------------------------------------------- */
 const styles = StyleSheet.create({
   searchRow: {
     flexDirection: 'row',
@@ -70,13 +60,5 @@ const styles = StyleSheet.create({
   },
   searchIcon: {
     marginLeft: 10,
-  },
-  qrButton: {
-    width: 50,
-    height: 50,
-    backgroundColor: '#FFF',
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 });

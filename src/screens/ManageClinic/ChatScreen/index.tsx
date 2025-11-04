@@ -1,4 +1,10 @@
-import { doctor, patient, PipsImage, RecommandImage } from '@assets/images';
+import {
+  doctor,
+  patient,
+  pimples,
+  PipsImage,
+  RecommandImage,
+} from '@assets/images';
 import { Header2 } from '@components/common/Header2';
 import React, { useState, useRef, useEffect } from 'react';
 import {
@@ -12,14 +18,15 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors } from '../../../../styles/colors';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import { ServiceDetailBottomSheet } from '@components/molecules';
 import ConsultationEndedModal from '@components/molecules/EndSectionModal';
+import { colors } from '../../../styles/colors';
+
 import { styles } from './style';
 
-export default function ChatScreen({ navigation, route }) {
+export function ChatScreen({ navigation, route }) {
   // Get chat configuration from route params
   const chatType = route?.params?.chatType || 'ai'; // 'ai' or 'doctor'
   const doctorInfo = route?.params?.doctorInfo || {
@@ -156,10 +163,7 @@ export default function ChatScreen({ navigation, route }) {
             hour: '2-digit',
             minute: '2-digit',
           }),
-          images: [
-            'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=200&h=200&fit=crop',
-            'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=200&h=200&fit=crop',
-          ],
+          images: [pimples, pimples],
         },
         {
           id: '4',
@@ -207,7 +211,6 @@ export default function ChatScreen({ navigation, route }) {
     setModalVisible(false);
     console.log('User wants to get the prescription');
     navigation.navigate('PrescriptionScreen');
-    // Navigate to prescription screen or trigger download
   };
 
   const handleServicePress = service => {

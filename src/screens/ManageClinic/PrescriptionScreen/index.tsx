@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import {
-  Dimensions,
   Image,
   ScrollView,
-  StyleSheet,
   View,
   Modal,
   ActivityIndicator,
@@ -13,9 +11,7 @@ import { CustomButton } from '@components/common/CustomButton';
 import { prescription } from '@assets/images';
 import { colors } from '../../../styles/colors';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { mvs } from '@config/metrices';
-
-const { width, height } = Dimensions.get('window');
+import { styles } from './style';
 
 export function PrescriptionScreen({ navigation }) {
   const [isLoading, setIsLoading] = useState(false);
@@ -62,32 +58,3 @@ export function PrescriptionScreen({ navigation }) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors?.white,
-  },
-  scrollContainer: {
-    flex: 1,
-  },
-  scrollContent: {
-    alignItems: 'center',
-  },
-  image: {
-    width: width * 0.9,
-    height: height * 0.8,
-    borderRadius: 12,
-  },
-  buttonContainer: {
-    backgroundColor: colors?.white,
-    paddingHorizontal: mvs(18),
-    paddingVertical: mvs(10),
-  },
-  loadingOverlay: {
-    flex: 1,
-    backgroundColor: '#15002E80',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-});

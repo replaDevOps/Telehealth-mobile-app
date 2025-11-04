@@ -5,12 +5,11 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Platform,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { colors } from '../../styles/colors';
 import LinearGradient from 'react-native-linear-gradient';
-import { FilterSvg } from '@assets/icons';
+import { FilterSvg, ShopingCartSvg } from '@assets/icons';
 
 interface HomeHeaderProps {
   location?: string;
@@ -19,20 +18,19 @@ interface HomeHeaderProps {
   onCartPress?: () => void;
   onNotificationPress?: () => void;
   onSearchPress?: () => void;
-  onQRPress?: () => void;
+  onSLPress?: () => void;
   cartItemCount?: number;
 }
 
-const HomeHeader: React.FC<HomeHeaderProps> = ({
+const HomeHeader = ({
   location = 'Makkah, Saudi Arabia',
-  country = 'Saudi Arabia',
   onLocationPress,
   onCartPress,
   onNotificationPress,
   onSearchPress,
-  onQRPress,
+  onSLPress,
   cartItemCount = 0,
-}) => {
+}: HomeHeaderProps) => {
   return (
     <LinearGradient
       colors={['#7625D7', '#591CA2', '#3E1371']}
@@ -41,7 +39,6 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
       style={styles.LinearGradientContainer}
     >
       <View style={styles.headerContainer}>
-        {/* Location and Icons Row */}
         <View style={styles.topRow}>
           <View style={styles.locationContainer}>
             <Text style={styles.locationLabel}>Location</Text>
@@ -57,21 +54,17 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
           </View>
 
           <View style={styles.iconContainer}>
-            {/* Cart Icon with Badge */}
             <TouchableOpacity
               style={styles.iconButton}
               onPress={onCartPress}
               activeOpacity={0.7}
             >
-              <Ionicons name="cart-outline" size={24} />
-              {cartItemCount > 0 && (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{cartItemCount}</Text>
-                </View>
-              )}
+              <ShopingCartSvg />
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{cartItemCount}</Text>
+              </View>
             </TouchableOpacity>
 
-            {/* Notification Icon */}
             <TouchableOpacity
               style={styles.iconButton}
               onPress={onNotificationPress}
@@ -82,7 +75,6 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
           </View>
         </View>
 
-        {/* Search Bar Row */}
         <View style={styles.searchRow}>
           <TouchableOpacity
             style={styles.searchContainer}
@@ -93,8 +85,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
               style={styles.searchInput}
               placeholder="Search clinic"
               placeholderTextColor="#999"
-              // editable={false}
-              pointerEvents="none"
+              onChangeText={onSearchPress}
             />
             <Ionicons
               name="search"
@@ -104,10 +95,9 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
             />
           </TouchableOpacity>
 
-          {/* QR Code Button */}
           <TouchableOpacity
-            style={styles.qrButton}
-            onPress={onQRPress}
+            style={styles.SLButton}
+            onPress={onSLPress}
             activeOpacity={0.7}
           >
             <FilterSvg />
@@ -208,7 +198,7 @@ const styles = StyleSheet.create({
   searchIcon: {
     marginLeft: 10,
   },
-  qrButton: {
+  SLButton: {
     width: 50,
     height: 50,
     backgroundColor: '#FFF',

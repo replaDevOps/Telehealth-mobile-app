@@ -13,6 +13,7 @@ import { CustomDropdown } from '@components/common/CustomDropdwon';
 import { colors } from '../../styles/colors';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { CustomButton } from '@components/common/CustomButton';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 type RootStackParamList = {
   ConsultationPayment: {
@@ -192,7 +193,7 @@ export default function ConsultDoctorBottomSheet({
                             {type.title}
                           </Text>
                           <View style={styles.durationContainer}>
-                            <Text style={styles.clockIcon}>🕐</Text>
+                            <Ionicons name="time-outline" size={20} />
                             <Text style={styles.duration}>{type.duration}</Text>
                           </View>
                         </View>

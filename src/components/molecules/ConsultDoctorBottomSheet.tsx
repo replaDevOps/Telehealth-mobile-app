@@ -15,8 +15,9 @@ import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { CustomButton } from '@components/common/CustomButton';
 
 type RootStackParamList = {
-  ChatConsultationPayment: {
+  ConsultationPayment: {
     consultationType: string;
+    consultationTypeId: 'chat' | 'audio' | 'video'; // Add this
     duration: string;
     price: string;
     serviceType: string;
@@ -89,8 +90,9 @@ export default function ConsultDoctorBottomSheet({
     // Simulate API call or processing delay
     setTimeout(() => {
       setIsLoading(false);
-      navigation.navigate('ChatConsultationPayment', {
+      navigation.navigate('ConsultationPayment', {
         consultationType: selected.title,
+        consultationTypeId: selected.id, // Pass the type ID
         duration: selected.duration,
         price: selected.price,
         serviceType: serviceType || 'General',
@@ -164,7 +166,7 @@ export default function ConsultDoctorBottomSheet({
                 placeholder="Select Service"
               />
 
-              {/* ---------- Consultation Type ---------- */}
+              {/* Consultation Type */}
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Consultation Type</Text>
                 {consultationTypes.map(type => {
@@ -190,7 +192,7 @@ export default function ConsultDoctorBottomSheet({
                             {type.title}
                           </Text>
                           <View style={styles.durationContainer}>
-                            <Text style={styles.clockIcon}>Clock</Text>
+                            <Text style={styles.clockIcon}>🕐</Text>
                             <Text style={styles.duration}>{type.duration}</Text>
                           </View>
                         </View>
@@ -220,10 +222,7 @@ export default function ConsultDoctorBottomSheet({
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    // backgroundColor: '',
-  },
+  overlay: { flex: 1 },
   overlayTouchable: { flex: 1 },
   bottomSheet: {
     backgroundColor: colors.white,
@@ -295,18 +294,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 12,
   },
-  iconContainerSelected: {
-    backgroundColor: '#ede9fe',
-  },
   consultationInfo: { flex: 1 },
   consultationTitle: {
     fontSize: 15,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 4,
-  },
-  consultationTitleSelected: {
-    color: colors.primary,
   },
   durationContainer: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   clockIcon: { fontSize: 11 },
@@ -316,37 +309,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.text,
   },
-  consultationPriceSelected: {
-    color: colors.primary,
-  },
-  findDoctorButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  findDoctorButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
   bottomSpacing: { height: 20 },
-  // Loading styles
   loadingOverlay: {
     flex: 1,
     backgroundColor: '#15002E80',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  loadingContainer: {
-    backgroundColor: colors.white,
-    padding: 30,
-    borderRadius: 16,
-    alignItems: 'center',
-    minWidth: 200,
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    textAlign: 'center',
   },
 });

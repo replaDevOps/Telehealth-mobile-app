@@ -13,10 +13,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../../../styles/colors';
 import { CustomButton } from '@components/common/CustomButton';
 import { ApplePaySvg, MastercardSvg, StcPaySvg } from '@assets/icons';
-import { RecommandImage } from '@assets/images';
+import { RecommandImage, doctor } from '@assets/images';
 import { styles } from './style';
 
-export default function ChatConsultationPayment({ navigation, route }) {
+export function ConsultationPayment({ navigation, route }) {
   const [selectedPayment, setSelectedPayment] = useState('credit');
   const [cardholderName, setCardholderName] = useState('');
   const [cardNumber, setCardNumber] = useState('');
@@ -26,6 +26,7 @@ export default function ChatConsultationPayment({ navigation, route }) {
 
   const consultationData = route?.params || {
     consultationType: 'Chat',
+    consultationTypeId: 'chat',
     duration: '30 Min',
     price: '20 SAR',
     serviceType: 'Derma',
@@ -33,37 +34,64 @@ export default function ChatConsultationPayment({ navigation, route }) {
     service: 'Impacted Surgical Exposure - Difficult',
   };
 
+  const consultationType = consultationData.consultationTypeId || 'chat';
+
   const handleConnectWithDoctor = () => {
-    console.log('Connecting with doctor...');
+    console.log('Connecting with doctor...', consultationType);
 
     setIsLoading(true);
 
     setTimeout(() => {
       setIsLoading(false);
-      navigation.navigate('ChatScreen', {
-        chatType: 'ai',
-      });
 
-      navigation.navigate('ChatScreen', {
-        chatType: 'doctor',
-        doctorInfo: {
-          id: 'doctor_1',
-          name: 'Dr. Sultan Khan',
-          avatar: '',
-        },
-        clinicInfo: {
-          name: 'Eden Medical Center',
-          location: 'Makkah, Saudi Arabia, 2.2km',
-          image: RecommandImage,
-        },
-      });
+      if (consultationType === 'chat') {
+        navigation.navigate('ChatScreen', {
+          chatType: 'doctor',
+          doctorInfo: {
+            id: 'doctor_1',
+            name: 'Dr. Sultan Khan',
+            avatar: 'https://i.pravatar.cc/150?img=12',
+          },
+          clinicInfo: {
+            name: 'Eden Medical Center',
+            location: 'Makkah, Saudi Arabia, 2.2km',
+            image: RecommandImage,
+          },
+        });
+      } else if (consultationType === 'audio') {
+        // Navigate to Audio Consultation
+        navigation.navigate('AudioConsultation', {
+          doctorInfo: {
+            name: 'Dr. Yasmin Chowdhury',
+            avatar: doctor,
+            specialization: 'Dermatologist',
+          },
+        });
+      } else if (consultationType === 'video') {
+        // Navigate to Video Consultation
+        navigation.navigate('VideoConsultation', {
+          doctorInfo: {
+            name: 'Dr. Yasmin Chowdhury',
+            avatar: doctor,
+            specialization: 'Dermatologist',
+          },
+        });
+      }
     }, 2000);
+  };
+
+  // Get dynamic title based on consultation type
+  const getHeaderTitle = () => {
+    if (consultationType === 'chat') return 'Chat Consultation';
+    if (consultationType === 'audio') return 'Audio Consultation';
+    if (consultationType === 'video') return 'Video Consultation';
+    return 'Consultation';
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <Header2 title="Chat Consultation" />
+      {/* Dynamic Header */}
+      <Header2 title={getHeaderTitle()} />
 
       <ScrollView
         style={styles.scrollView}
@@ -164,10 +192,10 @@ export default function ChatConsultationPayment({ navigation, route }) {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Cardholder Name</Text>
+                <Text style={styles.inputLabel}>Card Number</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Enter cardholder name"
+                  placeholder="Enter card number"
                   placeholderTextColor="#9ca3af"
                   value={cardNumber}
                   onChangeText={setCardNumber}
@@ -177,7 +205,7 @@ export default function ChatConsultationPayment({ navigation, route }) {
 
               <View style={styles.inputRow}>
                 <View style={[styles.inputGroup, styles.inputGroupHalf]}>
-                  <Text style={styles.inputLabel}>Cardholder Name</Text>
+                  <Text style={styles.inputLabel}>Expiry Date</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="01/2025"
@@ -189,7 +217,7 @@ export default function ChatConsultationPayment({ navigation, route }) {
                 </View>
 
                 <View style={[styles.inputGroup, styles.inputGroupHalf]}>
-                  <Text style={styles.inputLabel}>CVVName</Text>
+                  <Text style={styles.inputLabel}>CVV</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="000"
@@ -224,6 +252,7 @@ export default function ChatConsultationPayment({ navigation, route }) {
             <ApplePaySvg />
           </TouchableOpacity>
 
+          {/* STC Pay */}
           <TouchableOpacity
             style={[
               styles.paymentOption,
@@ -262,7 +291,7 @@ export default function ChatConsultationPayment({ navigation, route }) {
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color={colors.white} />
           <Text style={styles.loadingText}>
-            We’re finding a doctor for your consultation. This may take a
+            We're finding a doctor for your consultation. This may take a
             moment.
           </Text>
         </View>

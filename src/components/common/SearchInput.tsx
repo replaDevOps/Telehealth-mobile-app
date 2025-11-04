@@ -15,7 +15,7 @@ const SearchServicesBar: React.FC<SearchServicesBarProps> = ({
   value,
   onChangeText,
   onFilterPress,
-  placeholder = 'Search Services',
+  placeholder = 'Search Clinics',
 }) => {
   return (
     <View style={styles.container}>

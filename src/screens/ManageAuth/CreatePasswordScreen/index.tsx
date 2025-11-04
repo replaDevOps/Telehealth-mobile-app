@@ -9,6 +9,7 @@ import { CustomButton } from '../../../components/common/CustomButton';
 import { CustomTextInput } from '../../../components/common/CustomTextInput';
 import { AuthStackParamList } from '../../../navigation/AuthNavigator';
 import { styles } from './styles';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 type NavProps = StackNavigationProp<AuthStackParamList, 'CreatePassword'>;
 
@@ -59,48 +60,50 @@ export const CreatePassword: React.FC<Props> = ({ navigation }) => {
 
   return (
     <KeyboardAvoidScrollview>
-      <Header2 title="" showLanguage={true} />
+      <SafeAreaView style={{ flex: 1 }}>
+        <Header2 title="" showLanguage={true} />
 
-      <View style={styles.container}>
-        <View style={styles.logoContainer}>
-          <LogoSvg />
-        </View>
+        <View style={styles.container}>
+          <View style={styles.logoContainer}>
+            <LogoSvg />
+          </View>
 
-        <View style={styles.content}>
-          <CustomText text="Create Password" />
-        </View>
+          <View style={styles.content}>
+            <CustomText text="Create Password" />
+          </View>
 
-        <View style={styles.content}>
-          <Text style={styles.TextContent}>
-            Please create a strong password.
-          </Text>
-        </View>
+          <View style={styles.content}>
+            <Text style={styles.TextContent}>
+              Please create a strong password.
+            </Text>
+          </View>
 
-        <View style={styles.InputContainer}>
-          <CustomTextInput
-            label="Password"
-            placeholder="Enter your password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry={true}
-            errorMessage={error}
+          <View style={styles.InputContainer}>
+            <CustomTextInput
+              label="Password"
+              placeholder="Enter your password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={true}
+              errorMessage={error}
+            />
+            <CustomTextInput
+              label="Confirm Password"
+              placeholder="Confirm your password"
+              secureTextEntry
+              value={confirmPassword}
+              onChangeText={text => setConfirmPassword(text)}
+              errorMessage={error}
+            />
+          </View>
+
+          <CustomButton
+            title={loading ? 'Processing…' : 'Next'}
+            onPress={handleNext}
+            // disabled={loading}
           />
-          <CustomTextInput
-            label="Confirm Password"
-            placeholder="Confirm your password"
-            secureTextEntry
-            value={confirmPassword}
-            onChangeText={text => setConfirmPassword(text)}
-            errorMessage={error}
-          />
         </View>
-
-        <CustomButton
-          title={loading ? 'Processing…' : 'Next'}
-          onPress={handleNext}
-          // disabled={loading}
-        />
-      </View>
+      </SafeAreaView>
     </KeyboardAvoidScrollview>
   );
 };

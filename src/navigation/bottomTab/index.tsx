@@ -13,7 +13,7 @@ import {
   FClinicSvg,
   fSettingSvg,
   fHistorySvg,
-} from '../../assets/icons'; // Adjust the import path as needed
+} from '../../assets/icons';
 import {
   ClinicNavigator,
   HistoryNavigator,
@@ -40,7 +40,6 @@ export default function CustomTabBar() {
         tabBarStyle: (() => {
           const routeName = getFocusedRouteNameFromRoute(route) ?? '';
 
-          // Only show tab bar on these screens:
           const showTabScreens = [
             'HomeScreen',
             'ClinicScreen',
@@ -64,19 +63,16 @@ export default function CustomTabBar() {
               label = 'Home';
               break;
             case 'Clinic':
-              SvgComponent = ClinicSvg;
               SvgComponent = focused ? FClinicSvg : ClinicSvg;
 
               label = 'Clinic';
               break;
             case 'History':
-              SvgComponent = HistorySvg;
               SvgComponent = focused ? fHistorySvg : HistorySvg;
 
               label = 'History';
               break;
             case 'Setting':
-              SvgComponent = SettingSvg;
               SvgComponent = focused ? fSettingSvg : SettingSvg;
 
               label = 'Setting';

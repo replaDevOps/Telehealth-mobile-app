@@ -43,8 +43,8 @@ const ConsultationEndedModal: React.FC<ConsultationEndedModalProps> = ({
 
           {/* Description */}
           <Text style={styles.description}>
-            The consultation has ended and shared your prescription. You can
-            download it.
+            The consultation has ended. The doctor has shared your prescription.
+            You can download it now or anytime from your history.
           </Text>
 
           {/* Buttons */}
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: 14,
-    color: colors.text,
+    color: colors.secondaryText,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 24,

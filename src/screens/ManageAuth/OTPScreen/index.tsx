@@ -16,6 +16,7 @@ import CustomText from '../../../components/common/CustomText';
 import { CustomButton } from '../../../components/common/CustomButton';
 
 import { AuthStackParamList } from '../../../navigation/AuthNavigator';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 type NavProps = StackNavigationProp<AuthStackParamList, 'OTPScreen'>;
 type RouteProps = RouteProp<AuthStackParamList, 'OTPScreen'>;
@@ -60,52 +61,54 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
 
   return (
     <KeyboardAvoidScrollview>
-      <Header2 title="" showLanguage={true} />
+      <SafeAreaView style={{ flex: 1 }}>
+        <Header2 title="" showLanguage={true} />
 
-      <View style={styles.container}>
-        <View style={styles.logoContainer}>
-          <LogoSvg />
+        <View style={styles.container}>
+          <View style={styles.logoContainer}>
+            <LogoSvg />
+          </View>
+
+          <View style={styles.title}>
+            <CustomText text="OTP Code" />
+          </View>
+
+          <View style={styles.content}>
+            <Text style={styles.TextContent}>
+              Enter the 5 digit OTP code sent to your email{' '}
+              {route.params?.email ?? '+91****4@gmail.com'}.
+            </Text>
+          </View>
+
+          <View style={styles.inputContainer}>
+            {Array.from({ length: 5 }).map((_, idx) => (
+              <TextInput
+                key={idx}
+                ref={inputRefs.current[idx] ?? undefined}
+                style={styles.inputBox}
+                maxLength={1}
+                keyboardType="numeric"
+                onChangeText={t => handleChangeText(t, idx)}
+                value={inputValues[idx]}
+                autoFocus={idx === 0 && isFocused}
+              />
+            ))}
+          </View>
+
+          <CustomButton
+            title={loading ? 'Verifying…' : 'Confirm'}
+            onPress={handleNext}
+            // disabled={!loading}
+          />
+
+          <View style={styles.signinRow}>
+            <Text style={styles.TextContent}>Didn’t receive code? </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('SignIn')}>
+              <Text style={styles.signinLink}>Resend Code</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-
-        <View style={styles.title}>
-          <CustomText text="OTP Code" />
-        </View>
-
-        <View style={styles.content}>
-          <Text style={styles.TextContent}>
-            Enter the 5 digit OTP code sent to your email{' '}
-            {route.params?.email ?? '+91****4@gmail.com'}.
-          </Text>
-        </View>
-
-        <View style={styles.inputContainer}>
-          {Array.from({ length: 5 }).map((_, idx) => (
-            <TextInput
-              key={idx}
-              ref={inputRefs.current[idx] ?? undefined}
-              style={styles.inputBox}
-              maxLength={1}
-              keyboardType="numeric"
-              onChangeText={t => handleChangeText(t, idx)}
-              value={inputValues[idx]}
-              autoFocus={idx === 0 && isFocused}
-            />
-          ))}
-        </View>
-
-        <CustomButton
-          title={loading ? 'Verifying…' : 'Confirm'}
-          onPress={handleNext}
-          // disabled={!loading}
-        />
-
-        <View style={styles.signinRow}>
-          <Text style={styles.TextContent}>Didn’t receive code? </Text>
-          <TouchableOpacity onPress={() => navigation.navigate('SignIn')}>
-            <Text style={styles.signinLink}>Resend Code</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      </SafeAreaView>
     </KeyboardAvoidScrollview>
   );
 };

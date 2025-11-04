@@ -3,6 +3,7 @@ import SearchServicesBar from '@components/common/SearchInput';
 import NearbyClinics from '@components/molecules/ClinicListItem';
 import RecommendedClinics from '@components/molecules/RecommendedClinics';
 import { mvs } from '@config/metrices';
+import { NEARBYCLINICS, SAMPLECLINICS } from '@constants/appData';
 import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
@@ -12,48 +13,6 @@ const ClinicScreen = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const navigation = useNavigation();
 
-  const sampleClinics = [
-    {
-      id: '1',
-      name: 'Eden Medical Center',
-      specialty: 'Dermatology',
-      rating: 4.5,
-      location: 'Makkah, Saudi Arabia',
-      image: require('@assets/images/recommandationImage.jpg'),
-      isFeatured: true,
-    },
-    {
-      id: '2',
-      name: 'Eden Medical Center',
-      specialty: 'Dermatology',
-      rating: 4.5,
-      location: 'Makkah, Saudi Arabia',
-      image: require('@assets/images/recommandationImage.jpg'),
-      isFeatured: true,
-    },
-    // Add more clinics...
-  ];
-
-  const nearbyClinics = [
-    {
-      id: '1',
-      name: 'Eden Medical Center',
-      specialty: 'Dermatology',
-      rating: 4.5,
-      location: 'Makkah, Saudi Arabia',
-      image: require('@assets/images/recommandationImage.jpg'),
-    },
-
-    {
-      id: '2',
-      name: 'Eden Center',
-      specialty: 'Dermatology',
-      rating: 4.9,
-      location: 'Makkah, Saudi Arabia',
-      image: require('@assets/images/recommandationImage.jpg'),
-    },
-    // Add more clinics...
-  ];
   return (
     <SafeAreaView style={styles.container}>
       <Header2 title="Clinic" />
@@ -64,14 +23,14 @@ const ClinicScreen = () => {
       />
       <ScrollView style={styles.content}>
         <RecommendedClinics
-          clinics={sampleClinics}
+          clinics={SAMPLECLINICS}
           onClinicPress={clinic =>
             navigation.navigate('ClinicDetail', { clinic })
           }
         />
 
         <NearbyClinics
-          clinics={nearbyClinics}
+          clinics={NEARBYCLINICS}
           onClinicPress={(clinic: any) =>
             // navigation.navigate('ClinicDetail', { clinic })
             console.log(clinic)

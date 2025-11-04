@@ -5,7 +5,7 @@ import { colors } from '../../../../../styles/colors';
 export const styles = StyleSheet.create({
   containner: {
     flex: 1,
-    gap: mvs(110),
+    gap: mvs(80),
     alignItems: 'center',
     padding: mvs(20),
   },

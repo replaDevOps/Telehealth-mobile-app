@@ -303,7 +303,7 @@ const ClinicDetailScreen = ({ navigation }) => {
               value={searchQuery}
               onChangeText={setSearchQuery}
               onFilterPress={handleFilterPress}
-              placeholder="Search Services"
+              placeholder="Search Clinics"
             />
 
             {/* Services List */}

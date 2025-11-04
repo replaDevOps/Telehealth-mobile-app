@@ -5,7 +5,13 @@ import { mvs } from '../../../config/metrices';
 
 export const styles = StyleSheet.create({
     container: {
-        flex: 1,
-        backgroundColor: colors.white
+         backgroundColor: colors.green,
+         flex:1,
+        justifyContent: 'center',
+        alignItems: 'center',
+      },
+      text: {
+        color: 'black',
+        fontSize: 42,
       },
 });

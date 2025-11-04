@@ -7,6 +7,7 @@ import { FeatureItem } from './Components';
 import { ONBOARDING_STEPS } from '../../../constants';
 import { mvs } from '../../../config/metrices';
 import { colors } from '../../../styles/colors';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export function OnboardingScreen({ navigation }: any) {
   const handleNext = () => {
@@ -20,50 +21,52 @@ export function OnboardingScreen({ navigation }: any) {
 
   const activeStep = ONBOARDING_STEPS[currentStep];
   return (
-    <View style={{ ...styles.container }}>
-      <Header2
-        title=""
-        back={true}
-        useSkip={true}
-        handleSkip={() => console.log('Skip pressed')}
-        handleBackPress={() => {
-          if (currentStep === 0) {
-            navigation.goBack();
-          } else {
-            setCurrentStep(prev => --prev);
-          }
-        }}
-      />
+    <SafeAreaView style={{ flex: 1 }}>
+      <View style={{ ...styles.container }}>
+        <Header2
+          title=""
+          back={true}
+          useSkip={true}
+          handleSkip={() => console.log('Skip pressed')}
+          handleBackPress={() => {
+            if (currentStep === 0) {
+              navigation.goBack();
+            } else {
+              setCurrentStep(prev => --prev);
+            }
+          }}
+        />
 
-      <FeatureItem
-        title={activeStep?.title}
-        content={activeStep?.content}
-        imgSrc={activeStep?.imgSrc}
-      />
+        <FeatureItem
+          title={activeStep?.title}
+          content={activeStep?.content}
+          imgSrc={activeStep?.imgSrc}
+        />
 
-      <View
-        style={{
-          flexDirection: 'row',
-          justifyContent: 'center',
-          marginVertical: mvs(20),
-        }}
-      >
-        {ONBOARDING_STEPS.map((_, index) => (
-          <View
-            key={index}
-            style={{
-              width: mvs(30),
-              height: mvs(5),
-              borderRadius: mvs(3),
-              marginHorizontal: mvs(5),
-              backgroundColor:
-                index === currentStep ? colors.primary : colors.border,
-            }}
-          />
-        ))}
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'center',
+            marginVertical: mvs(20),
+          }}
+        >
+          {ONBOARDING_STEPS.map((_, index) => (
+            <View
+              key={index}
+              style={{
+                width: mvs(30),
+                height: mvs(5),
+                borderRadius: mvs(3),
+                marginHorizontal: mvs(5),
+                backgroundColor:
+                  index === currentStep ? colors.primary : colors.border,
+              }}
+            />
+          ))}
+        </View>
+
+        <CustomButton title="Next" onPress={handleNext} disabled={false} />
       </View>
-
-      <CustomButton title="Next" onPress={handleNext} disabled={false} />
-    </View>
+    </SafeAreaView>
   );
 }

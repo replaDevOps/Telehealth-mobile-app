@@ -1,10 +1,11 @@
 import React from 'react';
-import { View, ScrollView, StyleSheet } from 'react-native';
+import { View, ScrollView, StyleSheet, StatusBar } from 'react-native';
 import HomeHeader from '../../../components/molecules/HomeHeadder';
 import { colors } from '../../../styles/colors';
 import { mvs } from '../../../config/metrices';
 import RecommendedClinics from '../../../components/molecules/RecommendedClinics';
 import NearbyClinics from '../../../components/molecules/ClinicListItem';
+import { NEARBYCLINICS, SAMPLECLINICS } from '@constants';
 
 // Type the props using NativeStackScreenProps
 
@@ -30,59 +31,9 @@ export const HomeScreen = ({ navigation }) => {
     navigation.navigate('SelectLocation');
   };
 
-  const sampleClinics = [
-    {
-      id: '1',
-      name: 'Eden Medical Center',
-      specialty: 'Dermatology',
-      rating: 4.5,
-      location: 'Makkah, Saudi Arabia',
-      image: require('@assets/images/recommandationImage.jpg'),
-      isFeatured: true,
-    },
-    {
-      id: '2',
-      name: 'Eden Medical Center',
-      specialty: 'Dermatology',
-      rating: 4.5,
-      location: 'Makkah, Saudi Arabia',
-      image: require('@assets/images/recommandationImage.jpg'),
-      isFeatured: true,
-    },
-    // Add more clinics...
-  ];
-
-  const nearbyClinics = [
-    {
-      id: '1',
-      name: 'Eden Medical Center',
-      specialty: 'Dermatology',
-      rating: 4.5,
-      location: 'Makkah, Saudi Arabia',
-      image: require('@assets/images/recommandationImage.jpg'),
-    },
-
-    {
-      id: '2',
-      name: 'Eden Center',
-      specialty: 'Dermatology',
-      rating: 4.9,
-      location: 'Makkah, Saudi Arabia',
-      image: require('@assets/images/recommandationImage.jpg'),
-    },
-    {
-      id: '3',
-      name: 'Eden Center',
-      specialty: 'Dermatology',
-      rating: 4.9,
-      location: 'Makkah, Saudi Arabia',
-      image: require('@assets/images/recommandationImage.jpg'),
-    },
-    // Add more clinics...
-  ];
-
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
       <HomeHeader
         location="Makkah, Saudi Arabia"
         onLocationPress={handleLocationPress}
@@ -95,15 +46,17 @@ export const HomeScreen = ({ navigation }) => {
 
       <ScrollView style={styles.content}>
         <RecommendedClinics
-          clinics={sampleClinics}
+          clinics={SAMPLECLINICS}
           onClinicPress={clinic =>
-            // navigation.navigate('ClinicDetail', { clinic })
-            console.log(clinic)
+            navigation.navigate('Clinic', {
+              screen: 'ClinicDetail',
+              params: { clinic },
+            })
           }
         />
 
         <NearbyClinics
-          clinics={nearbyClinics}
+          clinics={NEARBYCLINICS}
           onClinicPress={(clinic: any) =>
             // navigation.navigate('ClinicDetail', { clinic })
             console.log(clinic)

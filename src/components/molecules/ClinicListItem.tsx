@@ -48,7 +48,13 @@ const ClinicListItem: React.FC<ClinicListItemProps> = ({ item, onPress }) => {
         />
 
         <View style={styles.clinicInfo}>
-          <View style={{ flexDirection: 'row', gap: '30%' }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
             <Text style={styles.specialtyText}>{item.specialty}</Text>
 
             <View style={styles.ratingContainer}>
@@ -72,12 +78,7 @@ const ClinicListItem: React.FC<ClinicListItemProps> = ({ item, onPress }) => {
   );
 };
 
-// NearbyClinics Component
-const NearbyClinics = ({
-  clinics,
-  onClinicPress,
-  onSeeAllPress,
-}: NearbyClinicsProps) => {
+const NearbyClinics = ({ clinics, onClinicPress }: NearbyClinicsProps) => {
   const renderItem: ListRenderItem<Clinic> = ({ item }) => (
     <ClinicListItem item={item} onPress={onClinicPress} />
   );
@@ -86,12 +87,6 @@ const NearbyClinics = ({
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Nearby Clinic</Text>
-        {/* Uncomment when you implement See All */}
-        {/* <TouchableOpacity onPress={onSeeAllPress} style={styles.seeAllButton}>
-          <View style={styles.seeAllBadge}>
-            <Text style={styles.seeAllText}>→</Text>
-          </View>
-        </TouchableOpacity> */}
       </View>
 
       <FlatList

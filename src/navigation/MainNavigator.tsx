@@ -2,7 +2,6 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import CustomTabBar from './bottomTab';
 import { HomeScreen, NearbyClinics, SelectLocation } from '@screens';
-import HistoryScreen from '@screens/ManageHistory';
 import SettingScreen from '@screens/ManageSetting';
 import {
   FilterScreen,
@@ -17,6 +16,7 @@ import {
   ChatScreen,
   ClinicScreen,
 } from '@screens/ManageClinic';
+import { HistoryScreen, CardDetails } from '@screens/ManageHistory';
 
 export type MainStackParamList = {
   Home: undefined;
@@ -99,8 +99,12 @@ export const ClinicNavigator = () => {
 
 export const HistoryNavigator = () => {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator
+      screenOptions={{ headerShown: false }}
+      initialRouteName="HistoryScreen"
+    >
       <Stack.Screen name="HistoryScreen" component={HistoryScreen} />
+      <Stack.Screen name="CardDetails" component={CardDetails} />
     </Stack.Navigator>
   );
 };

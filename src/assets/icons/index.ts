@@ -22,4 +22,5 @@ export { default as MastercardSvg } from "./MastercardSvg";
 export { default as ChatSvg } from "./ChatSvg";
 export { default as AudioSvg } from "./AudioSvg";
 export { default as VedioSvg } from "./VedioSvg";
+export { default as RatingSvg } from "./RatingSvg";
 

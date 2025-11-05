@@ -33,6 +33,7 @@ export function ChatScreen({ navigation, route }) {
     id: 'doctor_1',
     name: 'Dr. Sultan Khan',
     avatar: 'https://i.pravatar.cc/150?img=33',
+    serviceName: '',
   };
   const clinicInfo = route?.params?.clinicInfo || {
     name: 'Eden Medical Center',
@@ -283,16 +284,22 @@ export function ChatScreen({ navigation, route }) {
         </TouchableOpacity>
         <View style={styles.doctorHeaderCenter}>
           <Text style={styles.doctorName}>{doctorInfo.name}</Text>
-          {isConsultationActive && (
+          {!doctorInfo.serviceName ? (
             <Text style={styles.consultationTime}>{consultationTime}</Text>
+          ) : (
+            <Text style={styles.consultationTime}>
+              {doctorInfo.serviceName}
+            </Text>
           )}
         </View>
-        <TouchableOpacity
-          style={styles.endButton}
-          onPress={handleEndConsultation}
-        >
-          <Text style={styles.endButtonText}>End</Text>
-        </TouchableOpacity>
+        {!doctorInfo.serviceName && (
+          <TouchableOpacity
+            style={styles.endButton}
+            onPress={handleEndConsultation}
+          >
+            <Text style={styles.endButtonText}>End</Text>
+          </TouchableOpacity>
+        )}
       </View>
     );
   };

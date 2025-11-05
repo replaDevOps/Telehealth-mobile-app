@@ -12,6 +12,7 @@ export * from './DeviceDetailBottomSheet'
 export * from './ConsultDoctorBottomSheet'
 export * from './EndSectionModal'
 export * from './NoResponseModal'
+export * from './RatingBottomSheet'
 
 
 

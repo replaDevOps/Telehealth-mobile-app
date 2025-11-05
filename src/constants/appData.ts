@@ -331,3 +331,133 @@ export const SERVICES = [
       },
     ],
   };
+
+
+  export const CONSULTATION_HISTORY= [
+      {
+        id: '1',
+        date: '10/02/2025 11:05 am',
+        serviceName: 'Service Name',
+        duration: '19 min',
+        type: 'Chat',
+        icon: 'chatbubble',
+        doctorName: 'Doctor Name',
+        doctorAvatar: 'https://i.pravatar.cc/100?img=1',
+        clinicName: 'Clinic Name',
+        price: 'SAR 20',
+      },
+      {
+        id: '2',
+        date: '10/02/2025 11:05 am',
+        serviceName: 'Service Name',
+        duration: '19 min',
+        type: 'Audio',
+        icon: 'mic',
+        doctorName: 'Doctor Name',
+        doctorAvatar: 'https://i.pravatar.cc/100?img=2',
+        clinicName: 'Clinic Name',
+        price: 'SAR 20',
+      },
+      // add more …
+    ];
+  
+   export const PAYMENT_HISTORY = [
+      // ---- Consultation ----
+      {
+        id: 'c1',
+        kind: 'consultation',
+        date: '10/02/2025',
+        paymentId: '#12453',
+        type: 'Chat',
+        serviceName: 'Acne Itching Treatm...',
+        doctorStatus: 'No doctor accepted!',
+        clinicName: 'Clinic Name',
+        price: 'SAR 20',
+        status: 'Refund',
+        statusColor: '#ef4444',
+      },
+      {
+        id: 'c2',
+        kind: 'consultation',
+        date: '10/02/2025',
+        paymentId: '#21234',
+        type: 'Video',
+        duration: '19 min',
+        serviceName: 'Acne Itching Treatm...',
+        doctorName: 'Doctor Name',
+        doctorAvatar: 'https://i.pravatar.cc/100?img=4',
+        clinicName: 'Clinic Name',
+        price: 'SAR 20',
+        status: 'Paid',
+        statusColor: '#10b981',
+      },
+  
+      // ---- Appointment ----
+      {
+        id: 'a1',
+        kind: 'appointment',
+        date: '10/02/2025',
+        paymentId: 'Appt. ID',
+        clinicImg: true,
+        clinicName: 'Clinic Name',
+        clinicLocation: 'Clinic location',
+        numberOfService: '03',
+        price: 'SAR 20',
+        status: 'Refund',
+        statusColor: '#ef4444',
+        services: [
+          {
+            id: 1,
+            name: 'Acne Treatment',
+            duration: '40 min',
+            price: '200 SAR',
+            category: 'Dental',
+            categoryBadge: 'Enaqa Name',
+            image: PipsImage,
+          },
+          {
+            id: 2,
+            name: 'Teeth Whiting',
+            duration: '40 min',
+            price: '200 SAR',
+            category: 'Dental',
+            categoryBadge: 'Group Name',
+            image: PipsImage,
+          },
+        ],
+      },
+      {
+        id: 'a2',
+        kind: 'appointment',
+        date: '10/02/2025',
+        paymentId: '#23231',
+        clinicImg: true,
+        clinicName: 'Clinic Name',
+        clinicLocation: 'Clinic location',
+        numberOfService: '03',
+        price: 'SAR 20',
+        status: 'Paid',
+        statusColor: '#10b981',
+        services: [
+          {
+            id: 1,
+            name: 'Acne Treatment',
+            duration: '40 min',
+            price: '200 SAR',
+            category: 'Dental',
+            categoryBadge: 'Enaqa Name',
+            image: PipsImage,
+          },
+          {
+            id: 2,
+            name: 'Teeth Whiting',
+            duration: '40 min',
+            price: '200 SAR',
+            category: 'Dental',
+            categoryBadge: 'Group Name',
+            image: PipsImage,
+          },
+        ],
+      },
+    ];
+  

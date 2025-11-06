@@ -2,7 +2,6 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import CustomTabBar from './bottomTab';
 import { HomeScreen, NearbyClinics, SelectLocation } from '@screens';
-import SettingScreen from '@screens/ManageSetting';
 import {
   FilterScreen,
   ClinicDetailScreen,
@@ -13,10 +12,18 @@ import {
   AudioConsultation,
   VideoConsultation,
   ChatOnboarding,
-  ChatScreen,
   ClinicScreen,
 } from '@screens/ManageClinic';
 import { HistoryScreen, CardDetails } from '@screens/ManageHistory';
+import { RefundRequest } from '@screens/ManageHistory/RefundRequest';
+import {
+  ChangePassword,
+  FAQs,
+  ProfileSetting,
+  RefundRequest2,
+  SettingScreen,
+} from '@screens/ManageSetting';
+import { ChatScreen } from '@screens/ManageClinic/ChatScreen';
 
 export type MainStackParamList = {
   Home: undefined;
@@ -105,6 +112,7 @@ export const HistoryNavigator = () => {
     >
       <Stack.Screen name="HistoryScreen" component={HistoryScreen} />
       <Stack.Screen name="CardDetails" component={CardDetails} />
+      <Stack.Screen name="Refund" component={RefundRequest} />
     </Stack.Navigator>
   );
 };
@@ -113,6 +121,10 @@ export const SettingNavigator = () => {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="SettingScreen" component={SettingScreen} />
+      <Stack.Screen name="ProfileSetting" component={ProfileSetting} />
+      <Stack.Screen name="ChangePassword" component={ChangePassword} />
+      <Stack.Screen name="FAQs" component={FAQs} />
+      <Stack.Screen name="RefundRequest2" component={RefundRequest2} />
     </Stack.Navigator>
   );
 };

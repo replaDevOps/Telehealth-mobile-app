@@ -13,7 +13,7 @@ export function OnboardingScreen({ navigation }: any) {
   const handleNext = () => {
     console.log('Next button pressed');
     setCurrentStep(prev =>
-      prev === 2 ? navigation.navigate('SignUp') : ++prev,
+      prev === 2 ? navigation.navigate('SignIn') : ++prev,
     );
   };
 

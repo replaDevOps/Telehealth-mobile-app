@@ -1,12 +1,10 @@
-import {
-  doctor,
-  patient,
-  pimples,
-  PipsImage,
-  RecommandImage,
-} from '@assets/images';
-import { Header2 } from '@components/common/Header2';
-import React, { useState, useRef, useEffect } from 'react';
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useMemo,
+  useCallback,
+} from 'react';
 import {
   View,
   Text,
@@ -20,55 +18,88 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
+
+import { Header2 } from '@components/common/Header2';
 import { ServiceDetailBottomSheet } from '@components/molecules';
-import ConsultationEndedModal from '@components/molecules/EndSectionModal';
 import { colors } from '../../../styles/colors';
-
 import { styles } from './style';
+import {
+  doctor,
+  patient,
+  pimples,
+  PipsImage,
+  RecommandImage,
+} from '@assets/images';
+import ConsultationEndedModal from '@components/molecules/EndSectionModal';
+import { launchImageLibrary } from 'react-native-image-picker';
 
+// ---------- Types ----------
+type Message = {
+  id: string;
+  type: 'user' | 'bot';
+  text: string;
+  timestamp: string;
+  user?: { name: string; avatar: any };
+  images?: any[];
+  suggestions?: Service[];
+};
+
+type Service = {
+  id: string;
+  image: any;
+  type: string;
+  serviceGroup: string;
+  serviceName: string;
+  price: string;
+  duration: string;
+  description: string;
+  procedure: string;
+};
+
+// ---------- Main Component ----------
 export function ChatScreen({ navigation, route }) {
-  // Get chat configuration from route params
-  const chatType = route?.params?.chatType || 'ai'; // 'ai' or 'doctor'
+  const chatType: 'ai' | 'doctor' = route?.params?.chatType || 'ai';
+
   const doctorInfo = route?.params?.doctorInfo || {
     id: 'doctor_1',
     name: 'Dr. Sultan Khan',
-    avatar: 'https://i.pravatar.cc/150?img=33',
+    avatar: doctor,
     serviceName: '',
   };
+
   const clinicInfo = route?.params?.clinicInfo || {
     name: 'Eden Medical Center',
-    location: 'Makkah, Saudi Arabia, 2.2km',
+    location: 'Madina, Saudi Arabia, 2.2km',
     image: RecommandImage,
   };
 
+  // ---------- State ----------
   const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [serviceDetailVisible, setServiceDetailVisible] = useState(false);
-  const [selectedService, setSelectedService] = useState(null);
-  // 30-minute countdown timer (in seconds)
   const [remainingSeconds, setRemainingSeconds] = useState(30 * 60);
   const [isConsultationActive, setIsConsultationActive] = useState(
     chatType === 'doctor',
   );
   const [modalVisible, setModalVisible] = useState(false);
 
-  const scrollViewRef = useRef(null);
+  const scrollRef = useRef<ScrollView>(null);
 
+  // ---------- Lifecycle ----------
   useEffect(() => {
-    // Initialize messages based on chat type
-    const initialMessages = getInitialMessages();
-    setMessages(initialMessages);
+    setMessages(getInitialMessages(chatType, doctorInfo));
   }, [chatType]);
 
   useEffect(() => {
-    if (!isConsultationActive || chatType !== 'doctor') return;
+    if (chatType !== 'doctor' || !isConsultationActive) return;
 
     const timer = setInterval(() => {
       setRemainingSeconds(prev => {
         if (prev <= 1) {
           clearInterval(timer);
           setIsConsultationActive(false);
-          setModalVisible(true); // auto end consultation when time is up
+          setModalVisible(true);
           return 0;
         }
         return prev - 1;
@@ -78,183 +109,87 @@ export function ChatScreen({ navigation, route }) {
     return () => clearInterval(timer);
   }, [isConsultationActive, chatType]);
 
-  const getInitialMessages = () => {
-    if (chatType === 'doctor') {
-      return [
-        {
-          id: '1',
-          type: 'bot',
-          text: 'Hello',
-          timestamp: '3:20 PM',
-          user: {
-            name: doctorInfo.name,
-            avatar: doctor,
-          },
-        },
-        {
-          id: '2',
+  const handleImagePick = () => {
+    const options = {
+      mediaType: 'photo',
+      quality: 0.8,
+      selectionLimit: 1,
+    };
+
+    launchImageLibrary(options, response => {
+      if (response.didCancel) {
+        console.log('User cancelled image picker');
+        return;
+      }
+      if (response.errorCode) {
+        console.log('Image Picker Error: ', response.errorMessage);
+        return;
+      }
+
+      if (response.assets && response.assets.length > 0) {
+        const imageUri = response.assets[0].uri;
+
+        // create message with correct structure
+        const newMessage: Message = {
+          id: Date.now().toString(),
           type: 'user',
-          text: "I've been having some redness and small bumps on my cheeks for past few days.",
-          timestamp: '3:20 PM',
-          user: {
-            name: 'Bassil Kuncill Saadeh',
-            avatar: patient,
-          },
-        },
-        {
-          id: '3',
-          type: 'bot',
-          text: 'I recommend using a gentle cleanser and applying a hydrating cream twice daily. Also, avoid using any harsh exfoliators for a few days.',
-          timestamp: '3:20 PM',
-          user: {
-            name: doctorInfo.name,
-            avatar: doctor,
-          },
-          suggestions: [
-            {
-              id: '1',
-              image: PipsImage,
-              type: 'Service',
-              serviceGroup: 'Acne Treatment',
-              serviceName: 'Advanced Facial',
-              price: '350 SAR',
-              duration: '45 min',
-              description: 'A multi-step facial treatment.',
-              procedure: 'Uses patented device.',
-            },
-            {
-              id: '2',
-              image: PipsImage,
-              type: 'Device',
-              serviceGroup: 'Wood lamp',
-              serviceName: 'Diagnostic',
-              price: '600 SAR',
-              duration: '1 hr',
-              description: 'Advanced diagnostic.',
-              procedure: 'Device for skin analysis.',
-            },
-          ],
-        },
-      ];
-    } else {
-      return [
-        {
-          id: '1',
-          type: 'user',
-          text: 'Hi!',
+          text: '',
           timestamp: new Date().toLocaleTimeString('en-US', {
             hour: '2-digit',
             minute: '2-digit',
           }),
-        },
-        {
-          id: '2',
-          type: 'bot',
-          text: "Welcome to [Clinic Name]! You can ask me anything or upload a photo. I'll suggest the best services and treatments available at this clinic.",
-          timestamp: new Date().toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-          }),
-        },
-        {
-          id: '3',
-          type: 'user',
-          text: "I've uploaded a photo. I have some redness and itching on my face.",
-          timestamp: new Date().toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-          }),
-          images: [pimples, pimples],
-        },
-        {
-          id: '4',
-          type: 'bot',
-          text: "It seems like mild skin irritation. Based on your clinic's services, I'd recommend:",
-          timestamp: new Date().toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-          }),
-          suggestions: [
-            {
-              id: '1',
-              image: PipsImage,
-              type: 'Dermatology',
-              serviceGroup: 'Skin Rejuvenation',
-              serviceName: 'HydraFacial Glow',
-              price: '350 SAR',
-              duration: '45 min',
-              description:
-                'A multi-step facial treatment that deeply cleanses.',
-              procedure: 'Uses a patented device to cleanse.',
-            },
-            {
-              id: '2',
-              image: PipsImage,
-              type: 'Dentistry',
-              serviceGroup: 'Teeth Whitening',
-              serviceName: 'Laser Smile Brightening',
-              price: '600 SAR',
-              duration: '1 hr',
-              description: 'Advanced laser teeth whitening.',
-              procedure: 'Hydrogen peroxide gel with laser.',
-            },
-          ],
-        },
-      ];
-    }
+          user:
+            chatType === 'doctor'
+              ? { name: 'Bassil Kuncill Saadeh', avatar: patient }
+              : undefined,
+          images: [{ uri: imageUri }], // 👈 correct field + wrapped in array
+        };
+
+        setMessages(prev => [...prev, newMessage]);
+        setTimeout(
+          () => scrollRef.current?.scrollToEnd({ animated: true }),
+          100,
+        );
+      }
+    });
   };
 
-  const handleClose = () => {
-    setModalVisible(false);
-  };
+  // ---------- Handlers ----------
+  const handleSend = useCallback(() => {
+    if (!message.trim()) return;
 
-  const handleGetPrescription = () => {
-    setModalVisible(false);
-    console.log('User wants to get the prescription');
-    navigation.navigate('PrescriptionScreen');
-  };
+    const newMsg: Message = {
+      id: Date.now().toString(),
+      type: 'user',
+      text: message.trim(),
+      timestamp: new Date().toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+      user:
+        chatType === 'doctor'
+          ? { name: 'Bassil Kuncill Saadeh', avatar: patient }
+          : undefined,
+    };
 
-  const handleServicePress = service => {
+    setMessages(prev => [...prev, newMsg]);
+    setMessage('');
+
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+  }, [message, chatType]);
+
+  const handleServicePress = (service: Service) => {
     setSelectedService(service);
     setServiceDetailVisible(true);
   };
 
-  const handleSend = () => {
-    if (message.trim()) {
-      const newMessage = {
-        id: Date.now().toString(),
-        type: 'user',
-        text: message,
-        timestamp: new Date().toLocaleTimeString('en-US', {
-          hour: '2-digit',
-          minute: '2-digit',
-        }),
-        user:
-          chatType === 'doctor'
-            ? {
-                name: 'Bassil Kuncill Saadeh',
-                avatar: patient,
-              }
-            : undefined,
-      };
-      setMessages([...messages, newMessage]);
-      setMessage('');
-
-      // Scroll to bottom after sending
-      setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: true });
-      }, 100);
-    }
-  };
-
-  const handleAddToCart = service => {
-    console.log('Added to cart:', service);
+  const handleAddToCart = () => {
     setServiceDetailVisible(false);
     navigation.navigate('CartScreen');
   };
 
-  const handleCheckout = service => {
-    console.log('Checkout:', service);
+  const handleCheckout = () => {
+    setServiceDetailVisible(false);
     navigation.navigate('CheckoutScreen');
   };
 
@@ -263,35 +198,47 @@ export function ChatScreen({ navigation, route }) {
     setModalVisible(true);
   };
 
-  const formatTime = seconds => {
-    const m = Math.floor(seconds / 60)
+  const handleGetPrescription = () => {
+    setModalVisible(false);
+    navigation.navigate('PrescriptionScreen');
+  };
+
+  const handleCloseModal = () => setModalVisible(false);
+
+  // ---------- Helpers ----------
+  const formatTime = (sec: number) => {
+    const m = Math.floor(sec / 60)
       .toString()
       .padStart(2, '0');
-    const s = (seconds % 60).toString().padStart(2, '0');
+    const s = (sec % 60).toString().padStart(2, '0');
     return `${m}:${s}`;
   };
 
-  const consultationTime = formatTime(remainingSeconds);
+  const consultationTime = useMemo(
+    () => formatTime(remainingSeconds),
+    [remainingSeconds],
+  );
 
-  const renderDoctorHeader = () => {
-    return (
+  // ---------- Renderers ----------
+  const renderHeader = () =>
+    chatType === 'ai' ? (
+      <Header2 title="Chat" showCart logo />
+    ) : (
       <View style={styles.doctorHeaderContainer}>
         <TouchableOpacity
-          style={styles.backButton}
           onPress={() => navigation.goBack()}
+          style={styles.backButton}
         >
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
+
         <View style={styles.doctorHeaderCenter}>
           <Text style={styles.doctorName}>{doctorInfo.name}</Text>
-          {!doctorInfo.serviceName ? (
-            <Text style={styles.consultationTime}>{consultationTime}</Text>
-          ) : (
-            <Text style={styles.consultationTime}>
-              {doctorInfo.serviceName}
-            </Text>
-          )}
+          <Text style={styles.consultationTime}>
+            {doctorInfo.serviceName || consultationTime}
+          </Text>
         </View>
+
         {!doctorInfo.serviceName && (
           <TouchableOpacity
             style={styles.endButton}
@@ -302,131 +249,81 @@ export function ChatScreen({ navigation, route }) {
         )}
       </View>
     );
-  };
 
-  const renderMessage = (msg, index) => {
+  const renderSuggestions = (suggestions: Service[]) => (
+    <View style={styles.suggestionsContainer}>
+      {suggestions.map(service => (
+        <TouchableOpacity
+          key={service.id}
+          style={styles.suggestionCard}
+          onPress={() => handleServicePress(service)}
+        >
+          <Image source={service.image} style={styles.suggestionImage} />
+          <View style={styles.suggestionContent}>
+            <Text style={styles.suggestionTitle}>{service.serviceGroup}</Text>
+            <View style={styles.suggestionSubtitleRow}>
+              <Text style={styles.suggestionSubtitle}>
+                {service.serviceName}
+              </Text>
+              <FontAwesome5
+                name="external-link-alt"
+                size={12}
+                color={colors.primary}
+              />
+            </View>
+          </View>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+
+  const renderMessage = (msg: Message, index: number) => {
     const isUser = msg.type === 'user';
     const showAvatar = chatType === 'doctor';
 
     return (
       <View key={msg.id || index} style={styles.messageContainer}>
-        {/* Doctor/AI message with avatar */}
-        {!isUser && showAvatar && (
-          <View style={styles.botMessageWithAvatar}>
-            <Image source={msg.user.avatar} style={styles.avatar} />
+        {/* Bot Message */}
+        {!isUser && (
+          <View style={[showAvatar && styles.botMessageWithAvatar]}>
+            {showAvatar && (
+              <Image source={msg.user?.avatar} style={styles.avatar} />
+            )}
             <View style={styles.botMessageContent}>
-              <View style={styles.messageHeader}>
+              {showAvatar && (
                 <Text style={styles.senderName}>{msg.user?.name}</Text>
-                <Text style={styles.timestamp}>
-                  {formatTime(msg.timestamp)}
-                </Text>
-              </View>
-              <View style={styles.botMessage}>
-                <Text style={styles.botMessageText}>{msg.text}</Text>
-              </View>
-              {msg.suggestions && (
-                <View style={styles.suggestionsContainer}>
-                  {msg.suggestions.map((suggestion, i) => (
-                    <TouchableOpacity
-                      key={i}
-                      style={styles.suggestionCard}
-                      onPress={() => handleServicePress(suggestion)}
-                    >
-                      <View style={styles.suggestionIcon}>
-                        <Image
-                          source={suggestion.image}
-                          resizeMode="cover"
-                          style={styles.suggestionImage}
-                        />
-                      </View>
-                      <View style={styles.suggestionContent}>
-                        <Text style={styles.suggestionTitle} numberOfLines={1}>
-                          {suggestion.serviceGroup}
-                        </Text>
-                        <View style={styles.suggestionSubtitleRow}>
-                          <Text
-                            style={styles.suggestionSubtitle}
-                            numberOfLines={1}
-                          >
-                            {suggestion.type}
-                          </Text>
-                          <FontAwesome5
-                            name="external-link-alt"
-                            size={12}
-                            color={colors.primary}
-                          />
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  ))}
+              )}
+              {/* Only show text if available */}
+              {msg.text?.trim().length > 0 && (
+                <View style={styles.botMessage}>
+                  <Text style={styles.botMessageText}>{msg.text}</Text>
                 </View>
               )}
+              {/* Show suggestions if available */}
+              {msg.suggestions && renderSuggestions(msg.suggestions)}
             </View>
           </View>
         )}
 
-        {/* AI message without avatar */}
-        {!isUser && !showAvatar && (
-          <View style={styles.botMessageWrapper}>
-            <View style={styles.botMessage}>
-              <Text style={styles.botMessageText}>{msg.text}</Text>
-            </View>
-            {msg.suggestions && (
-              <View style={styles.suggestionsContainer}>
-                {msg.suggestions.map((suggestion, i) => (
-                  <TouchableOpacity
-                    key={i}
-                    style={styles.suggestionCard}
-                    onPress={() => handleServicePress(suggestion)}
-                  >
-                    <View style={styles.suggestionIcon}>
-                      <Image
-                        source={suggestion.image}
-                        resizeMode="cover"
-                        style={styles.suggestionImage}
-                      />
-                    </View>
-                    <View style={styles.suggestionContent}>
-                      <Text style={styles.suggestionTitle} numberOfLines={1}>
-                        {suggestion.serviceGroup}
-                      </Text>
-                      <View style={styles.suggestionSubtitleRow}>
-                        <Text
-                          style={styles.suggestionSubtitle}
-                          numberOfLines={1}
-                        >
-                          {suggestion.serviceName}
-                        </Text>
-                        <FontAwesome5
-                          name="external-link-alt"
-                          size={12}
-                          color={colors.primary}
-                        />
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-          </View>
-        )}
-
-        {/* User message */}
+        {/* User Message */}
         {isUser && (
           <View style={styles.userMessageWrapper}>
             {showAvatar && (
               <View style={styles.userMessageHeader}>
-                <Text style={styles.timestamp}>
-                  {formatTime(msg.timestamp)}
-                </Text>
+                <Text style={styles.timestamp}>{msg.timestamp}</Text>
                 <Text style={styles.senderName}>{msg.user?.name}</Text>
                 <Image source={msg.user?.avatar} style={styles.avatar} />
               </View>
             )}
-            <View style={styles.userMessageRow}>
+
+            {/* Only render text if it's not empty */}
+            {(msg.text?.trim().length > 0 ||
+              (msg.images && msg.images.length > 0)) && (
               <View style={styles.userMessage}>
-                <Text style={styles.userMessageText}>{msg.text}</Text>
-                {msg.images && (
+                {msg.text?.trim().length > 0 && (
+                  <Text style={styles.userMessageText}>{msg.text}</Text>
+                )}
+                {msg.images && msg.images.length > 0 && (
                   <View style={styles.imagesRow}>
                     {msg.images.map((img, i) => (
                       <Image
@@ -438,59 +335,51 @@ export function ChatScreen({ navigation, route }) {
                   </View>
                 )}
               </View>
-            </View>
+            )}
           </View>
         )}
       </View>
     );
   };
 
+  // ---------- Render ----------
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      {chatType === 'ai' ? (
-        <Header2 title="chat" showCart={true} logo={true} />
-      ) : (
-        renderDoctorHeader()
-      )}
+      {renderHeader()}
+
       {/* Clinic Info */}
       <View style={styles.clinicInfo}>
         <View style={styles.clinicLeft}>
-          <Image
-            source={clinicInfo.image}
-            resizeMode="cover"
-            style={styles.clinicImage}
-          />
+          <Image source={clinicInfo.image} style={styles.clinicImage} />
           <View>
             <Text style={styles.clinicName}>{clinicInfo.name}</Text>
             <Text style={styles.clinicLocation}>{clinicInfo.location}</Text>
           </View>
         </View>
-        {chatType === 'doctor' ? (
-          <TouchableOpacity style={styles.visitButton}>
-            <Text style={styles.visitButtonText}>Visit</Text>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity style={styles.consultButton}>
-            <Text style={styles.consultButtonText}>Consult Now</Text>
-          </TouchableOpacity>
-        )}
+
+        <TouchableOpacity style={styles.consultButton}>
+          <Text style={styles.consultButtonText}>
+            {chatType === 'doctor' ? 'Visit' : 'Consult Now'}
+          </Text>
+        </TouchableOpacity>
       </View>
+
       {/* Messages */}
       <ScrollView
-        ref={scrollViewRef}
+        ref={scrollRef}
         style={styles.messagesContainer}
         contentContainerStyle={styles.messagesContent}
         showsVerticalScrollIndicator={false}
       >
-        {messages.map((msg, index) => renderMessage(msg, index))}
+        {messages.map(renderMessage)}
       </ScrollView>
-      {/* Input Bar */}
+
+      {/* Input */}
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.inputContainer}
       >
-        <TouchableOpacity style={styles.cameraButton}>
+        <TouchableOpacity style={styles.cameraButton} onPress={handleImagePick}>
           <Ionicons
             name="camera-outline"
             size={24}
@@ -508,6 +397,8 @@ export function ChatScreen({ navigation, route }) {
           <Ionicons name="send" size={24} color={colors.white} />
         </TouchableOpacity>
       </KeyboardAvoidingView>
+
+      {/* Modals */}
       <ServiceDetailBottomSheet
         visible={serviceDetailVisible}
         onClose={() => setServiceDetailVisible(false)}
@@ -517,9 +408,118 @@ export function ChatScreen({ navigation, route }) {
       />
       <ConsultationEndedModal
         visible={modalVisible}
-        onClose={handleClose}
+        onClose={handleCloseModal}
         onGetPrescription={handleGetPrescription}
       />
     </SafeAreaView>
   );
+}
+
+// ---------- Helper to generate initial messages ----------
+function getInitialMessages(
+  chatType: 'ai' | 'doctor',
+  doctorInfo: any,
+): Message[] {
+  const baseTime = new Date().toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  if (chatType === 'doctor') {
+    return [
+      {
+        id: '1',
+        type: 'bot',
+        text: 'Hello',
+        timestamp: baseTime,
+        user: { name: doctorInfo.name, avatar: doctor },
+      },
+      {
+        id: '2',
+        type: 'user',
+        text: "I've been having some redness and small bumps on my cheeks for past few days.",
+        timestamp: baseTime,
+        user: { name: 'Bassil Kuncill Saadeh', avatar: patient },
+      },
+      {
+        id: '3',
+        type: 'bot',
+        text: 'I recommend using a gentle cleanser and applying a hydrating cream twice daily...',
+        timestamp: baseTime,
+        user: { name: doctorInfo.name, avatar: doctor },
+        suggestions: [
+          {
+            id: '1',
+            image: PipsImage,
+            type: 'Service',
+            serviceGroup: 'Acne Treatment',
+            serviceName: 'Advanced Facial',
+            price: '350 SAR',
+            duration: '45 min',
+            description: 'A multi-step facial treatment.',
+            procedure: 'Uses patented device.',
+          },
+          {
+            id: '2',
+            image: PipsImage,
+            type: 'Device',
+            serviceGroup: 'Wood lamp',
+            serviceName: 'Diagnostic',
+            price: '600 SAR',
+            duration: '1 hr',
+            description: 'Advanced diagnostic.',
+            procedure: 'Device for skin analysis.',
+          },
+        ],
+      },
+    ];
+  }
+
+  // AI Chat
+  return [
+    { id: '1', type: 'user', text: 'Hi!', timestamp: baseTime },
+    {
+      id: '2',
+      type: 'bot',
+      text: 'Welcome! You can ask me anything or upload a photo to get suggestions.',
+      timestamp: baseTime,
+    },
+    {
+      id: '3',
+      type: 'user',
+      text: "I've uploaded a photo. I have some redness and itching on my face.",
+      timestamp: baseTime,
+      images: [pimples, pimples],
+    },
+    {
+      id: '4',
+      type: 'bot',
+      text: "It seems like mild skin irritation. Based on your clinic's services, I'd recommend:",
+      timestamp: baseTime,
+      suggestions: [
+        {
+          id: '1',
+          image: PipsImage,
+          type: 'Dermatology',
+          serviceGroup: 'Skin Rejuvenation',
+          serviceName: 'HydraFacial Glow',
+          price: '350 SAR',
+          duration: '45 min',
+          description: 'Deep cleansing facial.',
+          procedure: 'Uses a patented device.',
+        },
+        {
+          id: '2',
+          image: PipsImage,
+          type: 'Dentistry',
+          serviceGroup: 'Teeth Whitening',
+          serviceName: 'Laser Smile Brightening',
+          price: '600 SAR',
+          duration: '1 hr',
+          description: 'Advanced laser teeth whitening.',
+          procedure: 'Hydrogen peroxide gel with laser.',
+        },
+      ],
+    },
+  ];
 }

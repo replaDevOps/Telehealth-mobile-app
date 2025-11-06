@@ -93,11 +93,7 @@ const Header2: React.FC<Header2Props> = ({
       {useSave ? (
         <TouchableOpacity
           style={[styles.icon, saveDisabled && { opacity: 0.5 }]}
-          onPress={() => {
-            if (handleSave && !saveDisabled) {
-              handleSave();
-            }
-          }}
+          onPress={() => handleSave}
           disabled={saveDisabled}
         >
           <Text style={[styles.saveText, saveDisabled && { color: 'gray' }]}>

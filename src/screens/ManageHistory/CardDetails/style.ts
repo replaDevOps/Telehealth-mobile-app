@@ -79,7 +79,8 @@ export const styles = StyleSheet.create({
   },
   clinicLocation: {
     fontSize: 11,
-    color: 'red',
+    color: colors.secondaryText,
+  
     marginTop: 2,
   },
   consultButton: {

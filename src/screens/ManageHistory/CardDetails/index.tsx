@@ -68,6 +68,16 @@ export function CardDetails({ navigation }: { navigation: any }) {
     alert('Invoice download not implemented yet');
   };
 
+  const handleRefund = () => {
+    navigation.navigate('Refund', {
+      paymentId: params.paymentId,
+      clinicName: params.clinicName,
+      clinicLocation: params.clinicLocation,
+      image: params.image,
+      services: params.services,
+    });
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
       <StatusBar barStyle="dark-content" />
@@ -208,16 +218,15 @@ export function CardDetails({ navigation }: { navigation: any }) {
 
       <View style={styles.bottomButtonContainer}>
         {isAppointment ? (
+          <CustomButton title="Request for Refund" onPress={handleRefund} />
+        ) : (
           <CustomButton
-            title="Request for Refund"
+            title="Download Invoice"
             onPress={handleDownloadInvoice}
           />
-        ) : (
-          <CustomButton title="Download Invoice" onPress={handleGiveReview} />
         )}
       </View>
 
-      {/* ---------- Rating sheet ---------- */}
       <RatingBottomSheet
         visible={showRating}
         onClose={() => setShowRating(false)}

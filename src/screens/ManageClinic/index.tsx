@@ -8,4 +8,3 @@ export * from './ConsulationPayment';
 export * from './FilterScreen';
 export * from './PrescriptionScreen';
 export * from './VedioConsultation';
-export * from './ChatScreen';

@@ -23,4 +23,9 @@ export { default as ChatSvg } from "./ChatSvg";
 export { default as AudioSvg } from "./AudioSvg";
 export { default as VedioSvg } from "./VedioSvg";
 export { default as RatingSvg } from "./RatingSvg";
+export { default as ProfileSvg } from "./ProfileSvg";
+export { default as FAQsSvg } from "./FAQsSvg";
+export { default as RefundSvg } from "./RefundSvg";
+export { default as LoyaltyPSvg } from "./LoyaltyPSvg";
+export { default as LogoutSvg } from "./LogoutSvg";
 

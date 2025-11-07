@@ -38,7 +38,7 @@ export type ClinicStackParamList = {
   FilterScreen: undefined;
   ClinicDetail: undefined;
   ChatOnboarding: undefined;
-  ChatScreen: undefined;
+
   CheckoutScreen: undefined;
   CartScreen: undefined;
   ConsultationPayment: undefined;
@@ -57,6 +57,7 @@ export const MainNavigator = () => {
       screenOptions={{ headerShown: false }}
     >
       <Stack.Screen name="EntryPoint" component={CustomTabBar} />
+      <Stack.Screen name="ChatScreen" component={ChatScreen} />
     </Stack.Navigator>
   );
 };
@@ -81,7 +82,7 @@ export const ClinicNavigator = () => {
       <ClinicStack.Screen name="FilterScreen" component={FilterScreen} />
       <ClinicStack.Screen name="ClinicDetail" component={ClinicDetailScreen} />
       <ClinicStack.Screen name="ChatOnboarding" component={ChatOnboarding} />
-      <ClinicStack.Screen name="ChatScreen" component={ChatScreen} />
+
       <ClinicStack.Screen name="CheckoutScreen" component={CheckoutScreen} />
       <ClinicStack.Screen name="CartScreen" component={CartScreen} />
       <ClinicStack.Screen

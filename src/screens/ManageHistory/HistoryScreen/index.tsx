@@ -165,21 +165,18 @@ export function HistoryScreen({ navigation }: { navigation: any }) {
           <TouchableOpacity
             style={styles.viewChatButton}
             onPress={() =>
-              navigation.navigate('Clinic', {
-                screen: 'ChatScreen',
-                params: {
-                  chatType: 'doctor',
-                  doctorInfo: {
-                    id: 'doctor_1',
-                    name: 'Dr. Sultan Khan',
-                    avatar: 'https://i.pravatar.cc/150?img=12',
-                    serviceName: 'Acne Itching Treatment',
-                  },
-                  clinicInfo: {
-                    name: 'Eden Medical Center',
-                    location: 'Makkah, Saudi Arabia, 2.2km',
-                    image: RecommandImage,
-                  },
+              navigation.navigate('ChatScreen', {
+                chatType: 'doctor',
+                doctorInfo: {
+                  id: 'doctor_1',
+                  name: 'Dr. Sultan Khan',
+                  avatar: 'https://i.pravatar.cc/150?img=12',
+                  serviceName: 'Acne Itching Treatment',
+                },
+                clinicInfo: {
+                  name: 'Eden Medical Center',
+                  location: 'Makkah, Saudi Arabia, 2.2km',
+                  image: RecommandImage, // make sure this is imported correctly
                 },
               })
             }

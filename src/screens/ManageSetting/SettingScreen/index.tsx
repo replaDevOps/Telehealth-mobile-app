@@ -128,23 +128,21 @@ export const SettingScreen = ({ navigation }: { navigation: any }) => {
   };
 
   return (
-    <KeyboardAvoidScrollview>
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.white }}>
-        <Header2 title="Settings" />
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.white }}>
+      <Header2 title="Settings" />
 
-        <View style={style.container}>
-          {/* User Profile Section */}
-          <UserProfile
-            profileImage={profileImage}
-            onImageSelected={handleImageSelected}
-          />
+      <View style={style.container}>
+        {/* User Profile Section */}
+        <UserProfile
+          profileImage={profileImage}
+          onImageSelected={handleImageSelected}
+        />
 
-          <View style={{ marginVertical: mvs(30) }} />
+        <View style={{ marginVertical: mvs(30) }} />
 
-          {/* Menu Items */}
-          {menuData.map(renderMenuItem)}
-        </View>
-      </SafeAreaView>
-    </KeyboardAvoidScrollview>
+        {/* Menu Items */}
+        {menuData.map(renderMenuItem)}
+      </View>
+    </SafeAreaView>
   );
 };

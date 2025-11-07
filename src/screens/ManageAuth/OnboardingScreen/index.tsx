@@ -13,7 +13,7 @@ export function OnboardingScreen({ navigation }: any) {
   const handleNext = () => {
     console.log('Next button pressed');
     setCurrentStep(prev =>
-      prev === 2 ? navigation.navigate('SignIn') : ++prev,
+      prev === 2 ? navigation.replace('SignIn') : ++prev,
     );
   };
 
@@ -25,15 +25,11 @@ export function OnboardingScreen({ navigation }: any) {
       <View style={{ ...styles.container }}>
         <Header2
           title=""
-          back={true}
+          back={false}
           useSkip={true}
-          handleSkip={() => console.log('Skip pressed')}
-          handleBackPress={() => {
-            if (currentStep === 0) {
-              navigation.goBack();
-            } else {
-              setCurrentStep(prev => --prev);
-            }
+          handleSkip={() => {
+            console.log('Skip - Selected Language:');
+            navigation.replace('Auth', { screen: 'SignIn' });
           }}
         />
 

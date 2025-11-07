@@ -14,8 +14,7 @@ import {
   ChatOnboarding,
   ClinicScreen,
 } from '@screens/ManageClinic';
-import { HistoryScreen, CardDetails } from '@screens/ManageHistory';
-import { RefundRequest } from '@screens/ManageHistory/RefundRequest';
+import { HistoryScreen } from '@screens/ManageHistory';
 import {
   ChangePassword,
   FAQs,
@@ -23,7 +22,7 @@ import {
   RefundRequest2,
   SettingScreen,
 } from '@screens/ManageSetting';
-import { ChatScreen } from '@screens/ManageClinic/ChatScreen';
+import { CardDetails, ChatScreen, RefundRequest } from '@screens/Comman';
 
 export type MainStackParamList = {
   Home: undefined;
@@ -59,10 +58,7 @@ export const MainNavigator = () => {
       <Stack.Screen name="EntryPoint" component={CustomTabBar} />
       <Stack.Screen name="ChatScreen" component={ChatScreen} />
       <Stack.Screen name="CardDetails" component={CardDetails} />
-      <ClinicStack.Screen
-        name="PrescriptionScreen"
-        component={PrescriptionScreen}
-      />
+      <Stack.Screen name="Refund" component={RefundRequest} />
     </Stack.Navigator>
   );
 };
@@ -94,6 +90,10 @@ export const ClinicNavigator = () => {
         name="ConsultationPayment"
         component={ConsultationPayment}
       />
+      <ClinicStack.Screen
+        name="PrescriptionScreen"
+        component={PrescriptionScreen}
+      />
 
       <ClinicStack.Screen
         name="AudioConsultation"
@@ -114,8 +114,6 @@ export const HistoryNavigator = () => {
       initialRouteName="HistoryScreen"
     >
       <Stack.Screen name="HistoryScreen" component={HistoryScreen} />
-
-      <Stack.Screen name="Refund" component={RefundRequest} />
     </Stack.Navigator>
   );
 };

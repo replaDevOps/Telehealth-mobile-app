@@ -13,9 +13,7 @@ import { colors } from '../../styles/colors';
 import { EditSvg } from '../../assets/icons';
 
 interface UserProfileProps {
-  /** Current profile picture URL (may be empty) */
   profileImage?: string;
-  /** Called after a new picture is selected */
   onImageSelected?: (uri: string) => void;
 }
 
@@ -26,9 +24,6 @@ const UserProfile: React.FC<UserProfileProps> = ({
   const [profileImage, setProfileImage] = useState(initialProfileImage);
   const [isUploading, setIsUploading] = useState(false);
 
-  /* --------------------------------------------------------------------- *
-   *  Open the image library (no permission request)
-   * --------------------------------------------------------------------- */
   const openImagePicker = useCallback(() => {
     const options = {
       mediaType: 'photo' as const,
@@ -78,10 +73,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
         activeOpacity={0.8}
         disabled={isUploading}
       >
-        <Image
-          source={imageSource}
-          style={[styles.profileImage, styles.profilePic]}
-        />
+        <Image source={imageSource} style={[styles.profileImage]} />
 
         {/* Edit / Loading overlay */}
         {isUploading ? (
@@ -113,14 +105,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   profileImage: {
-    width: mvs(90),
-    height: mvs(90),
-    borderRadius: mvs(45),
-  },
-  profilePic: {
-    borderRadius: mvs(45),
-    borderWidth: 1,
-    borderColor: colors.gray,
+    width: mvs(100),
+    height: mvs(100),
+    borderRadius: mvs(50),
+    borderWidth: 2,
+    borderColor: colors.primary,
   },
   iconOverlay: {
     position: 'absolute',

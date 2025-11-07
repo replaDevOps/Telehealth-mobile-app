@@ -16,6 +16,7 @@ interface CustomDropdownProps {
   onValueChange: (value: string) => void;
   options: Option[];
   placeholder?: string;
+  errorMessage?: string; // ← ADD
 }
 
 const CustomDropdown: React.FC<CustomDropdownProps> = ({
@@ -25,13 +26,19 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
   onValueChange,
   options,
   placeholder = 'Select an option',
+  errorMessage, // ← ADD
 }) => {
+  const hasError = !!errorMessage;
+
   return (
     <View style={[styles.container, containerStyle]}>
       {label && <Text style={styles.label}>{label}</Text>}
 
       <Dropdown
-        style={styles.dropdown}
+        style={[
+          styles.dropdown,
+          hasError && styles.dropdownError, // ← Red border
+        ]}
         placeholderStyle={styles.placeholderStyle}
         selectedTextStyle={styles.selectedTextStyle}
         itemTextStyle={styles.itemTextStyle}
@@ -44,6 +51,8 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
         maxHeight={250}
         activeColor={colors.gray}
       />
+
+      {hasError && <Text style={styles.errorText}>{errorMessage}</Text>}
     </View>
   );
 };
@@ -76,6 +85,15 @@ const styles = StyleSheet.create({
   itemTextStyle: {
     fontSize: mvs(14),
     color: colors.black,
+  },
+  dropdownError: {
+    borderColor: 'red',
+    borderWidth: 1,
+  },
+  errorText: {
+    color: 'red',
+    fontSize: mvs(12),
+    marginTop: mvs(4),
   },
 });
 

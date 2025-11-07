@@ -28,4 +28,6 @@ export { default as FAQsSvg } from "./FAQsSvg";
 export { default as RefundSvg } from "./RefundSvg";
 export { default as LoyaltyPSvg } from "./LoyaltyPSvg";
 export { default as LogoutSvg } from "./LogoutSvg";
+export { default as GoogleSvg } from "./googleSvg";
+
 

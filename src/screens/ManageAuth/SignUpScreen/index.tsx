@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TouchableOpacity,
-  TextInput,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
@@ -14,17 +13,15 @@ import { CustomButton } from '../../../components/common/CustomButton';
 import { Header2 } from '../../../components/common/Header2';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AntDesign from 'react-native-vector-icons/AntDesign';
-import { LogoSvg } from '../../../assets/icons';
+import { GoogleSvg, LogoSvg } from '../../../assets/icons';
 import { CustomText } from '../../../components/common/CustomText';
 import PhoneNumberInput from '../../../components/common/PhoneTextInput';
 import { styles } from './style';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import parsePhoneNumberFromString from 'libphonenumber-js';
+import { CustomTextInput } from '@components/common/CustomTextInput';
 
-interface SignUpScreenProps {
-  navigation: any;
-}
-
-export function SignUpScreen({ navigation }: SignUpScreenProps) {
+export function SignUpScreen({ navigation }) {
   const [selectedTab, setSelectedTab] = useState<'email' | 'phone'>('email');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -33,6 +30,12 @@ export function SignUpScreen({ navigation }: SignUpScreenProps) {
   const [phoneError, setPhoneError] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isPhoneValid, setIsPhoneValid] = useState(false);
+  const [emailError, setEmailError] = useState('');
+
+  const phoneNumber = parsePhoneNumberFromString(phone, countryCode);
+  const formattedPhone = phoneNumber
+    ? `+${phoneNumber.countryCallingCode}${phoneNumber.nationalNumber}`
+    : `+${phone}`;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.white }}>
@@ -103,20 +106,15 @@ export function SignUpScreen({ navigation }: SignUpScreenProps) {
 
           <View style={{ marginTop: mvs(25) }}>
             {selectedTab === 'email' ? (
-              <>
-                <Text style={styles.label}>Email Address</Text>
-                <TextInput
-                  placeholder="Enter email address"
-                  value={email}
-                  onChangeText={setEmail}
-                  style={styles.input}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoComplete="email"
-                  textContentType="emailAddress"
-                  accessibilityLabel="Email input"
-                />
-              </>
+              <CustomTextInput
+                label="Email Address"
+                placeholder="Enter email address"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                errorMessage={emailError}
+              />
             ) : (
               <>
                 <Text style={styles.label}>Phone Number</Text>
@@ -137,16 +135,24 @@ export function SignUpScreen({ navigation }: SignUpScreenProps) {
           <CustomButton
             title="Sign up"
             onPress={() => {
-              console.log(
-                'Sign up with:',
-                selectedTab === 'email' ? email : phone,
-              );
-              navigation.navigate('OTPScreen');
+              let valid = true;
+
+              if (selectedTab === 'email') {
+                if (!email.trim() || !email.includes('@')) {
+                  setEmailError('Enter a valid email');
+                  valid = false;
+                } else setEmailError('');
+              } else {
+                if (!phone.trim() || !isPhoneValid) {
+                  setPhoneError('Invalid phone number');
+                  valid = false;
+                } else setPhoneError('');
+              }
+
+              if (valid && isChecked) {
+                navigation.navigate('OTPScreen');
+              }
             }}
-            // disabled={
-            //   !isChecked ||
-            //   (selectedTab === 'email' ? !email.trim() : !phone.trim())
-            // }
           />
 
           <View style={styles.signinRow}>
@@ -174,7 +180,7 @@ export function SignUpScreen({ navigation }: SignUpScreenProps) {
             style={styles.googleButton}
             onPress={() => console.log('Google Sign Up')}
           >
-            <AntDesign name="google" size={20} color="#4285F4" />
+            <GoogleSvg />
             <Text style={styles.googleText}>Sign up with Google</Text>
           </TouchableOpacity>
 
@@ -188,7 +194,7 @@ export function SignUpScreen({ navigation }: SignUpScreenProps) {
               <Ionicons
                 name={isChecked ? 'checkbox' : 'square-outline'}
                 size={22}
-                color={isChecked ? colors.primary : colors.gray}
+                color={isChecked ? colors.primary : colors.black}
               />
             </TouchableOpacity>
             <Text style={styles.TextContent}>

@@ -109,7 +109,7 @@ export const styles = StyleSheet.create({
   },
   orText: {
     marginHorizontal: mvs(12),
-    color: colors.gray,
+    color: colors.secondaryText,
     fontSize: mvs(13),
     fontWeight: '500',
   },

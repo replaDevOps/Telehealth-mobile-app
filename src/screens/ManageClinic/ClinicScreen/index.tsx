@@ -4,15 +4,14 @@ import NearbyClinics from '@components/molecules/ClinicListItem';
 import RecommendedClinics from '@components/molecules/RecommendedClinics';
 import { mvs } from '@config/metrices';
 import { NEARBYCLINICS, SAMPLECLINICS } from '@constants/appData';
-import { NavigationProp, useNavigation } from '@react-navigation/native';
-import { ClinicStackParamList } from '@navigation/MainNavigator';
+import { colors } from '../../../styles/colors';
+
 import React, { useState } from 'react';
 import { StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-export const ClinicScreen = () => {
+export const ClinicScreen = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const navigation = useNavigation<NavigationProp<ClinicStackParamList>>();
 
   return (
     <SafeAreaView style={styles.container}>
@@ -32,9 +31,8 @@ export const ClinicScreen = () => {
 
         <NearbyClinics
           clinics={NEARBYCLINICS}
-          onClinicPress={(clinic: any) =>
-            // navigation.navigate('ClinicDetail', { clinic })
-            console.log(clinic)
+          onClinicPress={clinic =>
+            navigation.navigate('ClinicDetail', { clinic })
           }
           onSeeAllPress={() => console.log('button is pressed')}
         />
@@ -46,9 +44,7 @@ export const ClinicScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
   },
   content: {
     flex: 1,

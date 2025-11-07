@@ -55,7 +55,12 @@ export const HomeScreen = ({ navigation }) => {
 
         <NearbyClinics
           clinics={NEARBYCLINICS}
-          onClinicPress={(clinic: any) => console.log(clinic)}
+          onClinicPress={clinic =>
+            navigation.navigate('Clinic', {
+              screen: 'ClinicDetail',
+              params: { clinic },
+            })
+          }
         />
       </ScrollView>
     </View>

@@ -31,22 +31,71 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [age, setAge] = useState('');
   const [profileImage, setProfileImage] = useState('');
   const [phone, setPhone] = useState('');
-  const [isChecked, setIsChecked] = useState(false);
   const [countryCode, setCountryCode] = useState('PK');
   const [phoneError, setPhoneError] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isPhoneValid, setIsPhoneValid] = useState(false);
   const [nationality, setNationality] = useState('');
   const [IdCardNumber, setIdCardNumber] = useState('');
+  const [email, setEmail] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [nameError, setNameError] = useState('');
+  const [ageError, setAgeError] = useState('');
+  const [idError, setIdError] = useState('');
+  const [nationalityError, setNationalityError] = useState('');
+  const [genderError, setGenderError] = useState('');
 
   const handleImageSelected = (uri: string) => {
     setProfileImage(uri);
   };
 
   const handleSaveAndContinue = () => {
-    // if (fullName && gender && city && age && (phone||email)) {
-    navigation.navigate('SignIn');
-    // }
+    let valid = true;
+
+    // Reset errors
+    setNameError('');
+    setEmailError('');
+    setPhoneError('');
+    setIdError('');
+    setAgeError('');
+    setNationalityError('');
+    setGenderError('');
+
+    if (!fullName.trim()) {
+      setNameError('Name is Required');
+      valid = false;
+    }
+    if (!email.trim() || !email.includes('@')) {
+      setEmailError('Valid email required');
+      valid = false;
+    }
+    if (!phone.trim() || !isPhoneValid) {
+      setPhoneError('Valid phone required');
+      valid = false;
+    }
+    if (!nationality) {
+      setNationalityError('Select nationality');
+      valid = false;
+    }
+    if (!IdCardNumber.trim()) {
+      setIdError('ID required');
+      valid = false;
+    }
+    if (!gender) {
+      setGenderError('Select gender');
+      valid = false;
+    }
+    if (!age.trim()) {
+      setAgeError('Age is required');
+      valid = false;
+    }
+    if (!profileImage) {
+      /* show image error if needed */ valid = false;
+    }
+
+    if (valid) {
+      navigation.navigate('SignIn');
+    }
   };
 
   return (
@@ -72,13 +121,17 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
             placeholder="Enter full name"
             value={fullName}
             onChangeText={setFullName}
+            errorMessage={nameError}
           />
 
           <CustomTextInput
             label="Email Address"
             placeholder="Enter email address"
-            value={fullName}
-            onChangeText={setFullName}
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            errorMessage={emailError}
           />
 
           <Text style={styles.label}>Phone Number</Text>
@@ -98,6 +151,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
             placeholder="Select nationality"
             value={nationality}
             onValueChange={setNationality}
+            errorMessage={nationalityError} // Add
             options={[
               { label: 'Pakistani', value: 'pak' },
               { label: 'Afghani', value: 'afg' },
@@ -113,6 +167,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
             value={IdCardNumber}
             onChangeText={setIdCardNumber}
             keyboardType="numeric"
+            errorMessage={idError}
           />
 
           <CustomDropdown
@@ -125,6 +180,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
               { label: 'Female', value: 'female' },
               { label: 'Other', value: 'other' },
             ]}
+            errorMessage={genderError}
           />
 
           <CustomTextInput
@@ -133,6 +189,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
             value={age}
             onChangeText={setAge}
             keyboardType="numeric"
+            errorMessage={ageError}
           />
         </View>
         <CustomButton title="Save & Continue" onPress={handleSaveAndContinue} />

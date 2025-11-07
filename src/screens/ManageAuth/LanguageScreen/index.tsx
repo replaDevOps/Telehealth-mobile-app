@@ -28,7 +28,7 @@ export function LanguageScreen() {
       <View style={styles.container}>
         <Header2 title="" back={false} useSkip={false} />
 
-        <View style={styles.image}></View>
+        <View style={styles.image} />
 
         <View>
           <View style={styles.content}>

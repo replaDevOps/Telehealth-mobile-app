@@ -3,9 +3,6 @@ import {
   View,
   Text,
   TouchableOpacity,
-  TextInput,
-  Image,
-  StyleSheet,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
@@ -16,18 +13,15 @@ import { CustomButton } from '../../../components/common/CustomButton';
 import { Header2 } from '../../../components/common/Header2';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AntDesign from 'react-native-vector-icons/AntDesign';
-import { LogoSvg } from '../../../assets/icons';
+import { GoogleSvg, LogoSvg } from '../../../assets/icons';
 import { CustomText } from '../../../components/common/CustomText';
 import PhoneNumberInput from '../../../components/common/PhoneTextInput';
 import { styles } from './style';
 import { CustomTextInput } from '../../../components/common/CustomTextInput';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import parsePhoneNumberFromString from 'libphonenumber-js';
 
-interface SignInScreenProps {
-  navigation: any;
-}
-
-export function SignInScreen({ navigation }: SignInScreenProps) {
+export function SignInScreen({ navigation }) {
   const [selectedTab, setSelectedTab] = useState<'email' | 'phone'>('email');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -38,6 +32,13 @@ export function SignInScreen({ navigation }: SignInScreenProps) {
   const [isPhoneValid, setIsPhoneValid] = useState(false);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+
+  const phoneNumber = parsePhoneNumberFromString(phone, countryCode);
+  const formattedPhone = phoneNumber
+    ? `+${phoneNumber.countryCallingCode}${phoneNumber.nationalNumber}`
+    : `+${phone}`;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.white }}>
@@ -113,6 +114,7 @@ export function SignInScreen({ navigation }: SignInScreenProps) {
                 placeholder="Enter email address"
                 value={email}
                 onChangeText={setEmail}
+                errorMessage={emailError} // ← use emailError
               />
             ) : (
               <>
@@ -136,7 +138,7 @@ export function SignInScreen({ navigation }: SignInScreenProps) {
             value={password}
             onChangeText={setPassword}
             secureTextEntry={true}
-            errorMessage={error}
+            errorMessage={passwordError} // ← use passwordError
           />
           <View style={styles.PasswordRemember}>
             <View style={styles.CheckBox}>
@@ -162,16 +164,31 @@ export function SignInScreen({ navigation }: SignInScreenProps) {
           <CustomButton
             title="Sign In"
             onPress={() => {
-              console.log(
-                'Sign In with:',
-                selectedTab === 'email' ? email : phone,
-              );
-              navigation.navigate('Main', { screen: 'Home' });
+              let valid = true;
+
+              // Email validation
+              if (selectedTab === 'email') {
+                if (!email.trim() || !email.includes('@')) {
+                  setEmailError('Enter a valid email');
+                  valid = false;
+                } else setEmailError('');
+              } else {
+                if (!phone.trim() || !isPhoneValid) {
+                  setPhoneError('Invalid phone number');
+                  valid = false;
+                } else setPhoneError('');
+              }
+
+              // Password validation
+              if (!password.trim()) {
+                setPasswordError('Password is required');
+                valid = false;
+              } else setPasswordError('');
+
+              if (valid && isChecked) {
+                navigation.navigate('Main', { screen: 'Home' });
+              }
             }}
-            // disabled={
-            //   !isChecked ||
-            //   (selectedTab === 'email' ? !email.trim() : !phone.trim())
-            // }
           />
 
           <View style={styles.signinRow}>
@@ -199,7 +216,7 @@ export function SignInScreen({ navigation }: SignInScreenProps) {
             style={styles.googleButton}
             onPress={() => console.log('Google Sign In')}
           >
-            <AntDesign name="google" size={20} color="#4285F4" />
+            <GoogleSvg />
             <Text style={styles.googleText}>Sign In with Google</Text>
           </TouchableOpacity>
 

@@ -3,9 +3,6 @@ import {
   View,
   Text,
   TouchableOpacity,
-  TextInput,
-  Image,
-  StyleSheet,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
@@ -19,6 +16,7 @@ import { CustomText } from '../../../components/common/CustomText';
 import PhoneNumberInput from '../../../components/common/PhoneTextInput';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { styles } from './style';
+import { CustomTextInput } from '@components/common/CustomTextInput';
 
 interface ForgetPasswordScreenProps {
   navigation: any;
@@ -30,12 +28,11 @@ export function ForgetPasswordScreen({
   const [selectedTab, setSelectedTab] = useState<'email' | 'phone'>('email');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [isChecked, setIsChecked] = useState(false);
   const [countryCode, setCountryCode] = useState('PK');
   const [phoneError, setPhoneError] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isPhoneValid, setIsPhoneValid] = useState(false);
-
+  const [emailError, setEmailError] = useState(''); // ← ADD
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.white }}>
       <KeyboardAvoidingView
@@ -105,20 +102,15 @@ export function ForgetPasswordScreen({
 
           <View style={{ marginTop: mvs(25) }}>
             {selectedTab === 'email' ? (
-              <>
-                <Text style={styles.label}>Email Address</Text>
-                <TextInput
-                  placeholder="Enter email address"
-                  value={email}
-                  onChangeText={setEmail}
-                  style={styles.input}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoComplete="email"
-                  textContentType="emailAddress"
-                  accessibilityLabel="Email input"
-                />
-              </>
+              <CustomTextInput
+                label="Email Address"
+                placeholder="Enter email address"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                errorMessage={emailError}
+              />
             ) : (
               <>
                 <Text style={styles.label}>Phone Number</Text>
@@ -139,16 +131,28 @@ export function ForgetPasswordScreen({
           <CustomButton
             title="Next"
             onPress={() => {
-              console.log(
-                'Forget Password with:',
-                selectedTab === 'email' ? email : phone,
-              );
-              navigation.navigate('SetPassword');
+              let valid = true;
+
+              if (selectedTab === 'email') {
+                if (!email.trim() || !email.includes('@')) {
+                  setEmailError('Enter a valid email');
+                  valid = false;
+                } else {
+                  setEmailError('');
+                }
+              } else {
+                if (!phone.trim() || !isPhoneValid) {
+                  setPhoneError('Invalid phone number');
+                  valid = false;
+                } else {
+                  setPhoneError('');
+                }
+              }
+
+              if (valid) {
+                navigation.navigate('SetPassword');
+              }
             }}
-            // disabled={
-            //   !isChecked ||
-            //   (selectedTab === 'email' ? !email.trim() : !phone.trim())
-            // }
           />
 
           <View style={styles.signinRow}>

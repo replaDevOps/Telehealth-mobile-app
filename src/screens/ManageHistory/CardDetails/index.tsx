@@ -26,6 +26,7 @@ type CardDetailsRouteParams = {
   dateTime: string;
   price: string;
   image?: any;
+  reason?: string;
 
   consultationType?: 'Chat' | 'Video' | 'Audio';
   duration?: string;
@@ -52,6 +53,7 @@ type CardDetailsRouteProp = RouteProp<
 export function CardDetails({ navigation }: { navigation: any }) {
   const route = useRoute<CardDetailsRouteProp>();
   const params = route.params;
+  const reason = params.reason;
 
   const isAppointment = !!params.services?.length;
   const isConsultation = !isAppointment;
@@ -149,7 +151,14 @@ export function CardDetails({ navigation }: { navigation: any }) {
               <Text style={styles.servicePrice}>{service.price}</Text>
             </View>
           ))}
-
+        {reason && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Reason for Refund</Text>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>{reason}</Text>
+            </View>
+          </View>
+        )}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Payment Detail</Text>
 
@@ -216,16 +225,18 @@ export function CardDetails({ navigation }: { navigation: any }) {
         </View>
       </ScrollView>
 
-      <View style={styles.bottomButtonContainer}>
-        {isAppointment ? (
-          <CustomButton title="Request for Refund" onPress={handleRefund} />
-        ) : (
-          <CustomButton
-            title="Download Invoice"
-            onPress={handleDownloadInvoice}
-          />
-        )}
-      </View>
+      {!reason && (
+        <View style={styles.bottomButtonContainer}>
+          {isAppointment ? (
+            <CustomButton title="Request for Refund" onPress={handleRefund} />
+          ) : (
+            <CustomButton
+              title="Download Invoice"
+              onPress={handleDownloadInvoice}
+            />
+          )}
+        </View>
+      )}
 
       <RatingBottomSheet
         visible={showRating}

@@ -178,6 +178,7 @@ export function HistoryScreen({ navigation }: { navigation: any }) {
                   location: 'Makkah, Saudi Arabia, 2.2km',
                   image: RecommandImage, // make sure this is imported correctly
                 },
+                fromHistory: true,
               })
             }
           >

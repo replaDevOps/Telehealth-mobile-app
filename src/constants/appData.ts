@@ -1,4 +1,5 @@
-import { PipsImage, RecommandImage } from "@assets/images";
+import { PipsImage, RecommandImage, doctor, patient, pimples } from "@assets/images";
+import { DoctorInfo, ClinicInfo, Message } from '../types/chat.types';
 
 export const ONBOARDING_STEPS = [
     {
@@ -462,4 +463,141 @@ export const SERVICES = [
         ],
       },
     ];
+  
+
+// ---------- Chat Constants and Helper Functions ----------
+export const DEFAULT_DOCTOR_INFO: DoctorInfo = {
+  id: 'doctor_1',
+  name: 'Dr. Sultan Khan',
+  avatar: doctor,
+  serviceName: '',
+};
+
+export const DEFAULT_CLINIC_INFO: ClinicInfo = {
+  name: 'Eden Medical Center',
+  location: 'Madina, Saudi Arabia, 2.2km',
+  image: RecommandImage,
+};
+
+export const CONSULTATION_DURATION = 30 * 60; // 30 minutes in seconds
+
+export function getCurrentTimestamp(): string {
+  return new Date().toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+export function formatTime(seconds: number): string {
+  const minutes = Math.floor(seconds / 60)
+    .toString()
+    .padStart(2, '0');
+  const secs = (seconds % 60).toString().padStart(2, '0');
+  return `${minutes}:${secs}`;
+}
+
+export function getInitialMessages(
+  chatType: 'ai' | 'doctor',
+  doctorInfo: DoctorInfo,
+): Message[] {
+  const timestamp = getCurrentTimestamp();
+
+  if (chatType === 'doctor') {
+    return [
+      {
+        id: '1',
+        type: 'bot',
+        text: 'Hello',
+        timestamp,
+        user: { name: doctorInfo.name, avatar: doctor },
+      },
+      {
+        id: '2',
+        type: 'user',
+        text: "I've been having some redness and small bumps on my cheeks for past few days.",
+        timestamp,
+        user: { name: 'Bassil Kuncill Saadeh', avatar: patient },
+      },
+      {
+        id: '3',
+        type: 'bot',
+        text: 'I recommend using a gentle cleanser and applying a hydrating cream twice daily...',
+        timestamp,
+        user: { name: doctorInfo.name, avatar: doctor },
+        suggestions: [
+          {
+            id: '1',
+            image: PipsImage,
+            type: 'Service',
+            serviceGroup: 'Acne Treatment',
+            serviceName: 'Advanced Facial',
+            price: '350 SAR',
+            duration: '45 min',
+            description: 'A multi-step facial treatment.',
+            procedure: 'Uses patented device.',
+          },
+          {
+            id: '2',
+            image: PipsImage,
+            type: 'Device',
+            serviceGroup: 'Wood lamp',
+            serviceName: 'Diagnostic',
+            price: '600 SAR',
+            duration: '1 hr',
+            description: 'Advanced diagnostic.',
+            procedure: 'Device for skin analysis.',
+          },
+        ],
+      },
+    ];
+  }
+
+  // AI Chat
+  return [
+    { id: '1', type: 'user', text: 'Hi!', timestamp },
+    {
+      id: '2',
+      type: 'bot',
+      text: 'Welcome! You can ask me anything or upload a photo to get suggestions.',
+      timestamp,
+    },
+    {
+      id: '3',
+      type: 'user',
+      text: "I've uploaded a photo. I have some redness and itching on my face.",
+      timestamp,
+      images: [{ uri: pimples }, { uri: pimples }],
+    },
+    {
+      id: '4',
+      type: 'bot',
+      text: "It seems like mild skin irritation. Based on your clinic's services, I'd recommend:",
+      timestamp,
+      suggestions: [
+        {
+          id: '1',
+          image: PipsImage,
+          type: 'Dermatology',
+          serviceGroup: 'Skin Rejuvenation',
+          serviceName: 'HydraFacial Glow',
+          price: '350 SAR',
+          duration: '45 min',
+          description: 'Deep cleansing facial.',
+          procedure: 'Uses a patented device.',
+        },
+        {
+          id: '2',
+          image: PipsImage,
+          type: 'Dentistry',
+          serviceGroup: 'Teeth Whitening',
+          serviceName: 'Laser Smile Brightening',
+          price: '600 SAR',
+          duration: '1 hr',
+          description: 'Advanced laser teeth whitening.',
+          procedure: 'Hydrogen peroxide gel with laser.',
+        },
+      ],
+    },
+  ];
+}
   

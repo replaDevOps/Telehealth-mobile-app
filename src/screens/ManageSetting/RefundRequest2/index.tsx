@@ -38,7 +38,7 @@ interface PaymentAppointmentItem {
   }[];
 }
 
-type PaymentItem = PaymentAppointmentItem;
+type AppintItem = PaymentAppointmentItem;
 
 export function RefundRequest2({ navigation }: { navigation: any }) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -46,7 +46,7 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
   /* -------------------------------------------------
    *  MOCK DATA
    * ------------------------------------------------- */
-  const paymentHistory: PaymentItem[] = [
+  const AppointHistory: AppintItem[] = [
     {
       id: '1',
       kind: 'appointment',
@@ -116,13 +116,13 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
   ];
 
   // Simple filter for search
-  const filteredPayments = paymentHistory.filter(
+  const appointements = AppointHistory.filter(
     item =>
       item.clinicName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.clinicLocation.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
-  const renderPaymentCard = (item: PaymentItem) => {
+  const renderAppointCard = (item: AppintItem) => {
     return (
       <View key={item.id} style={styles.card}>
         <Text style={styles.dateText}>{item.date}</Text>
@@ -186,6 +186,8 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
                 dateTime: item.date,
                 price: item.price,
                 services: item.services,
+                reason:
+                  'In a laoreet purus. Integer turpis quam, laoreet id orci nec, ultrices lacinia nunc. Aliquam erat vo',
               })
             }
           >
@@ -200,7 +202,7 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
 
-      <Header2 title="History" />
+      <Header2 title="Refund Request" />
 
       {/* Search */}
       <View style={styles.searchContainer}>
@@ -219,7 +221,7 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
-        {filteredPayments.map(renderPaymentCard)}
+        {appointements.map(renderAppointCard)}
       </ScrollView>
     </SafeAreaView>
   );

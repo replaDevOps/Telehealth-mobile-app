@@ -58,6 +58,11 @@ export const MainNavigator = () => {
     >
       <Stack.Screen name="EntryPoint" component={CustomTabBar} />
       <Stack.Screen name="ChatScreen" component={ChatScreen} />
+      <Stack.Screen name="CardDetails" component={CardDetails} />
+      <ClinicStack.Screen
+        name="PrescriptionScreen"
+        component={PrescriptionScreen}
+      />
     </Stack.Navigator>
   );
 };
@@ -89,10 +94,7 @@ export const ClinicNavigator = () => {
         name="ConsultationPayment"
         component={ConsultationPayment}
       />
-      <ClinicStack.Screen
-        name="PrescriptionScreen"
-        component={PrescriptionScreen}
-      />
+
       <ClinicStack.Screen
         name="AudioConsultation"
         component={AudioConsultation}
@@ -112,7 +114,7 @@ export const HistoryNavigator = () => {
       initialRouteName="HistoryScreen"
     >
       <Stack.Screen name="HistoryScreen" component={HistoryScreen} />
-      <Stack.Screen name="CardDetails" component={CardDetails} />
+
       <Stack.Screen name="Refund" component={RefundRequest} />
     </Stack.Navigator>
   );

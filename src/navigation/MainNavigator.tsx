@@ -6,9 +6,7 @@ import {
   FilterScreen,
   ClinicDetailScreen,
   CheckoutScreen,
-  CartScreen,
   ConsultationPayment,
-  PrescriptionScreen,
   AudioConsultation,
   VideoConsultation,
   ChatOnboarding,
@@ -22,7 +20,13 @@ import {
   RefundRequest2,
   SettingScreen,
 } from '@screens/ManageSetting';
-import { CardDetails, ChatScreen, RefundRequest } from '@screens/Comman';
+import {
+  CardDetails,
+  ChatScreen,
+  RefundRequest,
+  PrescriptionScreen,
+  CartScreen,
+} from '@screens/Comman';
 
 export type MainStackParamList = {
   Home: undefined;

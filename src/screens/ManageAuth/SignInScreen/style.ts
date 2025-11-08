@@ -101,6 +101,21 @@ export const styles = StyleSheet.create({
     fontWeight:"700",
     marginLeft: mvs(4),
   },
+  checkboxError: {
+    borderWidth: 1,
+    borderColor: 'red',
+    borderRadius: 6,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+  },
+  
+  rememberMeErrorText: {
+    color: 'red',
+    fontSize: 12,
+    marginLeft: mvs(30),   // align with checkbox
+    marginTop: mvs(4),
+    marginBottom: mvs(8),
+  },
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',

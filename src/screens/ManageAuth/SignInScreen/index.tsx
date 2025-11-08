@@ -26,12 +26,12 @@ export function SignInScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [isChecked, setIsChecked] = useState(false);
+  const [rememberError, setRememberError] = useState(false);
   const [countryCode, setCountryCode] = useState('PK');
   const [phoneError, setPhoneError] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isPhoneValid, setIsPhoneValid] = useState(false);
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
 
@@ -39,6 +39,42 @@ export function SignInScreen({ navigation }) {
   const formattedPhone = phoneNumber
     ? `+${phoneNumber.countryCallingCode}${phoneNumber.nationalNumber}`
     : `+${phone}`;
+
+  const handleSignIn = () => {
+    let valid = true;
+
+    // Email or phone validation
+    if (selectedTab === 'email') {
+      if (!email.trim() || !email.includes('@')) {
+        setEmailError('Enter a valid email');
+        valid = false;
+      } else setEmailError('');
+    } else {
+      if (!phone.trim() || !isPhoneValid) {
+        setPhoneError('Invalid phone number');
+        valid = false;
+      } else setPhoneError('');
+    }
+
+    // Password validation
+    if (!password.trim()) {
+      setPasswordError('Password is required');
+      valid = false;
+    } else setPasswordError('');
+
+    // Remember Me validation
+    if (!isChecked) {
+      setRememberError(true);
+      valid = false;
+    } else {
+      setRememberError(false);
+    }
+
+    // Final navigation
+    if (valid && isChecked) {
+      navigation.navigate('Main', { screen: 'Home' });
+    }
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.white }}>
@@ -52,12 +88,15 @@ export function SignInScreen({ navigation }) {
           contentContainerStyle={{ paddingBottom: mvs(30) }}
           keyboardShouldPersistTaps="handled"
         >
+          {/* Header */}
           <Header2 title="" showLanguage={true} />
 
+          {/* Logo */}
           <View style={styles.logoContainer}>
             <LogoSvg />
           </View>
 
+          {/* Title */}
           <View style={{ ...styles.title }}>
             <CustomText text="Welcome Back" />
           </View>
@@ -67,6 +106,7 @@ export function SignInScreen({ navigation }) {
             </Text>
           </View>
 
+          {/* Tabs */}
           <View style={styles.tabContainer}>
             <TouchableOpacity
               style={[
@@ -107,6 +147,7 @@ export function SignInScreen({ navigation }) {
             </TouchableOpacity>
           </View>
 
+          {/* Inputs */}
           <View style={{ marginTop: mvs(25) }}>
             {selectedTab === 'email' ? (
               <CustomTextInput
@@ -114,7 +155,7 @@ export function SignInScreen({ navigation }) {
                 placeholder="Enter email address"
                 value={email}
                 onChangeText={setEmail}
-                errorMessage={emailError} // ← use emailError
+                errorMessage={emailError}
               />
             ) : (
               <>
@@ -132,65 +173,53 @@ export function SignInScreen({ navigation }) {
               </>
             )}
           </View>
+
           <CustomTextInput
             label="Password"
             placeholder="Enter your password"
             value={password}
             onChangeText={setPassword}
             secureTextEntry={true}
-            errorMessage={passwordError} // ← use passwordError
+            errorMessage={passwordError}
           />
+
+          {/* Remember Me & Forgot Password */}
           <View style={styles.PasswordRemember}>
             <View style={styles.CheckBox}>
               <TouchableOpacity
-                onPress={() => setIsChecked(!isChecked)}
+                onPress={() => {
+                  setIsChecked(!isChecked);
+                  setRememberError(false);
+                }}
                 accessibilityRole="checkbox"
                 accessibilityState={{ checked: isChecked }}
               >
                 <Ionicons
                   name={isChecked ? 'checkbox' : 'square-outline'}
                   size={22}
-                  color={isChecked ? colors.primary : colors.border}
+                  color={
+                    rememberError
+                      ? 'red'
+                      : isChecked
+                      ? colors.primary
+                      : colors.border
+                  }
                 />
               </TouchableOpacity>
               <Text style={styles.TextContent}>Remember Me</Text>
             </View>
+
             <TouchableOpacity
               onPress={() => navigation.navigate('ForgetPassword')}
             >
               <Text style={styles.signinLink}>Forgot Password</Text>
             </TouchableOpacity>
           </View>
-          <CustomButton
-            title="Sign In"
-            onPress={() => {
-              let valid = true;
 
-              // Email validation
-              if (selectedTab === 'email') {
-                if (!email.trim() || !email.includes('@')) {
-                  setEmailError('Enter a valid email');
-                  valid = false;
-                } else setEmailError('');
-              } else {
-                if (!phone.trim() || !isPhoneValid) {
-                  setPhoneError('Invalid phone number');
-                  valid = false;
-                } else setPhoneError('');
-              }
+          {/* Sign In Button */}
+          <CustomButton title="Sign In" onPress={handleSignIn} />
 
-              // Password validation
-              if (!password.trim()) {
-                setPasswordError('Password is required');
-                valid = false;
-              } else setPasswordError('');
-
-              if (valid && isChecked) {
-                navigation.navigate('Main', { screen: 'Home' });
-              }
-            }}
-          />
-
+          {/* Sign Up Link */}
           <View style={styles.signinRow}>
             <Text style={styles.TextContent}>Create an account? </Text>
             <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
@@ -198,12 +227,14 @@ export function SignInScreen({ navigation }) {
             </TouchableOpacity>
           </View>
 
+          {/* Divider */}
           <View style={styles.dividerContainer}>
             <View style={styles.line} />
             <Text style={styles.orText}>or</Text>
             <View style={styles.line} />
           </View>
 
+          {/* Apple & Google Buttons */}
           <TouchableOpacity
             style={styles.appleButton}
             onPress={() => console.log('Apple Sign In')}
@@ -219,8 +250,6 @@ export function SignInScreen({ navigation }) {
             <GoogleSvg />
             <Text style={styles.googleText}>Sign In with Google</Text>
           </TouchableOpacity>
-
-          {/* Terms & Conditions */}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

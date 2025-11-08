@@ -68,12 +68,13 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     console.log('Added to cart:', service);
     // Add to cart logic
     setServiceDetailVisible(false);
+    navigation.navigate('CartScreen');
   };
 
   const handleCheckout = service => {
     console.log('Checkout:', service);
     // Navigate to checkout
-    navigation.navigate('Checkout', { service });
+    navigation.navigate('CheckoutScreen', { service });
   };
   const handleDevicePress = device => {
     setSelectedDevice(device);

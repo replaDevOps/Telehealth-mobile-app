@@ -60,7 +60,9 @@ export const styles = StyleSheet.create({
       fontWeight: '600',
     },
     reviewsContent: {
+      flex: 1,
       padding: 16,
+      marginBottom: 16,
     },
     reviewsHeader: {
       flexDirection: 'row',

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Image, ScrollView } from 'react-native';
 import { styles } from './styles';
 import { Header2 } from '../../../components/common/Header2';
 import CustomText from '../../../components/common/CustomText';
@@ -7,7 +7,9 @@ import { AmericaFlgSvg, SaudiFlgSvg } from '../../../assets/icons';
 import { mvs } from '../../../config/metrices';
 import { CustomButton } from '../../../components/common/CustomButton';
 import { useNavigation } from '@react-navigation/native';
+import { LanguageSelection } from '@assets/images';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { colors } from '../../../styles/colors';
 
 export function LanguageScreen() {
   const navigation = useNavigation();
@@ -24,13 +26,18 @@ export function LanguageScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      <View style={styles.container}>
-        <Header2 title="" back={false} useSkip={false} />
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: colors.white,
+      }}
+    >
+      <Header2 title="" back={false} />
 
-        <View style={styles.image} />
+      <ScrollView contentContainerStyle={styles.container}>
+        <View style={{ marginBottom: mvs(50) }}>
+          <Image source={LanguageSelection} style={styles.image} />
 
-        <View>
           <View style={styles.content}>
             <View style={{ ...styles.title }}>
               <CustomText text="Select Language" />
@@ -76,7 +83,8 @@ export function LanguageScreen() {
             </TouchableOpacity>
           </View>
         </View>
-
+      </ScrollView>
+      <View style={styles.button}>
         <CustomButton title="Next" onPress={handleNext} />
       </View>
     </SafeAreaView>

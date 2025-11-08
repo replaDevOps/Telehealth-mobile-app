@@ -14,7 +14,7 @@ export const HomeScreen = ({ navigation }) => {
   };
 
   const handleCartPress = () => {
-    // navigation.navigate('Cart');
+    navigation.navigate('CartScreen');
   };
 
   const handleNotificationPress = () => {

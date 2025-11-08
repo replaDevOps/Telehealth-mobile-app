@@ -6,18 +6,19 @@ import { colors } from '../../../styles/colors';
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.white,
-    paddingHorizontal: mvs(20),
+    backgroundColor: colors.white, 
+    justifyContent:"center",
+  },
+  logoContainer: {
     justifyContent: 'space-around',
   },
   image: {
-    width: '80%',
-    height: mvs(300),
-    backgroundColor: colors.gray,
-    borderRadius: 20,
+    width: '100%',
+    height: mvs(400),
     alignSelf: 'center',
-    marginBottom: mvs(20),
-    marginTop: '30%',
+    resizeMode: 'cover',
+    position:"relative",
+    bottom:mvs(50)
   },
   title: {
     alignItems: 'center',
@@ -45,7 +46,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: mvs(40),
     marginTop: mvs(30),
-    marginHorizontal: mvs(10),
+    marginHorizontal: mvs(20),
   },
   langOption: {
     flexDirection: 'row',
@@ -88,4 +89,5 @@ export const styles = StyleSheet.create({
     height: mvs(20),
     borderRadius: mvs(4),
   },
+  button: {position:"absolute",bottom:mvs(40),width:"100%",paddingHorizontal:mvs(20)}
 });

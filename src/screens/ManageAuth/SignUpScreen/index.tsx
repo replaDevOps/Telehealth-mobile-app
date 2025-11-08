@@ -31,11 +31,43 @@ export function SignUpScreen({ navigation }) {
   const [errorMessage, setErrorMessage] = useState('');
   const [isPhoneValid, setIsPhoneValid] = useState(false);
   const [emailError, setEmailError] = useState('');
+  const [rememberError, setRememberError] = useState(false);
 
   const phoneNumber = parsePhoneNumberFromString(phone, countryCode);
   const formattedPhone = phoneNumber
     ? `+${phoneNumber.countryCallingCode}${phoneNumber.nationalNumber}`
     : `+${phone}`;
+
+  const handleSignUp = () => {
+    let valid = true;
+
+    if (selectedTab === 'email') {
+      if (!email.trim() || !email.includes('@')) {
+        setEmailError('Enter a valid email');
+        valid = false;
+      } else {
+        setEmailError('');
+      }
+    } else {
+      if (!phone.trim() || !isPhoneValid) {
+        setPhoneError('Invalid phone number');
+        valid = false;
+      } else {
+        setPhoneError('');
+      }
+    }
+
+    if (!isChecked) {
+      setRememberError(true);
+      valid = false;
+    } else {
+      setRememberError(false);
+    }
+
+    if (valid) {
+      navigation.navigate('OTPScreen');
+    }
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.white }}>
@@ -64,6 +96,7 @@ export function SignUpScreen({ navigation }) {
             </Text>
           </View>
 
+          {/* Tabs for Email / Phone */}
           <View style={styles.tabContainer}>
             <TouchableOpacity
               style={[
@@ -71,8 +104,6 @@ export function SignUpScreen({ navigation }) {
                 selectedTab === 'email' && styles.activeTab,
               ]}
               onPress={() => setSelectedTab('email')}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: selectedTab === 'email' }}
             >
               <Text
                 style={[
@@ -90,8 +121,6 @@ export function SignUpScreen({ navigation }) {
                 selectedTab === 'phone' && styles.activeTab,
               ]}
               onPress={() => setSelectedTab('phone')}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: selectedTab === 'phone' }}
             >
               <Text
                 style={[
@@ -104,6 +133,7 @@ export function SignUpScreen({ navigation }) {
             </TouchableOpacity>
           </View>
 
+          {/* Input Fields */}
           <View style={{ marginTop: mvs(25) }}>
             {selectedTab === 'email' ? (
               <CustomTextInput
@@ -132,28 +162,8 @@ export function SignUpScreen({ navigation }) {
             )}
           </View>
 
-          <CustomButton
-            title="Sign up"
-            onPress={() => {
-              let valid = true;
-
-              if (selectedTab === 'email') {
-                if (!email.trim() || !email.includes('@')) {
-                  setEmailError('Enter a valid email');
-                  valid = false;
-                } else setEmailError('');
-              } else {
-                if (!phone.trim() || !isPhoneValid) {
-                  setPhoneError('Invalid phone number');
-                  valid = false;
-                } else setPhoneError('');
-              }
-
-              if (valid && isChecked) {
-                navigation.navigate('OTPScreen');
-              }
-            }}
-          />
+          {/* Sign Up Button */}
+          <CustomButton title="Sign up" onPress={handleSignUp} />
 
           <View style={styles.signinRow}>
             <Text style={styles.TextContent}>Already have an account? </Text>
@@ -162,12 +172,14 @@ export function SignUpScreen({ navigation }) {
             </TouchableOpacity>
           </View>
 
+          {/* Divider */}
           <View style={styles.dividerContainer}>
             <View style={styles.line} />
             <Text style={styles.orText}>or</Text>
             <View style={styles.line} />
           </View>
 
+          {/* Apple Sign Up */}
           <TouchableOpacity
             style={styles.appleButton}
             onPress={() => console.log('Apple Sign Up')}
@@ -176,6 +188,7 @@ export function SignUpScreen({ navigation }) {
             <Text style={styles.appleText}>Sign up with Apple</Text>
           </TouchableOpacity>
 
+          {/* Google Sign Up */}
           <TouchableOpacity
             style={styles.googleButton}
             onPress={() => console.log('Google Sign Up')}
@@ -187,16 +200,26 @@ export function SignUpScreen({ navigation }) {
           {/* Terms & Conditions */}
           <View style={styles.termsRow}>
             <TouchableOpacity
-              onPress={() => setIsChecked(!isChecked)}
+              onPress={() => {
+                setIsChecked(!isChecked);
+                if (rememberError) setRememberError(false);
+              }}
               accessibilityRole="checkbox"
               accessibilityState={{ checked: isChecked }}
             >
               <Ionicons
                 name={isChecked ? 'checkbox' : 'square-outline'}
                 size={22}
-                color={isChecked ? colors.primary : colors.black}
+                color={
+                  rememberError
+                    ? 'red'
+                    : isChecked
+                    ? colors.primary
+                    : colors.border
+                }
               />
             </TouchableOpacity>
+
             <Text style={styles.TextContent}>
               By continuing, you agree to Vena's{' '}
               <Text style={styles.linkText}>Terms & Conditions</Text> and{' '}

@@ -1,23 +1,23 @@
-import { PipsImage, RecommandImage, doctor, patient, pimples } from "@assets/images";
+import { PipsImage, RecommandImage, doctor, onboarding1, onboarding2, onboarding3, patient, pimples } from "@assets/images";
 import { DoctorInfo, ClinicInfo, Message } from '../types/chat.types';
 
 export const ONBOARDING_STEPS = [
     {
       title: 'Connect to Care, Anytime.',
-      imgSrc: '',
+      imgSrc: onboarding1,
       content:
         'Book appointments, consultations, and treatments from trusted clinics',
     },
     {
-      title: 'Consultations with AI',
-      imgSrc: '',
+      title: 'Consultation with Vena AI',
+      imgSrc: onboarding2,
       content:
-        'Book appointments, consultations, and treatments from trusted clinics',
+        'Get AI-powered guidance and insights whenever you need.',
     },
     {
-      title: 'Your Clinic, Your Control. ',
-      imgSrc: '',
-      content: 'Track appointments, orders, and history wherever you are.',
+      title: 'Connect Via Various Ways',
+      imgSrc: onboarding3,
+      content: 'Connect with your doctor through chat, audio, or video.',
     },
   ];
 

@@ -13,7 +13,7 @@ type Props = {
   navigation: SplashScreenNavigationProp;
 };
 
-const SplashScreen: React.FC<Props> = ({ navigation }) => {
+export const SplashScreen: React.FC<Props> = ({ navigation }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -64,5 +64,3 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
 });
-
-export default SplashScreen;

@@ -1,11 +1,10 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import AuthNavigator from './AuthNavigator';
 import { RootStackParamList } from './types';
-import SplashScreen from '../screens/Splash/SplashScreen';
+import { SplashScreen } from '@screens';
+import AuthNavigator from './AuthNavigator';
 import { MainNavigator } from './MainNavigator';
-
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const AppNavigator = () => {

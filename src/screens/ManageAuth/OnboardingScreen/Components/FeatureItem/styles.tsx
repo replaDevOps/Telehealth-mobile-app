@@ -4,19 +4,15 @@ import { colors } from '../../../../../styles/colors';
 
 export const styles = StyleSheet.create({
   containner: {
-    flex: 1,
-    gap: mvs(80),
-    alignItems: 'center',
-    padding: mvs(20),
+    marginBottom: mvs(50),
   },
   image: {
-    width: '80%',
-    height: mvs(300),
-    backgroundColor: colors.gray,
-    borderRadius: 20,
+    width: '100%',
+    height: mvs(400),
     alignSelf: 'center',
-    marginBottom: mvs(20),
-    marginTop: '30%',
+    resizeMode: 'cover',
+    position: 'relative',
+    bottom: mvs(50),
   },
   title: {
     alignItems: 'center',
@@ -24,6 +20,8 @@ export const styles = StyleSheet.create({
   content: {
     alignItems: 'center',
     gap: mvs(15),
+    marginHorizontal: mvs(20),
+    marginBottom: mvs(20),
   },
   TextContent: {
     fontSize: 16,

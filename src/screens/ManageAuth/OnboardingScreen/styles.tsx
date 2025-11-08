@@ -6,8 +6,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.white,
-    paddingHorizontal: mvs(20),
-    justifyContent: 'space-around',
+    justifyContent: 'center',
+    marginBottom: mvs(20),
   },
   skipButton: {
     position: 'absolute',
@@ -90,12 +90,10 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   button: {
-    backgroundColor: colors.primary,
-    height: 56,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
+    position: 'absolute',
+    bottom: mvs(40),
+    width: '100%',
+    paddingHorizontal: mvs(20),
   },
   buttonText: {
     color: colors.white,

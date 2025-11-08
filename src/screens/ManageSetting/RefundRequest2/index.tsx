@@ -18,6 +18,7 @@ import { RecommandImage } from '@assets/images';
 interface PaymentAppointmentItem {
   id: string;
   kind: 'appointment';
+  state: string;
   date: string;
   paymentId: string;
   clinicImg?: boolean;
@@ -50,6 +51,7 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
     {
       id: '1',
       kind: 'appointment',
+      state: 'Pending',
       date: '10/02/2025 11:05 am',
       paymentId: 'PAY-001',
       clinicImg: true,
@@ -83,6 +85,8 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
     {
       id: '2',
       kind: 'appointment',
+      state: 'Scheduled',
+
       date: '10/02/2025 11:05 am',
       paymentId: 'PAY-001',
       clinicImg: true,
@@ -134,12 +138,7 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
 
             {item.clinicLocation && (
               <View style={styles.paymentTypeContainer}>
-                <Ionicons
-                  name="location-outline"
-                  size={14}
-                  color={colors.white}
-                />
-                <Text style={styles.paymentType}>{item.clinicLocation}</Text>
+                <Text style={styles.paymentType}>{item.state}</Text>
               </View>
             )}
           </View>

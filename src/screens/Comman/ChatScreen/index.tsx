@@ -50,6 +50,11 @@ export function ChatScreen({ navigation, route }) {
 
   const scrollRef = useRef<ScrollView>(null);
 
+  useEffect(() => {
+    console.log('clinicInfo.image type:', typeof clinicInfo.image);
+    console.log('clinicInfo.image value:', clinicInfo.image);
+  }, []);
+
   // ---------- Memoized Values ----------
   const initialMessages = useMemo(
     () => getInitialMessages(chatType, doctorInfo),
@@ -205,7 +210,14 @@ export function ChatScreen({ navigation, route }) {
       {/* Clinic Info */}
       <View style={styles.clinicInfo}>
         <View style={styles.clinicLeft}>
-          <Image source={clinicInfo.image} style={styles.clinicImage} />
+          <Image
+            source={
+              typeof clinicInfo.image === 'number'
+                ? { uri: Image.resolveAssetSource(clinicInfo.image).uri }
+                : clinicInfo.image
+            }
+            style={styles.clinicImage}
+          />
           <View>
             <Text style={styles.clinicName}>{clinicInfo.name}</Text>
             <Text style={styles.clinicLocation}>{clinicInfo.location}</Text>

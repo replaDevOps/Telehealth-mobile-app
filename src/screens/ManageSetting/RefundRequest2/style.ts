@@ -245,10 +245,10 @@ export const styles = StyleSheet.create({
       padding: 8,
       marginBottom: 12,
       flexDirection: 'row',
-      justifyContent: 'space-between',
       alignItems: 'center',
       borderTopEndRadius: 8,
       borderTopStartRadius: 8,
+      gap:12
     },
     paymentId: {
       fontSize: 15,

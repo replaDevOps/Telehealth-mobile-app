@@ -303,7 +303,7 @@ export const SERVICES = [
           4: 'Thigh Slimming',
           5: 'Double Chin Removal',
         },
-      },
+        },
       {
         id: '4',
         image: RecommandImage,
@@ -566,7 +566,7 @@ export function getInitialMessages(
       type: 'user',
       text: "I've uploaded a photo. I have some redness and itching on my face.",
       timestamp,
-      images: [{ uri: pimples }, { uri: pimples }],
+      images: [pimples, pimples],
     },
     {
       id: '4',

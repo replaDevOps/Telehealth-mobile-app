@@ -156,9 +156,7 @@ export function HistoryScreen({ navigation }: { navigation: any }) {
         <View style={styles.actionsRow}>
           <TouchableOpacity
             style={styles.prescriptionButton}
-            onPress={() =>
-              navigation.navigate('Clinic', { screen: 'PrescriptionScreen' })
-            }
+            onPress={() => navigation.navigate('PrescriptionScreen')}
           >
             <Text style={styles.prescriptionButtonText}>Get Prescription</Text>
           </TouchableOpacity>

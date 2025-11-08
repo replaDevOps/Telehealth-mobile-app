@@ -59,6 +59,12 @@ export const MainNavigator = () => {
       <Stack.Screen name="ChatScreen" component={ChatScreen} />
       <Stack.Screen name="CardDetails" component={CardDetails} />
       <Stack.Screen name="Refund" component={RefundRequest} />
+      <ClinicStack.Screen name="CheckoutScreen" component={CheckoutScreen} />
+      <ClinicStack.Screen name="CartScreen" component={CartScreen} />
+      <ClinicStack.Screen
+        name="PrescriptionScreen"
+        component={PrescriptionScreen}
+      />
     </Stack.Navigator>
   );
 };
@@ -84,15 +90,9 @@ export const ClinicNavigator = () => {
       <ClinicStack.Screen name="ClinicDetail" component={ClinicDetailScreen} />
       <ClinicStack.Screen name="ChatOnboarding" component={ChatOnboarding} />
 
-      <ClinicStack.Screen name="CheckoutScreen" component={CheckoutScreen} />
-      <ClinicStack.Screen name="CartScreen" component={CartScreen} />
       <ClinicStack.Screen
         name="ConsultationPayment"
         component={ConsultationPayment}
-      />
-      <ClinicStack.Screen
-        name="PrescriptionScreen"
-        component={PrescriptionScreen}
       />
 
       <ClinicStack.Screen

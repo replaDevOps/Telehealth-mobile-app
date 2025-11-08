@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { View, Text, Image } from 'react-native';
 import { Suggestion } from '../Suggestion';
@@ -11,7 +10,11 @@ interface MessageProps {
   handleServicePress: (service: Service) => void;
 }
 
-export const Message: React.FC<MessageProps> = ({ msg, showAvatar, handleServicePress }) => {
+export const Message: React.FC<MessageProps> = ({
+  msg,
+  showAvatar,
+  handleServicePress,
+}) => {
   const isUser = msg.type === 'user';
   const hasText = msg.text && msg.text.trim().length > 0;
   const hasImages = msg.images && msg.images.length > 0;
@@ -33,7 +36,12 @@ export const Message: React.FC<MessageProps> = ({ msg, showAvatar, handleService
                 <Text style={styles.botMessageText}>{msg.text}</Text>
               </View>
             )}
-            {msg.suggestions && <Suggestion suggestions={msg.suggestions} handleServicePress={handleServicePress} />}
+            {msg.suggestions && (
+              <Suggestion
+                suggestions={msg.suggestions}
+                handleServicePress={handleServicePress}
+              />
+            )}
           </View>
         </View>
       )}
@@ -56,13 +64,20 @@ export const Message: React.FC<MessageProps> = ({ msg, showAvatar, handleService
               )}
               {hasImages && (
                 <View style={styles.imagesRow}>
-                  {msg.images?.map((img, i) => (
-                    <Image
-                      key={`img-${i}`}
-                      source={{ uri: img.uri }}
-                      style={styles.uploadedImage}
-                    />
-                  ))}
+                  {msg.images?.map((img, i) => {
+                    console.log(`Image ${i}:`, img);
+                    console.log(`Image ${i} type:`, typeof img);
+                    console.log(`Image ${i} has uri:`, img?.uri);
+                    console.log(`Image ${i} uri type:`, typeof img?.uri);
+
+                    return (
+                      <Image
+                        key={`img-${i}`}
+                        source={img}
+                        style={styles.uploadedImage}
+                      />
+                    );
+                  })}
                 </View>
               )}
             </View>

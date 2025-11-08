@@ -21,7 +21,7 @@ export function PrescriptionScreen({ navigation }) {
     // Simulate 3-second loading (as if downloading)
     setTimeout(() => {
       setIsLoading(false);
-      navigation.navigate('ClinicScreen');
+      navigation.navigate('EntryPoint');
     }, 3000);
   };
 

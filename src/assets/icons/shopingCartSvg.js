@@ -1,9 +1,10 @@
 import * as React from 'react';
 import Svg, { Path } from 'react-native-svg';
-const ShopingCartSvg = props => (
+
+const ShoppingCartSvg = ({ width = 24, height = 24, ...props }) => (
   <Svg
-    width={24}
-    height={24}
+    width={width}
+    height={height}
     viewBox="0 0 20 20"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
@@ -29,4 +30,5 @@ const ShopingCartSvg = props => (
     />
   </Svg>
 );
-export default ShopingCartSvg;
+
+export default ShoppingCartSvg;

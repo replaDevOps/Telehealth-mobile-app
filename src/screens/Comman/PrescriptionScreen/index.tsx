@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Image,
   ScrollView,
   View,
   Modal,
   ActivityIndicator,
+  Text,
 } from 'react-native';
 import { Header2 } from '@components/common/Header2';
 import { CustomButton } from '@components/common/CustomButton';
@@ -12,9 +13,11 @@ import { prescription } from '@assets/images';
 import { colors } from '../../../styles/colors';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { styles } from './style';
+import { EmptyContentSvg } from '@assets/icons';
 
 export function PrescriptionScreen({ navigation }) {
   const [isLoading, setIsLoading] = useState(false);
+  const [isPrescriptionAvailable] = useState(false);
 
   const handleDownload = () => {
     setIsLoading(true);
@@ -25,6 +28,15 @@ export function PrescriptionScreen({ navigation }) {
     }, 3000);
   };
 
+  useEffect(() => {
+    if (!isPrescriptionAvailable) {
+      setTimeout(() => {
+        setIsLoading(false);
+        navigation.navigate('EntryPoint');
+      }, 2000);
+    }
+  }, []);
+
   return (
     <SafeAreaView style={styles.container}>
       <Header2 title="#12345" />
@@ -33,15 +45,28 @@ export function PrescriptionScreen({ navigation }) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <Image
-          source={prescription}
-          style={styles.image}
-          resizeMode="contain"
-        />
+        {isPrescriptionAvailable ? (
+          <Image
+            source={prescription}
+            style={styles.image}
+            resizeMode="contain"
+          />
+        ) : (
+          <View style={styles.noPrescriptionContainer}>
+            <EmptyContentSvg />
+            <Text style={styles.noPrescriptionText}>
+              No prescription available.
+            </Text>
+          </View>
+        )}
       </ScrollView>
 
       <View style={styles.buttonContainer}>
-        <CustomButton title="Download Prescription" onPress={handleDownload} />
+        <CustomButton
+          title="Download Prescription"
+          onPress={handleDownload}
+          disabled={isLoading || !isPrescriptionAvailable}
+        />
       </View>
 
       {/* Loading Modal */}

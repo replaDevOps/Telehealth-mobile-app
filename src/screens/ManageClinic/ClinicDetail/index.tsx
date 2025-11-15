@@ -12,20 +12,22 @@ import { ClinicInfo } from '@components/molecules/ClinicInfo';
 import { colors } from '../../../styles/colors';
 import React, { useState } from 'react';
 import { View, ScrollView, TouchableOpacity, Text } from 'react-native';
-
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { ClinicProfile } from '@assets/images';
 import AboutClinic from '@components/molecules/AboutCard';
 import ConsultDoctorBottomSheet from '@components/molecules/ConsultDoctorBottomSheet';
 import { styles } from './style';
+import { useCart } from '@context/CartContext'; // Import the cart hook
 
 import {
   SERVICES,
   CLINIC_REVIEWS,
   CLINIC_ABOUT_DATA,
 } from '@constants/appData';
+
 export const ClinicDetailScreen = ({ navigation, route }) => {
   const { clinic } = route.params;
+  const { addToCart } = useCart();
   const [activeTab, setActiveTab] = useState('Services');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterVisible, setFilterVisible] = useState(false);
@@ -48,7 +50,6 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
   const handleConsultPress = () => {
     console.log('Consult now pressed');
     setShowBottomSheet(true);
-    // Navigate to consultation screen
   };
 
   const handleFilterPress = () => {
@@ -64,18 +65,49 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     console.log('Chat with Vena AI pressed');
     navigation.navigate('ChatOnboarding');
   };
+
   const handleAddToCart = service => {
-    console.log('Added to cart:', service);
-    // Add to cart logic
+    // Add service with clinic details to cart
+    const cartItem = {
+      service: service,
+      clinic: {
+        id: clinic.id || clinic._id || `clinic_${Date.now()}`,
+        name: clinic.name,
+        location: clinic.location,
+        image: clinic.image,
+        specialty: clinic.specialty,
+        rating: clinic.rating,
+      },
+    };
+
+    addToCart(cartItem);
+
+    console.log('Service added to cart:', cartItem);
+
     setServiceDetailVisible(false);
     navigation.navigate('CartScreen');
   };
 
   const handleCheckout = service => {
-    console.log('Checkout:', service);
-    // Navigate to checkout
-    navigation.navigate('CheckoutScreen', { service });
+    // Navigate to checkout with single service
+    navigation.navigate('CheckoutScreen', {
+      services: [
+        {
+          service: service,
+          clinic: {
+            id: clinic.id,
+            name: clinic.name,
+            location: clinic.location,
+            image: clinic.image,
+            specialty: clinic.specialty,
+            rating: clinic.rating,
+          },
+        },
+      ],
+      fromCart: false,
+    });
   };
+
   const handleDevicePress = device => {
     setSelectedDevice(device);
     setDeviceDetailVisible(true);
@@ -102,7 +134,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
           category={clinic.specialty}
           name={clinic.name}
           location={clinic.location}
-          distance={'2.2km'} // This seems to be missing from the clinic object
+          distance={'2.2km'}
           rating={clinic.rating}
           onConsultPress={handleConsultPress}
         />
@@ -125,7 +157,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
               value={searchQuery}
               onChangeText={setSearchQuery}
               onFilterPress={handleFilterPress}
-              placeholder="Search Clinics"
+              placeholder="Search Services"
             />
 
             {/* Services List */}
@@ -203,11 +235,13 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
           <Ionicons name="sparkles" size={20} color={colors.white} />
         </TouchableOpacity>
       </View>
+
       <FilterBottomSheet
         visible={filterVisible}
         onClose={() => setFilterVisible(false)}
         onApplyFilters={handleApplyFilters}
       />
+
       <ServiceDetailBottomSheet
         visible={serviceDetailVisible}
         onClose={() => setServiceDetailVisible(false)}

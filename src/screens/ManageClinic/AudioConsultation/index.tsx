@@ -13,8 +13,6 @@ import { doctor } from '@assets/images';
 import { mvs } from '@config/metrices';
 import ConsultationEndedModal from '@components/molecules/EndSectionModal';
 
-
-
 export function AudioConsultation({ navigation, route }) {
   const doctorInfo = route?.params?.doctorInfo || {
     name: 'Dr. Yasmin Chowdhury',
@@ -36,6 +34,7 @@ export function AudioConsultation({ navigation, route }) {
 
   const handleClose = () => {
     setModalVisible(false);
+    navigation.navigate('EntryPoint');
   };
 
   useEffect(() => {

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ScrollView } from 'react-native';
 import { Message } from '../Message';
@@ -7,12 +6,17 @@ import { styles } from './style';
 
 interface MessageListProps {
   messages: MessageType[];
-  scrollRef: React.RefObject<ScrollView>;
+  scrollRef: React.RefObject<ScrollView | null>;
   showAvatar: boolean;
   handleServicePress: (service: Service) => void;
 }
 
-export const MessageList: React.FC<MessageListProps> = ({ messages, scrollRef, showAvatar, handleServicePress }) => {
+export const MessageList: React.FC<MessageListProps> = ({
+  messages,
+  scrollRef,
+  showAvatar,
+  handleServicePress,
+}) => {
   return (
     <ScrollView
       ref={scrollRef}
@@ -22,7 +26,12 @@ export const MessageList: React.FC<MessageListProps> = ({ messages, scrollRef, s
       keyboardShouldPersistTaps="handled"
     >
       {messages.map((msg, index) => (
-        <Message key={msg.id || `msg-${index}`} msg={msg} showAvatar={showAvatar} handleServicePress={handleServicePress} />
+        <Message
+          key={msg.id || `msg-${index}`}
+          msg={msg}
+          showAvatar={showAvatar}
+          handleServicePress={handleServicePress}
+        />
       ))}
     </ScrollView>
   );

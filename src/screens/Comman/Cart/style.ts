@@ -32,14 +32,34 @@ export const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
+  
+  // Empty State Styles
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  emptyText: {
+    fontSize: 18,
+    color: colors.secondaryText,
+    marginBottom: 30,
+    textAlign: 'center',
+  },
+  browseButton: {
+    minWidth: 200,
+  },
+  
+  // Clinic Section
   clinicSection: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.gray,
     marginTop: 16,
-    paddingTop: 16,
+    padding: 16,
     marginHorizontal: 16,
     paddingBottom: 20,
     borderBottomColor: colors.border,
     borderBottomWidth: 1,
+    borderRadius: 12,
   },
   clinicCard: {
     flexDirection: 'row',
@@ -71,6 +91,8 @@ export const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.secondaryText,
   },
+  
+  // Service Card Styles
   serviceCard: {
     flexDirection: 'row',
     backgroundColor: colors.lightGray,
@@ -135,7 +157,6 @@ export const styles = StyleSheet.create({
   removeIcon: {
     fontSize: 18,
     color: colors.white,
-
     fontWeight: '400',
     lineHeight: 20,
   },
@@ -167,6 +188,47 @@ export const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#000',
   },
+  
+  // Suggested Services Styles
+  suggestedSection: {
+    marginTop: 16,
+    marginBottom: 12,
+  },
+  suggestedTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 12,
+  },
+  suggestedServiceCard: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderStyle: 'dashed',
+  },
+  suggestedPriceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  addSuggestedButton: {
+    padding: 5,
+    borderRadius: "50%",
+    borderColor: colors.border,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'absolute',
+    right: 12,
+    top: '10%',
+  
+  },
+  
+  // Subtotal and Checkout
   subtotalContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',

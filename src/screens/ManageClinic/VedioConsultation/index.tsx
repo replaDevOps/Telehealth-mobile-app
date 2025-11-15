@@ -37,6 +37,7 @@ export function VideoConsultation({ navigation, route }) {
 
   const handleClose = () => {
     setModalVisible(false);
+    navigation.navigate('EntryPoint');
   };
 
   useEffect(() => {

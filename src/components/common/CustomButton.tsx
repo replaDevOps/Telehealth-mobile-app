@@ -20,11 +20,20 @@ const CustomButton: React.FC<CustomButtonProps> = ({
   title,
   textStyle,
   style,
+  disabled,
   ...props
 }) => {
   return (
-    <TouchableOpacity style={[styles.button, style]} {...props}>
-      <Text style={[styles.buttonText, textStyle]}>{title}</Text>
+    <TouchableOpacity
+      style={[styles.button, disabled && styles.disabledButton, style]}
+      disabled={disabled}
+      {...props}
+    >
+      <Text
+        style={[styles.buttonText, disabled && styles.disabledText, textStyle]}
+      >
+        {title}
+      </Text>
     </TouchableOpacity>
   );
 };
@@ -38,10 +47,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginVertical: mvs(10),
   },
+  disabledButton: {
+    backgroundColor: colors.neutral, // Black background when disabled
+  },
   buttonText: {
     color: colors.white,
     fontSize: mvs(16),
     fontWeight: 'bold',
+  },
+  disabledText: {
+    // Optional: You can also change text color for disabled state
+    // color: colors.gray, // Uncomment if you want different text color
   },
 });
 

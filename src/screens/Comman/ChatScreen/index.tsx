@@ -9,7 +9,7 @@ import { View, Text, ScrollView, Image, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ServiceDetailBottomSheet } from '@components/molecules';
 import { styles } from './style';
-import { patient } from '@assets/images';
+import { patient, RecommandImage } from '@assets/images';
 import ConsultationEndedModal from '@components/molecules/EndSectionModal';
 import { launchImageLibrary } from 'react-native-image-picker';
 import {
@@ -26,6 +26,7 @@ import {
   getInitialMessages,
 } from '../../../constants/appData';
 import { Message, Service } from '../../../types/chat.types';
+import { useCart } from '@context/CartContext';
 
 // ---------- Main Component ----------
 export function ChatScreen({ navigation, route }) {
@@ -34,6 +35,7 @@ export function ChatScreen({ navigation, route }) {
   const fromHistory = route?.params?.fromHistory || false;
   const doctorInfo = route?.params?.doctorInfo || DEFAULT_DOCTOR_INFO;
   const clinicInfo = route?.params?.clinicInfo || DEFAULT_CLINIC_INFO;
+  const { addToCart } = useCart();
 
   // ---------- State ----------
   const [message, setMessage] = useState('');
@@ -58,7 +60,7 @@ export function ChatScreen({ navigation, route }) {
   // ---------- Memoized Values ----------
   const initialMessages = useMemo(
     () => getInitialMessages(chatType, doctorInfo),
-    [chatType, doctorInfo], // Only recreate if chatType or doctor changes
+    [chatType, doctorInfo],
   );
 
   const consultationTime = useMemo(
@@ -167,10 +169,26 @@ export function ChatScreen({ navigation, route }) {
     setServiceDetailVisible(true);
   }, []);
 
-  const handleAddToCart = useCallback(() => {
+  const handleAddToCart = service => {
+    const cartItem = {
+      service: service,
+      clinic: {
+        id: `clinic_${Date.now()}`,
+        name: 'AI Health Clinic',
+        location: 'None',
+        image: RecommandImage,
+        specialty: 'General',
+        rating: 3,
+      },
+    };
+
+    addToCart(cartItem);
+
+    console.log('Service added to cart:', cartItem);
+
     setServiceDetailVisible(false);
     navigation.navigate('CartScreen');
-  }, [navigation]);
+  };
 
   const handleCheckout = useCallback(() => {
     setServiceDetailVisible(false);
@@ -189,6 +207,7 @@ export function ChatScreen({ navigation, route }) {
 
   const handleCloseModal = useCallback(() => {
     setModalVisible(false);
+    navigation.navigate('EntryPoint');
   }, []);
 
   const handleGoBack = useCallback(() => {

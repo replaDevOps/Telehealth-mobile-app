@@ -7,7 +7,19 @@ export const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.white,
   },
-
+  couponSection: {
+    marginTop: mvs(8),
+  },
+  discountAppliedText: {
+    fontSize: 14,
+    color: colors.green || '#10B981',
+    marginHorizontal: mvs(15),
+    marginTop: mvs(8),
+    fontWeight: '500',
+  },
+  discountValue: {
+    color: colors.green || '#10B981',
+  },
   backButton: {
     padding: 4,
   },
@@ -160,6 +172,8 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.gray,
     marginBottom: mvs(8),
   },
+  paymentOptionSelected:{
+    backgroundColor: colors.lightGray},
   radioContainer: {
     flexDirection: 'row',
     alignItems: 'center',

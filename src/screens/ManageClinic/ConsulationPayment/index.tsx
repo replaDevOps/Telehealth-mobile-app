@@ -1,20 +1,12 @@
 import { Header2 } from '@components/common/Header2';
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  Modal,
-  ActivityIndicator,
-} from 'react-native';
+import { View, Text, ScrollView, Modal, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../../../styles/colors';
 import { CustomButton } from '@components/common/CustomButton';
-import { ApplePaySvg, MastercardSvg, StcPaySvg } from '@assets/icons';
 import { RecommandImage, doctor } from '@assets/images';
 import { styles } from './style';
+import { PaymentMethod } from '@components/molecules';
 
 export function ConsultationPayment({ navigation, route }) {
   const [selectedPayment, setSelectedPayment] = useState('credit');
@@ -39,6 +31,14 @@ export function ConsultationPayment({ navigation, route }) {
   const handleConnectWithDoctor = () => {
     console.log('Connecting with doctor...', consultationType);
 
+    // Validate payment if credit card is selected
+    if (selectedPayment === 'credit') {
+      if (!cardholderName || !cardNumber || !expiryDate || !cvv) {
+        alert('Please fill all card details');
+        return;
+      }
+    }
+
     setIsLoading(true);
 
     setTimeout(() => {
@@ -59,7 +59,6 @@ export function ConsultationPayment({ navigation, route }) {
           },
         });
       } else if (consultationType === 'audio') {
-        // Navigate to Audio Consultation
         navigation.navigate('AudioConsultation', {
           doctorInfo: {
             name: 'Dr. Yasmin Chowdhury',
@@ -68,7 +67,6 @@ export function ConsultationPayment({ navigation, route }) {
           },
         });
       } else if (consultationType === 'video') {
-        // Navigate to Video Consultation
         navigation.navigate('VideoConsultation', {
           doctorInfo: {
             name: 'Dr. Yasmin Chowdhury',
@@ -80,7 +78,6 @@ export function ConsultationPayment({ navigation, route }) {
     }, 2000);
   };
 
-  // Get dynamic title based on consultation type
   const getHeaderTitle = () => {
     if (consultationType === 'chat') return 'Chat Consultation';
     if (consultationType === 'audio') return 'Audio Consultation';
@@ -90,7 +87,6 @@ export function ConsultationPayment({ navigation, route }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Dynamic Header */}
       <Header2 title={getHeaderTitle()} />
 
       <ScrollView
@@ -152,125 +148,21 @@ export function ConsultationPayment({ navigation, route }) {
           </View>
         </View>
 
-        {/* Payment Method */}
-        <View style={styles.paymentSection}>
-          <Text style={styles.sectionTitle}>Payment Method</Text>
-
-          {/* Credit/Debit Card */}
-          <TouchableOpacity
-            style={[
-              styles.paymentOption,
-              selectedPayment === 'credit' && styles.paymentOptionSelected,
-            ]}
-            onPress={() => setSelectedPayment('credit')}
-          >
-            <View style={styles.paymentLeft}>
-              <View style={styles.radioOuter}>
-                {selectedPayment === 'credit' && (
-                  <View style={styles.radioInner} />
-                )}
-              </View>
-              <Text style={styles.paymentLabel}>Credit/Debit Card</Text>
-            </View>
-            <View style={styles.cardLogos}>
-              <MastercardSvg />
-            </View>
-          </TouchableOpacity>
-
-          {/* Card Details Form */}
-          {selectedPayment === 'credit' && (
-            <View style={styles.cardForm}>
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Cardholder Name</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter cardholder name"
-                  placeholderTextColor="#9ca3af"
-                  value={cardholderName}
-                  onChangeText={setCardholderName}
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Card Number</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter card number"
-                  placeholderTextColor="#9ca3af"
-                  value={cardNumber}
-                  onChangeText={setCardNumber}
-                  keyboardType="numeric"
-                />
-              </View>
-
-              <View style={styles.inputRow}>
-                <View style={[styles.inputGroup, styles.inputGroupHalf]}>
-                  <Text style={styles.inputLabel}>Expiry Date</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="01/2025"
-                    placeholderTextColor="#9ca3af"
-                    value={expiryDate}
-                    onChangeText={setExpiryDate}
-                    keyboardType="numeric"
-                  />
-                </View>
-
-                <View style={[styles.inputGroup, styles.inputGroupHalf]}>
-                  <Text style={styles.inputLabel}>CVV</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="000"
-                    placeholderTextColor="#9ca3af"
-                    value={cvv}
-                    onChangeText={setCvv}
-                    keyboardType="numeric"
-                    maxLength={3}
-                    secureTextEntry
-                  />
-                </View>
-              </View>
-            </View>
-          )}
-
-          {/* Apple Pay */}
-          <TouchableOpacity
-            style={[
-              styles.paymentOption,
-              selectedPayment === 'applepay' && styles.paymentOptionSelected,
-            ]}
-            onPress={() => setSelectedPayment('applepay')}
-          >
-            <View style={styles.paymentLeft}>
-              <View style={styles.radioOuter}>
-                {selectedPayment === 'applepay' && (
-                  <View style={styles.radioInner} />
-                )}
-              </View>
-              <Text style={styles.paymentLabel}>Apple Pay</Text>
-            </View>
-            <ApplePaySvg />
-          </TouchableOpacity>
-
-          {/* STC Pay */}
-          <TouchableOpacity
-            style={[
-              styles.paymentOption,
-              selectedPayment === 'stc' && styles.paymentOptionSelected,
-            ]}
-            onPress={() => setSelectedPayment('stc')}
-          >
-            <View style={styles.paymentLeft}>
-              <View style={styles.radioOuter}>
-                {selectedPayment === 'stc' && (
-                  <View style={styles.radioInner} />
-                )}
-              </View>
-              <Text style={styles.paymentLabel}>STC Pay</Text>
-            </View>
-            <StcPaySvg />
-          </TouchableOpacity>
-        </View>
+        {/* Payment Method Component */}
+        <PaymentMethod
+          selectedPayment={selectedPayment}
+          onPaymentChange={setSelectedPayment}
+          cardholderName={cardholderName}
+          onCardholderNameChange={setCardholderName}
+          cardNumber={cardNumber}
+          onCardNumberChange={setCardNumber}
+          expiryDate={expiryDate}
+          onExpiryDateChange={setExpiryDate}
+          cvv={cvv}
+          onCvvChange={setCvv}
+          showTitle={true}
+          compact={false}
+        />
 
         <View style={styles.bottomSpacing} />
       </ScrollView>

@@ -30,5 +30,15 @@ export const styles = StyleSheet.create({
       justifyContent: 'center',
       alignItems: 'center',
     },
+    noPrescriptionContainer:{
+      flex:1,
+      justifyContent:'center',
+      alignItems:'center',
+      height:height*0.7
+    },
+    noPrescriptionText:{
+      fontSize:18,
+      color:colors.secondaryText
+    }
   });
   

@@ -7,15 +7,16 @@ import {
   ImageSourcePropType,
 } from 'react-native';
 import { colors } from '../../styles/colors';
-import { TouchableOpacity } from 'react-native'; // ← Make sure you import it
+import { TouchableOpacity } from 'react-native';
 
+// Update the Device type to match your actual data structure
 type Device = {
   id: string;
   image: ImageSourcePropType;
   title: string;
-  subtitle: string;
-  badge: number;
-  onDevicePress: (device: Device) => void;
+  note: string; // Changed from subtitle to note
+  badge: { [key: number]: string }; // Changed from number to object
+  // Remove onDevicePress from here - it's handled by the component prop
 };
 
 type AboutClinicProps = {
@@ -56,15 +57,23 @@ const AboutClinic = ({
                 {device.title}
               </Text>
 
-              <View style={styles.badgeItem}>
+              {/* Show the note */}
+              <Text style={styles.deviceSubtitle} numberOfLines={2}>
+                {device.note}
+              </Text>
+
+              {/* Badge section */}
+              <View style={styles.badgeContainer}>
                 <Text style={styles.badgeLabel}>
                   {Object.values(device.badge)[0]}
                 </Text>
-                <View style={styles.badgeCount}>
-                  <Text style={styles.badgeCountText}>
-                    +{Object.keys(device.badge).length - 1}
-                  </Text>
-                </View>
+                {Object.keys(device.badge).length > 1 && (
+                  <View style={styles.badgeCount}>
+                    <Text style={styles.badgeCountText}>
+                      +{Object.keys(device.badge).length - 1}
+                    </Text>
+                  </View>
+                )}
               </View>
             </View>
           </TouchableOpacity>
@@ -127,11 +136,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: colors.text,
-    marginBottom: 2,
+    marginBottom: 4,
   },
   deviceSubtitle: {
     fontSize: 12,
     color: colors.secondaryText,
+    marginBottom: 6,
   },
 
   badgeContainer: {
@@ -140,14 +150,6 @@ const styles = StyleSheet.create({
     gap: 6,
   },
 
-  badgeItem: {
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
   badgeLabel: {
     color: colors.text,
     fontSize: 11,

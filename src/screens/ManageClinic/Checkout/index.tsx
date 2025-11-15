@@ -1,4 +1,3 @@
-import { PipsImage, RecommandImage } from '@assets/images';
 import { Header2 } from '@components/common/Header2';
 import React, { useState } from 'react';
 import {
@@ -17,191 +16,271 @@ import { ApplePaySvg, StcPaySvg, TabbySvg, TamaraSvg } from '@assets/icons';
 import MasterCardSvg from '@assets/icons/MastercardSvg';
 import { CustomTextInput } from '@components/common/CustomTextInput';
 import { CustomButton } from '@components/common/CustomButton';
+import { styles } from './style';
+import { PaymentMethod } from '@components/molecules'; // Verify this path
 
-export function CheckoutScreen() {
-  const [selectedPayment, setSelectedPayment] = useState('credit');
+export function CheckoutScreen({ route }) {
+  const { services = [] } = route.params || {};
   const [couponCode, setCouponCode] = useState('');
+  const [discount, setDiscount] = useState(0);
+  const [selectedPayment, setSelectedPayment] = useState('credit');
+  const [cardDetails, setCardDetails] = useState({
+    cardholderName: '',
+    cardNumber: '',
+    expiryDate: '',
+    cvv: '',
+  });
 
-  const services = [
+  // Combine all payment methods including installments
+  const allPaymentMethods = [
     {
-      id: 1,
-      name: 'Acne Treatment',
-      duration: '40 min',
-      price: '200 SAR',
-      category: 'Dental',
-      categoryBadge: 'Enaqa Name',
-      image: PipsImage,
+      id: 'credit',
+      label: 'Credit/Debit Card',
+      logo: <MasterCardSvg />,
+      type: 'card',
     },
     {
-      id: 2,
-      name: 'Teeth Whiting',
-      duration: '40 min',
-      price: '200 SAR',
-      category: 'Dental',
-      categoryBadge: 'Group Name',
-      image: PipsImage,
+      id: 'applepay',
+      label: 'Apple Pay',
+      logo: <ApplePaySvg />,
+      type: 'digital',
     },
+    { id: 'stc', label: 'STC Pay', logo: <StcPaySvg />, type: 'digital' },
+    { id: 'tabby', label: 'Tabby', logo: <TabbySvg />, type: 'installment' },
+    { id: 'tamara', label: 'Tamara', logo: <TamaraSvg />, type: 'installment' },
   ];
 
-  const paymentMethods = [
-    { id: 'credit', label: 'Credit/Debit Card', logo: <MasterCardSvg /> },
-    { id: 'applepay', label: 'Apple Pay', logo: <ApplePaySvg /> },
-    { id: 'stc', label: 'STC Pay', logo: <StcPaySvg /> },
-  ];
+  // Calculate totals
+  const calculateSubtotal = () => {
+    return services.reduce((total, item) => {
+      const price = parseFloat(item.service.price.replace(/[^0-9.]/g, ''));
+      return total + price;
+    }, 0);
+  };
 
-  const installmentOptions = [
-    { id: 'tabby', label: 'Tabby', logo: <TabbySvg /> },
-    { id: 'tamara', label: 'Tamara', logo: <TamaraSvg /> },
-  ];
+  const subtotal = calculateSubtotal();
+  const tax = subtotal * 0.15; // 15% tax
+  const discountAmount = subtotal * (discount / 100);
+  const total = subtotal + tax - discountAmount;
+
+  const handleApplyCoupon = () => {
+    // Mock coupon validation
+    if (couponCode.toUpperCase() === 'SAVE10') {
+      setDiscount(10);
+    } else if (couponCode.toUpperCase() === 'SAVE20') {
+      setDiscount(20);
+    } else {
+      setDiscount(0);
+      // You can show an error message here
+      alert('Invalid coupon code');
+    }
+  };
+
+  const handleProceedToPayment = () => {
+    // Validate payment details if credit card is selected
+    if (selectedPayment === 'credit') {
+      const { cardholderName, cardNumber, expiryDate, cvv } = cardDetails;
+      if (!cardholderName || !cardNumber || !expiryDate || !cvv) {
+        alert('Please fill all card details');
+        return;
+      }
+    }
+
+    console.log('Processing payment:', {
+      services,
+      total,
+      selectedPayment,
+      cardDetails: selectedPayment === 'credit' ? cardDetails : null,
+    });
+  };
+
+  // Group services by clinic
+  const groupedServices = services.reduce((acc, item) => {
+    const clinicId = item.clinic.id;
+    if (!acc[clinicId]) {
+      acc[clinicId] = {
+        clinic: item.clinic,
+        services: [],
+      };
+    }
+    acc[clinicId].services.push(item.service);
+    return acc;
+  }, {});
+
+  const installmentPaymentMethods = allPaymentMethods.filter(
+    method => method.type === 'installment',
+  );
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
 
-      <Header2 title="Checkkout" />
+      <Header2 title="Checkout" />
 
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.clinicCard}>
-          <Image
-            source={RecommandImage}
-            resizeMode="cover"
-            style={styles.clinicImage}
-          />
-          <View style={styles.clinicInfo}>
-            <Text style={styles.clinicName}>Eden Medical Center</Text>
-            <Text style={styles.clinicLocation}>
-              Makkah, Saudi Arabia, 2.2km
-            </Text>
-          </View>
-        </View>
-
-        {/* Services */}
-        {services.map(service => (
-          <View key={service.id} style={styles.serviceCard}>
-            <View style={styles.serviceLeft}>
-              <Image source={service.image} style={styles.serviceImage} />
-              <View style={styles.serviceInfo}>
-                <View style={styles.serviceBadges}>
-                  <View style={styles.categoryBadge}>
-                    <Text style={styles.categoryBadgeText}>
-                      {service.category}
-                    </Text>
-                  </View>
-                  <View style={styles.nameBadge}>
-                    <Text style={styles.nameBadgeText}>
-                      {service.categoryBadge}
-                    </Text>
-                  </View>
-                </View>
-                <Text style={styles.serviceName}>{service.name}</Text>
-                <View style={styles.durationContainer}>
-                  <Ionicons
-                    name="time-outline"
-                    size={18}
-                    color={colors.secondaryText}
-                  />
-                  <Text style={styles.duration}>{service.duration}</Text>
-                </View>
+        {/* Render services grouped by clinic */}
+        {Object.values(groupedServices).map((group: any) => (
+          <View key={group.clinic.id}>
+            {/* Clinic Card */}
+            <View style={styles.clinicCard}>
+              <Image
+                source={group.clinic.image}
+                resizeMode="cover"
+                style={styles.clinicImage}
+              />
+              <View style={styles.clinicInfo}>
+                <Text style={styles.clinicName}>{group.clinic.name}</Text>
+                <Text style={styles.clinicLocation}>
+                  {group.clinic.location}, 2.2km
+                </Text>
               </View>
             </View>
-            <Text style={styles.servicePrice}>{service.price}</Text>
+
+            {/* Services from this clinic */}
+            {group.services.map(service => (
+              <View key={service.id} style={styles.serviceCard}>
+                <View style={styles.serviceLeft}>
+                  <Image source={service.image} style={styles.serviceImage} />
+                  <View style={styles.serviceInfo}>
+                    <View style={styles.serviceBadges}>
+                      <View style={styles.categoryBadge}>
+                        <Text style={styles.categoryBadgeText}>
+                          {service.type}
+                        </Text>
+                      </View>
+                      <View style={styles.nameBadge}>
+                        <Text style={styles.nameBadgeText}>
+                          {service.serviceGroup}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={styles.serviceName}>
+                      {service.serviceName}
+                    </Text>
+                    <View style={styles.durationContainer}>
+                      <Ionicons
+                        name="time-outline"
+                        size={18}
+                        color={colors.secondaryText}
+                      />
+                      <Text style={styles.duration}>{service.duration}</Text>
+                    </View>
+                  </View>
+                </View>
+                <Text style={styles.servicePrice}>{service.price}</Text>
+              </View>
+            ))}
           </View>
         ))}
 
-        {/* Payment Type */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Payment Type</Text>
-          <Text style={styles.sectionSubtitle}>ONE-TIME PAYMENT</Text>
-
-          {paymentMethods.map(method => (
-            <TouchableOpacity
-              key={method.id}
-              style={styles.paymentOption}
-              onPress={() => setSelectedPayment(method.id)}
-            >
-              <View style={styles.radioContainer}>
-                <View style={styles.radioOuter}>
-                  {selectedPayment === method.id && (
-                    <View style={styles.radioInner} />
-                  )}
-                </View>
-                <Text style={styles.paymentLabel}>{method.label}</Text>
-              </View>
-              {method.logo && (
-                <Text style={styles.paymentLogo}>{method.logo}</Text>
-              )}
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Pay in Installments */}
-        <View style={styles.section}>
-          <Text style={styles.sectionSubtitle}>PAY IN INSTALLMENTS</Text>
-
-          {installmentOptions.map(option => (
-            <TouchableOpacity
-              key={option.id}
-              style={styles.paymentOption}
-              onPress={() => setSelectedPayment(option.id)}
-            >
-              <View style={styles.radioContainer}>
-                <View style={styles.radioOuter}>
-                  {selectedPayment === option.id && (
-                    <View style={styles.radioInner} />
-                  )}
-                </View>
-                <Text style={styles.paymentLabel}>{option.label}</Text>
-              </View>
-              <Text style={styles.installmentLogo}>{option.logo}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <CustomButton
-          title="Apply Code"
-          style={{ backgroundColor: colors.black, marginHorizontal: mvs(15) }}
-          textStyle={{ color: colors.white }}
+        {/* Payment Methods Section - Only show card form for credit card */}
+        <PaymentMethod
+          selectedPayment={selectedPayment}
+          onPaymentChange={setSelectedPayment}
+          cardholderName={cardDetails.cardholderName}
+          onCardholderNameChange={text =>
+            setCardDetails(prev => ({ ...prev, cardholderName: text }))
+          }
+          cardNumber={cardDetails.cardNumber}
+          onCardNumberChange={text =>
+            setCardDetails(prev => ({ ...prev, cardNumber: text }))
+          }
+          expiryDate={cardDetails.expiryDate}
+          onExpiryDateChange={text =>
+            setCardDetails(prev => ({ ...prev, expiryDate: text }))
+          }
+          cvv={cardDetails.cvv}
+          onCvvChange={text => setCardDetails(prev => ({ ...prev, cvv: text }))}
+          showTitle={true}
+          compact={true}
         />
 
-        <CustomTextInput
-          label="Coupon Code"
-          placeholder="Enter Coupon Code"
-          value={couponCode}
-          onChangeText={setCouponCode}
-          containerStyle={styles.couponInput}
-        />
+        {/* Pay in Installments - As separate section */}
+        {installmentPaymentMethods.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionSubtitle}>PAY IN INSTALLMENTS</Text>
+
+            {installmentPaymentMethods.map(option => (
+              <TouchableOpacity
+                key={option.id}
+                style={[
+                  styles.paymentOption,
+                  selectedPayment === option.id && styles.paymentOptionSelected,
+                ]}
+                onPress={() => setSelectedPayment(option.id)}
+              >
+                <View style={styles.radioContainer}>
+                  <View style={styles.radioOuter}>
+                    {selectedPayment === option.id && (
+                      <View style={styles.radioInner} />
+                    )}
+                  </View>
+                  <Text style={styles.paymentLabel}>{option.label}</Text>
+                </View>
+                {option.logo}
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {/* Coupon Code Section */}
+        <View style={styles.couponSection}>
+          <CustomTextInput
+            label="Coupon Code"
+            placeholder="Enter Coupon Code"
+            value={couponCode}
+            onChangeText={setCouponCode}
+            containerStyle={styles.couponInput}
+          />
+          <CustomButton
+            title="Apply Code"
+            onPress={handleApplyCoupon}
+            style={{ backgroundColor: colors.black, marginHorizontal: mvs(15) }}
+            textStyle={{ color: colors.white }}
+          />
+          {discount > 0 && (
+            <Text style={styles.discountAppliedText}>
+              ✓ {discount}% discount applied!
+            </Text>
+          )}
+        </View>
+
         {/* Appointment Summary */}
         <View style={styles.summarySection}>
           <Text style={styles.summaryTitle}>Appointment Summary</Text>
 
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>No.of Services</Text>
-            <Text style={styles.summaryValue}>2</Text>
+            <Text style={styles.summaryLabel}>No. of Services</Text>
+            <Text style={styles.summaryValue}>{services.length}</Text>
           </View>
 
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Subtotal</Text>
-            <Text style={styles.summaryValue}>700 SAR</Text>
+            <Text style={styles.summaryValue}>{subtotal.toFixed(2)} SAR</Text>
           </View>
 
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Tax</Text>
-            <Text style={styles.summaryValue}>15%</Text>
+            <Text style={styles.summaryLabel}>Tax (15%)</Text>
+            <Text style={styles.summaryValue}>{tax.toFixed(2)} SAR</Text>
           </View>
 
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Discount</Text>
-            <Text style={styles.summaryValue}>10%</Text>
-          </View>
+          {discount > 0 && (
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Discount ({discount}%)</Text>
+              <Text style={[styles.summaryValue, styles.discountValue]}>
+                -{discountAmount.toFixed(2)} SAR
+              </Text>
+            </View>
+          )}
 
           <View style={styles.divider} />
 
           <View style={styles.summaryRow}>
             <Text style={styles.totalLabel}>TOTAL</Text>
-            <Text style={styles.totalValue}>630 SAR</Text>
+            <Text style={styles.totalValue}>{total.toFixed(2)} SAR</Text>
           </View>
         </View>
 
@@ -210,12 +289,13 @@ export function CheckoutScreen() {
 
       {/* Bottom Button */}
       <View style={styles.bottomContainer}>
-        <TouchableOpacity style={styles.proceedButton}>
+        <TouchableOpacity
+          style={styles.proceedButton}
+          onPress={handleProceedToPayment}
+        >
           <Text style={styles.proceedButtonText}>Proceed to Payment</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 }
-
-import { styles } from './style';

@@ -99,7 +99,7 @@ export const SERVICES = [
 
     type: 'Dermatology',
 
-    serviceGroup: 'Skin Rejuvenation',
+    serviceGroup: 'Skin',
 
     serviceName: 'HydraFacial Glow',
 
@@ -149,7 +149,7 @@ export const SERVICES = [
 
     image: PipsImage,
 
-    type: 'Aesthetic Medicine',
+    type: 'Aesthetic',
 
     serviceGroup: 'Injectables',
 
@@ -169,57 +169,6 @@ export const SERVICES = [
 
   },
 
-  {
-
-    id: '4',
-
-    image: PipsImage,
-
-    type: 'Laser Treatment',
-
-    serviceGroup: 'Hair Removal',
-
-    serviceName: 'Full Body Laser Hair Removal',
-
-    price: '950 SAR',
-
-    duration: '90 min',
-
-    description:
-
-      'Long-term hair reduction treatment using advanced diode laser technology for smooth and hair-free skin.',
-
-    procedure:
-
-      'Laser energy targets hair follicles without damaging surrounding skin, preventing future hair growth.',
-
-  },
-
-  {
-
-    id: '5',
-
-    image: PipsImage,
-
-    type: 'Wellness',
-
-    serviceGroup: 'IV Therapy',
-
-    serviceName: 'Vitamin Glow Drip',
-
-    price: '400 SAR',
-
-    duration: '45 min',
-
-    description:
-
-      'A nutrient-rich IV infusion designed to boost energy, improve hydration, and enhance overall wellness.',
-
-    procedure:
-
-      'An intravenous infusion delivers vitamins and antioxidants directly into your bloodstream for faster absorption.',
-
-  },
 
 ];
   export const CLINIC_REVIEWS = [

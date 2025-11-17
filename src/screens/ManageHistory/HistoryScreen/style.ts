@@ -5,7 +5,7 @@ import { colors } from '../../../styles/colors';
 export const styles = StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: '#f9fafb',
+      backgroundColor: colors.white,
     },
     header: {
       flexDirection: 'row',
@@ -48,9 +48,14 @@ export const styles = StyleSheet.create({
       flexDirection: 'row',
       marginHorizontal: 16,
       marginTop: 16,
-      backgroundColor: colors.lightGray,
+      backgroundColor: colors.gray,
       borderRadius: 10,
       padding: 4,
+    },
+    cardContent:{
+      backgroundColor:colors.gray,
+      borderBottomLeftRadius:8,
+      borderBottomRightRadius:8,
     },
     tab: {
       flex: 1,

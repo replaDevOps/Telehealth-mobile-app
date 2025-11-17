@@ -43,7 +43,6 @@ export function SignInScreen({ navigation }) {
   const handleSignIn = () => {
     let valid = true;
 
-    // Email or phone validation
     if (selectedTab === 'email') {
       if (!email.trim() || !email.includes('@')) {
         setEmailError('Enter a valid email');
@@ -56,13 +55,11 @@ export function SignInScreen({ navigation }) {
       } else setPhoneError('');
     }
 
-    // Password validation
     if (!password.trim()) {
       setPasswordError('Password is required');
       valid = false;
     } else setPasswordError('');
 
-    // Remember Me validation
     if (!isChecked) {
       setRememberError(true);
       valid = false;
@@ -70,7 +67,6 @@ export function SignInScreen({ navigation }) {
       setRememberError(false);
     }
 
-    // Final navigation
     if (valid && isChecked) {
       navigation.navigate('Main', { screen: 'Home' });
     }
@@ -82,21 +78,17 @@ export function SignInScreen({ navigation }) {
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
+        <Header2 title="" showLanguage={true} />
         <ScrollView
           style={styles.container}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: mvs(30) }}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Header */}
-          <Header2 title="" showLanguage={true} />
-
-          {/* Logo */}
           <View style={styles.logoContainer}>
             <LogoSvg />
           </View>
 
-          {/* Title */}
           <View style={{ ...styles.title }}>
             <CustomText text="Welcome Back" />
           </View>
@@ -106,7 +98,6 @@ export function SignInScreen({ navigation }) {
             </Text>
           </View>
 
-          {/* Tabs */}
           <View style={styles.tabContainer}>
             <TouchableOpacity
               style={[
@@ -147,7 +138,6 @@ export function SignInScreen({ navigation }) {
             </TouchableOpacity>
           </View>
 
-          {/* Inputs */}
           <View style={{ marginTop: mvs(25) }}>
             {selectedTab === 'email' ? (
               <CustomTextInput
@@ -183,7 +173,6 @@ export function SignInScreen({ navigation }) {
             errorMessage={passwordError}
           />
 
-          {/* Remember Me & Forgot Password */}
           <View style={styles.PasswordRemember}>
             <View style={styles.CheckBox}>
               <TouchableOpacity
@@ -216,10 +205,8 @@ export function SignInScreen({ navigation }) {
             </TouchableOpacity>
           </View>
 
-          {/* Sign In Button */}
           <CustomButton title="Sign In" onPress={handleSignIn} />
 
-          {/* Sign Up Link */}
           <View style={styles.signinRow}>
             <Text style={styles.TextContent}>Create an account? </Text>
             <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
@@ -227,14 +214,12 @@ export function SignInScreen({ navigation }) {
             </TouchableOpacity>
           </View>
 
-          {/* Divider */}
           <View style={styles.dividerContainer}>
             <View style={styles.line} />
             <Text style={styles.orText}>or</Text>
             <View style={styles.line} />
           </View>
 
-          {/* Apple & Google Buttons */}
           <TouchableOpacity
             style={styles.appleButton}
             onPress={() => console.log('Apple Sign In')}

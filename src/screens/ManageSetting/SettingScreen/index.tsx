@@ -63,11 +63,6 @@ export const SettingScreen = ({ navigation }: { navigation: any }) => {
       onPress: () => navigation.navigate('RefundRequest2'),
     },
     {
-      icon: LoyaltyPSvg,
-      title: 'Loyalty Program',
-      onPress: () => navigation.navigate('LoyaltyProgramScreen'),
-    },
-    {
       icon: LogoutSvg,
       title: 'Log Out',
       backgroundColor: '#FEECED',

@@ -75,14 +75,13 @@ export function SignUpScreen({ navigation }) {
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
+        <Header2 title="" showLanguage={true} />
         <ScrollView
           style={styles.container}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: mvs(30) }}
           keyboardShouldPersistTaps="handled"
         >
-          <Header2 title="" showLanguage={true} />
-
           <View style={styles.logoContainer}>
             <LogoSvg />
           </View>

@@ -1,11 +1,10 @@
+// SettingScreen.tsx
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Alert, Platform } from 'react-native';
-import { KeyboardAvoidScrollview } from '../../../components/common/keyboard-avoid-scrollview';
+import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import UserProfile from '../../../components/common/UserProfile';
 import { Header2 } from '../../../components/common/Header2';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors } from '../../../styles/colors';
 
 import {
   ProfileSvg,
@@ -14,9 +13,8 @@ import {
   LoyaltyPSvg,
   LogoutSvg,
 } from '@assets/icons';
-import { Share } from 'react-native'; // for sharing
 import style from './style';
-import { mvs } from '@config/metrices';
+import { RoyaltyPointsBar } from '@components/molecules';
 
 export const SettingScreen = ({ navigation }: { navigation: any }) => {
   const [profileImage, setProfileImage] = useState<string>('');
@@ -24,21 +22,6 @@ export const SettingScreen = ({ navigation }: { navigation: any }) => {
   // =============== Handlers ===============
   const handleImageSelected = (uri: string) => {
     setProfileImage(uri);
-  };
-
-  const handleShare = async () => {
-    try {
-      await Share.share({
-        message:
-          Platform.OS === 'android'
-            ? 'Check out this awesome app! https://your-app-link.com'
-            : 'Check out this awesome app!',
-        url: 'https://your-app-link.com', // iOS
-        title: 'Share App',
-      });
-    } catch (error) {
-      Alert.alert('Error', 'Unable to share at the moment');
-    }
   };
 
   const handleLogout = () => {
@@ -62,21 +45,17 @@ export const SettingScreen = ({ navigation }: { navigation: any }) => {
     );
   };
 
-  const handleSaveAndContinue = () => {
-    Alert.alert('Success', 'Settings saved successfully!');
-  };
-
   // =============== Menu Data ===============
   const menuData = [
     {
       icon: ProfileSvg,
       title: 'Profile Settings',
-      onPress: () => navigation.navigate('ProfileSetting'), // Fixed loop!
+      onPress: () => navigation.navigate('ProfileSetting'),
     },
     {
       icon: FAQsSvg,
       title: 'FAQs',
-      onPress: () => navigation.navigate('FAQs'), // Fixed wrong screen
+      onPress: () => navigation.navigate('FAQs'),
     },
     {
       icon: RefundSvg,
@@ -105,20 +84,13 @@ export const SettingScreen = ({ navigation }: { navigation: any }) => {
     return (
       <TouchableOpacity
         key={index}
-        style={[
-          style.menuItem,
-          {
-            // marginTop: isLogout ? 30 : 0,
-            backgroundColor: isLogout ? colors.red : colors.gray,
-            // paddingVertical: isLogout ? 16 : 20,
-          },
-        ]}
+        style={[style.menuItem, isLogout && style.logoutMenuItem]}
         onPress={item.onPress}
         activeOpacity={0.7}
       >
         <View style={style.menuLeft}>
           <Icon width={24} height={24} />
-          <Text style={[style.menuTitle, isLogout && { color: colors.white }]}>
+          <Text style={[style.menuTitle, isLogout && style.logoutMenuTitle]}>
             {item.title}
           </Text>
         </View>
@@ -128,7 +100,7 @@ export const SettingScreen = ({ navigation }: { navigation: any }) => {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.white }}>
+    <SafeAreaView style={style.safeArea}>
       <Header2 title="Settings" />
 
       <View style={style.container}>
@@ -138,7 +110,12 @@ export const SettingScreen = ({ navigation }: { navigation: any }) => {
           onImageSelected={handleImageSelected}
         />
 
-        <View style={{ marginVertical: mvs(30) }} />
+        {/* Royalty Points Section */}
+        <RoyaltyPointsBar
+          points={300}
+          validTill="18/09/2025"
+          onPress={() => navigation.navigate('RoyaltyPoints')}
+        />
 
         {/* Menu Items */}
         {menuData.map(renderMenuItem)}

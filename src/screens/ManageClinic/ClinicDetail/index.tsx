@@ -124,7 +124,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
           backgroundImage={clinic.image}
           logo={ClinicProfile}
           onBackPress={() => navigation.goBack()}
-          onSharePress={() => console.log('Share pressed')}
+          onSharePress={() => navigation.navigate('CartScreen')}
           onNotificationPress={() => navigation.navigate('Notifications')}
           notificationCount={3}
         />

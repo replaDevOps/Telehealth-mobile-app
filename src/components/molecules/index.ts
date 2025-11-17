@@ -15,6 +15,7 @@ export * from './NoResponseModal'
 export * from './RatingBottomSheet'
 export * from './SuccessMessageModal'
 export * from './PaymentMethod'
+export * from './RoyaltyPointBar'
 
 
 

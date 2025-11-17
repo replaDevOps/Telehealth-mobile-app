@@ -18,6 +18,7 @@ import {
   FAQs,
   ProfileSetting,
   RefundRequest2,
+  RoyaltyPoints,
   SettingScreen,
 } from '@screens/ManageSetting';
 import {
@@ -130,6 +131,7 @@ export const SettingNavigator = () => {
       <Stack.Screen name="ChangePassword" component={ChangePassword} />
       <Stack.Screen name="FAQs" component={FAQs} />
       <Stack.Screen name="RefundRequest2" component={RefundRequest2} />
+      <Stack.Screen name="RoyaltyPoints" component={RoyaltyPoints} />
     </Stack.Navigator>
   );
 };

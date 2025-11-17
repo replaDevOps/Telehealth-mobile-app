@@ -31,7 +31,6 @@ export function CheckoutScreen({ route }) {
     cvv: '',
   });
 
-  // Combine all payment methods including installments
   const allPaymentMethods = [
     {
       id: 'credit',

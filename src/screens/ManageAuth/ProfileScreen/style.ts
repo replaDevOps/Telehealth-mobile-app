@@ -66,13 +66,15 @@ export const styles = StyleSheet.create({
       textAlign: 'center',
       marginBottom: mvs(20),
     },
-    button: {
-        flex:1,
-        position:"absolute",
-        bottom:mvs(10),
-        alignSelf:"center",
-        width:"100%"
+    buttonContainer:{
+      flex:1,
+      width:"100%",
+      flexDirection:"row",
+      gap:mvs(10),
+      alignItems:"center",
+
     },
+
     buttonText: {
       color: colors.white,
       fontSize: mvs(16),

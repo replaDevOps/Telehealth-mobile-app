@@ -48,17 +48,14 @@ const styles = StyleSheet.create({
     marginVertical: mvs(10),
   },
   disabledButton: {
-    backgroundColor: colors.neutral, // Black background when disabled
+    backgroundColor: colors.neutral,
   },
   buttonText: {
     color: colors.white,
     fontSize: mvs(16),
     fontWeight: 'bold',
   },
-  disabledText: {
-    // Optional: You can also change text color for disabled state
-    // color: colors.gray, // Uncomment if you want different text color
-  },
+  disabledText: {},
 });
 
 export { CustomButton };

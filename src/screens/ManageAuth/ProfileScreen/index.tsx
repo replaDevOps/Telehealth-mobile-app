@@ -49,7 +49,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
     setProfileImage(uri);
   };
 
-  const handleSaveAndContinue = () => {
+  const handleConfirm = () => {
     let valid = true;
 
     // Reset errors
@@ -96,6 +96,10 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
     if (valid) {
       navigation.navigate('SignIn');
     }
+  };
+
+  const handleSkip = () => {
+    navigation.navigate('SignIn');
   };
 
   return (
@@ -192,7 +196,24 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
             errorMessage={ageError}
           />
         </View>
-        <CustomButton title="Save & Continue" onPress={handleSaveAndContinue} />
+        <View style={styles.buttonContainer}>
+          <CustomButton
+            title="Skip"
+            onPress={handleSkip}
+            style={{
+              width: '48%',
+              backgroundColor: colors.white,
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
+            textStyle={{ color: colors.text }}
+          />
+          <CustomButton
+            title="Confirm"
+            onPress={handleConfirm}
+            style={{ width: '48%' }}
+          />
+        </View>
       </SafeAreaView>
     </KeyboardAvoidScrollview>
   );

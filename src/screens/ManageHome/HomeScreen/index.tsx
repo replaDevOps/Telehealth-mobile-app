@@ -18,7 +18,7 @@ export const HomeScreen = ({ navigation }) => {
   };
 
   const handleNotificationPress = () => {
-    // navigation.navigate('Notifications');
+    navigation.navigate('Notification');
   };
 
   const handleSearchPress = () => {
@@ -46,20 +46,14 @@ export const HomeScreen = ({ navigation }) => {
         <RecommendedClinics
           clinics={SAMPLECLINICS}
           onClinicPress={clinic =>
-            navigation.navigate('Clinic', {
-              screen: 'ClinicDetail',
-              params: { clinic },
-            })
+            navigation.navigate('ClinicDetail', { clinic })
           }
         />
 
         <NearbyClinics
           clinics={NEARBYCLINICS}
           onClinicPress={clinic =>
-            navigation.navigate('Clinic', {
-              screen: 'ClinicDetail',
-              params: { clinic },
-            })
+            navigation.navigate('ClinicDetail', { clinic })
           }
         />
       </ScrollView>

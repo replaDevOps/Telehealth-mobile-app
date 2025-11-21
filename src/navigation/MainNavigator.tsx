@@ -1,7 +1,12 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import CustomTabBar from './bottomTab';
-import { HomeScreen, NearbyClinics, SelectLocation } from '@screens';
+import {
+  HomeScreen,
+  NearbyClinics,
+  NotificationScreen,
+  SelectLocation,
+} from '@screens';
 import {
   FilterScreen,
   ClinicDetailScreen,
@@ -70,6 +75,7 @@ export const MainNavigator = () => {
         name="PrescriptionScreen"
         component={PrescriptionScreen}
       />
+      <ClinicStack.Screen name="ClinicDetail" component={ClinicDetailScreen} />
     </Stack.Navigator>
   );
 };
@@ -80,6 +86,7 @@ export const HomeNavigator = () => {
       <Stack.Screen name="HomeScreen" component={HomeScreen} />
       <Stack.Screen name="NearbyClinics" component={NearbyClinics} />
       <Stack.Screen name="SelectLocation" component={SelectLocation} />
+      <Stack.Screen name="Notification" component={NotificationScreen} />
     </Stack.Navigator>
   );
 };
@@ -92,7 +99,6 @@ export const ClinicNavigator = () => {
     >
       <ClinicStack.Screen name="ClinicScreen" component={ClinicScreen} />
       <ClinicStack.Screen name="FilterScreen" component={FilterScreen} />
-      <ClinicStack.Screen name="ClinicDetail" component={ClinicDetailScreen} />
       <ClinicStack.Screen name="ChatOnboarding" component={ChatOnboarding} />
 
       <ClinicStack.Screen

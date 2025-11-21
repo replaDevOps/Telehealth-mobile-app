@@ -14,15 +14,17 @@ import { colors } from '../../../styles/colors';
 import { doctor } from '@assets/images';
 import ConsultationEndedModal from '@components/molecules/EndSectionModal';
 import { styles } from './style';
+import { useTranslation } from 'react-i18next';
 
 export function VideoConsultation({ navigation, route }) {
+  const { t } = useTranslation();
   const doctorInfo = route?.params?.doctorInfo || {
     name: 'Dr. Yasmin Chowdhury',
     avatar: doctor,
     specialization: 'Dermatologist',
   };
 
-  const [callStatus, setCallStatus] = useState('Connecting....');
+  const [callStatus, setCallStatus] = useState(t('connecting'));
   const [callDuration, setCallDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeakerOn, setIsSpeakerOn] = useState(false);
@@ -43,7 +45,7 @@ export function VideoConsultation({ navigation, route }) {
   useEffect(() => {
     // Simulate connecting to call
     const connectTimer = setTimeout(() => {
-      setCallStatus('Connected');
+      setCallStatus(t('connected'));
     }, 3000);
 
     return () => clearTimeout(connectTimer);
@@ -52,7 +54,7 @@ export function VideoConsultation({ navigation, route }) {
   useEffect(() => {
     // Start call duration timer when connected
     let interval;
-    if (callStatus === 'Connected') {
+    if (callStatus === t('connected')) {
       interval = setInterval(() => {
         setCallDuration(prev => prev + 1);
       }, 1000);
@@ -112,14 +114,14 @@ export function VideoConsultation({ navigation, route }) {
           <View style={styles.topSection}>
             <Text style={styles.doctorName}>{doctorInfo.name}</Text>
             <Text style={styles.callStatus}>
-              {callStatus === 'Connected'
+              {callStatus === t('connected')
                 ? formatDuration(callDuration)
                 : callStatus}
             </Text>
           </View>
 
           {/* Small Doctor Preview (Picture-in-Picture) - Only when connected */}
-          {callStatus === 'Connected' && (
+          {callStatus === t('connected') && (
             <View style={styles.pipContainer}>
               <Image
                 source={doctorInfo.avatar}

@@ -21,10 +21,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import { styles } from './style';
 import { mvs } from '@config/metrices';
+import { useTranslation } from 'react-i18next';
 
 const { height } = Dimensions.get('window');
 
 export const ProfileSetting = ({ navigation }: { navigation: any }) => {
+  const { t } = useTranslation();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [gender, setGender] = useState('');
@@ -62,33 +64,33 @@ export const ProfileSetting = ({ navigation }: { navigation: any }) => {
     // Put your real delete logic here (API call, etc.)
     closeDeleteModal();
     Alert.alert(
-      'Account Deleted',
-      'Your account has been permanently deleted.',
+      t('account_deleted'),
+      t('account_permanently_deleted'),
     );
     // navigation.replace('Login') or whatever you need
   };
 
   const handleSaveAndContinue = () => {
     if (!fullName.trim()) {
-      Alert.alert('Error', 'Please enter your full name');
+      Alert.alert('Error', t('please_enter_full_name'));
       return;
     }
     if (!phone.trim() && !email.trim()) {
-      Alert.alert('Error', 'Please enter either phone number or email address');
+      Alert.alert('Error', t('please_enter_phone_email'));
       return;
     }
     if (!gender) {
-      Alert.alert('Error', 'Please select your gender');
+      Alert.alert('Error', t('please_select_gender'));
       return;
     }
     if (!age.trim()) {
-      Alert.alert('Error', 'Please enter your age');
+      Alert.alert('Error', t('please_enter_age'));
       return;
     }
 
-    Alert.alert('Success', 'Profile updated successfully!', [
+    Alert.alert(t('success'), t('profile_updated_successfully'), [
       {
-        text: 'OK',
+        text: t('ok'),
         onPress: () => navigation.goBack(),
       },
     ]);
@@ -102,7 +104,7 @@ export const ProfileSetting = ({ navigation }: { navigation: any }) => {
     <KeyboardAvoidScrollview>
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.white }}>
         <Header2
-          title="Profile Setting"
+          title={t('profile_settings')}
           useSave={true}
           handleSave={handleSave}
         />
@@ -113,17 +115,17 @@ export const ProfileSetting = ({ navigation }: { navigation: any }) => {
 
           {/* Personal Information Section */}
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Personal Information</Text>
+            <Text style={styles.sectionTitle}>{t('personal_information')}</Text>
           </View>
 
           <CustomTextInput
-            label="Full Name"
-            placeholder="Enter full name"
+            label={t('full_name')}
+            placeholder={t('enter_full_name')}
             value={fullName}
             onChangeText={setFullName}
           />
 
-          <Text style={styles.label}>Phone Number</Text>
+          <Text style={styles.label}>{t('phone_number_label')}</Text>
           <PhoneNumberInput
             phone={phone}
             setPhone={setPhone}
@@ -136,8 +138,8 @@ export const ProfileSetting = ({ navigation }: { navigation: any }) => {
           />
 
           <CustomTextInput
-            label="Email Address"
-            placeholder="Enter email address"
+            label={t('email_address_label')}
+            placeholder={t('enter_email')}
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -145,20 +147,20 @@ export const ProfileSetting = ({ navigation }: { navigation: any }) => {
           />
 
           <CustomDropdown
-            label="Gender"
-            placeholder="Select Gender"
+            label={t('gender_label')}
+            placeholder={t('select_gender')}
             value={gender}
             onValueChange={setGender}
             options={[
-              { label: 'Male', value: 'Male' },
-              { label: 'Female', value: 'Female' },
-              { label: 'Other', value: 'Other' },
+              { label: t('male'), value: 'Male' },
+              { label: t('female'), value: 'Female' },
+              { label: t('other'), value: 'Other' },
             ]}
           />
 
           <CustomTextInput
-            label="Age"
-            placeholder="Enter your age"
+            label={t('age_label')}
+            placeholder={t('enter_age')}
             value={age}
             onChangeText={setAge}
             keyboardType="numeric"
@@ -166,39 +168,39 @@ export const ProfileSetting = ({ navigation }: { navigation: any }) => {
 
           {/* Password Manager */}
           <View style={[styles.sectionHeader, { marginTop: mvs(20) }]}>
-            <Text style={styles.sectionTitle}>Password Manager</Text>
+            <Text style={styles.sectionTitle}>{t('password_manager')}</Text>
           </View>
           <TouchableOpacity
             style={styles.menuItem}
             onPress={() => navigation.navigate('ChangePassword')}
             activeOpacity={0.7}
           >
-            <Text style={styles.menuItemText}>Password</Text>
+            <Text style={styles.menuItemText}>{t('password_label')}</Text>
             <AntDesign name="right" size={20} color={colors.black} />
           </TouchableOpacity>
 
           {/* Multi-Language */}
           <View style={[styles.sectionHeader, { marginTop: mvs(30) }]}>
-            <Text style={styles.sectionTitle}>Multi-Language</Text>
+            <Text style={styles.sectionTitle}>{t('multi_language')}</Text>
           </View>
           <CustomDropdown
-            label="Language"
-            placeholder="Select Language"
+            label={t('language_label')}
+            placeholder={t('select_language')}
             value={language}
             onValueChange={setLanguage}
             options={[
-              { label: 'English', value: 'English' },
-              { label: 'Urdu', value: 'Urdu' },
-              { label: 'Arabic', value: 'Arabic' },
+              { label: t('english'), value: 'English' },
+              { label: t('urdu'), value: 'Urdu' },
+              { label: t('arabic'), value: 'Arabic' },
             ]}
           />
 
           {/* Mode */}
           <View style={[styles.sectionHeader, { marginTop: mvs(30) }]}>
-            <Text style={styles.sectionTitle}>Mode</Text>
+            <Text style={styles.sectionTitle}>{t('mode')}</Text>
           </View>
           <View style={styles.switchItem}>
-            <Text style={styles.switchLabel}>Notification</Text>
+            <Text style={styles.switchLabel}>{t('notification')}</Text>
             <Switch
               value={notificationEnabled}
               onValueChange={setNotificationEnabled}
@@ -209,11 +211,11 @@ export const ProfileSetting = ({ navigation }: { navigation: any }) => {
 
           {/* Account */}
           <View style={[styles.sectionHeader, { marginTop: mvs(30) }]}>
-            <Text style={styles.sectionTitle}>Account</Text>
+            <Text style={styles.sectionTitle}>{t('account')}</Text>
           </View>
 
           <CustomButton
-            title="Delete account"
+            title={t('delete_account')}
             onPress={openDeleteModal} // <-- Trigger bottom sheet
             style={styles.deleteButton}
             textStyle={styles.deleteButtonText}
@@ -241,12 +243,10 @@ export const ProfileSetting = ({ navigation }: { navigation: any }) => {
                 {/* Grabber */}
                 <View style={styles.grabber} />
                 {/* Header */}
-                <Text style={styles.modalTitle}>Delete Account</Text>
+                <Text style={styles.modalTitle}>{t('delete_account')}</Text>
                 {/* Warning text */}
                 <Text style={styles.modalDescription}>
-                  Are you sure you want to delete your account?
-                  {'\n'}
-                  This account will be deleted permanently.
+                  {t('are_you_sure_delete_account')}
                 </Text>
                 {/* Delete button */}
                 <TouchableOpacity
@@ -254,7 +254,7 @@ export const ProfileSetting = ({ navigation }: { navigation: any }) => {
                   onPress={handleDeleteAccount}
                 >
                   <Text style={styles.modalDeleteButtonText}>
-                    Delete account
+                    {t('delete_account')}
                   </Text>
                 </TouchableOpacity>
                 {/* Cancel */}
@@ -262,7 +262,7 @@ export const ProfileSetting = ({ navigation }: { navigation: any }) => {
                   style={styles.modalCancelButton}
                   onPress={closeDeleteModal}
                 >
-                  <Text style={styles.modalCancelText}>Cancel</Text>
+                  <Text style={styles.modalCancelText}>{t('cancel')}</Text>
                 </TouchableOpacity>
               </Pressable>
             </Animated.View>

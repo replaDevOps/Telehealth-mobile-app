@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import { ApplePaySvg, MastercardSvg, StcPaySvg } from '@assets/icons';
 import { StyleSheet } from 'react-native';
 import { colors } from '../../styles/colors'; // Adjust path as needed
+import { useTranslation } from 'react-i18next';
 
 export function PaymentMethod({
   selectedPayment: externalSelectedPayment,
@@ -18,6 +19,7 @@ export function PaymentMethod({
   showTitle = true,
   compact = false,
 }) {
+  const { t } = useTranslation();
   // Use internal state if no external control provided
   const [internalSelectedPayment, setInternalSelectedPayment] =
     useState('credit');
@@ -93,7 +95,9 @@ export function PaymentMethod({
 
   return (
     <View style={[styles.paymentSection, compact && styles.compactSection]}>
-      {showTitle && <Text style={styles.sectionTitle}>Payment Method</Text>}
+      {showTitle && (
+        <Text style={styles.sectionTitle}>{t('payment_method')}</Text>
+      )}
 
       {/* Credit/Debit Card */}
       <TouchableOpacity
@@ -107,7 +111,7 @@ export function PaymentMethod({
           <View style={styles.radioOuter}>
             {selectedPayment === 'credit' && <View style={styles.radioInner} />}
           </View>
-          <Text style={styles.paymentLabel}>Credit/Debit Card</Text>
+          <Text style={styles.paymentLabel}>{t('credit_debit_card')}</Text>
         </View>
         <View style={styles.cardLogos}>
           <MastercardSvg />
@@ -118,10 +122,10 @@ export function PaymentMethod({
       {selectedPayment === 'credit' && (
         <View style={styles.cardForm}>
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Cardholder Name</Text>
+            <Text style={styles.inputLabel}>{t('cardholder_name')}</Text>
             <TextInput
               style={styles.input}
-              placeholder="Enter cardholder name"
+              placeholder={t('enter_cardholder_name')}
               placeholderTextColor="#9ca3af"
               value={cardholderName}
               onChangeText={handleCardholderNameChange}
@@ -129,10 +133,10 @@ export function PaymentMethod({
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Card Number</Text>
+            <Text style={styles.inputLabel}>{t('card_number')}</Text>
             <TextInput
               style={styles.input}
-              placeholder="Enter card number"
+              placeholder={t('enter_card_number')}
               placeholderTextColor="#9ca3af"
               value={cardNumber}
               onChangeText={handleCardNumberChange}
@@ -142,7 +146,7 @@ export function PaymentMethod({
 
           <View style={styles.inputRow}>
             <View style={[styles.inputGroup, styles.inputGroupHalf]}>
-              <Text style={styles.inputLabel}>Expiry Date</Text>
+              <Text style={styles.inputLabel}>{t('expiry_date')}</Text>
               <TextInput
                 style={styles.input}
                 placeholder="01/2025"
@@ -184,7 +188,7 @@ export function PaymentMethod({
               <View style={styles.radioInner} />
             )}
           </View>
-          <Text style={styles.paymentLabel}>Apple Pay</Text>
+          <Text style={styles.paymentLabel}>{t('apple_pay')}</Text>
         </View>
         <ApplePaySvg />
       </TouchableOpacity>
@@ -201,7 +205,7 @@ export function PaymentMethod({
           <View style={styles.radioOuter}>
             {selectedPayment === 'stc' && <View style={styles.radioInner} />}
           </View>
-          <Text style={styles.paymentLabel}>STC Pay</Text>
+          <Text style={styles.paymentLabel}>{t('stc_pay')}</Text>
         </View>
         <StcPaySvg />
       </TouchableOpacity>

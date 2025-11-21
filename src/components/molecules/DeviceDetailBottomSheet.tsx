@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { colors } from '../../styles/colors';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useTranslation } from 'react-i18next';
 
 interface Device {
   id: string;
@@ -29,6 +30,7 @@ interface DeviceDetailBottomSheetProps {
 export const DeviceDetailBottomSheet: React.FC<
   DeviceDetailBottomSheetProps
 > = ({ visible, onClose, device }) => {
+  const { t } = useTranslation();
   // Always render the component, even if device is null
   const services = device ? Object.values(device.badge) : [];
 
@@ -68,17 +70,16 @@ export const DeviceDetailBottomSheet: React.FC<
 
               {/* Purpose Section */}
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Purpose</Text>
+                <Text style={styles.sectionTitle}>{t('purpose')}</Text>
                 <Text style={styles.sectionText}>
-                  Skin resurfacing, scar smoothing, wrinkle reduction. Skin
-                  resurfacing, scar smoothing, wrinkle reduction.
+                  {t('skin_resurfacing_text')}
                 </Text>
               </View>
 
               {/* Notes Section */}
               {device.note && (
                 <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Notes</Text>
+                  <Text style={styles.sectionTitle}>{t('notes')}</Text>
                   <Text style={styles.sectionText}>{device.note}</Text>
                 </View>
               )}
@@ -86,7 +87,7 @@ export const DeviceDetailBottomSheet: React.FC<
               {/* Service Section */}
               {services.length > 0 && (
                 <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Service</Text>
+                  <Text style={styles.sectionTitle}>{t('service')}</Text>
                   <View style={styles.servicesContainer}>
                     {services.map((service, index) => (
                       <View key={index} style={styles.serviceTag}>
@@ -99,7 +100,7 @@ export const DeviceDetailBottomSheet: React.FC<
             </ScrollView>
           ) : (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>No device selected</Text>
+              <Text style={styles.emptyText}>{t('no_device_selected')}</Text>
             </View>
           )}
         </View>

@@ -17,6 +17,7 @@ import PhoneNumberInput from '../../../components/common/PhoneTextInput';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { styles } from './style';
 import { CustomTextInput } from '@components/common/CustomTextInput';
+import { useTranslation } from 'react-i18next';
 
 interface ForgetPasswordScreenProps {
   navigation: any;
@@ -25,6 +26,7 @@ interface ForgetPasswordScreenProps {
 export function ForgetPasswordScreen({
   navigation,
 }: ForgetPasswordScreenProps) {
+  const { t } = useTranslation();
   const [selectedTab, setSelectedTab] = useState<'email' | 'phone'>('email');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -51,11 +53,11 @@ export function ForgetPasswordScreen({
           </View>
 
           <View style={{ ...styles.title }}>
-            <CustomText text="Forget Password" />
+            <CustomText text={t('forget_password')} />
           </View>
           <View style={styles.content}>
             <Text style={styles.TextContent}>
-              Enter the email address or phone number to send you the OTP code.
+              {t('forget_password_description')}
             </Text>
           </View>
 
@@ -75,7 +77,7 @@ export function ForgetPasswordScreen({
                   selectedTab === 'email' && styles.activeTabText,
                 ]}
               >
-                Email Address
+                {t('email_address')}
               </Text>
             </TouchableOpacity>
 
@@ -94,7 +96,7 @@ export function ForgetPasswordScreen({
                   selectedTab === 'phone' && styles.activeTabText,
                 ]}
               >
-                Phone Number
+                {t('phone_number')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -102,8 +104,8 @@ export function ForgetPasswordScreen({
           <View style={{ marginTop: mvs(25) }}>
             {selectedTab === 'email' ? (
               <CustomTextInput
-                label="Email Address"
-                placeholder="Enter email address"
+                label={t('email_address')}
+                placeholder={t('enter_email')}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -112,7 +114,7 @@ export function ForgetPasswordScreen({
               />
             ) : (
               <>
-                <Text style={styles.label}>Phone Number</Text>
+                <Text style={styles.label}>{t('phone_number')}</Text>
                 <PhoneNumberInput
                   phone={phone}
                   setPhone={setPhone}
@@ -128,20 +130,20 @@ export function ForgetPasswordScreen({
           </View>
 
           <CustomButton
-            title="Next"
+            title={t('next')}
             onPress={() => {
               let valid = true;
 
               if (selectedTab === 'email') {
                 if (!email.trim() || !email.includes('@')) {
-                  setEmailError('Enter a valid email');
+                  setEmailError(t('invalid_email'));
                   valid = false;
                 } else {
                   setEmailError('');
                 }
               } else {
                 if (!phone.trim() || !isPhoneValid) {
-                  setPhoneError('Invalid phone number');
+                  setPhoneError(t('invalid_phone'));
                   valid = false;
                 } else {
                   setPhoneError('');
@@ -155,9 +157,9 @@ export function ForgetPasswordScreen({
           />
 
           <View style={styles.signinRow}>
-            <Text style={styles.TextContent}>Remember Password? </Text>
+            <Text style={styles.TextContent}>{t('remember_password')}</Text>
             <TouchableOpacity onPress={() => navigation.navigate('SignIn')}>
-              <Text style={styles.signinLink}>Sign in</Text>
+              <Text style={styles.signinLink}>{t('sign_in')}</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>

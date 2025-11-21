@@ -111,5 +111,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderRadius: 2,
   },
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.white,
+  },
 });
 export { styles };

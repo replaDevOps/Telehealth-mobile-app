@@ -11,6 +11,7 @@ import {
 import { colors } from '../../styles/colors';
 import { mvs } from '../../config/metrices';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useTranslation } from 'react-i18next';
 
 interface Clinic {
   id: string;
@@ -35,6 +36,7 @@ interface RecommendedClinicsProps {
 }
 
 const ClinicCard = ({ item, onPress }: ClinicCardProps) => {
+  const { t } = useTranslation();
   console.log('item: ', JSON.stringify(item, null, 4));
   return (
     <TouchableOpacity style={styles.card} onPress={() => onPress(item)}>
@@ -47,7 +49,7 @@ const ClinicCard = ({ item, onPress }: ClinicCardProps) => {
         {item.isFeatured && (
           <View style={styles.featuredBadge}>
             <Text style={styles.featuredIcon}>👑</Text>
-            <Text style={styles.featuredText}>Featured</Text>
+            <Text style={styles.featuredText}>{t('featured')}</Text>
           </View>
         )}
       </View>
@@ -80,13 +82,14 @@ const RecommendedClinics = ({
   clinics,
   onClinicPress,
 }: RecommendedClinicsProps) => {
+  const { t } = useTranslation();
   const renderItem: ListRenderItem<Clinic> = ({ item }) => (
     <ClinicCard item={item} onPress={onClinicPress} />
   );
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Recommended Clinics</Text>
+      <Text style={styles.title}>{t('recommended_clinics')}</Text>
       <FlatList
         data={clinics}
         renderItem={renderItem}

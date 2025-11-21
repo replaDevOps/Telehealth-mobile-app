@@ -2,24 +2,22 @@ import { PipsImage, RecommandImage, doctor, onboarding1, onboarding2, onboarding
 import { DoctorInfo, ClinicInfo, Message } from '../types/chat.types';
 
 export const ONBOARDING_STEPS = [
-    {
-      title: 'Connect to Care, Anytime.',
-      imgSrc: onboarding1,
-      content:
-        'Book appointments, consultations, and treatments from trusted clinics',
-    },
-    {
-      title: 'Consultation with Vena AI',
-      imgSrc: onboarding2,
-      content:
-        'Get AI-powered guidance and insights whenever you need.',
-    },
-    {
-      title: 'Connect Via Various Ways',
-      imgSrc: onboarding3,
-      content: 'Connect with your doctor through chat, audio, or video.',
-    },
-  ];
+  {
+    title: 'onboarding1_title',
+    imgSrc: onboarding1,
+    content: 'onboarding1_content',
+  },
+  {
+    title: 'onboarding2_title',
+    imgSrc: onboarding2,
+    content: 'onboarding2_content',
+  },
+  {
+    title: 'onboarding3_title',
+    imgSrc: onboarding3,
+    content: 'onboarding3_content',
+  },
+];
 
 
 

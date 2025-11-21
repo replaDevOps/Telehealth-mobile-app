@@ -69,13 +69,20 @@ export const MainNavigator = () => {
       <Stack.Screen name="ChatScreen" component={ChatScreen} />
       <Stack.Screen name="CardDetails" component={CardDetails} />
       <Stack.Screen name="Refund" component={RefundRequest} />
-      <ClinicStack.Screen name="CheckoutScreen" component={CheckoutScreen} />
-      <ClinicStack.Screen name="CartScreen" component={CartScreen} />
-      <ClinicStack.Screen
-        name="PrescriptionScreen"
-        component={PrescriptionScreen}
+      <Stack.Screen name="CheckoutScreen" component={CheckoutScreen} />
+      <Stack.Screen name="CartScreen" component={CartScreen} />
+      <Stack.Screen name="PrescriptionScreen" component={PrescriptionScreen} />
+      <Stack.Screen name="Notification" component={NotificationScreen} />
+
+      <Stack.Screen name="ClinicDetail" component={ClinicDetailScreen} />
+      <Stack.Screen name="AudioConsultation" component={AudioConsultation} />
+      <Stack.Screen name="VideoConsultation" component={VideoConsultation} />
+      <ClinicStack.Screen name="ChatOnboarding" component={ChatOnboarding} />
+
+      <Stack.Screen
+        name="ConsultationPayment"
+        component={ConsultationPayment}
       />
-      <ClinicStack.Screen name="ClinicDetail" component={ClinicDetailScreen} />
     </Stack.Navigator>
   );
 };
@@ -86,7 +93,6 @@ export const HomeNavigator = () => {
       <Stack.Screen name="HomeScreen" component={HomeScreen} />
       <Stack.Screen name="NearbyClinics" component={NearbyClinics} />
       <Stack.Screen name="SelectLocation" component={SelectLocation} />
-      <Stack.Screen name="Notification" component={NotificationScreen} />
     </Stack.Navigator>
   );
 };
@@ -99,21 +105,6 @@ export const ClinicNavigator = () => {
     >
       <ClinicStack.Screen name="ClinicScreen" component={ClinicScreen} />
       <ClinicStack.Screen name="FilterScreen" component={FilterScreen} />
-      <ClinicStack.Screen name="ChatOnboarding" component={ChatOnboarding} />
-
-      <ClinicStack.Screen
-        name="ConsultationPayment"
-        component={ConsultationPayment}
-      />
-
-      <ClinicStack.Screen
-        name="AudioConsultation"
-        component={AudioConsultation}
-      />
-      <ClinicStack.Screen
-        name="VideoConsultation"
-        component={VideoConsultation}
-      />
     </ClinicStack.Navigator>
   );
 };

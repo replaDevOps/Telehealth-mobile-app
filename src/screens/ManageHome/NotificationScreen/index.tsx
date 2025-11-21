@@ -5,45 +5,43 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { styles } from './style';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../../../styles/colors';
+import { useTranslation } from 'react-i18next';
 
 export const NotificationScreen = () => {
+  const { t } = useTranslation();
   const [notifications, setNotifications] = useState([
     {
       id: 1,
-      title: 'Appointment Confirmed',
-      message:
-        'Your appointment for Botox Injection with Dr. Sara Khan at Al Jour Clinic on 22 Nov 2025 at 10:30 AM has been confirmed.',
+      title: t('appointment_confirmed'),
+      message: t('appointment_confirmed_message'),
       time: '15 Nov 2025 - 09:12 AM',
       unread: true,
     },
     {
       id: 2,
-      title: 'Loyalty Points Earned',
-      message:
-        'You earned 50 points for completing your appointment for Facial Rejuvenation at SkinCare Plus.',
+      title: t('loyalty_points_earned'),
+      message: t('loyalty_points_earned_message'),
       time: '15 Nov 2025 - 09:12 AM',
       unread: true,
     },
     {
       id: 3,
-      title: 'Points Redeemed',
-      message:
-        'Your appointment for Botox Injection with Dr. Sara Khan at Al Jour Clinic on 22 Nov 2025 at 10:30 AM has been confirmed.',
+      title: t('points_redeemed'),
+      message: t('points_redeemed_message'),
       time: '15 Nov 2025 - 09:12 AM',
       unread: true,
     },
     {
       id: 4,
-      title: 'Refund Processed',
-      message:
-        'Your appointment for Botox Injection with Dr. Sara Khan at Al Jour Clinic on 22 Nov 2025 at 10:30 AM has been confirmed.',
+      title: t('refund_processed'),
+      message: t('refund_processed_message'),
       time: '15 Nov 2025 - 09:12 AM',
       unread: false,
     },
     {
       id: 5,
-      title: 'Update',
-      message: 'Your profile has been updated successfully',
+      title: t('update'),
+      message: t('update_message'),
       time: '15 Nov 2025 - 09:12 AM',
       unread: false,
     },
@@ -51,7 +49,7 @@ export const NotificationScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Header2 title="Notifications" />
+      <Header2 title={t('notifications')} />
 
       {notifications.length > 0 ? (
         <ScrollView
@@ -84,9 +82,9 @@ export const NotificationScreen = () => {
       ) : (
         <View style={styles.emptyState}>
           <Icon name="bell-off-outline" size={55} color={colors.black} />
-          <Text style={styles.emptyTitle}>No Notifications Yet</Text>
+          <Text style={styles.emptyTitle}>{t('no_notifications_yet')}</Text>
           <Text style={styles.emptyMessage}>
-            Stay tuned! Important updates and alerts will appear here.
+            {t('no_notifications_message')}
           </Text>
         </View>
       )}

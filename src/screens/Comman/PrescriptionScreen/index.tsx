@@ -162,7 +162,7 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
       if (success) {
         setToast({
           visible: true,
-          message: 'Prescription downloaded successfully!',
+          message: t('prescription_downloaded_successfully'),
           type: 'success',
         });
 
@@ -413,18 +413,21 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
   );
 };
 
-const DoctorCard: React.FC<DoctorCardProps> = ({ doctor, date, time }) => (
-  <View style={styles.doctorCard}>
-    <Image source={doctor.image} style={styles.avatar} />
-    <View style={styles.doctorInfo}>
-      <Text style={styles.doctorName}>{doctor.name}</Text>
-      <Text style={styles.doctorCredentials}>{doctor.credentials}</Text>
-      <Text style={styles.dateTime}>
-        {date} | {time}
-      </Text>
+const DoctorCard: React.FC<DoctorCardProps> = ({ doctor, date, time }) => {
+  const { t } = useTranslation();
+  return (
+    <View style={styles.doctorCard}>
+      <Image source={doctor.image} style={styles.avatar} />
+      <View style={styles.doctorInfo}>
+        <Text style={styles.doctorName}>{doctor.name}</Text>
+        <Text style={styles.doctorCredentials}>{doctor.credentials}</Text>
+        <Text style={styles.dateTime}>
+          {date} | {time}
+        </Text>
+      </View>
     </View>
-  </View>
-);
+  );
+};
 
 const InfoSection: React.FC<InfoSectionProps> = ({ title, items }) => (
   <View style={styles.infoSection}>

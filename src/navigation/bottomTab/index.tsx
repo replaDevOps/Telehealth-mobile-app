@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { colors } from '../../styles/colors';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 
 import {
   ClinicSvg,
@@ -31,6 +32,7 @@ export type TabParamList = {
 const Tab = createBottomTabNavigator<TabParamList>();
 
 export default function CustomTabBar() {
+  const { t } = useTranslation();
   return (
     <Tab.Navigator
       initialRouteName="Home"
@@ -60,22 +62,22 @@ export default function CustomTabBar() {
           switch (route.name) {
             case 'Home':
               SvgComponent = focused ? FHomeSvg : HomeSvg;
-              label = 'Home';
+              label = t('home');
               break;
             case 'Clinic':
               SvgComponent = focused ? FClinicSvg : ClinicSvg;
 
-              label = 'Clinic';
+              label = t('clinic');
               break;
             case 'History':
               SvgComponent = focused ? fHistorySvg : HistorySvg;
 
-              label = 'History';
+              label = t('history');
               break;
             case 'Setting':
               SvgComponent = focused ? fSettingSvg : SettingSvg;
 
-              label = 'Setting';
+              label = t('setting');
               break;
           }
           return (

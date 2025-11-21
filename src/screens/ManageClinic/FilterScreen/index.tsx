@@ -4,6 +4,7 @@ import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { BackSvg } from '@assets/icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { styles } from './style';
+import { useTranslation } from 'react-i18next';
 
 interface FilterState {
   clinicTypes: { [key: string]: boolean };
@@ -14,6 +15,7 @@ interface FilterState {
 }
 
 export const FilterScreen = ({ navigation }) => {
+  const { t } = useTranslation();
   const [filters, setFilters] = useState<FilterState>({
     clinicTypes: {
       Dentistry: false,
@@ -173,63 +175,106 @@ export const FilterScreen = ({ navigation }) => {
         >
           <BackSvg />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Filters ({selectedFiltersCount})</Text>
+        <Text style={styles.headerTitle}>
+          {t('filters')} ({selectedFiltersCount})
+        </Text>
         <View style={styles.placeholder} />
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Clinic Type */}
-        <FilterSection title="Clinic Type">
+        <FilterSection title={t('clinic_type')}>
           <CheckboxItem
-            label="Dentistry"
+            label={t('dentistry')}
             checked={filters.clinicTypes.Dentistry}
             onPress={() => handleClinicTypeToggle('Dentistry')}
           />
           <CheckboxItem
-            label="Dermatology"
+            label={t('dermatology')}
             checked={filters.clinicTypes.Dermatology}
             onPress={() => handleClinicTypeToggle('Dermatology')}
           />
         </FilterSection>
 
         {/* Service Group */}
-        <FilterSection title="Service Group">
-          {Object.keys(filters.serviceGroups).map(service => (
-            <CheckboxItem
-              key={service}
-              label={service}
-              checked={filters.serviceGroups[service]}
-              onPress={() => handleServiceGroupToggle(service)}
-            />
-          ))}
+        <FilterSection title={t('service_group')}>
+          <CheckboxItem
+            label={t('diagnostics')}
+            checked={filters.serviceGroups.Diagnostics}
+            onPress={() => handleServiceGroupToggle('Diagnostics')}
+          />
+          <CheckboxItem
+            label={t('oral_surgery')}
+            checked={filters.serviceGroups['Oral Surgery']}
+            onPress={() => handleServiceGroupToggle('Oral Surgery')}
+          />
+          <CheckboxItem
+            label={t('prosthodontics')}
+            checked={filters.serviceGroups.Prosthodontics}
+            onPress={() => handleServiceGroupToggle('Prosthodontics')}
+          />
+          <CheckboxItem
+            label={t('periodontics')}
+            checked={filters.serviceGroups.Periodontics}
+            onPress={() => handleServiceGroupToggle('Periodontics')}
+          />
+          <CheckboxItem
+            label={t('restorative')}
+            checked={filters.serviceGroups.Restorative}
+            onPress={() => handleServiceGroupToggle('Restorative')}
+          />
+          <CheckboxItem
+            label={t('pedodontics')}
+            checked={filters.serviceGroups.Pedodontics}
+            onPress={() => handleServiceGroupToggle('Pedodontics')}
+          />
+          <CheckboxItem
+            label={t('implant')}
+            checked={filters.serviceGroups.Implant}
+            onPress={() => handleServiceGroupToggle('Implant')}
+          />
         </FilterSection>
 
         {/* Service Name */}
-        <FilterSection title="Service Name">
-          {Object.keys(filters.serviceNames).map(service => (
-            <CheckboxItem
-              key={service}
-              label={service}
-              checked={filters.serviceNames[service]}
-              onPress={() => handleServiceNameToggle(service)}
-            />
-          ))}
+        <FilterSection title={t('service_name')}>
+          <CheckboxItem
+            label={t('oral_examination')}
+            checked={filters.serviceNames['Oral Examination']}
+            onPress={() => handleServiceNameToggle('Oral Examination')}
+          />
+          <CheckboxItem
+            label={t('oral_exam_home_visit')}
+            checked={filters.serviceNames['Oral Exam - Home Visit']}
+            onPress={() => handleServiceNameToggle('Oral Exam - Home Visit')}
+          />
+          <CheckboxItem
+            label={t('implant_consultation')}
+            checked={filters.serviceNames['Implant Consultation 2001']}
+            onPress={() => handleServiceNameToggle('Implant Consultation 2001')}
+          />
         </FilterSection>
 
         {/* City */}
-        <FilterSection title="City">
-          {Object.keys(filters.cities).map(city => (
-            <CheckboxItem
-              key={city}
-              label={city}
-              checked={filters.cities[city]}
-              onPress={() => handleCityToggle(city)}
-            />
-          ))}
+        <FilterSection title={t('city')}>
+          <CheckboxItem
+            label={t('makkah')}
+            checked={filters.cities.Makkah}
+            onPress={() => handleCityToggle('Makkah')}
+          />
+          <CheckboxItem
+            label={t('madina')}
+            checked={filters.cities.Madina}
+            onPress={() => handleCityToggle('Madina')}
+          />
+          <CheckboxItem
+            label={t('jeddah')}
+            checked={filters.cities.Jeddah}
+            onPress={() => handleCityToggle('Jeddah')}
+          />
         </FilterSection>
 
         {/* Rating */}
-        <FilterSection title="Rating">
+        <FilterSection title={t('rating')}>
           <View style={styles.ratingList}>
             {[5, 4, 3, 2, 1].map(rating => (
               <TouchableOpacity
@@ -267,14 +312,14 @@ export const FilterScreen = ({ navigation }) => {
           onPress={handleReset}
           activeOpacity={0.7}
         >
-          <Text style={styles.resetText}>Reset</Text>
+          <Text style={styles.resetText}>{t('reset')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.applyButton}
           onPress={handleApply}
           activeOpacity={0.7}
         >
-          <Text style={styles.applyText}>Apply</Text>
+          <Text style={styles.applyText}>{t('apply')}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

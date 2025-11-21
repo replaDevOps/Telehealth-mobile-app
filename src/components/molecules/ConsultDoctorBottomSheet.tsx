@@ -14,6 +14,7 @@ import { colors } from '../../styles/colors';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { CustomButton } from '@components/common/CustomButton';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useTranslation } from 'react-i18next';
 
 type RootStackParamList = {
   ConsultationPayment: {
@@ -34,6 +35,7 @@ export default function ConsultDoctorBottomSheet({
   visible: boolean;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -47,21 +49,21 @@ export default function ConsultDoctorBottomSheet({
   const consultationTypes = [
     {
       id: 'chat' as const,
-      title: 'Chat Consultation',
+      title: t('chat_consultation'),
       duration: '30 min',
       price: '20 SAR',
       Icon: ChatSvg,
     },
     {
       id: 'audio' as const,
-      title: 'Audio Consultation',
+      title: t('audio_consultation'),
       duration: '30 min',
       price: '30 SAR',
       Icon: AudioSvg,
     },
     {
       id: 'video' as const,
-      title: 'Video Consultation',
+      title: t('video_consultation'),
       duration: '30 min',
       price: '40 SAR',
       Icon: VedioSvg,
@@ -69,16 +71,16 @@ export default function ConsultDoctorBottomSheet({
   ];
 
   const serviceTypes = [
-    { label: 'General', value: 'general' },
-    { label: 'Specialist', value: 'specialist' },
+    { label: t('general'), value: 'general' },
+    { label: t('specialist'), value: 'specialist' },
   ];
   const serviceGroups = [
-    { label: 'Internal Medicine', value: 'internal' },
-    { label: 'Pediatrics', value: 'pediatrics' },
+    { label: t('internal_medicine'), value: 'internal' },
+    { label: t('pediatrics'), value: 'pediatrics' },
   ];
   const services = [
-    { label: 'Flu Check-up', value: 'flu' },
-    { label: 'Vaccination', value: 'vaccine' },
+    { label: t('flu_check_up'), value: 'flu' },
+    { label: t('vaccination'), value: 'vaccine' },
   ];
 
   const handleFindDoctor = async () => {
@@ -96,9 +98,9 @@ export default function ConsultDoctorBottomSheet({
         consultationTypeId: selected.id, // Pass the type ID
         duration: selected.duration,
         price: selected.price,
-        serviceType: serviceType || 'General',
-        serviceGroup: serviceGroup || 'Internal Medicine',
-        service: service || 'Flu Check-up',
+        serviceType: serviceType || t('general'),
+        serviceGroup: serviceGroup || t('internal_medicine'),
+        service: service || t('flu_check_up'),
       });
       onClose();
     }, 2000);
@@ -139,37 +141,37 @@ export default function ConsultDoctorBottomSheet({
 
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.header}>
-                <Text style={styles.title}>Consult with a Doctor</Text>
+                <Text style={styles.title}>{t('consult_with_a_doctor')}</Text>
                 <Text style={styles.subtitle}>
-                  Choose how you'd like to connect
+                  {t('choose_how_to_connect')}
                 </Text>
               </View>
 
               <CustomDropdown
-                label="Service Type"
+                label={t('service_type')}
                 value={serviceType}
                 onValueChange={setServiceType}
                 options={serviceTypes}
-                placeholder="Select Type"
+                placeholder={t('select_type')}
               />
               <CustomDropdown
-                label="Service Group"
+                label={t('service_group')}
                 value={serviceGroup}
                 onValueChange={setServiceGroup}
                 options={serviceGroups}
-                placeholder="Select Group"
+                placeholder={t('select_group')}
               />
               <CustomDropdown
-                label="Service"
+                label={t('service')}
                 value={service}
                 onValueChange={setService}
                 options={services}
-                placeholder="Select Service"
+                placeholder={t('select_service')}
               />
 
               {/* Consultation Type */}
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Consultation Type</Text>
+                <Text style={styles.label}>{t('consultation_type')}</Text>
                 {consultationTypes.map(type => {
                   const isSelected = selectedConsultation === type.id;
                   const Icon = type.Icon;
@@ -209,7 +211,7 @@ export default function ConsultDoctorBottomSheet({
 
               <CustomButton
                 onPress={handleFindDoctor}
-                title={isLoading ? 'Finding...' : 'Find Doctor'}
+                title={isLoading ? t('finding') : t('find_doctor')}
                 disabled={isLoading}
               />
 

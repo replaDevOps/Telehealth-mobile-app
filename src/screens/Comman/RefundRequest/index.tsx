@@ -19,8 +19,10 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { CustomButton } from '@components/common/CustomButton';
 import { CheckBox } from '@rneui/base';
 import { SuccessMessageModal } from '@components/molecules';
+import { useTranslation } from 'react-i18next';
 
 export function RefundRequest() {
+  const { t } = useTranslation();
   const route = useRoute();
   const navigation = useNavigation();
   const params = route.params as any;
@@ -39,11 +41,11 @@ export function RefundRequest() {
 
   const handleSubmit = () => {
     if (selectedServices.length === 0) {
-      Alert.alert('Error', 'Please select at least one service for refund.');
+      Alert.alert(t('error'), t('select_at_least_one_service'));
       return;
     }
     if (!reason.trim()) {
-      Alert.alert('Error', 'Please provide a reason for refund.');
+      Alert.alert(t('error'), t('provide_reason_for_refund'));
       return;
     }
 
@@ -64,7 +66,7 @@ export function RefundRequest() {
     <>
       <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
         <StatusBar barStyle="dark-content" />
-        <Header2 title={'Refund ' + params.paymentId} />
+        <Header2 title={t('refund_request') + ' ' + params.paymentId} />
 
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
@@ -86,13 +88,13 @@ export function RefundRequest() {
               </View>
             </View>
             <TouchableOpacity style={styles.consultButton}>
-              <Text style={styles.consultButtonText}>Visit</Text>
+              <Text style={styles.consultButtonText}>{t('visit')}</Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.mainSection}>
             <Text style={{ fontWeight: '600', marginBottom: 12 }}>
-              Select Service(s) for Refund
+              {t('select_services_for_refund')}
             </Text>
 
             {params.services?.map((service: any) => {
@@ -147,10 +149,10 @@ export function RefundRequest() {
 
             {/* Reason Input */}
             <View style={styles.resonSection}>
-              <Text style={styles.feedbackLabel}>Reason for Refund</Text>
+              <Text style={styles.feedbackLabel}>{t('reason_for_refund')}</Text>
               <View style={styles.textInputContainer}>
                 <TextInput
-                  placeholder="Please provide a valid reason for requesting a refund..."
+                  placeholder={t('provide_valid_reason_for_refund')}
                   placeholderTextColor="#999"
                   multiline
                   maxLength={300}
@@ -178,7 +180,7 @@ export function RefundRequest() {
                     justifyContent: 'space-between',
                   }}
                 >
-                  <Text style={{ fontWeight: '600' }}>Total Refund Amount</Text>
+                  <Text style={{ fontWeight: '600' }}>{t('total_refund_amount')}</Text>
                   <Text
                     style={{
                       fontWeight: 'bold',
@@ -193,10 +195,9 @@ export function RefundRequest() {
             )}
 
             <Text style={styles.refundInstruction}>
-              Your amount will be refunded when your request gets approved by
-              the admin. View{' '}
+              {t('refund_instruction')}{' '}
               <Text style={{ color: colors.primary, fontWeight: '600' }}>
-                Refund Policy
+                {t('refund_policy')}
               </Text>
             </Text>
           </View>
@@ -204,7 +205,7 @@ export function RefundRequest() {
 
         <View style={styles.bottomButtonContainer}>
           <CustomButton
-            title="Submit Request"
+            title={t('submit_request')}
             onPress={handleSubmit}
             disabled={selectedServices.length === 0 || !reason.trim()}
           />
@@ -217,8 +218,8 @@ export function RefundRequest() {
           setShowSuccessModal(false);
           navigation.goBack();
         }}
-        title="Refund Request"
-        description="Refund eligibility has expired. Refunds can only be requested within 14 days of the appointment booking date."
+        title={t('refund_request')}
+        description={t('refund_eligibility_expired')}
       />
     </>
   );

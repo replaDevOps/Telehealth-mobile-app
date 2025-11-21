@@ -10,6 +10,7 @@ import { CustomTextInput } from '../../../components/common/CustomTextInput';
 import { AuthStackParamList } from '../../../navigation/AuthNavigator';
 import { styles } from './styles';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 type NavProps = StackNavigationProp<AuthStackParamList, 'SetPassword'>;
 
@@ -18,6 +19,7 @@ interface Props {
 }
 
 export const SetPassword: React.FC<Props> = ({ navigation }) => {
+  const { t } = useTranslation();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
@@ -34,7 +36,7 @@ export const SetPassword: React.FC<Props> = ({ navigation }) => {
     setError('');
 
     if (!password || !confirmPassword) {
-      setError('Both fields are required.');
+      setError(t('fields_required'));
       return;
     }
 
@@ -46,7 +48,7 @@ export const SetPassword: React.FC<Props> = ({ navigation }) => {
     // }
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match.');
+      setError(t('passwords_not_match'));
       return;
     }
 
@@ -69,27 +71,27 @@ export const SetPassword: React.FC<Props> = ({ navigation }) => {
           </View>
 
           <View style={styles.content}>
-            <CustomText text="Set a New Password" />
+            <CustomText text={t('set_new_password')} />
           </View>
 
           <View style={styles.content}>
             <Text style={styles.TextContent}>
-              OTP verified! Set your new password.
+              {t('otp_verified')}
             </Text>
           </View>
 
           <View style={styles.InputContainer}>
             <CustomTextInput
-              label="Password"
-              placeholder="Enter your password"
+              label={t('password')}
+              placeholder={t('enter_password')}
               value={password}
               onChangeText={setPassword}
               secureTextEntry={true}
               errorMessage={error}
             />
             <CustomTextInput
-              label="Confirm Password"
-              placeholder="Confirm your password"
+              label={t('confirm_password')}
+              placeholder={t('confirm_your_password')}
               secureTextEntry
               value={confirmPassword}
               onChangeText={text => setConfirmPassword(text)}
@@ -98,7 +100,7 @@ export const SetPassword: React.FC<Props> = ({ navigation }) => {
           </View>
 
           <CustomButton
-            title={loading ? 'Processing…' : 'Update Password'}
+            title={loading ? t('processing') : t('update_password')}
             onPress={handleNext}
             // disabled={loading}
           />

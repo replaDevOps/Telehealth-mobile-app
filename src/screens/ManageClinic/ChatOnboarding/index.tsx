@@ -9,16 +9,18 @@ import { mvs } from '@config/metrices';
 import { CustomButton } from '@components/common/CustomButton';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useTranslation } from 'react-i18next';
 
 export function ChatOnboarding() {
+  const { t } = useTranslation();
   const navigation = useNavigation();
 
   // ✅ Manage checkbox states
   const [features, setFeatures] = useState({
-    'Saudi Dialect': true,
-    'Smart photo scan': false,
-    'Suggests services & devices': false,
-    'Clinic specific': false,
+    [t('saudi_dialect')]: true,
+    [t('smart_photo_scan')]: false,
+    [t('suggests_services_devices')]: false,
+    [t('clinic_specific')]: false,
   });
 
   const toggleFeature = (key: string) => {
@@ -32,11 +34,10 @@ export function ChatOnboarding() {
 
       {/* Main Content */}
       <View style={styles.content}>
-        <Text style={styles.title}>Let’s Chat with</Text>
-        <Text style={styles.highlight}>VENA AI ✨</Text>
+        <Text style={styles.title}>{t('lets_chat_with')}</Text>
+        <Text style={styles.highlight}>{t('vena_ai_sparkle')}</Text>
         <Text style={styles.subtitle}>
-          Smart AI that understands your concerns{'\n'}
-          and gives instant care tips.
+          {t('smart_ai_concerns')}
         </Text>
 
         {/* Logo */}
@@ -50,11 +51,9 @@ export function ChatOnboarding() {
         <View style={{ alignItems: 'center', marginVertical: mvs(20) }}>
           {/* Section Title */}
           <View style={[{ flexDirection: 'row', marginTop: mvs(60) }]}>
-            <Text style={styles.title}>How </Text>
-            <Text style={[styles.title, { color: colors.primary }]}>
-              Vena AI{' '}
-            </Text>
-            <Text style={styles.title}>Helps You</Text>
+            <Text style={styles.title}>{t('how')} </Text>
+            <Text style={[styles.title, { color: colors.primary }]}>{t('vena_ai')} </Text>
+            <Text style={styles.title}>{t('helps_you')}</Text>
           </View>
 
           <View style={styles.checkboxGrid}>
@@ -99,7 +98,7 @@ export function ChatOnboarding() {
 
         {/* Get Started Button */}
         <CustomButton
-          title="Get Started"
+          title={t('get_started')}
           onPress={() => navigation.navigate('ChatScreen')}
           style={styles.button}
         />

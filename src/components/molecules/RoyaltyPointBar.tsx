@@ -6,6 +6,7 @@ import { coinIcon } from '@assets/images';
 import { StyleSheet } from 'react-native';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import { colors } from '../../styles/colors';
+import { useTranslation } from 'react-i18next';
 
 interface RoyaltyPointsProps {
   points?: number;
@@ -20,6 +21,7 @@ export const RoyaltyPointsBar: React.FC<RoyaltyPointsProps> = ({
   onPress,
   containerStyle,
 }) => {
+  const { t } = useTranslation();
   return (
     <TouchableOpacity
       style={[style.royaltyPointsContainer, containerStyle]}
@@ -34,13 +36,15 @@ export const RoyaltyPointsBar: React.FC<RoyaltyPointsProps> = ({
       >
         <View style={style.royaltyContent}>
           <View style={style.royaltyTitleContainer}>
-            <Text style={style.royaltyTitle}>Royalty Points</Text>
+            <Text style={style.royaltyTitle}>{t('royalty_points')}</Text>
             <AntDesign name="right" size={18} color={colors.white} />
           </View>
 
-          <Text style={style.royaltySubtitle}>Valid till date {validTill}</Text>
+          <Text style={style.royaltySubtitle}>
+            {t('valid_till_date')} {validTill}
+          </Text>
 
-          <Text style={style.royaltyPointsLabel}>Current Points:</Text>
+          <Text style={style.royaltyPointsLabel}>{t('current_points')}</Text>
           <Text style={style.royaltyPointsValue}>{points}</Text>
         </View>
 

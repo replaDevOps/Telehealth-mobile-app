@@ -16,6 +16,7 @@ import { CustomButton } from '@components/common/CustomButton';
 import { RecommandImage } from '@assets/images';
 import RatingBottomSheet from '@components/molecules/RatingBottomSheet';
 import { RouteProp, useRoute } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 
 type CardDetailsRouteParams = {
   paymentId: string;
@@ -51,6 +52,7 @@ type CardDetailsRouteProp = RouteProp<
 >;
 
 export function CardDetails({ navigation }: { navigation: any }) {
+  const { t } = useTranslation();
   const route = useRoute<CardDetailsRouteProp>();
   const params = route.params;
   const reason = params.reason;
@@ -112,7 +114,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
                 color: isAppointment ? colors.text : colors.white,
               }}
             >
-              {isAppointment ? 'Visit' : 'Give Review'}
+              {isAppointment ? t('visit') : t('give_review')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -153,74 +155,74 @@ export function CardDetails({ navigation }: { navigation: any }) {
           ))}
         {reason && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Reason for Refund</Text>
+            <Text style={styles.sectionTitle}>{t('reason_for_refund')}</Text>
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>{reason}</Text>
             </View>
           </View>
         )}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Payment Detail</Text>
+          <Text style={styles.sectionTitle}>{t('payment_detail')}</Text>
 
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Payment Method</Text>
-            <Text style={styles.detailValue}>Credit Card</Text>
+            <Text style={styles.detailLabel}>{t('payment_method')}</Text>
+            <Text style={styles.detailValue}>{t('credit_card')}</Text>
           </View>
 
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Status</Text>
+            <Text style={styles.detailLabel}>{t('status')}</Text>
             <Text style={[styles.detailValue, { color: params.statusColor }]}>
               {params.status}
             </Text>
           </View>
 
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Date & Time</Text>
+            <Text style={styles.detailLabel}>{t('date_time')}</Text>
             <Text style={styles.detailValue}>{params.dateTime}</Text>
           </View>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            {isAppointment ? 'Appointment Summary' : 'Consultation Summary'}
+            {isAppointment ? t('appointment_summary') : t('consultation_summary')}
           </Text>
 
           {params.consultationType && (
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Consultation Type</Text>
+              <Text style={styles.detailLabel}>{t('consultation_type')}</Text>
               <Text style={styles.detailValue}>{params.consultationType}</Text>
             </View>
           )}
 
           {params.doctorName && (
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Doctor Name</Text>
+              <Text style={styles.detailLabel}>{t('doctor_name')}</Text>
               <Text style={styles.detailValue}>{params.doctorName}</Text>
             </View>
           )}
 
           {params.duration && (
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Duration</Text>
+              <Text style={styles.detailLabel}>{t('duration')}</Text>
               <Text style={styles.detailValue}>{params.duration}</Text>
             </View>
           )}
 
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Price</Text>
+            <Text style={styles.detailLabel}>{t('price')}</Text>
             <Text style={styles.detailValue}>{params.price}</Text>
           </View>
 
           {params.serviceName && (
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Service</Text>
+              <Text style={styles.detailLabel}>{t('service')}</Text>
               <Text style={styles.detailValue}>{params.serviceName}</Text>
             </View>
           )}
         </View>
 
         <View style={styles.totalContainer}>
-          <Text style={styles.totalLabel}>TOTAL</Text>
+          <Text style={styles.totalLabel}>{t('total')}</Text>
           <Text style={styles.totalAmount}>{params.price}</Text>
         </View>
       </ScrollView>
@@ -228,10 +230,10 @@ export function CardDetails({ navigation }: { navigation: any }) {
       {!reason && (
         <View style={styles.bottomButtonContainer}>
           {isAppointment ? (
-            <CustomButton title="Request for Refund" onPress={handleRefund} />
+            <CustomButton title={t('request_for_refund')} onPress={handleRefund} />
           ) : (
             <CustomButton
-              title="Download Invoice"
+              title={t('download_invoice')}
               onPress={handleDownloadInvoice}
             />
           )}

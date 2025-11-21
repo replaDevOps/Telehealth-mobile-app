@@ -15,8 +15,10 @@ import {
 } from '@assets/icons';
 import style from './style';
 import { RoyaltyPointsBar } from '@components/molecules';
+import { useTranslation } from 'react-i18next';
 
 export const SettingScreen = ({ navigation }: { navigation: any }) => {
+  const { t } = useTranslation();
   const [profileImage, setProfileImage] = useState<string>('');
 
   // =============== Handlers ===============
@@ -26,12 +28,12 @@ export const SettingScreen = ({ navigation }: { navigation: any }) => {
 
   const handleLogout = () => {
     Alert.alert(
-      'Log Out',
-      'Are you sure you want to log out?',
+      t('log_out'),
+      t('are_you_sure_logout'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('cancel'), style: 'cancel' },
         {
-          text: 'Log Out',
+          text: t('log_out'),
           style: 'destructive',
           onPress: () => {
             navigation.reset({
@@ -49,22 +51,22 @@ export const SettingScreen = ({ navigation }: { navigation: any }) => {
   const menuData = [
     {
       icon: ProfileSvg,
-      title: 'Profile Settings',
+      title: t('profile_settings'),
       onPress: () => navigation.navigate('ProfileSetting'),
     },
     {
       icon: FAQsSvg,
-      title: 'FAQs',
+      title: t('faqs'),
       onPress: () => navigation.navigate('FAQs'),
     },
     {
       icon: RefundSvg,
-      title: 'Refund Requests',
+      title: t('refund_requests'),
       onPress: () => navigation.navigate('RefundRequest2'),
     },
     {
       icon: LogoutSvg,
-      title: 'Log Out',
+      title: t('log_out'),
       backgroundColor: '#FEECED',
       textColor: '#EB5757',
       onPress: handleLogout,
@@ -74,7 +76,7 @@ export const SettingScreen = ({ navigation }: { navigation: any }) => {
   // =============== Render Menu Item ===============
   const renderMenuItem = (item: any, index: number) => {
     const Icon = item.icon;
-    const isLogout = item.title === 'Log Out';
+    const isLogout = item.title === t('log_out');
 
     return (
       <TouchableOpacity
@@ -96,7 +98,7 @@ export const SettingScreen = ({ navigation }: { navigation: any }) => {
 
   return (
     <SafeAreaView style={style.safeArea}>
-      <Header2 title="Settings" />
+      <Header2 title={t('settings')} />
 
       <View style={style.container}>
         {/* User Profile Section */}

@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { colors } from '../../styles/colors';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useTranslation } from 'react-i18next';
 
 interface Service {
   id: string;
@@ -35,6 +36,7 @@ interface ServiceDetailBottomSheetProps {
 export const ServiceDetailBottomSheet: React.FC<
   ServiceDetailBottomSheetProps
 > = ({ visible, onClose, service, onAddToCart, onCheckout }) => {
+  const { t } = useTranslation();
   if (!service) return null;
 
   const handleAddToCart = () => {
@@ -106,10 +108,9 @@ export const ServiceDetailBottomSheet: React.FC<
             {/* Description Section */}
             {service.description && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Description</Text>
+                <Text style={styles.sectionTitle}>{t('description')}</Text>
                 <Text style={styles.sectionText}>
-                  {service.description ||
-                    'Injectable material used to improve the appearance of fine lines and wrinkles. Injectable material used to improve the appearance of fine lines and wrinkles Injectable material used to improve the appearance of fine lines and wrinkles.'}
+                  {service.description || t('injectable_material_text')}
                 </Text>
               </View>
             )}
@@ -117,10 +118,9 @@ export const ServiceDetailBottomSheet: React.FC<
             {/* Procedure Section */}
             {service.procedure && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Procedure</Text>
+                <Text style={styles.sectionTitle}>{t('procedure')}</Text>
                 <Text style={styles.sectionText}>
-                  {service.procedure ||
-                    'Injected under the skin using a fine needle.'}
+                  {service.procedure || t('injected_under_skin_text')}
                 </Text>
               </View>
             )}
@@ -133,14 +133,14 @@ export const ServiceDetailBottomSheet: React.FC<
               onPress={handleAddToCart}
               activeOpacity={0.7}
             >
-              <Text style={styles.addToCartText}>Add to Cart</Text>
+              <Text style={styles.addToCartText}>{t('add_to_cart')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.checkoutButton}
               onPress={handleCheckout}
               activeOpacity={0.7}
             >
-              <Text style={styles.checkoutText}>Checkout</Text>
+              <Text style={styles.checkoutText}>{t('checkout')}</Text>
             </TouchableOpacity>
           </View>
         </View>

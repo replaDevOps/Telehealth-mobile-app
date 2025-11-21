@@ -14,6 +14,7 @@ import { colors } from '../../../styles/colors';
 import { styles } from './style';
 import { Header2 } from '@components/common/Header2';
 import { RecommandImage } from '@assets/images';
+import { useTranslation } from 'react-i18next';
 
 interface PaymentAppointmentItem {
   id: string;
@@ -42,6 +43,7 @@ interface PaymentAppointmentItem {
 type AppintItem = PaymentAppointmentItem;
 
 export function RefundRequest2({ navigation }: { navigation: any }) {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
 
   /* -------------------------------------------------
@@ -51,7 +53,7 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
     {
       id: '1',
       kind: 'appointment',
-      state: 'Pending',
+      state: t('pending'),
       date: '10/02/2025 11:05 am',
       paymentId: 'PAY-001',
       clinicImg: true,
@@ -59,7 +61,7 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
       clinicLocation: 'Makkah, Saudi Arabia',
       numberOfService: '2',
       price: 'SAR 150',
-      status: 'Completed',
+      status: t('completed'),
       statusColor: colors.green,
       services: [
         {
@@ -85,7 +87,7 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
     {
       id: '2',
       kind: 'appointment',
-      state: 'Scheduled',
+      state: t('scheduled'),
 
       date: '10/02/2025 11:05 am',
       paymentId: 'PAY-001',
@@ -94,7 +96,7 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
       clinicLocation: 'Makkah, Saudi Arabia',
       numberOfService: '2',
       price: 'SAR 150',
-      status: 'Completed',
+      status: t('completed'),
       statusColor: colors.green,
       services: [
         {
@@ -146,7 +148,7 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
           <View style={styles.paymentDoctorRow}>
             <View style={styles.paymentDoctorSection}>
               <View style={styles.doctorAvatar}>
-                <Text style={styles.clinicLogo}>Cli. Img</Text>
+                <Text style={styles.clinicLogo}>{t('clinic_image')}</Text>
               </View>
               <View style={styles.doctorInfo}>
                 <Text style={styles.doctorName}>{item.clinicName}</Text>
@@ -158,14 +160,14 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
 
           <View style={styles.serviceStatusRow}>
             <View style={styles.serviceInfo}>
-              <Text style={styles.serviceLabel}>Number of Services</Text>
+              <Text style={styles.serviceLabel}>{t('number_of_service')}</Text>
               <Text style={styles.serviceValue}>{item.numberOfService}</Text>
             </View>
 
             <View style={styles.statusDivider} />
 
             <View style={styles.statusInfo}>
-              <Text style={styles.statusLabel}>Status</Text>
+              <Text style={styles.statusLabel}>{t('status')}</Text>
               <Text style={[styles.statusValue, { color: item.statusColor }]}>
                 {item.status}
               </Text>
@@ -190,7 +192,7 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
               })
             }
           >
-            <Text style={styles.viewDetailsButtonText}>View Details</Text>
+            <Text style={styles.viewDetailsButtonText}>{t('view_details')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -201,14 +203,14 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
 
-      <Header2 title="Refund Request" />
+      <Header2 title={t('refund_request')} />
 
       {/* Search */}
       <View style={styles.searchContainer}>
         <Ionicons name="search" size={20} color={colors.secondaryText} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search by clinic name or location..."
+          placeholder={t('search_clinic_name_location')}
           placeholderTextColor={colors.secondaryText}
           value={searchQuery}
           onChangeText={setSearchQuery}

@@ -14,6 +14,7 @@ import { LogoSvg } from '../../../assets/icons';
 import { Header2 } from '../../../components/common/Header2';
 import CustomText from '../../../components/common/CustomText';
 import { CustomButton } from '../../../components/common/CustomButton';
+import { useTranslation } from 'react-i18next';
 
 import { AuthStackParamList } from '../../../navigation/AuthNavigator';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -27,6 +28,7 @@ interface Props {
 }
 
 export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
+  const { t } = useTranslation();
   const isFocused = useIsFocused();
   const [loading, setLoading] = useState(false);
   const [inputValues, setInputValues] = useState<string[]>(Array(5).fill(''));
@@ -70,12 +72,12 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
           </View>
 
           <View style={styles.title}>
-            <CustomText text="OTP Code" />
+            <CustomText text={t('otp_code')} />
           </View>
 
           <View style={styles.content}>
             <Text style={styles.TextContent}>
-              Enter the 5 digit OTP code sent to your email{' '}
+              {t('enter_otp')}
               {route.params?.email ?? '+91****4@gmail.com'}.
             </Text>
           </View>
@@ -96,15 +98,15 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
           </View>
 
           <CustomButton
-            title={loading ? 'Verifying…' : 'Confirm'}
+            title={loading ? t('verifying') : t('confirm')}
             onPress={handleNext}
             // disabled={!loading}
           />
 
           <View style={styles.signinRow}>
-            <Text style={styles.TextContent}>Didn’t receive code? </Text>
+            <Text style={styles.TextContent}>{t('didnt_receive_code')}</Text>
             <TouchableOpacity onPress={() => navigation.navigate('SignIn')}>
-              <Text style={styles.signinLink}>Resend Code</Text>
+              <Text style={styles.signinLink}>{t('resend_code')}</Text>
             </TouchableOpacity>
           </View>
         </View>

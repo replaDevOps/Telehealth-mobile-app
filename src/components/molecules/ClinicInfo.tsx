@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { colors } from '../../styles/colors';
+import { useTranslation } from 'react-i18next';
 
 interface ClinicInfoProps {
   category: string;
@@ -20,12 +21,13 @@ export const ClinicInfo: React.FC<ClinicInfoProps> = ({
   rating,
   onConsultPress,
 }) => {
+  const { t } = useTranslation();
   return (
     <View style={styles.infoContainer}>
       <View style={styles.nameRow}>
         <Text style={styles.category}>{category}</Text>
         <TouchableOpacity style={styles.consultButton} onPress={onConsultPress}>
-          <Text style={styles.consultText}>Consult Now</Text>
+          <Text style={styles.consultText}>{t('consult_now')}</Text>
         </TouchableOpacity>
       </View>
 

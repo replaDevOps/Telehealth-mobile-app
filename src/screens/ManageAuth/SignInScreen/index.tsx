@@ -20,8 +20,10 @@ import { styles } from './style';
 import { CustomTextInput } from '../../../components/common/CustomTextInput';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import parsePhoneNumberFromString from 'libphonenumber-js';
+import { useTranslation } from 'react-i18next';
 
 export function SignInScreen({ navigation }) {
+  const { t } = useTranslation();
   const [selectedTab, setSelectedTab] = useState<'email' | 'phone'>('email');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -45,18 +47,18 @@ export function SignInScreen({ navigation }) {
 
     if (selectedTab === 'email') {
       if (!email.trim() || !email.includes('@')) {
-        setEmailError('Enter a valid email');
+        setEmailError(t('invalid_email'));
         valid = false;
       } else setEmailError('');
     } else {
       if (!phone.trim() || !isPhoneValid) {
-        setPhoneError('Invalid phone number');
+        setPhoneError(t('invalid_phone'));
         valid = false;
       } else setPhoneError('');
     }
 
     if (!password.trim()) {
-      setPasswordError('Password is required');
+      setPasswordError(t('password_required'));
       valid = false;
     } else setPasswordError('');
 
@@ -90,11 +92,11 @@ export function SignInScreen({ navigation }) {
           </View>
 
           <View style={{ ...styles.title }}>
-            <CustomText text="Welcome Back" />
+            <CustomText text={t('welcome_back')} />
           </View>
           <View style={styles.content}>
             <Text style={styles.TextContent}>
-              Login and continue your healthy journey today!
+              {t('login_continue')}
             </Text>
           </View>
 
@@ -114,7 +116,7 @@ export function SignInScreen({ navigation }) {
                   selectedTab === 'email' && styles.activeTabText,
                 ]}
               >
-                Email Address
+                {t('email_address')}
               </Text>
             </TouchableOpacity>
 
@@ -133,7 +135,7 @@ export function SignInScreen({ navigation }) {
                   selectedTab === 'phone' && styles.activeTabText,
                 ]}
               >
-                Phone Number
+                {t('phone_number')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -141,15 +143,15 @@ export function SignInScreen({ navigation }) {
           <View style={{ marginTop: mvs(25) }}>
             {selectedTab === 'email' ? (
               <CustomTextInput
-                label="Email Address"
-                placeholder="Enter email address"
+                label={t('email_address')}
+                placeholder={t('enter_email')}
                 value={email}
                 onChangeText={setEmail}
                 errorMessage={emailError}
               />
             ) : (
               <>
-                <Text style={styles.label}>Phone Number</Text>
+                <Text style={styles.label}>{t('phone_number')}</Text>
                 <PhoneNumberInput
                   phone={phone}
                   setPhone={setPhone}
@@ -165,8 +167,8 @@ export function SignInScreen({ navigation }) {
           </View>
 
           <CustomTextInput
-            label="Password"
-            placeholder="Enter your password"
+            label={t('password')}
+            placeholder={t('enter_password')}
             value={password}
             onChangeText={setPassword}
             secureTextEntry={true}
@@ -195,28 +197,28 @@ export function SignInScreen({ navigation }) {
                   }
                 />
               </TouchableOpacity>
-              <Text style={styles.TextContent}>Remember Me</Text>
+              <Text style={styles.TextContent}>{t('remember_me')}</Text>
             </View>
 
             <TouchableOpacity
               onPress={() => navigation.navigate('ForgetPassword')}
             >
-              <Text style={styles.signinLink}>Forgot Password</Text>
+              <Text style={styles.signinLink}>{t('forgot_password')}</Text>
             </TouchableOpacity>
           </View>
 
-          <CustomButton title="Sign In" onPress={handleSignIn} />
+          <CustomButton title={t('sign_in')} onPress={handleSignIn} />
 
           <View style={styles.signinRow}>
-            <Text style={styles.TextContent}>Create an account? </Text>
+            <Text style={styles.TextContent}>{t('create_account')}</Text>
             <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
-              <Text style={styles.signinLink}>Sign Up</Text>
+              <Text style={styles.signinLink}>{t('sign_up')}</Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.dividerContainer}>
             <View style={styles.line} />
-            <Text style={styles.orText}>or</Text>
+            <Text style={styles.orText}>{t('or')}</Text>
             <View style={styles.line} />
           </View>
 
@@ -225,7 +227,7 @@ export function SignInScreen({ navigation }) {
             onPress={() => console.log('Apple Sign In')}
           >
             <AntDesign name="apple1" size={20} color={colors.white} />
-            <Text style={styles.appleText}>Sign In with Apple</Text>
+            <Text style={styles.appleText}>{t('sign_in_apple')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -233,7 +235,7 @@ export function SignInScreen({ navigation }) {
             onPress={() => console.log('Google Sign In')}
           >
             <GoogleSvg />
-            <Text style={styles.googleText}>Sign In with Google</Text>
+            <Text style={styles.googleText}>{t('sign_in_google')}</Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>

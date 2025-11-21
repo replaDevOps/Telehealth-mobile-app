@@ -10,6 +10,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { colors } from '../../styles/colors';
 import LinearGradient from 'react-native-linear-gradient';
 import { FilterSvg, ShopingCartSvg } from '@assets/icons';
+import { useTranslation } from 'react-i18next';
 
 interface HomeHeaderProps {
   location?: string;
@@ -31,6 +32,7 @@ const HomeHeader = ({
   onSLPress,
   cartItemCount = 0,
 }: HomeHeaderProps) => {
+  const { t } = useTranslation();
   return (
     <LinearGradient
       colors={['#7625D7', '#591CA2', '#3E1371']}
@@ -41,14 +43,16 @@ const HomeHeader = ({
       <View style={styles.headerContainer}>
         <View style={styles.topRow}>
           <View style={styles.locationContainer}>
-            <Text style={styles.locationLabel}>Location</Text>
+            <Text style={styles.locationLabel}>{t('location_label')}</Text>
             <TouchableOpacity
               style={styles.locationButton}
               onPress={onLocationPress}
               activeOpacity={0.7}
             >
               <Ionicons name="location" size={18} color={colors.white} />
-              <Text style={styles.locationText}>{location}</Text>
+              <Text style={styles.locationText} numberOfLines={1}>
+                {t('location_makkah')}
+              </Text>
               <Ionicons name="chevron-down" size={18} color={colors.white} />
             </TouchableOpacity>
           </View>
@@ -83,7 +87,7 @@ const HomeHeader = ({
           >
             <TextInput
               style={styles.searchInput}
-              placeholder="Search clinic"
+              placeholder={t('search_clinic')}
               placeholderTextColor="#999"
               onChangeText={onSearchPress}
             />
@@ -137,6 +141,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
+    width: '80%',
   },
   locationText: {
     color: '#FFF',

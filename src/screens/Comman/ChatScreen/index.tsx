@@ -27,9 +27,12 @@ import {
 } from '../../../constants/appData';
 import { Message, Service } from '../../../types/chat.types';
 import { useCart } from '@context/CartContext';
+import { useTranslation } from 'react-i18next';
+import ConsultDoctorBottomSheet from '@components/molecules/ConsultDoctorBottomSheet';
 
 // ---------- Main Component ----------
 export function ChatScreen({ navigation, route }) {
+  const { t } = useTranslation();
   // Extract route params with defaults
   const chatType = route?.params?.chatType || 'ai';
   const fromHistory = route?.params?.fromHistory || false;
@@ -49,6 +52,7 @@ export function ChatScreen({ navigation, route }) {
     chatType === 'doctor' && !fromHistory,
   );
   const [modalVisible, setModalVisible] = useState(false);
+  const [showBottomSheet, setShowBottomSheet] = useState(false);
 
   const scrollRef = useRef<ScrollView>(null);
 
@@ -190,10 +194,28 @@ export function ChatScreen({ navigation, route }) {
     navigation.navigate('CartScreen');
   };
 
-  const handleCheckout = useCallback(() => {
-    setServiceDetailVisible(false);
-    navigation.navigate('CheckoutScreen');
-  }, [navigation]);
+  const handleCheckout = useCallback(
+    service => {
+      setServiceDetailVisible(false);
+      navigation.navigate('CheckoutScreen', {
+        services: [
+          {
+            service: service,
+            clinic: {
+              id: `clinic_${Date.now()}`,
+              name: 'AI Health Clinic',
+              location: 'None',
+              image: RecommandImage,
+              specialty: 'General',
+              rating: 3,
+            },
+          },
+        ],
+        fromCart: false,
+      });
+    },
+    [navigation],
+  );
 
   const handleEndConsultation = useCallback(() => {
     setIsConsultationActive(false);
@@ -214,6 +236,10 @@ export function ChatScreen({ navigation, route }) {
     navigation.goBack();
   }, [navigation]);
 
+  const handleCartPress = () => {
+    navigation.navigate('CartScreen');
+  };
+
   // ---------- Main Render ----------
   return (
     <SafeAreaView style={styles.container}>
@@ -224,6 +250,7 @@ export function ChatScreen({ navigation, route }) {
         fromHistory={fromHistory}
         handleGoBack={handleGoBack}
         handleEndConsultation={handleEndConsultation}
+        handleCart={handleCartPress}
       />
 
       {/* Clinic Info */}
@@ -243,9 +270,12 @@ export function ChatScreen({ navigation, route }) {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.consultButton}>
+        <TouchableOpacity
+          style={styles.consultButton}
+          onPress={() => setShowBottomSheet(true)}
+        >
           <Text style={styles.consultButtonText}>
-            {chatType === 'doctor' ? 'Visit' : 'Consult Now'}
+            {chatType === 'doctor' ? t('visit') : t('consult_now')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -279,6 +309,10 @@ export function ChatScreen({ navigation, route }) {
         visible={modalVisible}
         onClose={handleCloseModal}
         onGetPrescription={handleGetPrescription}
+      />
+      <ConsultDoctorBottomSheet
+        visible={showBottomSheet}
+        onClose={() => setShowBottomSheet(false)}
       />
     </SafeAreaView>
   );

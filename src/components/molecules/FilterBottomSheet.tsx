@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { colors } from '../../styles/colors';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useTranslation } from 'react-i18next';
 
 // Import checkbox and section components
 interface CheckboxItemProps {
@@ -86,24 +87,25 @@ export const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
   onClose,
   onApplyFilters,
 }) => {
+  const { t } = useTranslation();
   const [filters, setFilters] = useState<FilterState>({
     clinicTypes: {
-      Dentistry: false,
-      Dermatology: false,
+      [t('dentistry')]: false,
+      [t('dermatology')]: false,
     },
     serviceGroups: {
-      Diagnostics: false,
-      'Oral Surgery': false,
-      Prosthodontics: false,
-      Periodontics: false,
-      Restorative: false,
-      Pedodontics: false,
-      Implant: false,
+      [t('diagnostics')]: false,
+      [t('oral_surgery')]: false,
+      [t('prosthodontics')]: false,
+      [t('periodontics')]: false,
+      [t('restorative')]: false,
+      [t('pedodontics')]: false,
+      [t('implant')]: false,
     },
     serviceNames: {
-      'Oral Examination': false,
-      'Oral Exam - Home Visit': false,
-      'Implant Consultation 2001': false,
+      [t('oral_examination')]: false,
+      [t('oral_exam_home_visit')]: false,
+      [t('implant_consultation')]: false,
     },
   });
 
@@ -149,22 +151,22 @@ export const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
   const handleReset = () => {
     setFilters({
       clinicTypes: {
-        Dentistry: false,
-        Dermatology: false,
+        [t('dentistry')]: false,
+        [t('dermatology')]: false,
       },
       serviceGroups: {
-        Diagnostics: false,
-        'Oral Surgery': false,
-        Prosthodontics: false,
-        Periodontics: false,
-        Restorative: false,
-        Pedodontics: false,
-        Implant: false,
+        [t('diagnostics')]: false,
+        [t('oral_surgery')]: false,
+        [t('prosthodontics')]: false,
+        [t('periodontics')]: false,
+        [t('restorative')]: false,
+        [t('pedodontics')]: false,
+        [t('implant')]: false,
       },
       serviceNames: {
-        'Oral Examination': false,
-        'Oral Exam - Home Visit': false,
-        'Implant Consultation 2001': false,
+        [t('oral_examination')]: false,
+        [t('oral_exam_home_visit')]: false,
+        [t('implant_consultation')]: false,
       },
     });
   };
@@ -193,7 +195,7 @@ export const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.headerTitle}>
-              Filters ({selectedFiltersCount})
+              {t('filters')} ({selectedFiltersCount})
             </Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <Ionicons name="close" size={24} color={colors.text} />
@@ -207,21 +209,21 @@ export const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
             showsVerticalScrollIndicator={false}
           >
             {/* Clinic Type */}
-            <FilterSection title="Clinic Type">
+            <FilterSection title={t('clinic_type')}>
               <CheckboxItem
-                label="Dentistry"
-                checked={filters.clinicTypes.Dentistry}
-                onPress={() => handleClinicTypeToggle('Dentistry')}
+                label={t('dentistry')}
+                checked={filters.clinicTypes[t('dentistry')]}
+                onPress={() => handleClinicTypeToggle(t('dentistry'))}
               />
               <CheckboxItem
-                label="Dermatology"
-                checked={filters.clinicTypes.Dermatology}
-                onPress={() => handleClinicTypeToggle('Dermatology')}
+                label={t('dermatology')}
+                checked={filters.clinicTypes[t('dermatology')]}
+                onPress={() => handleClinicTypeToggle(t('dermatology'))}
               />
             </FilterSection>
 
             {/* Service Group */}
-            <FilterSection title="Service Group">
+            <FilterSection title={t('service_group')}>
               {Object.keys(filters.serviceGroups).map(service => (
                 <CheckboxItem
                   key={service}
@@ -233,7 +235,7 @@ export const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
             </FilterSection>
 
             {/* Service Name */}
-            <FilterSection title="Service Name">
+            <FilterSection title={t('service_name')}>
               {Object.keys(filters.serviceNames).map(service => (
                 <CheckboxItem
                   key={service}
@@ -252,14 +254,14 @@ export const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
               onPress={handleReset}
               activeOpacity={0.7}
             >
-              <Text style={styles.resetText}>Reset</Text>
+              <Text style={styles.resetText}>{t('reset')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.applyButton}
               onPress={handleApply}
               activeOpacity={0.7}
             >
-              <Text style={styles.applyText}>Apply Filter</Text>
+              <Text style={styles.applyText}>{t('apply_filter')}</Text>
             </TouchableOpacity>
           </View>
         </View>

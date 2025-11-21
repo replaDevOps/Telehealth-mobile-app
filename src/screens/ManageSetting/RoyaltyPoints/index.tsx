@@ -6,8 +6,10 @@ import { View, Text, FlatList, Image } from 'react-native';
 import { mvs } from '@config/metrices';
 import { coinIcon } from '@assets/images';
 import { styles } from './style';
+import { useTranslation } from 'react-i18next';
 
 export const RoyaltyPoints = () => {
+  const { t } = useTranslation();
   const historyData = [
     {
       id: '1',
@@ -68,7 +70,7 @@ export const RoyaltyPoints = () => {
             ]}
           >
             {item.isPositive ? '+' : '-'}
-            {item.points} point
+            {item.points} {t('point')}
           </Text>
         </View>
         <Text style={styles.date}>{item.date}</Text>
@@ -78,7 +80,7 @@ export const RoyaltyPoints = () => {
 
   return (
     <View style={styles.container}>
-      <Header2 title="Royalty Points" />
+      <Header2 title={t('royalty_points')} />
       <View style={{ flex: 1, paddingHorizontal: 20, marginTop: mvs(20) }}>
         <LinearGradient
           colors={['#FDA005', '#F8D567']}
@@ -88,19 +90,19 @@ export const RoyaltyPoints = () => {
         >
           <View style={styles.royaltyContent}>
             <View style={styles.royaltyTitleContainer}>
-              <Text style={styles.royaltyTitle}>Current Points:</Text>
+              <Text style={styles.royaltyTitle}>{t('current_points')}</Text>
             </View>
 
             <Text style={styles.royaltyPointsValue}>300</Text>
             <Text style={styles.royaltySubtitle}>
-              Valid till date 18/09/2025
+              {t('valid_till_date')} 18/09/2025
             </Text>
           </View>
 
           {/* Coin Icon */}
           <Image source={coinIcon} style={styles.coinIcon} />
         </LinearGradient>
-        <Text style={styles.header}>History</Text>
+        <Text style={styles.header}>{t('history')}</Text>
         <FlatList
           data={historyData}
           renderItem={renderItem}

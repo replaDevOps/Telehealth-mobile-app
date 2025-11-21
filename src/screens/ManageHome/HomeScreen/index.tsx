@@ -6,8 +6,10 @@ import { mvs } from '../../../config/metrices';
 import RecommendedClinics from '../../../components/molecules/RecommendedClinics';
 import NearbyClinics from '../../../components/molecules/ClinicListItem';
 import { NEARBYCLINICS, SAMPLECLINICS } from '@constants';
+import { useTranslation } from 'react-i18next';
 
 export const HomeScreen = ({ navigation }) => {
+  const { t } = useTranslation();
   const handleLocationPress = () => {
     console.log('Location pressed');
     navigation.navigate('NearbyClinics');
@@ -33,7 +35,7 @@ export const HomeScreen = ({ navigation }) => {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
       <HomeHeader
-        location="Makkah, Saudi Arabia"
+        location={t('makkah_saudi_arabia')}
         onLocationPress={handleLocationPress}
         onCartPress={handleCartPress}
         onNotificationPress={handleNotificationPress}

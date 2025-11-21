@@ -13,6 +13,7 @@ import { styles } from './style';
 import PhoneNumberInput from '../../../components/common/PhoneTextInput';
 import { colors } from '../../../styles/colors';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 type RootStackParamList = {
   SetupProfile: undefined;
@@ -26,6 +27,7 @@ interface Props {
 }
 
 export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
+  const { t } = useTranslation();
   const [fullName, setFullName] = useState('');
   const [gender, setGender] = useState('');
   const [age, setAge] = useState('');
@@ -62,31 +64,31 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
     setGenderError('');
 
     if (!fullName.trim()) {
-      setNameError('Name is Required');
+      setNameError(t('name_required'));
       valid = false;
     }
     if (!email.trim() || !email.includes('@')) {
-      setEmailError('Valid email required');
+      setEmailError(t('email_required'));
       valid = false;
     }
     if (!phone.trim() || !isPhoneValid) {
-      setPhoneError('Valid phone required');
+      setPhoneError(t('phone_required'));
       valid = false;
     }
     if (!nationality) {
-      setNationalityError('Select nationality');
+      setNationalityError(t('nationality_required'));
       valid = false;
     }
     if (!IdCardNumber.trim()) {
-      setIdError('ID required');
+      setIdError(t('id_required'));
       valid = false;
     }
     if (!gender) {
-      setGenderError('Select gender');
+      setGenderError(t('gender_required'));
       valid = false;
     }
     if (!age.trim()) {
-      setAgeError('Age is required');
+      setAgeError(t('age_required'));
       valid = false;
     }
     if (!profileImage) {
@@ -102,6 +104,20 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
     navigation.navigate('SignIn');
   };
 
+  const nationalityOptions = [
+    { label: t('pakistani'), value: 'pak' },
+    { label: t('afghani'), value: 'afg' },
+    { label: t('indian'), value: 'ind' },
+    { label: t('chines'), value: 'ch' },
+    { label: t('american'), value: 'usa' },
+  ];
+
+  const genderOptions = [
+    { label: t('male'), value: 'male' },
+    { label: t('female'), value: 'female' },
+    { label: t('other'), value: 'other' },
+  ];
+
   return (
     <KeyboardAvoidScrollview>
       <SafeAreaView style={{ flex: 1 }}>
@@ -114,23 +130,23 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
           />
 
           <View style={styles.content}>
-            <CustomText text="Setup Your Profile" />
+            <CustomText text={t('setup_profile')} />
             <Text style={styles.TextContent}>
-              Setup your profile with a basic details.
+              {t('setup_profile_details')}
             </Text>
           </View>
 
           <CustomTextInput
-            label="Full Name"
-            placeholder="Enter full name"
+            label={t('full_name')}
+            placeholder={t('enter_full_name')}
             value={fullName}
             onChangeText={setFullName}
             errorMessage={nameError}
           />
 
           <CustomTextInput
-            label="Email Address"
-            placeholder="Enter email address"
+            label={t('email_address')}
+            placeholder={t('enter_email')}
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -138,7 +154,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
             errorMessage={emailError}
           />
 
-          <Text style={styles.label}>Phone Number</Text>
+          <Text style={styles.label}>{t('phone_number')}</Text>
           <PhoneNumberInput
             phone={phone}
             setPhone={setPhone}
@@ -151,23 +167,17 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
           />
 
           <CustomDropdown
-            label="Nationality"
-            placeholder="Select nationality"
+            label={t('nationality')}
+            placeholder={t('select_nationality')}
             value={nationality}
             onValueChange={setNationality}
             errorMessage={nationalityError} // Add
-            options={[
-              { label: 'Pakistani', value: 'pak' },
-              { label: 'Afghani', value: 'afg' },
-              { label: 'Indian', value: 'ind' },
-              { label: 'Chines', value: 'ch' },
-              { label: 'American', value: 'usa' },
-            ]}
+            options={nationalityOptions}
           />
 
           <CustomTextInput
-            label="National ID / Iqama Number"
-            placeholder="XXXXXXXXX"
+            label={t('national_id')}
+            placeholder={t('national_id_placeholder')}
             value={IdCardNumber}
             onChangeText={setIdCardNumber}
             keyboardType="numeric"
@@ -175,21 +185,17 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
           />
 
           <CustomDropdown
-            label="Gender"
-            placeholder="Select Gender"
+            label={t('gender')}
+            placeholder={t('select_gender')}
             value={gender}
             onValueChange={setGender}
-            options={[
-              { label: 'Male', value: 'male' },
-              { label: 'Female', value: 'female' },
-              { label: 'Other', value: 'other' },
-            ]}
+            options={genderOptions}
             errorMessage={genderError}
           />
 
           <CustomTextInput
-            label="Age"
-            placeholder="Enter your age"
+            label={t('age')}
+            placeholder={t('enter_age')}
             value={age}
             onChangeText={setAge}
             keyboardType="numeric"
@@ -198,7 +204,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
         </View>
         <View style={styles.buttonContainer}>
           <CustomButton
-            title="Skip"
+            title={t('skip')}
             onPress={handleSkip}
             style={{
               width: '48%',
@@ -209,7 +215,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
             textStyle={{ color: colors.text }}
           />
           <CustomButton
-            title="Confirm"
+            title={t('confirm')}
             onPress={handleConfirm}
             style={{ width: '48%' }}
           />

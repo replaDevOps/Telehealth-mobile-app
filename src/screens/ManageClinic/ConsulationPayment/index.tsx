@@ -7,8 +7,10 @@ import { CustomButton } from '@components/common/CustomButton';
 import { RecommandImage, doctor } from '@assets/images';
 import { styles } from './style';
 import { PaymentMethod } from '@components/molecules';
+import { useTranslation } from 'react-i18next';
 
 export function ConsultationPayment({ navigation, route }) {
+  const { t } = useTranslation();
   const [selectedPayment, setSelectedPayment] = useState('credit');
   const [cardholderName, setCardholderName] = useState('');
   const [cardNumber, setCardNumber] = useState('');
@@ -34,7 +36,7 @@ export function ConsultationPayment({ navigation, route }) {
     // Validate payment if credit card is selected
     if (selectedPayment === 'credit') {
       if (!cardholderName || !cardNumber || !expiryDate || !cvv) {
-        alert('Please fill all card details');
+        alert(t('fill_card_details'));
         return;
       }
     }
@@ -79,10 +81,10 @@ export function ConsultationPayment({ navigation, route }) {
   };
 
   const getHeaderTitle = () => {
-    if (consultationType === 'chat') return 'Chat Consultation';
-    if (consultationType === 'audio') return 'Audio Consultation';
-    if (consultationType === 'video') return 'Video Consultation';
-    return 'Consultation';
+    if (consultationType === 'chat') return t('chat_consultation');
+    if (consultationType === 'audio') return t('audio_consultation');
+    if (consultationType === 'video') return t('video_consultation');
+    return t('consultation');
   };
 
   return (
@@ -96,54 +98,54 @@ export function ConsultationPayment({ navigation, route }) {
         {/* Success Banner */}
         <View style={styles.successBanner}>
           <Text style={styles.successText}>
-            3 doctors available for your selection.
+            {t('doctors_available')}
           </Text>
         </View>
 
         {/* Consultation Summary */}
         <View style={styles.summarySection}>
-          <Text style={styles.sectionTitle}>Consultation Summary</Text>
+          <Text style={styles.sectionTitle}>{t('consultation_summary')}</Text>
 
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Consultation Type</Text>
+            <Text style={styles.summaryLabel}>{t('consultation_type')}</Text>
             <Text style={styles.summaryValue}>
               {consultationData.consultationType}
             </Text>
           </View>
 
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Duration</Text>
+            <Text style={styles.summaryLabel}>{t('duration')}</Text>
             <Text style={styles.summaryValue}>{consultationData.duration}</Text>
           </View>
 
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Price</Text>
+            <Text style={styles.summaryLabel}>{t('price')}</Text>
             <Text style={styles.summaryValue}>{consultationData.price}</Text>
           </View>
 
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Service Type</Text>
+            <Text style={styles.summaryLabel}>{t('service_type')}</Text>
             <Text style={styles.summaryValue}>
               {consultationData.serviceType}
             </Text>
           </View>
 
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Service Group</Text>
+            <Text style={styles.summaryLabel}>{t('service_group')}</Text>
             <Text style={styles.summaryValue}>
               {consultationData.serviceGroup}
             </Text>
           </View>
 
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Service</Text>
+            <Text style={styles.summaryLabel}>{t('service')}</Text>
             <Text style={[styles.summaryValue, styles.serviceValue]}>
               {consultationData.service}
             </Text>
           </View>
 
           <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>TOTAL</Text>
+            <Text style={styles.totalLabel}>{t('total')}</Text>
             <Text style={styles.totalValue}>{consultationData.price}</Text>
           </View>
         </View>
@@ -169,7 +171,7 @@ export function ConsultationPayment({ navigation, route }) {
 
       <View style={styles.bottomContainer}>
         <CustomButton
-          title="Connect With Doctor"
+          title={t('connect_with_doctor')}
           onPress={handleConnectWithDoctor}
         />
       </View>
@@ -183,8 +185,7 @@ export function ConsultationPayment({ navigation, route }) {
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color={colors.white} />
           <Text style={styles.loadingText}>
-            We're finding a doctor for your consultation. This may take a
-            moment.
+            {t('finding_doctor')}
           </Text>
         </View>
       </Modal>

@@ -41,9 +41,9 @@ export const styles = StyleSheet.create({
   clinicCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    marginHorizontal: 16,
-    marginTop: 16,
+    padding: 10,
+    marginHorizontal: 12,
+    marginVertical: 10,
     borderRadius: 12,
   },
   clinicImage: {
@@ -77,9 +77,9 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 16,
     marginHorizontal: 16,
-    backgroundColor: colors.lightGray,
-    marginTop: 12,
+    backgroundColor: colors.white,
     borderRadius: 12,
+    marginBottom:10
   },
   serviceLeft: {
     flexDirection: 'row',
@@ -100,25 +100,25 @@ export const styles = StyleSheet.create({
     marginBottom: 6,
   },
   categoryBadge: {
-    backgroundColor: colors.white,
+    backgroundColor: "#310A60",
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
   },
   categoryBadgeText: {
     fontSize: 10,
-    color: colors.primary,
+    color: colors.white,
     fontWeight: '500',
   },
   nameBadge: {
-    backgroundColor: colors.white,
+    backgroundColor: "#DACEFB",
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
   },
   nameBadgeText: {
     fontSize: 10,
-    color: colors.text,
+    color: "#310A60",
     fontWeight: '500',
   },
   serviceName: {
@@ -138,6 +138,23 @@ export const styles = StyleSheet.create({
   duration: {
     fontSize: 12,
     color: colors.secondaryText,
+  },
+  pointsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+    gap: 4,
+    backgroundColor:"#EBAD0033",
+    borderWidth:1,
+    borderColor:colors.yellow,
+    marginHorizontal:12,
+    paddingHorizontal:15,
+    paddingVertical:8,
+    borderRadius:8
+  },
+  bonusInstruction:{
+    color:colors.yellow,
+    textAlign:"center"
   },
   servicePrice: {
     fontSize: 15,

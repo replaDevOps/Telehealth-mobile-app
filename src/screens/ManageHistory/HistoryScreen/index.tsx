@@ -19,6 +19,7 @@ import { Header2 } from '@components/common/Header2';
 import { CustomDropdown } from '@components/common/CustomDropdwon';
 import { RecommandImage } from '@assets/images';
 import { CONSULTATION_HISTORY, PAYMENT_HISTORY } from '@constants';
+import { useTranslation } from 'react-i18next';
 
 /* ============================================
  * TYPE DEFINITIONS
@@ -115,6 +116,7 @@ const ICON_MAP: Record<ConsultationType, string> = {
  * ============================================ */
 
 export function HistoryScreen({ navigation }: HistoryScreenProps) {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<Tab>('consultation');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<PaymentKind | ''>(
@@ -231,13 +233,13 @@ export function HistoryScreen({ navigation }: HistoryScreenProps) {
           style={styles.prescriptionButton}
           onPress={handleNavigateToPrescription}
         >
-          <Text style={styles.prescriptionButtonText}>Get Prescription</Text>
+          <Text style={styles.prescriptionButtonText}>{t('get_prescription')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.viewChatButton}
           onPress={handleNavigateToChat}
         >
-          <Text style={styles.viewChatButtonText}>View Chat</Text>
+          <Text style={styles.viewChatButtonText}>{t('view_chat')}</Text>
         </TouchableOpacity>
       </View>
     ),
@@ -352,7 +354,7 @@ export function HistoryScreen({ navigation }: HistoryScreenProps) {
     const serviceValue = isConsultation
       ? item.serviceName
       : item.numberOfService;
-    const serviceLabel = isConsultation ? 'Service' : 'Number of Service';
+    const serviceLabel = isConsultation ? t('service') : t('number_of_service');
 
     return (
       <View style={styles.serviceStatusRow}>
@@ -366,7 +368,7 @@ export function HistoryScreen({ navigation }: HistoryScreenProps) {
         <View style={styles.statusDivider} />
 
         <View style={styles.statusInfo}>
-          <Text style={styles.statusLabel}>Status</Text>
+          <Text style={styles.statusLabel}>{t('status')}</Text>
           <Text style={[styles.statusValue, { color: item.statusColor }]}>
             {item.status}
           </Text>
@@ -394,7 +396,7 @@ export function HistoryScreen({ navigation }: HistoryScreenProps) {
             style={styles.viewDetailsButton}
             onPress={() => handleNavigateToCardDetails(item)}
           >
-            <Text style={styles.viewDetailsButtonText}>View Details</Text>
+            <Text style={styles.viewDetailsButtonText}>{t('view_details')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -436,14 +438,14 @@ export function HistoryScreen({ navigation }: HistoryScreenProps) {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
 
-      <Header2 title="History" />
+      <Header2 title={t('history')} />
 
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <Ionicons name="search" size={20} color={colors.secondaryText} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search by doctor or clinic name..."
+          placeholder={t('search_doctor_clinic')}
           placeholderTextColor={colors.secondaryText}
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -452,8 +454,8 @@ export function HistoryScreen({ navigation }: HistoryScreenProps) {
 
       {/* Tabs */}
       <View style={styles.tabsContainer}>
-        {renderTabButton('consultation', 'Consultation')}
-        {renderTabButton('payment', 'Payment')}
+        {renderTabButton('consultation', t('consultation'))}
+        {renderTabButton('payment', t('payment'))}
       </View>
 
       {/* Content */}
@@ -470,11 +472,14 @@ export function HistoryScreen({ navigation }: HistoryScreenProps) {
         {activeTab === 'payment' && (
           <View style={styles.content}>
             <CustomDropdown
-              label="Type"
-              placeholder="Select Type here"
+              label={t('type')}
+              placeholder={t('select_type_here')}
               value={selectedType}
               onValueChange={setSelectedType}
-              options={DROPDOWN_OPTIONS}
+              options={DROPDOWN_OPTIONS.map(option => ({
+                ...option,
+                label: t(option.label.toLowerCase()),
+              }))}
             />
 
             {filteredPayments.map(renderPaymentCard)}

@@ -3,6 +3,7 @@ import { View, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { colors } from '../../styles/colors';
 import Filter2Svg from '@assets/icons/Filter2Svg';
+import { useTranslation } from 'react-i18next';
 
 interface SearchServicesBarProps {
   value?: string;
@@ -17,6 +18,7 @@ const SearchServicesBar: React.FC<SearchServicesBarProps> = ({
   onFilterPress,
   placeholder = 'Search Clinics',
 }) => {
+  const { t } = useTranslation();
   return (
     <View style={styles.container}>
       <View style={styles.searchContainer}>
@@ -28,7 +30,7 @@ const SearchServicesBar: React.FC<SearchServicesBarProps> = ({
         />
         <TextInput
           style={styles.input}
-          placeholder={placeholder}
+          placeholder={t('search_clinics')}
           placeholderTextColor={colors.secondaryText}
           value={value}
           onChangeText={onChangeText}

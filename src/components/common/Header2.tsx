@@ -6,6 +6,7 @@ import { mvs } from '../../config/metrices';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BackSvg, ShopingCartSvg, SingleLogo } from '../../assets/icons';
 import { colors } from '../../styles/colors';
+import { useTranslation } from 'react-i18next';
 
 type RootStackParamList = {
   [key: string]: undefined;
@@ -28,6 +29,8 @@ interface Header2Props {
   showCart?: boolean;
   cartCount?: number;
   handleNotification?: () => void;
+  HandleCart?: () => void;
+
   handleDownload?: () => void;
   handleSave?: () => void;
   saveDisabled?: boolean;
@@ -42,14 +45,13 @@ const Header2: React.FC<Header2Props> = ({
   showNotification = false,
   back = true,
   useCancel = false,
-  useDownload = false,
   useSave = false,
   useSkip = false,
   showLanguage = false,
   showCart = false,
   cartCount = 0,
   handleNotification = () => {},
-  handleDownload = () => {},
+  HandleCart = () => {},
   handleSave,
   saveDisabled = false,
   handleBackPress,
@@ -57,6 +59,7 @@ const Header2: React.FC<Header2Props> = ({
   logo = false,
 }) => {
   const navigation = useNavigation<NavigationProp>();
+  const { t } = useTranslation();
 
   const onBackPress = () => {
     if (handleBackPress) {
@@ -75,7 +78,7 @@ const Header2: React.FC<Header2Props> = ({
       {back && (
         <TouchableOpacity style={styles.headerButton} onPress={onBackPress}>
           {useCancel ? (
-            <Text style={styles.cancelText}>Cancel</Text>
+            <Text style={styles.cancelText}>{t('cancel')}</Text>
           ) : (
             <BackSvg />
           )}
@@ -102,13 +105,10 @@ const Header2: React.FC<Header2Props> = ({
         </TouchableOpacity>
       ) : useSkip && handleSkip ? (
         <TouchableOpacity style={styles.icon} onPress={handleSkip}>
-          <Text style={styles.skipText}>Skip</Text>
+          <Text style={styles.skipText}>{t('skip')}</Text>
         </TouchableOpacity>
       ) : showCart ? (
-        <TouchableOpacity
-          style={styles.headerButton}
-          onPress={handleNotification}
-        >
+        <TouchableOpacity style={styles.headerButton} onPress={HandleCart}>
           <View style={styles.cartContainer}>
             <ShopingCartSvg />
             <View style={styles.badge}>

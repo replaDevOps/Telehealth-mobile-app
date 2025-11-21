@@ -5,11 +5,12 @@ import { CustomButton } from '../../../components/common/CustomButton';
 import { styles } from './styles';
 import { FeatureItem } from './Components';
 import { ONBOARDING_STEPS } from '../../../constants';
-import { colors } from '../../../styles/colors';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 export function OnboardingScreen({ navigation }: any) {
   const [currentStep, setCurrentStep] = useState<number>(0);
+  const { t } = useTranslation();
 
   const handleNext = () => {
     console.log('Next button pressed');
@@ -25,7 +26,7 @@ export function OnboardingScreen({ navigation }: any) {
   const activeStep = ONBOARDING_STEPS[currentStep];
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.white }}>
+    <SafeAreaView style={styles.safeArea}>
       <Header2
         title=""
         back={false}
@@ -38,15 +39,15 @@ export function OnboardingScreen({ navigation }: any) {
 
       <ScrollView contentContainerStyle={styles.container}>
         <FeatureItem
-          title={activeStep?.title}
-          content={activeStep?.content}
+          title={t(activeStep?.title)}
+          content={t(activeStep?.content)}
           imgSrc={activeStep?.imgSrc}
           currentStep={currentStep} // ✅ pass current step
         />
       </ScrollView>
 
       <View style={styles.button}>
-        <CustomButton title="Next" onPress={handleNext} />
+        <CustomButton title={t('next')} onPress={handleNext} />
       </View>
     </SafeAreaView>
   );

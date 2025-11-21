@@ -17,8 +17,10 @@ import { useCart } from '@context/CartContext';
 import { SERVICES } from '@constants/appData';
 import { styles } from './style';
 import { EmptyContentSvg, ShopingCartSvg } from '@assets/icons';
+import { useTranslation } from 'react-i18next';
 
 export function CartScreen({ navigation }) {
+  const { t } = useTranslation();
   const { cartItems, removeFromCart, addToCart } = useCart();
 
   // Get suggested services (services not in cart from same clinic)
@@ -83,12 +85,12 @@ export function CartScreen({ navigation }) {
     return (
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="dark-content" />
-        <Header2 title="Cart" />
+        <Header2 title={t('cart')} />
         <View style={styles.emptyContainer}>
           <EmptyContentSvg />
-          <Text style={styles.emptyText}>Your cart is empty</Text>
+          <Text style={styles.emptyText}>{t('your_cart_is_empty')}</Text>
           <CustomButton
-            title="Browse Services"
+            title={t('browse_services')}
             onPress={() => navigation.goBack()}
             style={styles.browseButton}
           />
@@ -102,7 +104,7 @@ export function CartScreen({ navigation }) {
       <StatusBar barStyle="dark-content" />
 
       {/* Header */}
-      <Header2 title="Cart" />
+      <Header2 title={t('cart')} />
 
       <ScrollView
         style={styles.scrollView}
@@ -171,7 +173,7 @@ export function CartScreen({ navigation }) {
             {/* Suggested Services Section */}
             {getSuggestedServices(clinicGroup.clinic.id).length > 0 && (
               <View style={styles.suggestedSection}>
-                <Text style={styles.suggestedTitle}>Suggested Services</Text>
+                <Text style={styles.suggestedTitle}>{t('suggested_services')}</Text>
 
                 {getSuggestedServices(clinicGroup.clinic.id).map(service => (
                   <View key={service.id} style={styles.suggestedServiceCard}>
@@ -238,18 +240,18 @@ export function CartScreen({ navigation }) {
 
             {/* Subtotal */}
             <View style={styles.subtotalContainer}>
-              <Text style={styles.subtotalLabel}>Subtotal</Text>
+              <Text style={styles.subtotalLabel}>{t('subtotal')}</Text>
               <Text style={styles.subtotalValue}>
                 {calculateSubtotal(clinicGroup.services)}
               </Text>
             </View>
 
             <CustomButton
-              title="Continue to Checkout"
+              title={t('continue_to_checkout')}
               onPress={() => handleCheckout(clinicGroup)}
             />
 
-            <Text style={styles.taxNote}>Taxes calculated at checkout</Text>
+            <Text style={styles.taxNote}>{t('taxes_calculated_at_checkout')}</Text>
           </View>
         ))}
 

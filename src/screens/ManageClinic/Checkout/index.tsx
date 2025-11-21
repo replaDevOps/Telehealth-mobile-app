@@ -18,8 +18,11 @@ import { CustomTextInput } from '@components/common/CustomTextInput';
 import { CustomButton } from '@components/common/CustomButton';
 import { styles } from './style';
 import { PaymentMethod } from '@components/molecules'; // Verify this path
+import { useTranslation } from 'react-i18next';
+import { coinIcon } from '@assets/images';
 
 export function CheckoutScreen({ route }) {
+  const { t } = useTranslation();
   const { services = [] } = route.params || {};
   const [couponCode, setCouponCode] = useState('');
   const [discount, setDiscount] = useState(0);
@@ -34,19 +37,24 @@ export function CheckoutScreen({ route }) {
   const allPaymentMethods = [
     {
       id: 'credit',
-      label: 'Credit/Debit Card',
+      label: t('credit_debit_card'),
       logo: <MasterCardSvg />,
       type: 'card',
     },
     {
       id: 'applepay',
-      label: 'Apple Pay',
+      label: t('apple_pay'),
       logo: <ApplePaySvg />,
       type: 'digital',
     },
-    { id: 'stc', label: 'STC Pay', logo: <StcPaySvg />, type: 'digital' },
-    { id: 'tabby', label: 'Tabby', logo: <TabbySvg />, type: 'installment' },
-    { id: 'tamara', label: 'Tamara', logo: <TamaraSvg />, type: 'installment' },
+    { id: 'stc', label: t('stc_pay'), logo: <StcPaySvg />, type: 'digital' },
+    { id: 'tabby', label: t('tabby'), logo: <TabbySvg />, type: 'installment' },
+    {
+      id: 'tamara',
+      label: t('tamara'),
+      logo: <TamaraSvg />,
+      type: 'installment',
+    },
   ];
 
   // Calculate totals
@@ -71,7 +79,7 @@ export function CheckoutScreen({ route }) {
     } else {
       setDiscount(0);
       // You can show an error message here
-      alert('Invalid coupon code');
+      alert(t('invalid_coupon_code'));
     }
   };
 
@@ -80,7 +88,7 @@ export function CheckoutScreen({ route }) {
     if (selectedPayment === 'credit') {
       const { cardholderName, cardNumber, expiryDate, cvv } = cardDetails;
       if (!cardholderName || !cardNumber || !expiryDate || !cvv) {
-        alert('Please fill all card details');
+        alert(t('fill_card_details'));
         return;
       }
     }
@@ -114,7 +122,7 @@ export function CheckoutScreen({ route }) {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
 
-      <Header2 title="Checkout" />
+      <Header2 title={t('checkout')} />
 
       <ScrollView
         style={styles.scrollView}
@@ -122,7 +130,14 @@ export function CheckoutScreen({ route }) {
       >
         {/* Render services grouped by clinic */}
         {Object.values(groupedServices).map((group: any) => (
-          <View key={group.clinic.id}>
+          <View
+            key={group.clinic.id}
+            style={{
+              backgroundColor: colors.gray,
+              margin: 20,
+              borderRadius: 10,
+            }}
+          >
             {/* Clinic Card */}
             <View style={styles.clinicCard}>
               <Image
@@ -172,6 +187,13 @@ export function CheckoutScreen({ route }) {
                 <Text style={styles.servicePrice}>{service.price}</Text>
               </View>
             ))}
+
+            <View style={styles.pointsContainer}>
+              <Image source={coinIcon} style={{ width: 16, height: 16 }} />
+              <Text style={styles.bonusInstruction}>
+                You will earn 10 coins for this appointment
+              </Text>
+            </View>
           </View>
         ))}
 
@@ -200,7 +222,9 @@ export function CheckoutScreen({ route }) {
         {/* Pay in Installments - As separate section */}
         {installmentPaymentMethods.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionSubtitle}>PAY IN INSTALLMENTS</Text>
+            <Text style={styles.sectionSubtitle}>
+              {t('pay_in_installments')}
+            </Text>
 
             {installmentPaymentMethods.map(option => (
               <TouchableOpacity
@@ -228,47 +252,49 @@ export function CheckoutScreen({ route }) {
         {/* Coupon Code Section */}
         <View style={styles.couponSection}>
           <CustomTextInput
-            label="Coupon Code"
-            placeholder="Enter Coupon Code"
+            label={t('coupon_code')}
+            placeholder={t('enter_coupon_code')}
             value={couponCode}
             onChangeText={setCouponCode}
             containerStyle={styles.couponInput}
           />
           <CustomButton
-            title="Apply Code"
+            title={t('apply_code')}
             onPress={handleApplyCoupon}
             style={{ backgroundColor: colors.black, marginHorizontal: mvs(15) }}
             textStyle={{ color: colors.white }}
           />
           {discount > 0 && (
             <Text style={styles.discountAppliedText}>
-              ✓ {discount}% discount applied!
+              ✓ {discount}% {t('discount_applied')}!
             </Text>
           )}
         </View>
 
         {/* Appointment Summary */}
         <View style={styles.summarySection}>
-          <Text style={styles.summaryTitle}>Appointment Summary</Text>
+          <Text style={styles.summaryTitle}>{t('appointment_summary')}</Text>
 
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>No. of Services</Text>
+            <Text style={styles.summaryLabel}>{t('no_of_services')}</Text>
             <Text style={styles.summaryValue}>{services.length}</Text>
           </View>
 
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Subtotal</Text>
+            <Text style={styles.summaryLabel}>{t('subtotal')}</Text>
             <Text style={styles.summaryValue}>{subtotal.toFixed(2)} SAR</Text>
           </View>
 
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Tax (15%)</Text>
+            <Text style={styles.summaryLabel}>{t('tax')} (15%)</Text>
             <Text style={styles.summaryValue}>{tax.toFixed(2)} SAR</Text>
           </View>
 
           {discount > 0 && (
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Discount ({discount}%)</Text>
+              <Text style={styles.summaryLabel}>
+                {t('discount')} ({discount}%)
+              </Text>
               <Text style={[styles.summaryValue, styles.discountValue]}>
                 -{discountAmount.toFixed(2)} SAR
               </Text>
@@ -278,7 +304,7 @@ export function CheckoutScreen({ route }) {
           <View style={styles.divider} />
 
           <View style={styles.summaryRow}>
-            <Text style={styles.totalLabel}>TOTAL</Text>
+            <Text style={styles.totalLabel}>{t('total')}</Text>
             <Text style={styles.totalValue}>{total.toFixed(2)} SAR</Text>
           </View>
         </View>
@@ -292,7 +318,9 @@ export function CheckoutScreen({ route }) {
           style={styles.proceedButton}
           onPress={handleProceedToPayment}
         >
-          <Text style={styles.proceedButtonText}>Proceed to Payment</Text>
+          <Text style={styles.proceedButtonText}>
+            {t('proceed_to_payment')}
+          </Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

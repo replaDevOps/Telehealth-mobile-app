@@ -20,8 +20,10 @@ import { styles } from './style';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import parsePhoneNumberFromString from 'libphonenumber-js';
 import { CustomTextInput } from '@components/common/CustomTextInput';
+import { useTranslation } from 'react-i18next';
 
 export function SignUpScreen({ navigation }) {
+  const { t } = useTranslation();
   const [selectedTab, setSelectedTab] = useState<'email' | 'phone'>('email');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -43,14 +45,14 @@ export function SignUpScreen({ navigation }) {
 
     if (selectedTab === 'email') {
       if (!email.trim() || !email.includes('@')) {
-        setEmailError('Enter a valid email');
+        setEmailError(t('invalid_email'));
         valid = false;
       } else {
         setEmailError('');
       }
     } else {
       if (!phone.trim() || !isPhoneValid) {
-        setPhoneError('Invalid phone number');
+        setPhoneError(t('invalid_phone'));
         valid = false;
       } else {
         setPhoneError('');
@@ -87,11 +89,11 @@ export function SignUpScreen({ navigation }) {
           </View>
 
           <View style={{ ...styles.title }}>
-            <CustomText text="Sign up" />
+            <CustomText text={t('sign_up')} />
           </View>
           <View style={styles.content}>
             <Text style={styles.TextContent}>
-              Join and start your healthy journey today!
+              {t('join_journey')}
             </Text>
           </View>
 
@@ -110,7 +112,7 @@ export function SignUpScreen({ navigation }) {
                   selectedTab === 'email' && styles.activeTabText,
                 ]}
               >
-                Email Address
+                {t('email_address')}
               </Text>
             </TouchableOpacity>
 
@@ -127,7 +129,7 @@ export function SignUpScreen({ navigation }) {
                   selectedTab === 'phone' && styles.activeTabText,
                 ]}
               >
-                Phone Number
+                {t('phone_number')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -136,8 +138,8 @@ export function SignUpScreen({ navigation }) {
           <View style={{ marginTop: mvs(25) }}>
             {selectedTab === 'email' ? (
               <CustomTextInput
-                label="Email Address"
-                placeholder="Enter email address"
+                label={t('email_address')}
+                placeholder={t('enter_email')}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -146,7 +148,7 @@ export function SignUpScreen({ navigation }) {
               />
             ) : (
               <>
-                <Text style={styles.label}>Phone Number</Text>
+                <Text style={styles.label}>{t('phone_number')}</Text>
                 <PhoneNumberInput
                   phone={phone}
                   setPhone={setPhone}
@@ -162,19 +164,19 @@ export function SignUpScreen({ navigation }) {
           </View>
 
           {/* Sign Up Button */}
-          <CustomButton title="Sign up" onPress={handleSignUp} />
+          <CustomButton title={t('sign_up')} onPress={handleSignUp} />
 
           <View style={styles.signinRow}>
-            <Text style={styles.TextContent}>Already have an account? </Text>
+            <Text style={styles.TextContent}>{t('already_account')}</Text>
             <TouchableOpacity onPress={() => navigation.navigate('SignIn')}>
-              <Text style={styles.signinLink}>Sign in</Text>
+              <Text style={styles.signinLink}>{t('sign_in')}</Text>
             </TouchableOpacity>
           </View>
 
           {/* Divider */}
           <View style={styles.dividerContainer}>
             <View style={styles.line} />
-            <Text style={styles.orText}>or</Text>
+            <Text style={styles.orText}>{t('or')}</Text>
             <View style={styles.line} />
           </View>
 
@@ -184,7 +186,7 @@ export function SignUpScreen({ navigation }) {
             onPress={() => console.log('Apple Sign Up')}
           >
             <AntDesign name="apple1" size={20} color={colors.white} />
-            <Text style={styles.appleText}>Sign up with Apple</Text>
+            <Text style={styles.appleText}>{t('sign_up_apple')}</Text>
           </TouchableOpacity>
 
           {/* Google Sign Up */}
@@ -193,7 +195,7 @@ export function SignUpScreen({ navigation }) {
             onPress={() => console.log('Google Sign Up')}
           >
             <GoogleSvg />
-            <Text style={styles.googleText}>Sign up with Google</Text>
+            <Text style={styles.googleText}>{t('sign_up_google')}</Text>
           </TouchableOpacity>
 
           {/* Terms & Conditions */}
@@ -220,9 +222,10 @@ export function SignUpScreen({ navigation }) {
             </TouchableOpacity>
 
             <Text style={styles.TextContent}>
-              By continuing, you agree to Vena's{' '}
-              <Text style={styles.linkText}>Terms & Conditions</Text> and{' '}
-              <Text style={styles.linkText}>Privacy Policy</Text>
+              {t('terms_agreement')}
+              <Text style={styles.linkText}>{t('terms_conditions')}</Text>
+              {t('and')}
+              <Text style={styles.linkText}>{t('privacy_policy')}</Text>
             </Text>
           </View>
         </ScrollView>

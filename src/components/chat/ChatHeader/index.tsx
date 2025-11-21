@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -14,6 +13,7 @@ interface ChatHeaderProps {
   fromHistory: boolean;
   handleGoBack: () => void;
   handleEndConsultation: () => void;
+  handleCart: () => void;
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
@@ -23,9 +23,10 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   fromHistory,
   handleGoBack,
   handleEndConsultation,
+  handleCart,
 }) => {
   return chatType === 'ai' ? (
-    <Header2 title="Chat" showCart logo />
+    <Header2 title="Chat" showCart logo HandleCart={handleCart} />
   ) : (
     <View style={styles.doctorHeaderContainer}>
       <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>

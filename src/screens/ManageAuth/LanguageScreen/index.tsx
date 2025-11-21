@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, TouchableOpacity, Image, ScrollView } from 'react-native';
 import { styles } from './styles';
 import { Header2 } from '../../../components/common/Header2';
@@ -10,27 +10,19 @@ import { useNavigation } from '@react-navigation/native';
 import { LanguageSelection } from '@assets/images';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../../../styles/colors';
+import { useTranslation } from 'react-i18next';
 
 export function LanguageScreen() {
   const navigation = useNavigation();
-  const [selectedLang, setSelectedLang] = useState<'en' | 'ar'>('en');
+  const { t, i18n } = useTranslation();
 
   const handleNext = () => {
-    console.log('Selected Language:', selectedLang);
-
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-    } else {
-      navigation.navigate('Auth', { screen: 'Onboarding' });
-    }
+    navigation.navigate('Auth', { screen: 'Onboarding' });
   };
 
   return (
     <SafeAreaView
-      style={{
-        flex: 1,
-        backgroundColor: colors.white,
-      }}
+      style={styles.safeArea}
     >
       <Header2 title="" back={false} />
 
@@ -40,11 +32,11 @@ export function LanguageScreen() {
 
           <View style={styles.content}>
             <View style={{ ...styles.title }}>
-              <CustomText text="Select Language" />
+              <CustomText text={t('select_language')} />
             </View>
             <View style={styles.content}>
               <Text style={styles.TextContent}>
-                Choose your preferred language.
+                {t('choose_language')}
               </Text>
             </View>
           </View>
@@ -53,15 +45,15 @@ export function LanguageScreen() {
             <TouchableOpacity
               style={[
                 styles.langOption,
-                selectedLang === 'en' && styles.activeLangOption,
+                i18n.language === 'en' && styles.activeLangOption,
               ]}
-              onPress={() => setSelectedLang('en')}
+              onPress={() => i18n.changeLanguage('en')}
             >
-              <View style={{ flexDirection: 'row', gap: mvs(10) }}>
+              <View style={styles.langOptionInner}>
                 <View style={styles.radioOuter}>
-                  {selectedLang === 'en' && <View style={styles.radioInner} />}
+                  {i18n.language === 'en' && <View style={styles.radioInner} />}
                 </View>
-                <Text style={styles.langText}>Eng</Text>
+                <Text style={styles.langText}>{t('english')}</Text>
               </View>
               <AmericaFlgSvg />
             </TouchableOpacity>
@@ -69,15 +61,15 @@ export function LanguageScreen() {
             <TouchableOpacity
               style={[
                 styles.langOption,
-                selectedLang === 'ar' && styles.activeLangOption,
+                i18n.language === 'ar' && styles.activeLangOption,
               ]}
-              onPress={() => setSelectedLang('ar')}
+              onPress={() => i18n.changeLanguage('ar')}
             >
-              <View style={{ flexDirection: 'row', gap: mvs(10) }}>
+              <View style={styles.langOptionInner}>
                 <View style={styles.radioOuter}>
-                  {selectedLang === 'ar' && <View style={styles.radioInner} />}
+                  {i18n.language === 'ar' && <View style={styles.radioInner} />}
                 </View>
-                <Text style={styles.langText}>Arabic</Text>
+                <Text style={styles.langText}>{t('arabic')}</Text>
               </View>
               <SaudiFlgSvg />
             </TouchableOpacity>
@@ -85,7 +77,7 @@ export function LanguageScreen() {
         </View>
       </ScrollView>
       <View style={styles.button}>
-        <CustomButton title="Next" onPress={handleNext} />
+        <CustomButton title={t('next')} onPress={handleNext} />
       </View>
     </SafeAreaView>
   );

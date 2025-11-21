@@ -18,6 +18,7 @@ import AboutClinic from '@components/molecules/AboutCard';
 import ConsultDoctorBottomSheet from '@components/molecules/ConsultDoctorBottomSheet';
 import { styles } from './style';
 import { useCart } from '@context/CartContext'; // Import the cart hook
+import { useTranslation } from 'react-i18next';
 
 import {
   SERVICES,
@@ -26,9 +27,10 @@ import {
 } from '@constants/appData';
 
 export const ClinicDetailScreen = ({ navigation, route }) => {
+  const { t } = useTranslation();
   const { clinic } = route.params;
   const { addToCart } = useCart();
-  const [activeTab, setActiveTab] = useState('Services');
+  const [activeTab, setActiveTab] = useState(t('services'));
   const [searchQuery, setSearchQuery] = useState('');
   const [filterVisible, setFilterVisible] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
@@ -112,6 +114,9 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     setSelectedDevice(device);
     setDeviceDetailVisible(true);
   };
+  const handleNotificationPress = () => {
+    navigation.navigate('Notification');
+  };
 
   return (
     <View style={styles.container}>
@@ -125,7 +130,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
           logo={ClinicProfile}
           onBackPress={() => navigation.goBack()}
           onSharePress={() => navigation.navigate('CartScreen')}
-          onNotificationPress={() => navigation.navigate('Notifications')}
+          onNotificationPress={handleNotificationPress}
           notificationCount={3}
         />
 
@@ -141,23 +146,23 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
 
         {/* Tab Bar */}
         <TabBar
-          tabs={['Services', 'Reviews', 'About']}
+          tabs={[t('services'), t('reviews'), t('about')]}
           activeTab={activeTab}
           onTabPress={setActiveTab}
         />
 
         {/* Content based on active tab */}
-        {activeTab === 'Services' && (
+        {activeTab === t('services') && (
           <View style={styles.servicesContent}>
             {/* All Services Header */}
-            <Text style={styles.sectionTitle}>All Services</Text>
+            <Text style={styles.sectionTitle}>{t('all_services')}</Text>
 
             {/* Search Bar */}
             <SearchServicesBar
               value={searchQuery}
               onChangeText={setSearchQuery}
               onFilterPress={handleFilterPress}
-              placeholder="Search Services"
+              placeholder={t('search_services')}
             />
 
             {/* Services List */}
@@ -180,15 +185,15 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
           </View>
         )}
 
-        {activeTab === 'Reviews' && (
+        {activeTab === t('reviews') && (
           <View style={styles.reviewsContent}>
             {/* Reviews Header */}
             <View style={styles.reviewsHeader}>
               <Text style={styles.reviewsTitle}>
-                Reviews ({reviews.length})
+                {t('reviews')} ({reviews.length})
               </Text>
               <TouchableOpacity style={styles.sortButton}>
-                <Text style={styles.sortText}>Sort by</Text>
+                <Text style={styles.sortText}>{t('sort_by')}</Text>
                 <Ionicons
                   name="chevron-down"
                   size={16}
@@ -215,7 +220,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
           </View>
         )}
 
-        {activeTab === 'About' && (
+        {activeTab === t('about') && (
           <AboutClinic
             description={aboutData.description}
             devices={aboutData.devices}
@@ -231,7 +236,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
           onPress={handleChatPress}
           activeOpacity={0.8}
         >
-          <Text style={styles.chatButtonText}>Chat with Vena AI</Text>
+          <Text style={styles.chatButtonText}>{t('chat_with_vena_ai')}</Text>
           <Ionicons name="sparkles" size={20} color={colors.white} />
         </TouchableOpacity>
       </View>

@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { colors } from '../../styles/colors'; // Adjust path as needed
 import { mvs } from '@config/metrices';
+import { useTranslation } from 'react-i18next';
 
 const { width } = Dimensions.get('window');
 const MODAL_WIDTH = width * 0.85;
@@ -24,6 +25,7 @@ const ConsultationEndedModal: React.FC<ConsultationEndedModalProps> = ({
   onClose,
   onGetPrescription,
 }) => {
+  const { t } = useTranslation();
   return (
     <Modal
       transparent
@@ -39,26 +41,25 @@ const ConsultationEndedModal: React.FC<ConsultationEndedModalProps> = ({
           </TouchableOpacity>
 
           {/* Title */}
-          <Text style={styles.title}>Consultation Ended</Text>
+          <Text style={styles.title}>{t('consultation_ended')}</Text>
 
           {/* Description */}
           <Text style={styles.description}>
-            The consultation has ended. The doctor has shared your prescription.
-            You can download it now or anytime from your history.
+            {t('consultation_ended_description')}
           </Text>
 
           {/* Buttons */}
           <View style={styles.buttonRow}>
             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-              <Text style={styles.closeButtonText}>Close</Text>
+              <Text style={styles.closeButtonText}>{t('close')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.prescriptionButton}
               onPress={onGetPrescription}
             >
-              <Text style={styles.prescriptionButtonText}>
-                Get Prescription
+              <Text style={styles.prescriptionButtonText} numberOfLines={1}>
+                {t('get_prescription')}
               </Text>
             </TouchableOpacity>
           </View>

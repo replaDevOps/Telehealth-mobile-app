@@ -6,6 +6,7 @@ import AntDesign from 'react-native-vector-icons/AntDesign';
 import { colors } from '../../../styles/colors';
 import { mvs } from '@config/metrices';
 import { styles } from './style';
+import { useTranslation } from 'react-i18next';
 
 interface FAQ {
   id: number;
@@ -14,32 +15,29 @@ interface FAQ {
 }
 
 export const FAQs = ({ navigation }: { navigation: any }) => {
+  const { t } = useTranslation();
   const [expandedId, setExpandedId] = useState<number | null>(1);
 
   const faqData: FAQ[] = [
     {
       id: 1,
-      question: 'How can I book a consultation?',
-      answer:
-        'You can book a consultation by selecting your preferred clinic and tapping the "Consult Now" button. The system will automatically connect you with an available doctor.',
+      question: t('how_to_book_consultation'),
+      answer: t('how_to_book_consultation_answer'),
     },
     {
       id: 2,
-      question: 'Can I choose a specific doctor?',
-      answer:
-        'Yes, you can choose a specific doctor from our list of available healthcare professionals. Simply browse through the doctors profiles and select your preferred specialist.',
+      question: t('can_i_choose_specific_doctor'),
+      answer: t('can_i_choose_specific_doctor_answer'),
     },
     {
       id: 3,
-      question: 'Can I download my prescription later?',
-      answer:
-        'Yes, all your prescriptions are saved in your profile and can be downloaded at any time. Go to your consultation history and tap on the download icon next to each prescription.',
+      question: t('can_i_download_prescription_later'),
+      answer: t('can_i_download_prescription_later_answer'),
     },
     {
       id: 4,
-      question: 'Is my chat or call private and secure?',
-      answer:
-        'Absolutely! All consultations are end-to-end encrypted and comply with medical privacy standards. Your personal health information is completely confidential and secure.',
+      question: t('is_chat_private_secure'),
+      answer: t('is_chat_private_secure_answer'),
     },
   ];
 
@@ -76,7 +74,7 @@ export const FAQs = ({ navigation }: { navigation: any }) => {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.white }}>
-      <Header2 title="FAQ's" />
+      <Header2 title={t('faqs_title')} />
 
       <ScrollView
         style={styles.container}

@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { colors } from '../../styles/colors';
 import { TouchableOpacity } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 // Update the Device type to match your actual data structure
 type Device = {
@@ -32,14 +33,15 @@ const AboutClinic = ({
   style,
   onDevicePress,
 }: AboutClinicProps) => {
+  const { t } = useTranslation();
   return (
     <View style={[styles.container, style]}>
       {/* ── Description ── */}
-      <Text style={styles.sectionTitle}>Description</Text>
+      <Text style={styles.sectionTitle}>{t('description')}</Text>
       <Text style={styles.descriptionText}>{description}</Text>
 
       {/* ── Devices ── */}
-      <Text style={[styles.sectionTitle, styles.devicesTitle]}>Devices</Text>
+      <Text style={[styles.sectionTitle, styles.devicesTitle]}>{t('devices')}</Text>
 
       <View style={styles.devicesList}>
         {devices.map(device => (

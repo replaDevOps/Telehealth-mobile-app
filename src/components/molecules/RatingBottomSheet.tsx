@@ -18,21 +18,23 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../../styles/colors';
 import { CustomButton } from '@components/common/CustomButton';
+import { useTranslation } from 'react-i18next';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const RatingBottomSheet = ({ visible, onClose, onSubmit }) => {
+  const { t } = useTranslation();
   const [rating, setRating] = useState(4);
   const [feedback, setFeedback] = useState('');
   const translateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const insets = useSafeAreaInsets();
 
   const ratingLabels = {
-    1: 'Unsatisfied',
-    2: 'Needs improvement',
-    3: 'Average',
-    4: 'Satisfied',
-    5: 'Excellent',
+    1: t('unsatisfied'),
+    2: t('needs_improvement'),
+    3: t('average'),
+    4: t('satisfied'),
+    5: t('excellent'),
   };
 
   /* ----------  Modal animation  ---------- */
@@ -155,19 +157,21 @@ const RatingBottomSheet = ({ visible, onClose, onSubmit }) => {
             bounces={false}
           >
             <View style={styles.content}>
-              <Text style={styles.title}>Rate Your Experience</Text>
+              <Text style={styles.title}>{t('rate_your_experience')}</Text>
               <Text style={styles.subtitle}>
-                Share your feedback to help us improve.
+                {t('share_feedback_to_improve')}
               </Text>
 
               {renderStars()}
               <Text style={styles.ratingLabel}>{ratingLabels[rating]}</Text>
 
-              <Text style={styles.feedbackLabel}>Tell us more (optional)</Text>
+              <Text style={styles.feedbackLabel}>
+                {t('tell_us_more_optional')}
+              </Text>
 
               <View style={styles.textInputContainer}>
                 <TextInput
-                  placeholder="Share any comments or suggestions..."
+                  placeholder={t('share_comments_suggestions')}
                   placeholderTextColor="#999"
                   multiline
                   maxLength={100}
@@ -183,7 +187,7 @@ const RatingBottomSheet = ({ visible, onClose, onSubmit }) => {
 
           {/* Sticky submit button */}
           <View style={styles.submitWrapper}>
-            <CustomButton title="Submit Feedback" onPress={handleSubmit} />
+            <CustomButton title={t('submit_feedback')} onPress={handleSubmit} />
           </View>
         </Animated.View>
       </KeyboardAvoidingView>

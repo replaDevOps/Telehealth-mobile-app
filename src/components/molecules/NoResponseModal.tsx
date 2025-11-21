@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { colors } from '../../styles/colors'; // Adjust path as needed
 import { mvs } from '@config/metrices';
+import { useTranslation } from 'react-i18next';
 
 const { width } = Dimensions.get('window');
 const MODAL_WIDTH = width * 0.85;
@@ -25,6 +26,7 @@ const NoResponseModal: React.FC<NoResponseModalProps> = ({
   onClose,
   onGetPrescription,
 }) => {
+  const { t } = useTranslation();
   return (
     <Modal
       transparent
@@ -40,25 +42,26 @@ const NoResponseModal: React.FC<NoResponseModalProps> = ({
           </TouchableOpacity>
 
           {/* Title */}
-          <Text style={styles.title}>No Response</Text>
+          <Text style={styles.title}>{t('no_response')}</Text>
 
           {/* Description */}
           <Text style={styles.description}>
-            The doctor didn’t respond to your consultation request. Your payment
-            will be refunded.
+            {t('no_response_description')}
           </Text>
 
           {/* Buttons */}
           <View style={styles.buttonRow}>
             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-              <Text style={styles.closeButtonText}>Close</Text>
+              <Text style={styles.closeButtonText}>{t('close')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.prescriptionButton}
               onPress={onGetPrescription}
             >
-              <Text style={styles.prescriptionButtonText}>Refund Payment</Text>
+              <Text style={styles.prescriptionButtonText}>
+                {t('refund_payment')}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>

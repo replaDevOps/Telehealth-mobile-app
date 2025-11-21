@@ -2,12 +2,11 @@ import { StyleSheet } from 'react-native';
 import { mvs } from '../../../config/metrices';
 import { colors } from '../../../styles/colors';
 
-
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.white, 
-    justifyContent:"center",
+    backgroundColor: colors.white,
+    justifyContent: 'center',
   },
   logoContainer: {
     justifyContent: 'space-around',
@@ -17,8 +16,8 @@ export const styles = StyleSheet.create({
     height: mvs(400),
     alignSelf: 'center',
     resizeMode: 'cover',
-    position:"relative",
-    bottom:mvs(50)
+    position: 'relative',
+    bottom: mvs(50),
   },
   title: {
     alignItems: 'center',
@@ -89,5 +88,18 @@ export const styles = StyleSheet.create({
     height: mvs(20),
     borderRadius: mvs(4),
   },
-  button: {position:"absolute",bottom:mvs(40),width:"100%",paddingHorizontal:mvs(20)}
+  button: {
+    position: 'absolute',
+    bottom: mvs(40),
+    width: '100%',
+    paddingHorizontal: mvs(20),
+  },
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.white,
+  },
+  langOptionInner: {
+    flexDirection: 'row',
+    gap: mvs(10),
+  },
 });

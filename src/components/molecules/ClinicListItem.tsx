@@ -11,6 +11,7 @@ import {
 import { colors } from '../../styles/colors';
 import { mvs } from '../../config/metrices';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useTranslation } from 'react-i18next';
 
 // Define the Clinic interface (reuse from previous components)
 interface Clinic {
@@ -79,6 +80,7 @@ const ClinicListItem: React.FC<ClinicListItemProps> = ({ item, onPress }) => {
 };
 
 const NearbyClinics = ({ clinics, onClinicPress }: NearbyClinicsProps) => {
+  const { t } = useTranslation();
   const renderItem: ListRenderItem<Clinic> = ({ item }) => (
     <ClinicListItem item={item} onPress={onClinicPress} />
   );
@@ -86,7 +88,7 @@ const NearbyClinics = ({ clinics, onClinicPress }: NearbyClinicsProps) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Nearby Clinic</Text>
+        <Text style={styles.title}>{t('nearby_clinic')}</Text>
       </View>
 
       <FlatList

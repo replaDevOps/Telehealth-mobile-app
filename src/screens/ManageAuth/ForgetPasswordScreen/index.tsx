@@ -151,7 +151,14 @@ export function ForgetPasswordScreen({
               }
 
               if (valid) {
-                navigation.navigate('SetPassword');
+                navigation.navigate('OTPScreen', {
+                  source: 'forgotPassword',
+                  method: selectedTab, // 'email' or 'phone'
+                  email: selectedTab === 'email' ? email : undefined,
+                  phone: selectedTab === 'phone' ? phone : undefined,
+                  countryCode:
+                    selectedTab === 'phone' ? countryCode : undefined,
+                });
               }
             }}
           />

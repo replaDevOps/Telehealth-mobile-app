@@ -67,7 +67,13 @@ export function SignUpScreen({ navigation }) {
     }
 
     if (valid) {
-      navigation.navigate('OTPScreen');
+      navigation.navigate('OTPScreen', {
+        source: 'signUp',
+        method: selectedTab, // 'email' or 'phone'
+        email: selectedTab === 'email' ? email : undefined,
+        phone: selectedTab === 'phone' ? phone : undefined,
+        countryCode: selectedTab === 'phone' ? countryCode : undefined,
+      });
     }
   };
 
@@ -92,9 +98,7 @@ export function SignUpScreen({ navigation }) {
             <CustomText text={t('sign_up')} />
           </View>
           <View style={styles.content}>
-            <Text style={styles.TextContent}>
-              {t('join_journey')}
-            </Text>
+            <Text style={styles.TextContent}>{t('join_journey')}</Text>
           </View>
 
           {/* Tabs for Email / Phone */}

@@ -17,7 +17,7 @@ import { ClinicProfile } from '@assets/images';
 import AboutClinic from '@components/molecules/AboutCard';
 import ConsultDoctorBottomSheet from '@components/molecules/ConsultDoctorBottomSheet';
 import { styles } from './style';
-import { useCart } from '@context/CartContext'; // Import the cart hook
+import { useCart } from '@context/CartContext';
 import { useTranslation } from 'react-i18next';
 import { Dropdown } from 'react-native-element-dropdown';
 
@@ -26,6 +26,20 @@ import {
   CLINIC_REVIEWS,
   CLINIC_ABOUT_DATA,
 } from '@constants/appData';
+
+// Define types
+interface Review {
+  id: string;
+  author: string;
+  date: string;
+  rating: number;
+  text: string;
+}
+
+interface SortOption {
+  label: string;
+  value: string;
+}
 
 export const ClinicDetailScreen = ({ navigation, route }) => {
   const { t } = useTranslation();
@@ -40,15 +54,15 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
   const [selectedDevice, setSelectedDevice] = useState(null);
   const [deviceDetailVisible, setDeviceDetailVisible] = useState(false);
   const [showBottomSheet, setShowBottomSheet] = useState(false);
-  const [sortOption, setSortOption] = useState(t('newest_first'));
-  const [sortedReviews, setSortedReviews] = useState([]);
+  const [sortOption, setSortOption] = useState('newest_first');
+  const [sortedReviews, setSortedReviews] = useState<Review[]>([]);
   const [isFocus, setIsFocus] = useState(false);
 
   const services = SERVICES;
-  const reviews = CLINIC_REVIEWS;
+  const reviews: Review[] = CLINIC_REVIEWS;
   const aboutData = CLINIC_ABOUT_DATA;
 
-  const sortData = [
+  const sortData: SortOption[] = [
     { label: t('newest_first'), value: 'newest_first' },
     { label: t('oldest_first'), value: 'oldest_first' },
     { label: t('highest_rating'), value: 'highest_rating' },
@@ -59,14 +73,24 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     sortReviews(sortOption);
   }, [reviews, sortOption]);
 
-  const sortReviews = option => {
+  const sortReviews = (option: string) => {
     let sorted = [...reviews];
     switch (option) {
       case 'newest_first':
-        sorted.sort((a, b) => new Date(b.date) - new Date(a.date));
+        // Sort descending - newest dates first
+        sorted.sort((a, b) => {
+          const dateA = new Date(a.date).getTime();
+          const dateB = new Date(b.date).getTime();
+          return dateB - dateA;
+        });
         break;
       case 'oldest_first':
-        sorted.sort((a, b) => new Date(a.date) - new Date(b.date));
+        // Sort ascending - oldest dates first
+        sorted.sort((a, b) => {
+          const dateA = new Date(a.date).getTime();
+          const dateB = new Date(b.date).getTime();
+          return dateA - dateB;
+        });
         break;
       case 'highest_rating':
         sorted.sort((a, b) => b.rating - a.rating);
@@ -80,12 +104,12 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     setSortedReviews(sorted);
   };
 
-  const handleSortChange = item => {
+  const handleSortChange = (item: SortOption) => {
     setSortOption(item.value);
     setIsFocus(false);
   };
 
-  const handleApplyFilters = filters => {
+  const handleApplyFilters = (filters: any) => {
     console.log('Applied filters:', filters);
     // Apply filters to your services list
   };
@@ -99,7 +123,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     setFilterVisible(true);
   };
 
-  const handleServicePress = service => {
+  const handleServicePress = (service: any) => {
     setSelectedService(service);
     setServiceDetailVisible(true);
   };
@@ -109,7 +133,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     navigation.navigate('ChatOnboarding');
   };
 
-  const handleAddToCart = service => {
+  const handleAddToCart = (service: any) => {
     // Add service with clinic details to cart
     const cartItem = {
       service: service,
@@ -131,7 +155,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     navigation.navigate('CartScreen');
   };
 
-  const handleCheckout = service => {
+  const handleCheckout = (service: any) => {
     // Navigate to checkout with single service
     navigation.navigate('CheckoutScreen', {
       services: [
@@ -151,10 +175,11 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     });
   };
 
-  const handleDevicePress = device => {
+  const handleDevicePress = (device: any) => {
     setSelectedDevice(device);
     setDeviceDetailVisible(true);
   };
+
   const handleNotificationPress = () => {
     navigation.navigate('Notification');
   };

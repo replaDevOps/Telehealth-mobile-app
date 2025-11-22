@@ -98,7 +98,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 6,
     marginBottom: 6,
-    maxWidth:"50% "
+    maxWidth:"50%"
   },
   categoryBadge: {
     backgroundColor: "#310A60",

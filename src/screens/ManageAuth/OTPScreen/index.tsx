@@ -15,9 +15,9 @@ import { Header2 } from '../../../components/common/Header2';
 import CustomText from '../../../components/common/CustomText';
 import { CustomButton } from '../../../components/common/CustomButton';
 import { useTranslation } from 'react-i18next';
-
 import { AuthStackParamList } from '../../../navigation/AuthNavigator';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import parsePhoneNumberFromString from 'libphonenumber-js';
 
 type NavProps = StackNavigationProp<AuthStackParamList, 'OTPScreen'>;
 type RouteProps = RouteProp<AuthStackParamList, 'OTPScreen'>;
@@ -34,6 +34,12 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
   const [inputValues, setInputValues] = useState<string[]>(Array(5).fill(''));
 
   const inputRefs = useRef<RefObject<TextInput | null>[]>([]);
+
+  const source = route.params?.source;
+  const method = route.params?.method;
+  const email = route.params?.email;
+  const phone = route.params?.phone;
+  const countryCode = route.params?.countryCode;
 
   useEffect(() => {
     inputRefs.current = Array(5)
@@ -58,7 +64,38 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
   const handleNext = () => {
     const otp = inputValues.join('');
     console.log('OTP submitted:', otp);
-    navigation.navigate('CreatePassword');
+
+    if (source === 'forgotPassword') {
+      navigation.navigate('SetPassword');
+    } else {
+      navigation.navigate('CreatePassword');
+    }
+  };
+
+  const getDisplayText = () => {
+    if (method === 'email') {
+      if (email) {
+        const [localPart, domain] = email.split('@');
+        const maskedEmail =
+          localPart.length > 2
+            ? `${localPart.substring(0, 2)}***@${domain}`
+            : `***@${domain}`;
+        return maskedEmail;
+      }
+      return '***@gmail.com';
+    } else if (method === 'phone') {
+      if (phone && countryCode) {
+        const phoneNumber = parsePhoneNumberFromString(phone, countryCode);
+        if (phoneNumber) {
+          const maskedPhone = `+${
+            phoneNumber.countryCallingCode
+          }${phoneNumber.nationalNumber.substring(0, 2)}**********`;
+          return maskedPhone;
+        }
+      }
+      return '+92***';
+    }
+    return '+91****4@gmail.com';
   };
 
   return (
@@ -77,8 +114,9 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
 
           <View style={styles.content}>
             <Text style={styles.TextContent}>
-              {t('enter_otp')}
-              {route.params?.email ?? '+91****4@gmail.com'}.
+              {method === 'email'
+                ? `${t('enter_otp_email')} ${getDisplayText()}`
+                : `${t('enter_otp_phone')} ${getDisplayText()}`}
             </Text>
           </View>
 

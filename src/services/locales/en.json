@@ -32,6 +32,8 @@
   "privacy_policy": "Privacy Policy",
   "otp_code": "OTP Code",
   "enter_otp": "Enter the 5 digit OTP code sent to your email ",
+  "enter_otp_email": "Enter the 5 digit OTP code sent to your email",
+  "enter_otp_phone": "Enter the 5 digit OTP code sent to your Phone",
   "verifying": "Verifying…",
   "confirm": "Confirm",
   "didnt_receive_code": "Didn’t receive code? ",

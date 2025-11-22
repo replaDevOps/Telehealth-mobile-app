@@ -17,11 +17,17 @@ export type AuthStackParamList = {
   SignUp: undefined;
   LanguageSelection: undefined;
   Onboarding: undefined;
-  OTPScreen: { email?: string };
   CreatePassword: undefined;
   Profile: undefined;
   ForgetPassword: undefined;
   SetPassword: undefined;
+  OTPScreen: {
+    source: 'forgotPassword' | 'signUp';
+    method: 'email' | 'phone';
+    email?: string;
+    phone?: string;
+    countryCode?: string;
+  };
 };
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();

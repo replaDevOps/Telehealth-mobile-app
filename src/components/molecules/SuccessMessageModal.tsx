@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { colors } from '../../styles/colors'; // Adjust path as needed
 import { mvs } from '@config/metrices';
+import { CustomButton } from '@components/common/CustomButton';
 
 const { width } = Dimensions.get('window');
 const MODAL_WIDTH = width * 0.85;
@@ -18,6 +19,8 @@ export const SuccessMessageModal = ({
   onClose,
   title,
   description,
+  buttonTitle = '',
+  buttonPress = () => {},
 }) => {
   return (
     <Modal
@@ -38,6 +41,14 @@ export const SuccessMessageModal = ({
 
           {/* Description */}
           <Text style={styles.description}>{description}</Text>
+
+          {buttonTitle && (
+            <CustomButton
+              title={buttonTitle}
+              onPress={buttonPress}
+              style={styles.button}
+            />
+          )}
         </View>
       </View>
     </Modal>
@@ -125,5 +136,8 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: 15,
     fontWeight: '600',
+  },
+  button: {
+    width: '90%',
   },
 });

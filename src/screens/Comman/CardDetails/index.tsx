@@ -62,6 +62,21 @@ export function CardDetails({ navigation }: { navigation: any }) {
 
   const [showRating, setShowRating] = useState(false);
 
+  const handleGiveReview_Vist = () => {
+    isAppointment
+      ? navigation.navigate('ClinicDetail', {
+          clinic: {
+            id: `clinic_${Date.now()}`,
+            name: 'AI Health Clinic',
+            location: 'None',
+            image: RecommandImage,
+            specialty: 'General',
+            rating: 3,
+          },
+        })
+      : handleGiveReview();
+  };
+
   const handleGiveReview = () => setShowRating(true);
   const handleRatingSubmit = (rating: number, feedback: string) => {
     console.log('Rating:', rating, 'Feedback:', feedback);
@@ -106,7 +121,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
               ...styles.consultButton,
               backgroundColor: isAppointment ? colors.gray : colors.black,
             }}
-            onPress={handleGiveReview}
+            onPress={handleGiveReview_Vist}
           >
             <Text
               style={{
@@ -184,7 +199,9 @@ export function CardDetails({ navigation }: { navigation: any }) {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            {isAppointment ? t('appointment_summary') : t('consultation_summary')}
+            {isAppointment
+              ? t('appointment_summary')
+              : t('consultation_summary')}
           </Text>
 
           {params.consultationType && (
@@ -230,7 +247,10 @@ export function CardDetails({ navigation }: { navigation: any }) {
       {!reason && (
         <View style={styles.bottomButtonContainer}>
           {isAppointment ? (
-            <CustomButton title={t('request_for_refund')} onPress={handleRefund} />
+            <CustomButton
+              title={t('request_for_refund')}
+              onPress={handleRefund}
+            />
           ) : (
             <CustomButton
               title={t('download_invoice')}

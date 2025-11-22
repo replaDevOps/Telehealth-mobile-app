@@ -38,6 +38,18 @@ export function RefundRequest() {
         : [...prev, serviceId],
     );
   };
+  const handleVisit = () => {
+    navigation.navigate('ClinicDetail', {
+      clinic: {
+        id: `clinic_${Date.now()}`,
+        name: 'AI Health Clinic',
+        location: 'None',
+        image: RecommandImage,
+        specialty: 'General',
+        rating: 3,
+      },
+    });
+  };
 
   const handleSubmit = () => {
     if (selectedServices.length === 0) {
@@ -87,7 +99,10 @@ export function RefundRequest() {
                 </Text>
               </View>
             </View>
-            <TouchableOpacity style={styles.consultButton}>
+            <TouchableOpacity
+              style={styles.consultButton}
+              onPress={handleVisit}
+            >
               <Text style={styles.consultButtonText}>{t('visit')}</Text>
             </TouchableOpacity>
           </View>
@@ -180,7 +195,9 @@ export function RefundRequest() {
                     justifyContent: 'space-between',
                   }}
                 >
-                  <Text style={{ fontWeight: '600' }}>{t('total_refund_amount')}</Text>
+                  <Text style={{ fontWeight: '600' }}>
+                    {t('total_refund_amount')}
+                  </Text>
                   <Text
                     style={{
                       fontWeight: 'bold',

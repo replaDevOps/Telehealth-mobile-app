@@ -1,5 +1,4 @@
-import { useNavigation } from '@react-navigation/native';
-import React from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { mvs } from '../../config/metrices';
@@ -7,6 +6,8 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BackSvg, ShopingCartSvg, SingleLogo } from '../../assets/icons';
 import { colors } from '../../styles/colors';
 import { useTranslation } from 'react-i18next';
+import { Dropdown } from 'react-native-element-dropdown';
+import { useNavigation } from '@react-navigation/native';
 
 type RootStackParamList = {
   [key: string]: undefined;
@@ -59,7 +60,14 @@ const Header2: React.FC<Header2Props> = ({
   logo = false,
 }) => {
   const navigation = useNavigation<NavigationProp>();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const [language, setLanguage] = useState(i18n.language);
+  const [isFocus, setIsFocus] = useState(false);
+
+  const data = [
+    { label: 'Eng', value: 'en' },
+    { label: 'Arb', value: 'ar' },
+  ];
 
   const onBackPress = () => {
     if (handleBackPress) {
@@ -69,8 +77,10 @@ const Header2: React.FC<Header2Props> = ({
     }
   };
 
-  const handleLanguage = () => {
-    navigation.navigate('LanguageSelection');
+  const handleLanguageChange = (item: { label: string; value: string }) => {
+    setLanguage(item.value);
+    i18n.changeLanguage(item.value);
+    setIsFocus(false);
   };
 
   return (
@@ -100,7 +110,7 @@ const Header2: React.FC<Header2Props> = ({
           disabled={saveDisabled}
         >
           <Text style={[styles.saveText, saveDisabled && { color: 'gray' }]}>
-            Save
+            {t('save')}
           </Text>
         </TouchableOpacity>
       ) : useSkip && handleSkip ? (
@@ -117,11 +127,30 @@ const Header2: React.FC<Header2Props> = ({
           </View>
         </TouchableOpacity>
       ) : showLanguage ? (
-        <TouchableOpacity style={styles.icon} onPress={() => handleLanguage()}>
-          <Ionicons name="globe" size={18} color={colors.black} />
-          <Text style={styles.languageText}>Eng</Text>
-          <Ionicons name="chevron-down" size={16} color={colors.black} />
-        </TouchableOpacity>
+        <Dropdown
+          style={[styles.dropdown]}
+          placeholderStyle={styles.placeholderStyle}
+          selectedTextStyle={styles.selectedTextStyle}
+          inputSearchStyle={styles.inputSearchStyle}
+          iconStyle={styles.iconStyle}
+          data={data}
+          maxHeight={300}
+          labelField="label"
+          valueField="value"
+          placeholder={!isFocus ? 'Select language' : '...'}
+          value={language}
+          onFocus={() => setIsFocus(true)}
+          onBlur={() => setIsFocus(false)}
+          onChange={handleLanguageChange}
+          renderLeftIcon={() => (
+            <Ionicons
+              style={styles.icon}
+              color={isFocus ? 'blue' : 'black'}
+              name="globe"
+              size={20}
+            />
+          )}
+        />
       ) : showEdit ? (
         <TouchableOpacity style={styles.icon} onPress={onEditPress}>
           <Ionicons name="create" size={25} color={colors.black} />
@@ -146,11 +175,7 @@ const styles = StyleSheet.create({
     paddingVertical: mvs(10),
   },
   icon: {
-    flexDirection: 'row',
-    gap: mvs(2),
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    alignItems: 'center',
+    marginRight: 5,
   },
   headerButton: {
     width: 40,
@@ -211,6 +236,25 @@ const styles = StyleSheet.create({
   },
   emptySpace: {
     width: 45,
+  },
+  dropdown: {
+    height: 50,
+    paddingHorizontal: 8,
+    width: 100,
+  },
+  placeholderStyle: {
+    fontSize: 16,
+  },
+  selectedTextStyle: {
+    fontSize: 16,
+  },
+  inputSearchStyle: {
+    height: 40,
+    fontSize: 16,
+  },
+  iconStyle: {
+    width: 20,
+    height: 20,
   },
 });
 

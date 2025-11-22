@@ -17,11 +17,11 @@ import MasterCardSvg from '@assets/icons/MastercardSvg';
 import { CustomTextInput } from '@components/common/CustomTextInput';
 import { CustomButton } from '@components/common/CustomButton';
 import { styles } from './style';
-import { PaymentMethod } from '@components/molecules'; // Verify this path
+import { PaymentMethod, SuccessMessageModal } from '@components/molecules'; // Verify this path
 import { useTranslation } from 'react-i18next';
 import { coinIcon } from '@assets/images';
 
-export function CheckoutScreen({ route }) {
+export function CheckoutScreen({ route, navigation }) {
   const { t } = useTranslation();
   const { services = [] } = route.params || {};
   const [couponCode, setCouponCode] = useState('');
@@ -33,6 +33,8 @@ export function CheckoutScreen({ route }) {
     expiryDate: '',
     cvv: '',
   });
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
 
   const allPaymentMethods = [
     {
@@ -99,6 +101,12 @@ export function CheckoutScreen({ route }) {
       selectedPayment,
       cardDetails: selectedPayment === 'credit' ? cardDetails : null,
     });
+    setShowSuccessModal(true);
+  };
+  const HandleRequest = () => {
+    console.log('the okay button is pressed');
+    setShowSuccessModal(false);
+    navigation.goBack();
   };
 
   // Group services by clinic
@@ -161,17 +169,20 @@ export function CheckoutScreen({ route }) {
                   <View style={styles.serviceInfo}>
                     <View style={styles.serviceBadges}>
                       <View style={styles.categoryBadge}>
-                        <Text style={styles.categoryBadgeText}>
+                        <Text
+                          style={styles.categoryBadgeText}
+                          numberOfLines={1}
+                        >
                           {service.type}
                         </Text>
                       </View>
                       <View style={styles.nameBadge}>
-                        <Text style={styles.nameBadgeText}>
+                        <Text style={styles.nameBadgeText} numberOfLines={1}>
                           {service.serviceGroup}
                         </Text>
                       </View>
                     </View>
-                    <Text style={styles.serviceName}>
+                    <Text style={styles.serviceName} numberOfLines={1}>
                       {service.serviceName}
                     </Text>
                     <View style={styles.durationContainer}>
@@ -191,7 +202,7 @@ export function CheckoutScreen({ route }) {
             <View style={styles.pointsContainer}>
               <Image source={coinIcon} style={{ width: 16, height: 16 }} />
               <Text style={styles.bonusInstruction}>
-                You will earn 10 coins for this appointment
+                {t('you_will_earn_10_coins_for_this_appointment')}
               </Text>
             </View>
           </View>
@@ -199,7 +210,6 @@ export function CheckoutScreen({ route }) {
 
         {/* Payment Methods Section - Only show card form for credit card */}
         <PaymentMethod
-          selectedPayment={selectedPayment}
           onPaymentChange={setSelectedPayment}
           cardholderName={cardDetails.cardholderName}
           onCardholderNameChange={text =>
@@ -217,6 +227,11 @@ export function CheckoutScreen({ route }) {
           onCvvChange={text => setCardDetails(prev => ({ ...prev, cvv: text }))}
           showTitle={true}
           compact={true}
+          showRoyaltyPoints={true}
+          royaltyPoints={300}
+          onRedeemPoints={points => console.log('Redeem', points)}
+          onApplyCoupon={code => console.log('Apply', code)}
+          showCouponCode
         />
 
         {/* Pay in Installments - As separate section */}
@@ -323,6 +338,30 @@ export function CheckoutScreen({ route }) {
           </Text>
         </TouchableOpacity>
       </View>
+
+      <SuccessMessageModal
+        visible={showSuccessModal}
+        onClose={() => {
+          setShowSuccessModal(false);
+          navigation.goBack();
+        }}
+        title={t('request_send')}
+        description={t('request_sent_description')}
+        buttonTitle={t('okay')}
+        buttonPress={HandleRequest}
+      />
+
+      <SuccessMessageModal
+        visible={showErrorModal}
+        onClose={() => {
+          setShowErrorModal(false);
+          navigation.goBack();
+        }}
+        title={t('payment_failed')}
+        description={t('payment_failed_Description')}
+        buttonTitle={t('okay')}
+        buttonPress={HandleRequest}
+      />
     </SafeAreaView>
   );
 }

@@ -6,8 +6,9 @@ import { colors } from '../../../styles/colors';
 import { CustomButton } from '@components/common/CustomButton';
 import { RecommandImage, doctor } from '@assets/images';
 import { styles } from './style';
-import { PaymentMethod } from '@components/molecules';
+import { PaymentMethod, SuccessMessageModal } from '@components/molecules';
 import { useTranslation } from 'react-i18next';
+import { Toast } from '@components/common/Toast';
 
 export function ConsultationPayment({ navigation, route }) {
   const { t } = useTranslation();
@@ -17,6 +18,16 @@ export function ConsultationPayment({ navigation, route }) {
   const [expiryDate, setExpiryDate] = useState('');
   const [cvv, setCvv] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [toast, setToast] = useState<{
+    visible: boolean;
+    message: string;
+    type: 'success' | 'error';
+  }>({
+    visible: false,
+    message: '',
+    type: 'success',
+  });
 
   const consultationData = route?.params || {
     consultationType: 'Chat',
@@ -76,6 +87,8 @@ export function ConsultationPayment({ navigation, route }) {
             specialization: 'Dermatologist',
           },
         });
+      } else {
+        setShowErrorModal(true);
       }
     }, 2000);
   };
@@ -87,9 +100,35 @@ export function ConsultationPayment({ navigation, route }) {
     return t('consultation');
   };
 
+  const HandleRequest = () => {
+    setTimeout(() => {
+      setShowErrorModal(false);
+      setToast({
+        visible: true,
+        message: t('request_submit'),
+        type: 'success',
+      });
+
+      setTimeout(() => {
+        navigation.navigate('EntryPoint');
+      }, 1500);
+    }, 3000);
+  };
+
+  const hideToast = (): void => {
+    setToast(prev => ({ ...prev, visible: false }));
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <Header2 title={getHeaderTitle()} />
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        visible={toast.visible}
+        onHide={hideToast}
+        duration={3000}
+      />
 
       <ScrollView
         style={styles.scrollView}
@@ -97,9 +136,7 @@ export function ConsultationPayment({ navigation, route }) {
       >
         {/* Success Banner */}
         <View style={styles.successBanner}>
-          <Text style={styles.successText}>
-            {t('doctors_available')}
-          </Text>
+          <Text style={styles.successText}>{t('doctors_available')}</Text>
         </View>
 
         {/* Consultation Summary */}
@@ -152,7 +189,6 @@ export function ConsultationPayment({ navigation, route }) {
 
         {/* Payment Method Component */}
         <PaymentMethod
-          selectedPayment={selectedPayment}
           onPaymentChange={setSelectedPayment}
           cardholderName={cardholderName}
           onCardholderNameChange={setCardholderName}
@@ -176,6 +212,18 @@ export function ConsultationPayment({ navigation, route }) {
         />
       </View>
 
+      <SuccessMessageModal
+        visible={showErrorModal}
+        onClose={() => {
+          setShowErrorModal(false);
+          navigation.goBack();
+        }}
+        title={t('no_answer')}
+        description={t('no_answer_description')}
+        buttonTitle={t('request_for_refund')}
+        buttonPress={HandleRequest}
+      />
+
       <Modal
         visible={isLoading}
         transparent
@@ -184,9 +232,7 @@ export function ConsultationPayment({ navigation, route }) {
       >
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color={colors.white} />
-          <Text style={styles.loadingText}>
-            {t('finding_doctor')}
-          </Text>
+          <Text style={styles.loadingText}>{t('finding_doctor')}</Text>
         </View>
       </Modal>
     </SafeAreaView>

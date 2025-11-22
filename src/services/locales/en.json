@@ -137,6 +137,10 @@
   "all_services": "All Services",
   "search_services": "Search Services",
   "sort_by": "Sort by",
+  "newest_first": "Newest First",
+  "oldest_first": "Oldest First",
+  "highest_rating": "Highest Rating",
+  "lowest_rating": "Lowest Rating",
   "chat_with_vena_ai": "Chat with Vena AI",
   "credit_debit_card": "Credit/Debit Card",
   "apple_pay": "Apple Pay",
@@ -349,5 +353,23 @@
   "card_number": "Card Number",
   "enter_card_number": "Enter card number",
   "expiry_date": "Expiry Date",
-  "cvv": "CVV"
+  "cvv": "CVV",
+  "you_have":"You have",
+  "coins":"Coins",
+  "remaining":"Remaining",
+  "you_will_earn_10_coins_for_this_appointment":"You will earn 10 coins for this Appointment",
+  "redeem_points":"Redeem Points",
+  "enter_points":"Enter Points",
+  "one_time_payment":"ONE TIME PAYMENT",
+  "request_send":"Request Sent!",
+  "request_sent_description":"Your payment was successful, and your appointment request has been sent. The clinic will contact you to confirm the date and time.",
+  "okay":"Okay",
+  "payment_failed":"Payment Failed!",
+  "payment_failed_Description":"There was an issue processing your payment. Please try again or use a different payment method."
+,
+  "no_answer":"No Answer!",
+  "no_answer_description":"The doctor couldn’t respond to your consultation request. You can request a refund for your payment.",
+  "request_submit":"Request Submit successfully! You’ll receive your payment with in 24 hours.",
+  "save":"Save"
+
 }

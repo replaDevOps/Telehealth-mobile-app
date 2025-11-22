@@ -256,9 +256,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     gap: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-    backgroundColor: '#FFFFFF',
+    marginBottom: 20,
   },
   addToCartButton: {
     flex: 1,
@@ -272,7 +270,7 @@ const styles = StyleSheet.create({
   addToCartText: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.primary,
+    color: colors.black,
   },
   checkoutButton: {
     flex: 1,

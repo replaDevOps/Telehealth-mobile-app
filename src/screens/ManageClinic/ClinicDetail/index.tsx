@@ -10,7 +10,7 @@ import {
 } from '@components/molecules';
 import { ClinicInfo } from '@components/molecules/ClinicInfo';
 import { colors } from '../../../styles/colors';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, ScrollView, TouchableOpacity, Text } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { ClinicProfile } from '@assets/images';
@@ -19,6 +19,7 @@ import ConsultDoctorBottomSheet from '@components/molecules/ConsultDoctorBottomS
 import { styles } from './style';
 import { useCart } from '@context/CartContext'; // Import the cart hook
 import { useTranslation } from 'react-i18next';
+import { Dropdown } from 'react-native-element-dropdown';
 
 import {
   SERVICES,
@@ -39,10 +40,50 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
   const [selectedDevice, setSelectedDevice] = useState(null);
   const [deviceDetailVisible, setDeviceDetailVisible] = useState(false);
   const [showBottomSheet, setShowBottomSheet] = useState(false);
+  const [sortOption, setSortOption] = useState(t('newest_first'));
+  const [sortedReviews, setSortedReviews] = useState([]);
+  const [isFocus, setIsFocus] = useState(false);
 
   const services = SERVICES;
   const reviews = CLINIC_REVIEWS;
   const aboutData = CLINIC_ABOUT_DATA;
+
+  const sortData = [
+    { label: t('newest_first'), value: 'newest_first' },
+    { label: t('oldest_first'), value: 'oldest_first' },
+    { label: t('highest_rating'), value: 'highest_rating' },
+    { label: t('lowest_rating'), value: 'lowest_rating' },
+  ];
+
+  useEffect(() => {
+    sortReviews(sortOption);
+  }, [reviews, sortOption]);
+
+  const sortReviews = option => {
+    let sorted = [...reviews];
+    switch (option) {
+      case 'newest_first':
+        sorted.sort((a, b) => new Date(b.date) - new Date(a.date));
+        break;
+      case 'oldest_first':
+        sorted.sort((a, b) => new Date(a.date) - new Date(b.date));
+        break;
+      case 'highest_rating':
+        sorted.sort((a, b) => b.rating - a.rating);
+        break;
+      case 'lowest_rating':
+        sorted.sort((a, b) => a.rating - b.rating);
+        break;
+      default:
+        break;
+    }
+    setSortedReviews(sorted);
+  };
+
+  const handleSortChange = item => {
+    setSortOption(item.value);
+    setIsFocus(false);
+  };
 
   const handleApplyFilters = filters => {
     console.log('Applied filters:', filters);
@@ -192,19 +233,27 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
               <Text style={styles.reviewsTitle}>
                 {t('reviews')} ({reviews.length})
               </Text>
-              <TouchableOpacity style={styles.sortButton}>
-                <Text style={styles.sortText}>{t('sort_by')}</Text>
-                <Ionicons
-                  name="chevron-down"
-                  size={16}
-                  color={colors.primary}
-                />
-              </TouchableOpacity>
+              <Dropdown
+                style={[styles.dropdown, isFocus && { borderColor: 'blue' }]}
+                placeholderStyle={styles.placeholderStyle}
+                selectedTextStyle={styles.selectedTextStyle}
+                inputSearchStyle={styles.inputSearchStyle}
+                iconStyle={styles.iconStyle}
+                data={sortData}
+                maxHeight={300}
+                labelField="label"
+                valueField="value"
+                placeholder={!isFocus ? t('sort_by') : '...'}
+                value={sortOption}
+                onFocus={() => setIsFocus(true)}
+                onBlur={() => setIsFocus(false)}
+                onChange={handleSortChange}
+              />
             </View>
 
             {/* Reviews List */}
             <View style={styles.reviewsList}>
-              {reviews.map(review => (
+              {sortedReviews.map(review => (
                 <ReviewCard
                   key={review.id}
                   review={review}

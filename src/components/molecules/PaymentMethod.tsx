@@ -1,9 +1,68 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity } from 'react-native';
-import { ApplePaySvg, MastercardSvg, StcPaySvg } from '@assets/icons';
-import { StyleSheet } from 'react-native';
-import { colors } from '../../styles/colors'; // Adjust path as needed
+import React, { useState, useCallback, useMemo } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Image,
+  StyleSheet,
+} from 'react-native';
 import { useTranslation } from 'react-i18next';
+import {
+  ApplePaySvg,
+  MastercardSvg,
+  StcPaySvg,
+  TabbySvg,
+  TamaraSvg,
+} from '@assets/icons';
+import { coinIcon } from '@assets/images';
+import { colors } from '../../styles/colors';
+
+// Types
+type PaymentType = 'card' | 'digital' | 'installment';
+type PaymentMethodId = 'credit' | 'applepay' | 'stc' | 'tabby' | 'tamara';
+
+interface PaymentMethodOption {
+  id: PaymentMethodId;
+  label: string;
+  logo: React.ReactNode;
+  type: PaymentType;
+}
+
+interface PaymentMethodProps {
+  // Payment selection
+  selectedPayment?: PaymentMethodId;
+  onPaymentChange?: (payment: PaymentMethodId) => void;
+
+  // Card details
+  cardholderName?: string;
+  onCardholderNameChange?: (text: string) => void;
+  cardNumber?: string;
+  onCardNumberChange?: (text: string) => void;
+  expiryDate?: string;
+  onExpiryDateChange?: (text: string) => void;
+  cvv?: string;
+  onCvvChange?: (text: string) => void;
+
+  // Display options
+  showTitle?: boolean;
+  compact?: boolean;
+
+  // Royalty points
+  showRoyaltyPoints?: boolean;
+  royaltyPoints?: number;
+  pointsToRedeem?: string;
+  onPointsToRedeemChange?: (text: string) => void;
+  onRedeemPoints?: (points: string) => void;
+
+  // Coupon code
+  showCouponCode?: boolean;
+  couponCode?: string;
+  onCouponCodeChange?: (text: string) => void;
+  onApplyCoupon?: (code: string) => void;
+  couponError?: string;
+  couponSuccess?: string;
+}
 
 export function PaymentMethod({
   selectedPayment: externalSelectedPayment,
@@ -18,228 +77,501 @@ export function PaymentMethod({
   onCvvChange,
   showTitle = true,
   compact = false,
-}) {
+  showRoyaltyPoints = false,
+  royaltyPoints = 0,
+  pointsToRedeem: externalPointsToRedeem,
+  onPointsToRedeemChange,
+  showCouponCode = false,
+  couponCode: externalCouponCode,
+  onCouponCodeChange,
+  couponError = '',
+  couponSuccess = '',
+}: PaymentMethodProps) {
   const { t } = useTranslation();
-  // Use internal state if no external control provided
+
+  // Internal state (used when component is uncontrolled)
   const [internalSelectedPayment, setInternalSelectedPayment] =
-    useState('credit');
+    useState<PaymentMethodId>('credit');
   const [internalCardholderName, setInternalCardholderName] = useState('');
   const [internalCardNumber, setInternalCardNumber] = useState('');
   const [internalExpiryDate, setInternalExpiryDate] = useState('');
   const [internalCvv, setInternalCvv] = useState('');
+  const [internalPointsToRedeem, setInternalPointsToRedeem] = useState('');
+  const [internalCouponCode, setInternalCouponCode] = useState('');
 
-  // Use external props if provided, otherwise use internal state
-  const selectedPayment =
-    externalSelectedPayment !== undefined
-      ? externalSelectedPayment
-      : internalSelectedPayment;
-  const cardholderName =
-    externalCardholderName !== undefined
-      ? externalCardholderName
-      : internalCardholderName;
-  const cardNumber =
-    externalCardNumber !== undefined ? externalCardNumber : internalCardNumber;
-  const expiryDate =
-    externalExpiryDate !== undefined ? externalExpiryDate : internalExpiryDate;
-  const cvv = externalCvv !== undefined ? externalCvv : internalCvv;
+  // Payment method options
+  const paymentMethods = useMemo<PaymentMethodOption[]>(
+    () => [
+      {
+        id: 'credit',
+        label: t('credit_debit_card'),
+        logo: <MastercardSvg />,
+        type: 'card',
+      },
+      {
+        id: 'applepay',
+        label: t('apple_pay'),
+        logo: <ApplePaySvg />,
+        type: 'digital',
+      },
+      {
+        id: 'stc',
+        label: t('stc_pay'),
+        logo: <StcPaySvg />,
+        type: 'digital',
+      },
+      {
+        id: 'tabby',
+        label: t('tabby'),
+        logo: <TabbySvg />,
+        type: 'installment',
+      },
+      {
+        id: 'tamara',
+        label: t('tamara'),
+        logo: <TamaraSvg />,
+        type: 'installment',
+      },
+    ],
+    [t],
+  );
 
-  const handlePaymentSelect = paymentMethod => {
-    if (onPaymentChange) {
-      onPaymentChange(paymentMethod);
-    } else {
-      setInternalSelectedPayment(paymentMethod);
-    }
-  };
+  // Controlled/uncontrolled values
+  const selectedPayment = externalSelectedPayment ?? internalSelectedPayment;
+  const cardholderName = externalCardholderName ?? internalCardholderName;
+  const cardNumber = externalCardNumber ?? internalCardNumber;
+  const expiryDate = externalExpiryDate ?? internalExpiryDate;
+  const cvv = externalCvv ?? internalCvv;
+  const pointsToRedeem = externalPointsToRedeem ?? internalPointsToRedeem;
+  const couponCode = externalCouponCode ?? internalCouponCode;
 
-  const handleCardholderNameChange = text => {
-    if (onCardholderNameChange) {
-      onCardholderNameChange(text);
-    } else {
-      setInternalCardholderName(text);
-    }
-  };
+  // Filtered installment methods
+  const installmentMethods = useMemo(
+    () => paymentMethods.filter(method => method.type === 'installment'),
+    [paymentMethods],
+  );
 
-  const handleCardNumberChange = text => {
-    if (onCardNumberChange) {
-      onCardNumberChange(text);
-    } else {
-      setInternalCardNumber(text);
-    }
-  };
+  // Calculate remaining points
+  const remainingPoints = useMemo(() => {
+    const redeemed = parseInt(pointsToRedeem) || 0;
+    return Math.max(0, royaltyPoints - redeemed);
+  }, [royaltyPoints, pointsToRedeem]);
 
-  const handleExpiryDateChange = text => {
-    if (onExpiryDateChange) {
-      onExpiryDateChange(text);
-    } else {
-      setInternalExpiryDate(text);
-    }
-  };
+  // Event handlers
+  const handlePaymentSelect = useCallback(
+    (payment: PaymentMethodId) => {
+      onPaymentChange?.(payment) ?? setInternalSelectedPayment(payment);
+    },
+    [onPaymentChange],
+  );
 
-  const handleCvvChange = text => {
-    if (onCvvChange) {
-      onCvvChange(text);
-    } else {
-      setInternalCvv(text);
-    }
-  };
+  const handleCardholderNameChange = useCallback(
+    (text: string) => {
+      onCardholderNameChange?.(text) ?? setInternalCardholderName(text);
+    },
+    [onCardholderNameChange],
+  );
 
-  const getPaymentData = () => {
-    return {
-      selectedPayment,
-      cardholderName,
-      cardNumber,
-      expiryDate,
-      cvv,
-    };
-  };
+  const handleCardNumberChange = useCallback(
+    (text: string) => {
+      onCardNumberChange?.(text) ?? setInternalCardNumber(text);
+    },
+    [onCardNumberChange],
+  );
+
+  const handleExpiryDateChange = useCallback(
+    (text: string) => {
+      onExpiryDateChange?.(text) ?? setInternalExpiryDate(text);
+    },
+    [onExpiryDateChange],
+  );
+
+  const handleCvvChange = useCallback(
+    (text: string) => {
+      onCvvChange?.(text) ?? setInternalCvv(text);
+    },
+    [onCvvChange],
+  );
+
+  const handlePointsToRedeemChange = useCallback(
+    (text: string) => {
+      onPointsToRedeemChange?.(text) ?? setInternalPointsToRedeem(text);
+    },
+    [onPointsToRedeemChange],
+  );
+
+  const handleCouponCodeChange = useCallback(
+    (text: string) => {
+      onCouponCodeChange?.(text) ?? setInternalCouponCode(text);
+    },
+    [onCouponCodeChange],
+  );
 
   return (
-    <View style={[styles.paymentSection, compact && styles.compactSection]}>
-      {showTitle && (
-        <Text style={styles.sectionTitle}>{t('payment_method')}</Text>
+    <View style={[styles.container, compact && styles.containerCompact]}>
+      {showTitle && <Text style={styles.title}>{t('payment_method')}</Text>}
+
+      {/* Royalty Points Section */}
+      {showRoyaltyPoints && (
+        <RoyaltyPointsSection
+          royaltyPoints={royaltyPoints}
+          pointsToRedeem={pointsToRedeem}
+          remainingPoints={remainingPoints}
+          onPointsChange={handlePointsToRedeemChange}
+          t={t}
+        />
       )}
 
+      {/* One-time Payment Section */}
+      <Text style={styles.sectionLabel}>{t('one_time_payment')}</Text>
+
       {/* Credit/Debit Card */}
-      <TouchableOpacity
-        style={[
-          styles.paymentOption,
-          selectedPayment === 'credit' && styles.paymentOptionSelected,
-        ]}
-        onPress={() => handlePaymentSelect('credit')}
-      >
-        <View style={styles.paymentLeft}>
-          <View style={styles.radioOuter}>
-            {selectedPayment === 'credit' && <View style={styles.radioInner} />}
-          </View>
-          <Text style={styles.paymentLabel}>{t('credit_debit_card')}</Text>
-        </View>
-        <View style={styles.cardLogos}>
-          <MastercardSvg />
-        </View>
-      </TouchableOpacity>
+      <PaymentOption
+        id="credit"
+        label={t('credit_debit_card')}
+        logo={<MastercardSvg />}
+        isSelected={selectedPayment === 'credit'}
+        onSelect={handlePaymentSelect}
+      />
 
-      {/* Card Details Form */}
       {selectedPayment === 'credit' && (
-        <View style={styles.cardForm}>
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>{t('cardholder_name')}</Text>
-            <TextInput
-              style={styles.input}
-              placeholder={t('enter_cardholder_name')}
-              placeholderTextColor="#9ca3af"
-              value={cardholderName}
-              onChangeText={handleCardholderNameChange}
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>{t('card_number')}</Text>
-            <TextInput
-              style={styles.input}
-              placeholder={t('enter_card_number')}
-              placeholderTextColor="#9ca3af"
-              value={cardNumber}
-              onChangeText={handleCardNumberChange}
-              keyboardType="numeric"
-            />
-          </View>
-
-          <View style={styles.inputRow}>
-            <View style={[styles.inputGroup, styles.inputGroupHalf]}>
-              <Text style={styles.inputLabel}>{t('expiry_date')}</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="01/2025"
-                placeholderTextColor="#9ca3af"
-                value={expiryDate}
-                onChangeText={handleExpiryDateChange}
-                keyboardType="numeric"
-              />
-            </View>
-
-            <View style={[styles.inputGroup, styles.inputGroupHalf]}>
-              <Text style={styles.inputLabel}>CVV</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="000"
-                placeholderTextColor="#9ca3af"
-                value={cvv}
-                onChangeText={handleCvvChange}
-                keyboardType="numeric"
-                maxLength={3}
-                secureTextEntry
-              />
-            </View>
-          </View>
-        </View>
+        <CardDetailsForm
+          cardholderName={cardholderName}
+          cardNumber={cardNumber}
+          expiryDate={expiryDate}
+          cvv={cvv}
+          onCardholderNameChange={handleCardholderNameChange}
+          onCardNumberChange={handleCardNumberChange}
+          onExpiryDateChange={handleExpiryDateChange}
+          onCvvChange={handleCvvChange}
+          t={t}
+        />
       )}
 
       {/* Apple Pay */}
-      <TouchableOpacity
-        style={[
-          styles.paymentOption,
-          selectedPayment === 'applepay' && styles.paymentOptionSelected,
-        ]}
-        onPress={() => handlePaymentSelect('applepay')}
-      >
-        <View style={styles.paymentLeft}>
-          <View style={styles.radioOuter}>
-            {selectedPayment === 'applepay' && (
-              <View style={styles.radioInner} />
-            )}
-          </View>
-          <Text style={styles.paymentLabel}>{t('apple_pay')}</Text>
-        </View>
-        <ApplePaySvg />
-      </TouchableOpacity>
+      <PaymentOption
+        id="applepay"
+        label={t('apple_pay')}
+        logo={<ApplePaySvg />}
+        isSelected={selectedPayment === 'applepay'}
+        onSelect={handlePaymentSelect}
+      />
 
       {/* STC Pay */}
-      <TouchableOpacity
-        style={[
-          styles.paymentOption,
-          selectedPayment === 'stc' && styles.paymentOptionSelected,
-        ]}
-        onPress={() => handlePaymentSelect('stc')}
-      >
-        <View style={styles.paymentLeft}>
-          <View style={styles.radioOuter}>
-            {selectedPayment === 'stc' && <View style={styles.radioInner} />}
-          </View>
-          <Text style={styles.paymentLabel}>{t('stc_pay')}</Text>
+      <PaymentOption
+        id="stc"
+        label={t('stc_pay')}
+        logo={<StcPaySvg />}
+        isSelected={selectedPayment === 'stc'}
+        onSelect={handlePaymentSelect}
+      />
+
+      {/* Installment Methods */}
+      {installmentMethods.length > 0 && (
+        <View style={styles.installmentSection}>
+          <Text style={styles.installmentLabel}>
+            {t('pay_in_installments')}
+          </Text>
+          {installmentMethods.map(method => (
+            <PaymentOption
+              key={method.id}
+              id={method.id}
+              label={method.label}
+              logo={method.logo}
+              isSelected={selectedPayment === method.id}
+              onSelect={handlePaymentSelect}
+            />
+          ))}
         </View>
-        <StcPaySvg />
-      </TouchableOpacity>
+      )}
+
+      {/* Coupon Code Section */}
+      {showCouponCode && (
+        <CouponCodeSection
+          couponCode={couponCode}
+          couponError={couponError}
+          couponSuccess={couponSuccess}
+          onCouponCodeChange={handleCouponCodeChange}
+          t={t}
+        />
+      )}
+    </View>
+  );
+}
+
+// Sub-components for better organization
+
+interface PaymentOptionProps {
+  id: PaymentMethodId;
+  label: string;
+  logo: React.ReactNode;
+  isSelected: boolean;
+  onSelect: (id: PaymentMethodId) => void;
+}
+
+function PaymentOption({
+  id,
+  label,
+  logo,
+  isSelected,
+  onSelect,
+}: PaymentOptionProps) {
+  return (
+    <TouchableOpacity
+      style={[styles.paymentOption, isSelected && styles.paymentOptionSelected]}
+      onPress={() => onSelect(id)}
+      activeOpacity={0.7}
+    >
+      <View style={styles.paymentLeft}>
+        <View style={styles.radioOuter}>
+          {isSelected && <View style={styles.radioInner} />}
+        </View>
+        <Text style={styles.paymentLabel}>{label}</Text>
+      </View>
+      {logo}
+    </TouchableOpacity>
+  );
+}
+
+interface CardDetailsFormProps {
+  cardholderName: string;
+  cardNumber: string;
+  expiryDate: string;
+  cvv: string;
+  onCardholderNameChange: (text: string) => void;
+  onCardNumberChange: (text: string) => void;
+  onExpiryDateChange: (text: string) => void;
+  onCvvChange: (text: string) => void;
+  t: (key: string) => string;
+}
+
+function CardDetailsForm({
+  cardholderName,
+  cardNumber,
+  expiryDate,
+  cvv,
+  onCardholderNameChange,
+  onCardNumberChange,
+  onExpiryDateChange,
+  onCvvChange,
+  t,
+}: CardDetailsFormProps) {
+  return (
+    <View style={styles.cardForm}>
+      <View style={styles.inputGroup}>
+        <Text style={styles.inputLabel}>{t('cardholder_name')}</Text>
+        <TextInput
+          style={styles.input}
+          placeholder={t('enter_cardholder_name')}
+          placeholderTextColor="#9ca3af"
+          value={cardholderName}
+          onChangeText={onCardholderNameChange}
+          autoCapitalize="words"
+        />
+      </View>
+
+      <View style={styles.inputGroup}>
+        <Text style={styles.inputLabel}>{t('card_number')}</Text>
+        <TextInput
+          style={styles.input}
+          placeholder={t('enter_card_number')}
+          placeholderTextColor="#9ca3af"
+          value={cardNumber}
+          onChangeText={onCardNumberChange}
+          keyboardType="numeric"
+          maxLength={19}
+        />
+      </View>
+
+      <View style={styles.inputRow}>
+        <View style={[styles.inputGroup, styles.inputHalf]}>
+          <Text style={styles.inputLabel}>{t('expiry_date')}</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="01/2025"
+            placeholderTextColor="#9ca3af"
+            value={expiryDate}
+            onChangeText={onExpiryDateChange}
+            keyboardType="numeric"
+            maxLength={7}
+          />
+        </View>
+
+        <View style={[styles.inputGroup, styles.inputHalf]}>
+          <Text style={styles.inputLabel}>CVV</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="000"
+            placeholderTextColor="#9ca3af"
+            value={cvv}
+            onChangeText={onCvvChange}
+            keyboardType="numeric"
+            maxLength={3}
+            secureTextEntry
+          />
+        </View>
+      </View>
+    </View>
+  );
+}
+
+interface RoyaltyPointsSectionProps {
+  royaltyPoints: number;
+  pointsToRedeem: string;
+  remainingPoints: number;
+  onPointsChange: (text: string) => void;
+  t: (key: string) => string;
+}
+
+function RoyaltyPointsSection({
+  royaltyPoints,
+  pointsToRedeem,
+  remainingPoints,
+  onPointsChange,
+  t,
+}: RoyaltyPointsSectionProps) {
+  return (
+    <View style={styles.royaltySection}>
+      <View style={styles.royaltyHeader}>
+        <Text style={styles.royaltyTitle}>{t('royalty_points')}</Text>
+        <View style={styles.royaltyBadge}>
+          <View style={styles.pointsBadge}>
+            <Image source={coinIcon} style={styles.coinIcon} />
+            <Text style={styles.pointsValue}>{royaltyPoints}</Text>
+          </View>
+          <Text style={styles.conversionRate}>100 {t('coins')} = 5 SAR</Text>
+        </View>
+      </View>
+
+      <View style={styles.inputGroup}>
+        <Text style={styles.inputLabel}>{t('redeem_points')}</Text>
+        <TextInput
+          style={styles.input}
+          placeholder={t('enter_points')}
+          placeholderTextColor="#9ca3af"
+          value={pointsToRedeem}
+          onChangeText={onPointsChange}
+          keyboardType="numeric"
+        />
+        <Text style={styles.royaltySubtext}>
+          {t('you_have')} {royaltyPoints} {t('coins')}. {t('remaining')}{' '}
+          {remainingPoints} SAR
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+interface CouponCodeSectionProps {
+  couponCode: string;
+  couponError: string;
+  couponSuccess: string;
+  onCouponCodeChange: (text: string) => void;
+  t: (key: string) => string;
+}
+
+function CouponCodeSection({
+  couponCode,
+  couponError,
+  couponSuccess,
+  onCouponCodeChange,
+  t,
+}: CouponCodeSectionProps) {
+  return (
+    <View style={styles.couponSection}>
+      <Text style={styles.inputLabel}>
+        {t('coupon_code')} ({t('optional')})
+      </Text>
+      <TextInput
+        style={[styles.input, couponError && styles.inputError]}
+        placeholder={t('enter_coupon_code')}
+        placeholderTextColor="#9ca3af"
+        value={couponCode}
+        onChangeText={onCouponCodeChange}
+        autoCapitalize="characters"
+      />
+      {couponError && <Text style={styles.errorText}>{couponError}</Text>}
+      {couponSuccess && <Text style={styles.successText}>{couponSuccess}</Text>}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  paymentSection: {
+  container: {
     backgroundColor: colors.white,
     borderRadius: 12,
     padding: 16,
     marginHorizontal: 16,
     marginTop: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
   },
-  compactSection: {
+  containerCompact: {
     marginHorizontal: 0,
     marginTop: 8,
     padding: 12,
   },
-  sectionTitle: {
+  title: {
     fontSize: 18,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 16,
   },
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B7280',
+    textTransform: 'uppercase',
+    marginBottom: 12,
+    letterSpacing: 0.5,
+  },
+
+  // Royalty Points
+  royaltySection: {
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  royaltyHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  royaltyTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.secondaryText,
+    textTransform: 'uppercase',
+  },
+  royaltyBadge: {
+    alignItems: 'flex-end',
+    gap: 4,
+  },
+  pointsBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  coinIcon: {
+    width: 20,
+    height: 20,
+    marginRight: 8,
+  },
+  pointsValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.yellow,
+  },
+  conversionRate: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.secondaryText,
+  },
+  royaltySubtext: {
+    fontSize: 12,
+    color: '#8B7355',
+    marginTop: 4,
+  },
+
+  // Payment Options
   paymentOption: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -280,21 +612,19 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: colors.text,
   },
-  cardLogos: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
+
+  // Card Form
   cardForm: {
-    marginTop: 12,
+    marginTop: 8,
+    marginBottom: 8,
     padding: 12,
     backgroundColor: colors.white,
     borderRadius: 8,
-    marginBottom: 8,
     borderWidth: 1,
     borderColor: colors.border,
   },
   inputGroup: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   inputLabel: {
     fontSize: 14,
@@ -311,11 +641,48 @@ const styles = StyleSheet.create({
     color: colors.text,
     backgroundColor: colors.gray,
   },
+  inputError: {
+    borderColor: '#EF4444',
+  },
   inputRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: 8,
   },
-  inputGroupHalf: {
-    width: '48%',
+  inputHalf: {
+    flex: 1,
+  },
+
+  // Installment Section
+  installmentSection: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  installmentLabel: {
+    fontSize: 11,
+    fontWeight: '400',
+    color: colors.secondaryText,
+    letterSpacing: 0.5,
+    marginBottom: 12,
+  },
+
+  // Coupon Section
+  couponSection: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  errorText: {
+    fontSize: 12,
+    color: '#EF4444',
+    marginTop: 4,
+  },
+  successText: {
+    fontSize: 12,
+    color: '#10B981',
+    marginTop: 4,
   },
 });

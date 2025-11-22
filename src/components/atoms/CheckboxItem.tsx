@@ -3,7 +3,12 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
-export const CheckboxItem = ({ label, checked, onPress, lableTextStyle }) => {
+export const CheckboxItem = ({
+  label,
+  checked,
+  onPress,
+  labelTextStyle = {},
+}) => {
   return (
     <TouchableOpacity
       style={styles.checkboxContainer}
@@ -13,8 +18,9 @@ export const CheckboxItem = ({ label, checked, onPress, lableTextStyle }) => {
       <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
         {checked && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
       </View>
+
       <View style={styles.labelContainer}>
-        <Text style={[styles.label, lableTextStyle]}>{label}</Text>
+        <Text style={[styles.label, labelTextStyle]}>{label}</Text>
       </View>
     </TouchableOpacity>
   );

@@ -272,7 +272,20 @@ export function ChatScreen({ navigation, route }) {
 
         <TouchableOpacity
           style={styles.consultButton}
-          onPress={() => setShowBottomSheet(true)}
+          onPress={() =>
+            chatType === 'doctor'
+              ? navigation.navigate('ClinicDetail', {
+                  clinic: {
+                    id: `clinic_${Date.now()}`,
+                    name: 'AI Health Clinic',
+                    location: 'None',
+                    image: RecommandImage,
+                    specialty: 'General',
+                    rating: 3,
+                  },
+                })
+              : setShowBottomSheet(true)
+          }
         >
           <Text style={styles.consultButtonText}>
             {chatType === 'doctor' ? t('visit') : t('consult_now')}

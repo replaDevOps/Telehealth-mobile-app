@@ -6,6 +6,7 @@ import { colors } from './src/styles/colors';
 import { setGlobalFont } from './src/utils/overrideText';
 import { CartProvider } from '@context/CartContext';
 import './src/services/i18n';
+import { Provider as PaperProvider } from 'react-native-paper';
 
 setGlobalFont();
 
@@ -18,11 +19,11 @@ const App = () => {
         barStyle="dark-content"
       />
       {/* <SafeAreaView style={styles.safeArea}> */}
-
-      <CartProvider>
-        <AppNavigator />
-      </CartProvider>
-
+      <PaperProvider>
+        <CartProvider>
+          <AppNavigator />
+        </CartProvider>
+      </PaperProvider>
       {/* </SafeAreaView> */}
     </SafeAreaProvider>
   );

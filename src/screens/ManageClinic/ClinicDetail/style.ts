@@ -62,6 +62,7 @@ export const styles = StyleSheet.create({
     reviewsContent: {
       flex: 1,
       padding: 16,
+      paddingBottom:80,
       marginBottom: 16,
     },
     reviewsHeader: {
@@ -144,5 +145,32 @@ export const styles = StyleSheet.create({
     devicesScroll: {
       paddingRight: 16,
       gap: 12,
+    },
+    dropdown: {
+      height: 40,
+      borderColor: colors.border,
+      borderWidth: 1,
+      borderRadius: 8,
+      paddingHorizontal: 8,
+      width: 150,
+      backgroundColor: colors.lightGray,
+      paddingVertical: 6,
+    },
+    placeholderStyle: {
+      fontSize: 14,
+      color: colors.secondaryText,
+    },
+    selectedTextStyle: {
+      fontSize: 14,
+      color: colors.primary,
+      fontWeight: '500',
+    },
+    iconStyle: {
+      width: 20,
+      height: 20,
+    },
+    inputSearchStyle: {
+      height: 40,
+      fontSize: 16,
     },
   });

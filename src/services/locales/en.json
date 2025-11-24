@@ -372,6 +372,9 @@
   "no_answer":"No Answer!",
   "no_answer_description":"The doctor couldn’t respond to your consultation request. You can request a refund for your payment.",
   "request_submit":"Request Submit successfully! You’ll receive your payment with in 24 hours.",
-  "save":"Save"
+  "save":"Save",
+  "Chat":"Chat",
+  "Audio":"Audio",
+  "Video":"Video"
 
 }

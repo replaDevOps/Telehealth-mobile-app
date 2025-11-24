@@ -1,8 +1,7 @@
 import React from 'react';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { StatusBar, StyleSheet } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { StatusBar } from 'react-native';
 import AppNavigator from './src/navigation/root-navigation';
-import { colors } from './src/styles/colors';
 import { setGlobalFont } from './src/utils/overrideText';
 import { CartProvider } from '@context/CartContext';
 import './src/services/i18n';
@@ -18,22 +17,13 @@ const App = () => {
         translucent={false}
         barStyle="dark-content"
       />
-      {/* <SafeAreaView style={styles.safeArea}> */}
       <PaperProvider>
         <CartProvider>
           <AppNavigator />
         </CartProvider>
       </PaperProvider>
-      {/* </SafeAreaView> */}
     </SafeAreaProvider>
   );
 };
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.white,
-  },
-});
 
 export default App;

@@ -9,7 +9,6 @@ import { CustomButton } from '../../../components/common/CustomButton';
 import { useNavigation } from '@react-navigation/native';
 import { LanguageSelection } from '@assets/images';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors } from '../../../styles/colors';
 import { useTranslation } from 'react-i18next';
 
 export function LanguageScreen() {
@@ -21,9 +20,7 @@ export function LanguageScreen() {
   };
 
   return (
-    <SafeAreaView
-      style={styles.safeArea}
-    >
+    <SafeAreaView style={styles.safeArea}>
       <Header2 title="" back={false} />
 
       <ScrollView contentContainerStyle={styles.container}>
@@ -35,9 +32,7 @@ export function LanguageScreen() {
               <CustomText text={t('select_language')} />
             </View>
             <View style={styles.content}>
-              <Text style={styles.TextContent}>
-                {t('choose_language')}
-              </Text>
+              <Text style={styles.TextContent}>{t('choose_language')}</Text>
             </View>
           </View>
 

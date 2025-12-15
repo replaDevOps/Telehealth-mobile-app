@@ -21,6 +21,13 @@ import { CustomTextInput } from '../../../components/common/CustomTextInput';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import parsePhoneNumberFromString from 'libphonenumber-js';
 import { useTranslation } from 'react-i18next';
+import postData from '@services/api/post-data';
+import { Toast } from 'toastify-react-native';
+
+const API_ENDPOINTS = {
+  LOGIN_WITH_EMAIL: '/patient-auth/login-email',
+  LOGIN_WITH_PHONE: '/patient-auth/login-phone',
+};
 
 export function SignInScreen({ navigation }) {
   const { t } = useTranslation();
@@ -31,7 +38,6 @@ export function SignInScreen({ navigation }) {
   const [rememberError, setRememberError] = useState(false);
   const [countryCode, setCountryCode] = useState('PK');
   const [phoneError, setPhoneError] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
   const [isPhoneValid, setIsPhoneValid] = useState(false);
   const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState('');
@@ -42,7 +48,7 @@ export function SignInScreen({ navigation }) {
     ? `+${phoneNumber.countryCallingCode}${phoneNumber.nationalNumber}`
     : `+${phone}`;
 
-  const handleSignIn = () => {
+  const handleSignIn = async () => {
     let valid = true;
 
     if (selectedTab === 'email') {
@@ -62,15 +68,26 @@ export function SignInScreen({ navigation }) {
       valid = false;
     } else setPasswordError('');
 
-    if (!isChecked) {
-      setRememberError(true);
-      valid = false;
-    } else {
-      setRememberError(false);
-    }
-
-    if (valid && isChecked) {
-      navigation.navigate('Main', { screen: 'Home' });
+    if (valid) {
+      // navigation.navigate('Main', { screen: 'Home' });
+      try {
+        const endpoint =
+          selectedTab === 'email'
+            ? API_ENDPOINTS.LOGIN_WITH_EMAIL
+            : API_ENDPOINTS.LOGIN_WITH_PHONE;
+        const response = await postData(endpoint, {
+          ...(selectedTab === 'email' ? { email: email } : { phone: phone }),
+          password: password,
+        });
+        console.log(response);
+        if (response.status === 200) {
+          Toast.success(response.data.message);
+        } else {
+          Toast.error(response.data.message);
+        }
+      } catch (error: any) {
+        Toast.error(error.message);
+      }
     }
   };
 
@@ -95,9 +112,7 @@ export function SignInScreen({ navigation }) {
             <CustomText text={t('welcome_back')} />
           </View>
           <View style={styles.content}>
-            <Text style={styles.TextContent}>
-              {t('login_continue')}
-            </Text>
+            <Text style={styles.TextContent}>{t('login_continue')}</Text>
           </View>
 
           <View style={styles.tabContainer}>
@@ -158,7 +173,6 @@ export function SignInScreen({ navigation }) {
                   countryCode={countryCode}
                   setCountryCode={setCountryCode}
                   phoneError={phoneError}
-                  errorMessage={errorMessage}
                   onValidationChange={setIsPhoneValid}
                   CustomStyle={{ backgroundColor: colors.white }}
                 />

@@ -6,6 +6,7 @@ import { setGlobalFont } from './src/utils/overrideText';
 import { CartProvider } from '@context/CartContext';
 import './src/services/i18n';
 import { Provider as PaperProvider } from 'react-native-paper';
+import ToastManager from 'toastify-react-native'
 
 setGlobalFont();
 
@@ -16,12 +17,13 @@ const App = () => {
         backgroundColor="transparent"
         translucent={false}
         barStyle="dark-content"
-      />
+        />
       <PaperProvider>
         <CartProvider>
           <AppNavigator />
         </CartProvider>
       </PaperProvider>
+        <ToastManager/>
     </SafeAreaProvider>
   );
 };

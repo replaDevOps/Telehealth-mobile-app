@@ -104,8 +104,8 @@ export function SignInScreen({ navigation }) {
         tab === 'email' ? API_ENDPOINTS.EMAIL : API_ENDPOINTS.PHONE;
 
       const { data } = await apiClient.post(endpoint, payload);
-
       Toast.success(data.message);
+      navigation.replace('Main', { screen: 'Home' });
       setMeta({ ...meta, loading: false });
     } catch (error: any) {
       Toast.error(error.message);

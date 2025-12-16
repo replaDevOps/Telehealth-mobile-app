@@ -7,22 +7,22 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { colors } from '../../../styles/colors';
-import { mvs } from '../../../config/metrices';
-import { CustomButton } from '../../../components/common/CustomButton';
-import { Header2 } from '../../../components/common/Header2';
+import { mvs } from '@config/metrices';
+import { CustomButton } from '@components/common/CustomButton';
+import { Header2 } from '@components/common/Header2';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AntDesign from 'react-native-vector-icons/AntDesign';
-import { GoogleSvg, LogoSvg } from '../../../assets/icons';
-import { CustomText } from '../../../components/common/CustomText';
-import PhoneNumberInput from '../../../components/common/PhoneTextInput';
+import { GoogleSvg, LogoSvg } from '@assets/icons';
+import { CustomText } from '@components/common/CustomText';
+import PhoneNumberInput from '@components/common/PhoneTextInput';
 import { styles } from './style';
-import { CustomTextInput } from '../../../components/common/CustomTextInput';
+import { CustomTextInput } from '@components/common/CustomTextInput';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import parsePhoneNumberFromString, { CountryCode } from 'libphonenumber-js';
 import { useTranslation } from 'react-i18next';
 import { Toast } from 'toastify-react-native';
 import { apiClient } from '@services/api/api-client';
+import { colors } from '../../../styles/colors';
 
 const API_ENDPOINTS = {
   EMAIL: '/patient-auth/login-email',

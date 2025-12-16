@@ -10,13 +10,19 @@ import { useNavigation } from '@react-navigation/native';
 import { LanguageSelection } from '@assets/images';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import { storeData } from '../../../utils';
 
 export function LanguageScreen() {
   const navigation = useNavigation();
   const { t, i18n } = useTranslation();
 
-  const handleNext = () => {
-    navigation.navigate('Auth', { screen: 'Onboarding' });
+  const handleNext = async () => {
+    try {
+      await storeData('selectedLanguage', i18n.language);
+      navigation.navigate('Auth', { screen: 'Onboarding' });
+    } catch (e) {
+      console.error('Failed to persist language to async storage', e);
+    }
   };
 
   return (
@@ -72,7 +78,10 @@ export function LanguageScreen() {
         </View>
       </ScrollView>
       <View style={styles.button}>
-        <CustomButton title={t('next')} onPress={handleNext} />
+        <CustomButton
+          title={t('next')}
+          onPress={handleNext}
+        />
       </View>
     </SafeAreaView>
   );

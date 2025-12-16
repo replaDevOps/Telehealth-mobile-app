@@ -1,26 +1,38 @@
-// api-client.ts
-import axios from 'axios';
-import { useAuthStore } from '@store';
+// services/api/api-client.ts
+import axios, { AxiosError } from 'axios';
 import { BASE_URL } from '@constants';
+import { useAuthStore } from '@store';
 
-const apiClient = axios.create({
+export const apiClient = axios.create({
   baseURL: BASE_URL,
+  timeout: 15000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
 apiClient.interceptors.request.use(config => {
-  const { auth } = useAuthStore.getState();
+  const token = useAuthStore.getState().auth?.token;
 
-  if (auth?.token) {
-    config.headers.Authorization = `Bearer ${auth.token}`;
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
 
   return config;
 });
 
-
 apiClient.interceptors.response.use(
   response => response,
-  error => Promise.reject(error),
-);
+  (error: AxiosError<any>) => {
+    const normalizedError = {
+      status: error.response?.status,
+      message:
+        error.response?.data?.message ||
+        error.message ||
+        'Something went wrong',
+      data: error.response?.data,
+    };
 
-export default apiClient;
+    return Promise.reject(normalizedError);
+  },
+);

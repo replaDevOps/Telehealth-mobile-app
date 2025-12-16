@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -19,75 +19,97 @@ import PhoneNumberInput from '../../../components/common/PhoneTextInput';
 import { styles } from './style';
 import { CustomTextInput } from '../../../components/common/CustomTextInput';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import parsePhoneNumberFromString from 'libphonenumber-js';
+import parsePhoneNumberFromString, { CountryCode } from 'libphonenumber-js';
 import { useTranslation } from 'react-i18next';
-import postData from '@services/api/post-data';
 import { Toast } from 'toastify-react-native';
+import { apiClient } from '@services/api/api-client';
 
 const API_ENDPOINTS = {
-  LOGIN_WITH_EMAIL: '/patient-auth/login-email',
-  LOGIN_WITH_PHONE: '/patient-auth/login-phone',
+  EMAIL: '/patient-auth/login-email',
+  PHONE: '/patient-auth/login-phone',
 };
+
+type TabType = 'email' | 'phone';
 
 export function SignInScreen({ navigation }) {
   const { t } = useTranslation();
-  const [selectedTab, setSelectedTab] = useState<'email' | 'phone'>('email');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [isChecked, setIsChecked] = useState(false);
-  const [rememberError, setRememberError] = useState(false);
-  const [countryCode, setCountryCode] = useState('PK');
-  const [phoneError, setPhoneError] = useState('');
-  const [isPhoneValid, setIsPhoneValid] = useState(false);
-  const [password, setPassword] = useState('');
-  const [emailError, setEmailError] = useState('');
-  const [passwordError, setPasswordError] = useState('');
 
-  const phoneNumber = parsePhoneNumberFromString(phone, countryCode);
-  const formattedPhone = phoneNumber
-    ? `+${phoneNumber.countryCallingCode}${phoneNumber.nationalNumber}`
-    : `+${phone}`;
+  const [tab, setTab] = useState<TabType>('email');
+  const [form, setForm] = useState({
+    email: '',
+    phone: '',
+    password: '',
+  });
 
-  const handleSignIn = async () => {
-    let valid = true;
+  const [errors, setErrors] = useState({
+    email: '',
+    phone: '',
+    password: '',
+  });
 
-    if (selectedTab === 'email') {
-      if (!email.trim() || !email.includes('@')) {
-        setEmailError(t('invalid_email'));
-        valid = false;
-      } else setEmailError('');
-    } else {
-      if (!phone.trim() || !isPhoneValid) {
-        setPhoneError(t('invalid_phone'));
-        valid = false;
-      } else setPhoneError('');
+  const [meta, setMeta] = useState({
+    remember: false,
+    rememberError: false,
+    countryCode: 'PK' as CountryCode,
+    isPhoneValid: false,
+    loading: false,
+  });
+
+  const formattedPhone = useMemo(() => {
+    if (!form.phone || typeof form.phone !== 'string') {
+      return '';
     }
 
-    if (!password.trim()) {
-      setPasswordError(t('password_required'));
-      valid = false;
-    } else setPasswordError('');
+    const parsed = parsePhoneNumberFromString(form.phone, meta.countryCode);
 
-    if (valid) {
-      // navigation.navigate('Main', { screen: 'Home' });
-      try {
-        const endpoint =
-          selectedTab === 'email'
-            ? API_ENDPOINTS.LOGIN_WITH_EMAIL
-            : API_ENDPOINTS.LOGIN_WITH_PHONE;
-        const response = await postData(endpoint, {
-          ...(selectedTab === 'email' ? { email: email } : { phone: phone }),
-          password: password,
-        });
-        console.log(response);
-        if (response.status === 200) {
-          Toast.success(response.data.message);
-        } else {
-          Toast.error(response.data.message);
-        }
-      } catch (error: any) {
-        Toast.error(error.message);
-      }
+    if (!parsed) return '';
+
+    return `+${parsed.countryCallingCode}${parsed.nationalNumber}`;
+  }, [form.phone, meta.countryCode]);
+
+  const validate = (): boolean => {
+    const nextErrors = { email: '', phone: '', password: '' };
+    let valid = true;
+
+    if (tab === 'email' && (!form.email || !form.email.includes('@'))) {
+      nextErrors.email = t('invalid_email');
+      valid = false;
+    }
+
+    if (tab === 'phone' && (!form.phone || !meta.isPhoneValid)) {
+      nextErrors.phone = t('invalid_phone');
+      valid = false;
+    }
+
+    if (!form.password) {
+      nextErrors.password = t('password_required');
+      valid = false;
+    }
+
+    setErrors(nextErrors);
+    return valid;
+  };
+
+  const handleSignIn = async () => {
+    setMeta({ ...meta, loading: true });
+    if (!validate()) return;
+
+    try {
+      const payload =
+        tab === 'email'
+          ? { email: form.email, password: form.password }
+          : { phone: formattedPhone, password: form.password };
+
+      const endpoint =
+        tab === 'email' ? API_ENDPOINTS.EMAIL : API_ENDPOINTS.PHONE;
+
+      const { data } = await apiClient.post(endpoint, payload);
+
+      Toast.success(data.message);
+      setMeta({ ...meta, loading: false });
+    } catch (error: any) {
+      Toast.error(error.message);
+      setMeta({ ...meta, loading: false });
     }
   };
 
@@ -115,65 +137,46 @@ export function SignInScreen({ navigation }) {
             <Text style={styles.TextContent}>{t('login_continue')}</Text>
           </View>
 
+          {/* Tabs */}
           <View style={styles.tabContainer}>
-            <TouchableOpacity
-              style={[
-                styles.tabButton,
-                selectedTab === 'email' && styles.activeTab,
-              ]}
-              onPress={() => setSelectedTab('email')}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: selectedTab === 'email' }}
-            >
-              <Text
-                style={[
-                  styles.tabText,
-                  selectedTab === 'email' && styles.activeTabText,
-                ]}
+            {(['email', 'phone'] as TabType[]).map(type => (
+              <TouchableOpacity
+                key={type}
+                style={[styles.tabButton, tab === type && styles.activeTab]}
+                onPress={() => setTab(type)}
               >
-                {t('email_address')}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.tabButton,
-                selectedTab === 'phone' && styles.activeTab,
-              ]}
-              onPress={() => setSelectedTab('phone')}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: selectedTab === 'phone' }}
-            >
-              <Text
-                style={[
-                  styles.tabText,
-                  selectedTab === 'phone' && styles.activeTabText,
-                ]}
-              >
-                {t('phone_number')}
-              </Text>
-            </TouchableOpacity>
+                <Text
+                  style={[styles.tabText, tab === type && styles.activeTabText]}
+                >
+                  {t(type === 'email' ? 'email_address' : 'phone_number')}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
 
           <View style={{ marginTop: mvs(25) }}>
-            {selectedTab === 'email' ? (
+            {tab === 'email' ? (
               <CustomTextInput
                 label={t('email_address')}
                 placeholder={t('enter_email')}
-                value={email}
-                onChangeText={setEmail}
-                errorMessage={emailError}
+                value={form.email}
+                onChangeText={text => setForm({ ...form, email: text })}
+                errorMessage={errors.email}
               />
             ) : (
               <>
                 <Text style={styles.label}>{t('phone_number')}</Text>
                 <PhoneNumberInput
-                  phone={phone}
-                  setPhone={setPhone}
-                  countryCode={countryCode}
-                  setCountryCode={setCountryCode}
-                  phoneError={phoneError}
-                  onValidationChange={setIsPhoneValid}
+                  phone={form.phone}
+                  setPhone={text => setForm({ ...form, phone: text })}
+                  countryCode={meta.countryCode}
+                  setCountryCode={code =>
+                    setMeta({ ...meta, countryCode: code as CountryCode })
+                  }
+                  phoneError={errors.phone}
+                  onValidationChange={valid =>
+                    setMeta({ ...meta, isPhoneValid: valid })
+                  }
                   CustomStyle={{ backgroundColor: colors.white }}
                 />
               </>
@@ -183,29 +186,29 @@ export function SignInScreen({ navigation }) {
           <CustomTextInput
             label={t('password')}
             placeholder={t('enter_password')}
-            value={password}
-            onChangeText={setPassword}
+            value={form.password}
+            onChangeText={text => setForm({ ...form, password: text })}
             secureTextEntry={true}
-            errorMessage={passwordError}
+            errorMessage={errors.password}
           />
 
           <View style={styles.PasswordRemember}>
             <View style={styles.CheckBox}>
               <TouchableOpacity
                 onPress={() => {
-                  setIsChecked(!isChecked);
-                  setRememberError(false);
+                  setMeta({ ...meta, remember: !meta.remember });
+                  setMeta({ ...meta, rememberError: false });
                 }}
                 accessibilityRole="checkbox"
-                accessibilityState={{ checked: isChecked }}
+                accessibilityState={{ checked: meta.remember }}
               >
                 <Ionicons
-                  name={isChecked ? 'checkbox' : 'square-outline'}
+                  name={meta.remember ? 'checkbox' : 'square-outline'}
                   size={22}
                   color={
-                    rememberError
+                    meta.rememberError
                       ? 'red'
-                      : isChecked
+                      : meta.remember
                       ? colors.primary
                       : colors.border
                   }
@@ -221,7 +224,11 @@ export function SignInScreen({ navigation }) {
             </TouchableOpacity>
           </View>
 
-          <CustomButton title={t('sign_in')} onPress={handleSignIn} />
+          <CustomButton
+            title={t('sign_in')}
+            onPress={handleSignIn}
+            loading={meta.loading}
+          />
 
           <View style={styles.signinRow}>
             <Text style={styles.TextContent}>{t('create_account')}</Text>

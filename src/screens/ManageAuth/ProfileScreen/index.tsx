@@ -14,6 +14,10 @@ import PhoneNumberInput from '../../../components/common/PhoneTextInput';
 import { colors } from '../../../styles/colors';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import { tryCatch } from '@utils';
+import { apiClient } from '@services/api/api-client';
+import { API } from '@services/api/api-endpoint';
+import { Toast } from 'toastify-react-native';
 
 type RootStackParamList = {
   SetupProfile: undefined;
@@ -46,12 +50,14 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [idError, setIdError] = useState('');
   const [nationalityError, setNationalityError] = useState('');
   const [genderError, setGenderError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleImageSelected = (uri: string) => {
     setProfileImage(uri);
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
+    setLoading(true);
     let valid = true;
 
     // Reset errors
@@ -96,6 +102,26 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
     }
 
     if (valid) {
+      const payload = {
+        fullName,
+        email,
+        phoneNo: phone,
+        nationality,
+        nationalID: IdCardNumber,
+        gender,
+        age,
+      };
+
+      const [data, err] = await tryCatch(
+        apiClient.post(API.AUTH.REGISTER, payload),
+      );
+      if (err) {
+        Toast.error((err as Error).message);
+        setLoading(false);
+        return;
+      }
+      Toast.success(data.data.message);
+      setLoading(false);
       navigation.navigate('SignIn');
     }
   };
@@ -131,9 +157,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
 
           <View style={styles.content}>
             <CustomText text={t('setup_profile')} />
-            <Text style={styles.TextContent}>
-              {t('setup_profile_details')}
-            </Text>
+            <Text style={styles.TextContent}>{t('setup_profile_details')}</Text>
           </View>
 
           <CustomTextInput
@@ -218,6 +242,8 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
             title={t('confirm')}
             onPress={handleConfirm}
             style={{ width: '48%' }}
+            loading={loading}
+            disabled={loading}
           />
         </View>
       </SafeAreaView>

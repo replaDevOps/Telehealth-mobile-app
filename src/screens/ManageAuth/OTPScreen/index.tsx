@@ -21,6 +21,7 @@ import parsePhoneNumberFromString, { CountryCode } from 'libphonenumber-js';
 import { Toast } from 'toastify-react-native';
 import { API } from '@services/api/api-endpoint';
 import { apiClient } from '@services/api/api-client';
+import { tryCatch } from '@utils';
 
 type NavProps = StackNavigationProp<AuthStackParamList, 'OTPScreen'>;
 type RouteProps = RouteProp<AuthStackParamList, 'OTPScreen'>;
@@ -77,6 +78,7 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
       const { data } = await apiClient.post(API.AUTH.VERIFY_OTP, {
         otp,
       });
+      console.log("🚀 ~ handleNext ~ data:", data)
       Toast.success(data.message);
       if (source === 'forgotPassword') {
         navigation.navigate('SetPassword');
@@ -85,10 +87,25 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
       }
     } catch (error: any) {
       Toast.error(error.message);
+      setLoading(false);
     } finally {
       setLoading(false);
     }
   };
+
+  async function handleResendOTP() {
+    setLoading(true);
+    const endPoint = method === 'email' ? API.AUTH.RESEND_OTP_EMAIL : API.AUTH.RESEND_OTP_PHONE;
+    const payload = method === 'email' ? { email } : { phoneNo: phone };
+    const [data,err]= await tryCatch(apiClient.post(endPoint, payload));
+    if (err) {
+      Toast.error((err as Error).message);
+      setLoading(false);
+      return;
+    }
+    Toast.success(data.data.message);
+    setLoading(false);
+  }
 
   const getDisplayText = () => {
     if (method === 'email') {
@@ -165,7 +182,7 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
 
           <View style={styles.signinRow}>
             <Text style={styles.TextContent}>{t('didnt_receive_code')}</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('SignIn')}>
+            <TouchableOpacity onPress={handleResendOTP}>
               <Text style={styles.signinLink}>{t('resend_code')}</Text>
             </TouchableOpacity>
           </View>

@@ -11,6 +11,10 @@ import { AuthStackParamList } from '../../../navigation/AuthNavigator';
 import { styles } from './styles';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import { apiClient } from '@services/api/api-client';
+import { API } from '@services/api/api-endpoint';
+import { tryCatch } from '@utils';
+import { Toast } from 'toastify-react-native';
 
 type NavProps = StackNavigationProp<AuthStackParamList, 'CreatePassword'>;
 
@@ -25,14 +29,13 @@ export const CreatePassword: React.FC<Props> = ({ navigation }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const validatePassword = (password: string) => {
-    // Example: Password must be at least 8 characters, include a number and a special character
+  const validatePassword = (value: string) => {
     const passwordRegex =
       /^(?=.*[0-9])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]{8,}$/;
-    return passwordRegex.test(password);
+    return passwordRegex.test(value);
   };
 
-  const handleNext = () => {
+  const handleNext = async() => {
     setError('');
 
     if (!password || !confirmPassword) {
@@ -40,24 +43,29 @@ export const CreatePassword: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
-    // if (!validatePassword(password)) {
-    //   setError(
-    //     'Password must be at least 8 characters long and include a number and a special character.',
-    //   );
-    //   return;
-    // }
+    if (!validatePassword(password)) {
+      setError(
+        'Password must be at least 8 characters long and include a number and a special character.',
+      );
+      return;
+    }
 
     if (password !== confirmPassword) {
       setError(t('passwords_not_match'));
       return;
     }
-
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      console.log('Password created:', password);
-      navigation.navigate('Profile');
-    }, 1000);
+    const [data,err]= await tryCatch(apiClient.post(API.AUTH.CREATE_PASSWORD, {
+      password,
+      confirmPassword,
+    }));
+    if (err) {
+      Toast.error((err as Error).message);
+      return; 
+    }
+    Toast.success(data.data.message);
+    setLoading(false);
+    navigation.navigate('Profile');
   };
 
   return (
@@ -102,7 +110,8 @@ export const CreatePassword: React.FC<Props> = ({ navigation }) => {
           <CustomButton
             title={loading ? t('processing') : t('next')}
             onPress={handleNext}
-            // disabled={loading}
+            loading={loading}
+            disabled={loading}
           />
         </View>
       </SafeAreaView>

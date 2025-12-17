@@ -23,7 +23,7 @@ export const storeData = async (key: string, value: any): Promise<void> => {
 export const getData = async <T = any>(key: string): Promise<T | null> => {
   try {
     const jsonValue = await AsyncStorage.getItem(key);
-    return jsonValue != null ? JSON.parse(jsonValue) as T : null;
+    return jsonValue != null ? (JSON.parse(jsonValue) as T) : null;
   } catch (e) {
     console.error('Error getting data', e);
     return null;
@@ -39,5 +39,23 @@ export const removeData = async (key: string): Promise<void> => {
     await AsyncStorage.removeItem(key);
   } catch (e) {
     console.error('Error removing data', e);
+  }
+};
+
+// Try catch block
+type SuccessResult<T> = readonly [T, null];
+
+type ErrorResult<E = Error> = readonly [null, E];
+
+type Result<T, E = Error> = SuccessResult<T> | ErrorResult<E>;
+
+export const tryCatch = async <T, E = Error>(
+  promise: Promise<T>,
+): Promise<Result<T,E>> => {
+  try {
+    const data = await promise;
+    return [data, null] as const
+  } catch (error) {
+    return [null, error as E] as const;
   }
 };

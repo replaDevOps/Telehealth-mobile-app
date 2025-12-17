@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
     marginVertical: mvs(10),
   },
   disabledButton: {
-    backgroundColor: colors.neutral,
+    backgroundColor: colors.primaryTint,
   },
   buttonText: {
     color: colors.white,

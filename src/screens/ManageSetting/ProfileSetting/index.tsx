@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useReducer, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -22,29 +22,143 @@ import AntDesign from 'react-native-vector-icons/AntDesign';
 import { styles } from './style';
 import { mvs } from '@config/metrices';
 import { useTranslation } from 'react-i18next';
+import { tryCatch } from '@utils';
+import { API } from '@services/api/api-endpoint';
+import { apiClient } from '@services/api/api-client';
+import { Toast } from 'toastify-react-native';
+import { useAuthStore } from '@store';
 
 const { height } = Dimensions.get('window');
 
+type State = {
+  fullName: string;
+  email: string;
+  gender: string;
+  age: string;
+  phone: string;
+  countryCode: string;
+  phoneError: string;
+  errorMessage: string;
+  isPhoneValid: boolean;
+  language: string;
+  notificationEnabled: boolean;
+  deleteModalVisible: boolean;
+};
+
+const initialState: State = {
+  fullName: '',
+  email: '',
+  gender: '',
+  age: '',
+  phone: '',
+  countryCode: '',
+  phoneError: '',
+  errorMessage: '',
+  isPhoneValid: true,
+  language: 'English',
+  notificationEnabled: false,
+  deleteModalVisible: false,
+};
+
 export const ProfileSetting = ({ navigation }: { navigation: any }) => {
   const { t } = useTranslation();
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [gender, setGender] = useState('');
-  const [age, setAge] = useState('');
-  const [phone, setPhone] = useState('');
-  const [countryCode, setCountryCode] = useState('');
-  const [phoneError, setPhoneError] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
-  const [isPhoneValid, setIsPhoneValid] = useState(true);
-  const [language, setLanguage] = useState('English');
-  const [notificationEnabled, setNotificationEnabled] = useState(false);
+  const {isAuthenticated}=useAuthStore()
+  console.log("🚀 ~ ProfileSetting ~ isAuthenticated:", isAuthenticated)
+  const [loading, setLoading] = useState(false);
+  const [state, dispatch] = useReducer(
+    (state: State, action: Partial<State>) => ({ ...state, ...action }),
+    initialState,
+  );
 
-  // Bottom-sheet modal states
-  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-  const slideAnim = useState(new Animated.Value(height))[0];
+  const slideAnim = useRef(new Animated.Value(height)).current;
+
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
+
+  const fetchProfile = async () => {
+    const [res, err] = await tryCatch(
+      apiClient.get(API.SETTINGS.VIEW_PROFILE),
+    );
+
+    if (err) {
+      Toast.error((err as Error).message);
+      return;
+    }
+
+    const data = res.data;
+
+    dispatch({
+      fullName: data.name ?? '',
+      phone: data.phoneNo ?? '',
+      email: data.email ?? '',
+      age: String(data.age ?? ''),
+      gender: data.gender ?? '',
+      notificationEnabled: !!data.notificationStatus,
+      language: data.language ?? 'English',
+    });
+  };
+
+  const updateProfile = async () => {
+    setLoading(true);
+    if (!validateForm()) {
+      setLoading(false);
+      return;
+    }
+    const payload = {
+      name: state.fullName,
+      phoneNo: state.phone,
+      email: state.email,
+      age: state.age,
+      gender: state.gender,
+      notificationStatus: state.notificationEnabled,
+      language: state.language,
+    };
+
+    const [res, err] = await tryCatch(
+      apiClient.post(API.SETTINGS.UPDATE_PROFILE, payload),
+    );
+
+    if (err) {
+      Toast.error((err as Error).message);
+      setLoading(false);
+      return;
+    }
+
+    Toast.success(res.data.message);
+    setLoading(false);
+    navigation.goBack();
+  };
+
+
+  const validateForm = (): boolean => {
+    if (!state.fullName.trim()) {
+      Alert.alert('Error', t('please_enter_full_name'));
+      return false;
+    }
+
+    if (!state.phone.trim() && !state.email.trim()) {
+      Alert.alert('Error', t('please_enter_phone_email'));
+      return false;
+    }
+
+    if (!state.gender) {
+      Alert.alert('Error', t('please_select_gender'));
+      return false;
+    }
+
+    if (!state.age.trim()) {
+      Alert.alert('Error', t('please_enter_age'));
+      return false;
+    }
+
+    return true;
+  };
+
 
   const openDeleteModal = () => {
-    setDeleteModalVisible(true);
+    dispatch({ deleteModalVisible: true });
     Animated.timing(slideAnim, {
       toValue: 0,
       duration: 300,
@@ -57,47 +171,12 @@ export const ProfileSetting = ({ navigation }: { navigation: any }) => {
       toValue: height,
       duration: 250,
       useNativeDriver: true,
-    }).start(() => setDeleteModalVisible(false));
+    }).start(() => dispatch({ deleteModalVisible: false }));
   };
 
   const handleDeleteAccount = () => {
-    // Put your real delete logic here (API call, etc.)
     closeDeleteModal();
-    Alert.alert(
-      t('account_deleted'),
-      t('account_permanently_deleted'),
-    );
-    // navigation.replace('Login') or whatever you need
-  };
-
-  const handleSaveAndContinue = () => {
-    if (!fullName.trim()) {
-      Alert.alert('Error', t('please_enter_full_name'));
-      return;
-    }
-    if (!phone.trim() && !email.trim()) {
-      Alert.alert('Error', t('please_enter_phone_email'));
-      return;
-    }
-    if (!gender) {
-      Alert.alert('Error', t('please_select_gender'));
-      return;
-    }
-    if (!age.trim()) {
-      Alert.alert('Error', t('please_enter_age'));
-      return;
-    }
-
-    Alert.alert(t('success'), t('profile_updated_successfully'), [
-      {
-        text: t('ok'),
-        onPress: () => navigation.goBack(),
-      },
-    ]);
-  };
-
-  const handleSave = () => {
-    console.log('pressed the save button');
+    Alert.alert(t('account_deleted'), t('account_permanently_deleted'));
   };
 
   return (
@@ -106,7 +185,8 @@ export const ProfileSetting = ({ navigation }: { navigation: any }) => {
         <Header2
           title={t('profile_settings')}
           useSave={true}
-          handleSave={handleSave}
+          handleSave={updateProfile}
+          loading={loading}
         />
 
         <View style={styles.container}>
@@ -121,27 +201,27 @@ export const ProfileSetting = ({ navigation }: { navigation: any }) => {
           <CustomTextInput
             label={t('full_name')}
             placeholder={t('enter_full_name')}
-            value={fullName}
-            onChangeText={setFullName}
+            value={state.fullName}
+            onChangeText={(text) => dispatch({ fullName: text })}
           />
 
           <Text style={styles.label}>{t('phone_number_label')}</Text>
           <PhoneNumberInput
-            phone={phone}
-            setPhone={setPhone}
-            countryCode={countryCode}
-            setCountryCode={setCountryCode}
-            phoneError={phoneError}
-            errorMessage={errorMessage}
-            onValidationChange={setIsPhoneValid}
+            phone={state.phone}
+            setPhone={(text) => dispatch({ phone: text })}
+            countryCode={state.countryCode}
+            setCountryCode={(text) => dispatch({ countryCode: text })}
+            phoneError={state.phoneError}
+            errorMessage={state.errorMessage}
+            onValidationChange={(valid) => dispatch({ isPhoneValid: valid })}
             CustomStyle={{ backgroundColor: colors.gray }}
           />
 
           <CustomTextInput
             label={t('email_address_label')}
             placeholder={t('enter_email')}
-            value={email}
-            onChangeText={setEmail}
+            value={state.email}
+            onChangeText={(text) => dispatch({ email: text })}
             keyboardType="email-address"
             autoCapitalize="none"
           />
@@ -149,8 +229,8 @@ export const ProfileSetting = ({ navigation }: { navigation: any }) => {
           <CustomDropdown
             label={t('gender_label')}
             placeholder={t('select_gender')}
-            value={gender}
-            onValueChange={setGender}
+            value={state.gender}
+            onValueChange={(text) => dispatch({ gender: text })}
             options={[
               { label: t('male'), value: 'Male' },
               { label: t('female'), value: 'Female' },
@@ -161,8 +241,8 @@ export const ProfileSetting = ({ navigation }: { navigation: any }) => {
           <CustomTextInput
             label={t('age_label')}
             placeholder={t('enter_age')}
-            value={age}
-            onChangeText={setAge}
+            value={state.age}
+            onChangeText={(text) => dispatch({ age: text })}
             keyboardType="numeric"
           />
 
@@ -186,8 +266,8 @@ export const ProfileSetting = ({ navigation }: { navigation: any }) => {
           <CustomDropdown
             label={t('language_label')}
             placeholder={t('select_language')}
-            value={language}
-            onValueChange={setLanguage}
+            value={state.language}
+            onValueChange={(text) => dispatch({ language: text })}
             options={[
               { label: t('english'), value: 'English' },
               { label: t('urdu'), value: 'Urdu' },
@@ -202,8 +282,8 @@ export const ProfileSetting = ({ navigation }: { navigation: any }) => {
           <View style={styles.switchItem}>
             <Text style={styles.switchLabel}>{t('notification')}</Text>
             <Switch
-              value={notificationEnabled}
-              onValueChange={setNotificationEnabled}
+              value={state.notificationEnabled}
+              onValueChange={(value) => dispatch({ notificationEnabled: value })}
               trackColor={{ false: colors.border, true: colors.primary }}
               thumbColor={colors.white}
             />
@@ -224,7 +304,7 @@ export const ProfileSetting = ({ navigation }: { navigation: any }) => {
 
         {/* ================== DELETE ACCOUNT BOTTOM SHEET MODAL ================== */}
         <Modal
-          visible={deleteModalVisible}
+          visible={state.deleteModalVisible}
           transparent
           animationType="none"
           onRequestClose={closeDeleteModal}

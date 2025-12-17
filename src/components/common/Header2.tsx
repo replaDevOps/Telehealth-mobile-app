@@ -8,6 +8,7 @@ import { colors } from '../../styles/colors';
 import { useTranslation } from 'react-i18next';
 import { Dropdown } from 'react-native-element-dropdown';
 import { useNavigation } from '@react-navigation/native';
+import { ActivityIndicator } from 'react-native-paper';
 
 type RootStackParamList = {
   [key: string]: undefined;
@@ -37,6 +38,7 @@ interface Header2Props {
   saveDisabled?: boolean;
   logo?: boolean;
   handleBackPress?: () => void;
+  loading?: boolean;
 }
 
 const Header2: React.FC<Header2Props> = ({
@@ -58,6 +60,7 @@ const Header2: React.FC<Header2Props> = ({
   handleBackPress,
   handleSkip,
   logo = false,
+  loading = false,
 }) => {
   const navigation = useNavigation<NavigationProp>();
   const { t, i18n } = useTranslation();
@@ -107,11 +110,15 @@ const Header2: React.FC<Header2Props> = ({
         <TouchableOpacity
           style={[styles.icon, saveDisabled && { opacity: 0.5 }]}
           onPress={() => handleSave}
-          disabled={saveDisabled}
+          disabled={saveDisabled || loading}
         >
-          <Text style={[styles.saveText, saveDisabled && { color: 'gray' }]}>
-            {t('save')}
-          </Text>
+          {loading ? (
+            <ActivityIndicator size="small" color={colors.primary} />
+          ) : (
+            <Text style={[styles.saveText, saveDisabled && { color: 'gray' }]}>
+              {t('save')}
+            </Text>
+          )}
         </TouchableOpacity>
       ) : useSkip && handleSkip ? (
         <TouchableOpacity style={styles.icon} onPress={handleSkip}>
@@ -201,7 +208,7 @@ const styles = StyleSheet.create({
     color: 'gray',
   },
   saveText: {
-    fontSize: mvs(16),
+    fontSize: mvs(14),
     color: colors.primary,
     fontWeight: 'bold',
   },

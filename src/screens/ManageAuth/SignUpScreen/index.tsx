@@ -18,9 +18,12 @@ import { CustomText } from '../../../components/common/CustomText';
 import PhoneNumberInput from '../../../components/common/PhoneTextInput';
 import { styles } from './style';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import parsePhoneNumberFromString from 'libphonenumber-js';
+import parsePhoneNumberFromString, { CountryCode } from 'libphonenumber-js';
 import { CustomTextInput } from '@components/common/CustomTextInput';
 import { useTranslation } from 'react-i18next';
+import { API } from '@services/api/api-endpoint';
+import { apiClient } from '@services/api/api-client';
+import { Toast } from 'toastify-react-native';
 
 export function SignUpScreen({ navigation }) {
   const { t } = useTranslation();
@@ -34,13 +37,17 @@ export function SignUpScreen({ navigation }) {
   const [isPhoneValid, setIsPhoneValid] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [rememberError, setRememberError] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const phoneNumber = parsePhoneNumberFromString(phone, countryCode);
+  const phoneNumber = parsePhoneNumberFromString(
+    phone,
+    countryCode as CountryCode,
+  );
   const formattedPhone = phoneNumber
     ? `+${phoneNumber.countryCallingCode}${phoneNumber.nationalNumber}`
     : `+${phone}`;
 
-  const handleSignUp = () => {
+  const handleSignUp = async () => {
     let valid = true;
 
     if (selectedTab === 'email') {
@@ -67,13 +74,30 @@ export function SignUpScreen({ navigation }) {
     }
 
     if (valid) {
-      navigation.navigate('OTPScreen', {
-        source: 'signUp',
-        method: selectedTab, // 'email' or 'phone'
-        email: selectedTab === 'email' ? email : undefined,
-        phone: selectedTab === 'phone' ? phone : undefined,
-        countryCode: selectedTab === 'phone' ? countryCode : undefined,
-      });
+      try {
+        setLoading(true);
+        const endPoint =
+          selectedTab === 'email'
+            ? API.AUTH.SEND_OTP_EMAIL
+            : API.AUTH.SEND_OTP_PHONE;
+
+        const payload =
+          selectedTab === 'email' ? { email } : { phoneNo: formattedPhone };
+
+        const { data } = await apiClient.post(endPoint, payload);
+        Toast.success(data.message);
+        navigation.navigate('OTPScreen', {
+          source: 'signUp',
+          method: selectedTab, // 'email' or 'phone'
+          email: selectedTab === 'email' ? email : undefined,
+          phone: selectedTab === 'phone' ? phone : undefined,
+          countryCode: selectedTab === 'phone' ? countryCode : undefined,
+        });
+      } catch (error: any) {
+        Toast.error(error.message);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -168,7 +192,11 @@ export function SignUpScreen({ navigation }) {
           </View>
 
           {/* Sign Up Button */}
-          <CustomButton title={t('sign_up')} onPress={handleSignUp} />
+          <CustomButton
+            title={t('sign_up')}
+            onPress={handleSignUp}
+            loading={loading}
+          />
 
           <View style={styles.signinRow}>
             <Text style={styles.TextContent}>{t('already_account')}</Text>

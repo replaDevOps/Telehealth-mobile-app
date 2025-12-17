@@ -17,7 +17,10 @@ import { CustomButton } from '../../../components/common/CustomButton';
 import { useTranslation } from 'react-i18next';
 import { AuthStackParamList } from '../../../navigation/AuthNavigator';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import parsePhoneNumberFromString from 'libphonenumber-js';
+import parsePhoneNumberFromString, { CountryCode } from 'libphonenumber-js';
+import { Toast } from 'toastify-react-native';
+import { API } from '@services/api/api-endpoint';
+import { apiClient } from '@services/api/api-client';
 
 type NavProps = StackNavigationProp<AuthStackParamList, 'OTPScreen'>;
 type RouteProps = RouteProp<AuthStackParamList, 'OTPScreen'>;
@@ -61,14 +64,29 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
     setLoading(filled);
   };
 
-  const handleNext = () => {
-    const otp = inputValues.join('');
-    console.log('OTP submitted:', otp);
+  const handleNext = async () => {
+    if (inputValues.some(value => value.length !== 1)) {
+      Toast.error(t('please_enter_valid_otp'));
+      return;
+    }
+    try {
+      setLoading(true);
+      const otp = inputValues.join('');
+      console.log('OTP submitted:', otp);
 
-    if (source === 'forgotPassword') {
-      navigation.navigate('SetPassword');
-    } else {
-      navigation.navigate('CreatePassword');
+      const { data } = await apiClient.post(API.AUTH.VERIFY_OTP, {
+        otp,
+      });
+      Toast.success(data.message);
+      if (source === 'forgotPassword') {
+        navigation.navigate('SetPassword');
+      } else {
+        navigation.navigate('CreatePassword');
+      }
+    } catch (error: any) {
+      Toast.error(error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -85,7 +103,10 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
       return '***@gmail.com';
     } else if (method === 'phone') {
       if (phone && countryCode) {
-        const phoneNumber = parsePhoneNumberFromString(phone, countryCode);
+        const phoneNumber = parsePhoneNumberFromString(
+          phone,
+          countryCode as CountryCode,
+        );
         if (phoneNumber) {
           const maskedPhone = `+${
             phoneNumber.countryCallingCode
@@ -128,7 +149,7 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
                 style={styles.inputBox}
                 maxLength={1}
                 keyboardType="numeric"
-                onChangeText={t => handleChangeText(t, idx)}
+                onChangeText={value => handleChangeText(value, idx)}
                 value={inputValues[idx]}
                 autoFocus={idx === 0 && isFocused}
               />
@@ -138,7 +159,8 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
           <CustomButton
             title={loading ? t('verifying') : t('confirm')}
             onPress={handleNext}
-            // disabled={!loading}
+            loading={loading}
+            disabled={loading}
           />
 
           <View style={styles.signinRow}>

@@ -16,9 +16,11 @@ import {
 import style from './style';
 import { RoyaltyPointsBar } from '@components/molecules';
 import { useTranslation } from 'react-i18next';
+import { useAuthStore } from '@store';
 
 export const SettingScreen = ({ navigation }: { navigation: any }) => {
   const { t } = useTranslation();
+  const { logout } = useAuthStore();
   const [profileImage, setProfileImage] = useState<string>('');
 
   // =============== Handlers ===============
@@ -36,10 +38,8 @@ export const SettingScreen = ({ navigation }: { navigation: any }) => {
           text: t('log_out'),
           style: 'destructive',
           onPress: () => {
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'SignIn' }],
-            });
+            logout();
+            navigation.replace('Auth', { screen: 'SignIn' });
           },
         },
       ],

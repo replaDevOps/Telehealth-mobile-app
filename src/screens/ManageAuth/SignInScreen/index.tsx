@@ -23,16 +23,14 @@ import { useTranslation } from 'react-i18next';
 import { Toast } from 'toastify-react-native';
 import { apiClient } from '@services/api/api-client';
 import { colors } from '../../../styles/colors';
-
-const API_ENDPOINTS = {
-  EMAIL: '/patient-auth/login-email',
-  PHONE: '/patient-auth/login-phone',
-};
+import { useAuthStore } from '@store';
+import { API } from '@services/api/api-endpoint';
 
 type TabType = 'email' | 'phone';
 
 export function SignInScreen({ navigation }) {
   const { t } = useTranslation();
+  const { setAuth } = useAuthStore();
 
   const [tab, setTab] = useState<TabType>('email');
   const [form, setForm] = useState({
@@ -101,9 +99,10 @@ export function SignInScreen({ navigation }) {
           : { phone: formattedPhone, password: form.password };
 
       const endpoint =
-        tab === 'email' ? API_ENDPOINTS.EMAIL : API_ENDPOINTS.PHONE;
+        tab === 'email' ? API.AUTH.LOGIN_EMAIL : API.AUTH.LOGIN_PHONE;
 
       const { data } = await apiClient.post(endpoint, payload);
+      setAuth(data?.user);
       Toast.success(data.message);
       navigation.replace('Main', { screen: 'Home' });
       setMeta({ ...meta, loading: false });

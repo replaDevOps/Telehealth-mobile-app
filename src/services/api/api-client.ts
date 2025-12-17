@@ -12,7 +12,7 @@ export const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use(config => {
-  const token = useAuthStore.getState().auth?.token;
+  const token = useAuthStore.getState().auth?.user?.token;
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;

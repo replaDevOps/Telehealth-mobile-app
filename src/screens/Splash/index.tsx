@@ -6,6 +6,7 @@ import LogoSvg from '../../assets/icons/LogoSvg';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { colors } from '../../styles/colors';
+import { useAuthStore } from '@store';
 
 type SplashScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -15,32 +16,34 @@ type Props = {
 
 export const SplashScreen: React.FC<Props> = ({ navigation }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const { isAuthenticated } = useAuthStore();
 
   useEffect(() => {
+    const checkAndNavigate = async () => {
+      try {
+        const selectedLanguage = await AsyncStorage.getItem('selectedLanguage');
+        setTimeout(() => {
+          if (!selectedLanguage) {
+            navigation.replace('Auth', { screen: 'LanguageSelection' });
+          } else if (isAuthenticated) {
+            navigation.replace('Main', { screen: 'Home' });
+          } else {
+            navigation.replace('Auth', { screen: 'SignIn' });
+          }
+        }, 3000);
+      } catch (error) {
+        console.error('Error during navigation check:', error);
+        navigation.replace('Auth', { screen: 'LanguageSelection' });
+      }
+    };
+
+    checkAndNavigate();
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 2000,
       useNativeDriver: true,
     }).start();
-
-    const checkTokenAndNavigate = async () => {
-      try {
-        const token = await AsyncStorage.getItem('token');
-        setTimeout(() => {
-          if (token) {
-            navigation.replace('Main', { screen: 'Home' });
-          } else {
-            navigation.replace('Auth', { screen: 'LanguageSelection' });
-          }
-        }, 3000);
-      } catch (error) {
-        console.error('Error checking token:', error);
-        navigation.replace('Auth', { screen: 'LanguageSelection' });
-      }
-    };
-
-    checkTokenAndNavigate();
-  }, [fadeAnim, navigation]);
+  }, [fadeAnim, navigation, isAuthenticated]);
 
   return (
     <View style={styles.logoContainer}>

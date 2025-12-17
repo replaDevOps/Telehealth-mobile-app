@@ -35,7 +35,7 @@ const Stack = createNativeStackNavigator<AuthStackParamList>();
 const AuthNavigator = () => {
   return (
     <Stack.Navigator
-      initialRouteName="LanguageSelection"
+      initialRouteName="SignIn"
       screenOptions={{ headerShown: false }}
     >
       <Stack.Screen name="LanguageSelection" component={LanguageScreen} />

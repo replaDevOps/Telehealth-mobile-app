@@ -180,8 +180,23 @@ export function CardDetails({ navigation }: { navigation: any }) {
           <Text style={styles.sectionTitle}>{t('payment_detail')}</Text>
 
           <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>{t('payment_type')}</Text>
+            <Text style={styles.detailValue}>{t('payInInstallments')}</Text>
+          </View>
+
+          <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>{t('payment_method')}</Text>
             <Text style={styles.detailValue}>{t('credit_card')}</Text>
+          </View>
+
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>{t('points_earned')}</Text>
+            <Text style={styles.points_earn}>20 SAR</Text>
+          </View>
+
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>{t('points_used')}</Text>
+            <Text style={styles.points_use}>20 SAR</Text>
           </View>
 
           <View style={styles.detailRow}>
@@ -204,6 +219,23 @@ export function CardDetails({ navigation }: { navigation: any }) {
               : t('consultation_summary')}
           </Text>
 
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>{t('no_of_service')}</Text>
+            <Text style={styles.detailValue}>3</Text>
+          </View>
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>{t('subtotal')}</Text>
+            <Text style={styles.detailValue}>SAR 700</Text>
+          </View>
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>{t('discount')}</Text>
+            <Text style={styles.points_use}>- SAR 300</Text>
+          </View>
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>{t('redemption')}</Text>
+            <Text style={styles.points_use}>- SAR 300</Text>
+          </View>
+
           {params.consultationType && (
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>{t('consultation_type')}</Text>
@@ -225,22 +257,16 @@ export function CardDetails({ navigation }: { navigation: any }) {
             </View>
           )}
 
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>{t('price')}</Text>
-            <Text style={styles.detailValue}>{params.price}</Text>
-          </View>
-
           {params.serviceName && (
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>{t('service')}</Text>
               <Text style={styles.detailValue}>{params.serviceName}</Text>
             </View>
           )}
-        </View>
-
-        <View style={styles.totalContainer}>
-          <Text style={styles.totalLabel}>{t('total')}</Text>
-          <Text style={styles.totalAmount}>{params.price}</Text>
+          <View style={styles.totalContainer}>
+            <Text style={styles.totalLabel}>{t('total')}</Text>
+            <Text style={styles.totalAmount}>{params.price}</Text>
+          </View>
         </View>
       </ScrollView>
 

@@ -433,7 +433,7 @@ function RoyaltyPointsSection({
   return (
     <View style={styles.royaltySection}>
       <View style={styles.royaltyHeader}>
-        <Text style={styles.royaltyTitle}>{t('royalty_points')}</Text>
+        <Text style={styles.royaltyTitle}>{t('loyalty_points')}</Text>
         <View style={styles.royaltyBadge}>
           <View style={styles.pointsBadge}>
             <Image source={coinIcon} style={styles.coinIcon} />

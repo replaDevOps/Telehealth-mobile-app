@@ -1,6 +1,5 @@
 import { StyleSheet } from 'react-native';
 import { colors } from '../../../styles/colors';
-import { mvs } from '@config/metrices';
 
 export const styles = StyleSheet.create({
   container: {
@@ -29,6 +28,7 @@ export const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
     gap: 10,
+    marginHorizontal: 20,
   },
   leftSection: {
     flex: 1,
@@ -43,16 +43,16 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.primary,
     fontWeight: '500',
-    alignSelf: 'flex-start', // This makes the background wrap the text naturally
+    alignSelf: 'flex-start',
   },
   categoryText: {
     marginBottom: 8,
-    backgroundColor: '#F3E8FF', // Light purple/lavender background like in Figma
+    backgroundColor: '#F3E8FF',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
     fontSize: 12,
-    color: '#8B5CF6', // Purple text color
+    color: '#8B5CF6',
     fontWeight: '500',
   },
   transactionId: {
@@ -76,68 +76,30 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.yellow,
   },
+  pointsText: {
+    fontSize: 14,
+    color: colors.borderDark,
+  },
   positivePoints: {
     color: '#4CAF50',
   },
   negativePoints: {
     color: '#F44336',
   },
-  date: {
-    fontSize: 13,
-    color: '#999',
-  },
-  linearGradient: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderRadius: mvs(10),
-  },
-  royaltyContent: {
-    padding: mvs(12),
-  },
-  royaltyTitleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: mvs(10),
-  },
-  royaltyTitle: {
-    fontSize: mvs(16),
+  price: {
+    fontSize: 15,
+    color: colors.primary,
     fontWeight: 'bold',
-    color: '#FFFFFF',
   },
-  royaltyArrow: {
-    fontSize: mvs(16),
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-    marginLeft: mvs(8),
-  },
-  royaltySubtitle: {
-    fontSize: mvs(13),
-    color: '#FFFFFF',
-    marginTop: mvs(4),
-  },
-  royaltyPointsLabel: {
-    fontSize: mvs(13),
-    fontWeight: '500',
-    color: '#FFFFFF',
-    marginTop: mvs(8),
-  },
-  royaltyPointsValue: {
-    fontSize: mvs(16),
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  coinIcon: {
-    width: mvs(70),
+  rewardView: {
+    width: 70,
+    height: 70,
+    backgroundColor: colors.primary,
+    borderRadius: 40,
     position: 'absolute',
-    right: mvs(30),
-    height: mvs(70),
-    resizeMode: 'contain',
-  },
-  logoutMenuItem: {
-    backgroundColor: colors.red,
-  },
-  logoutMenuTitle: {
-    color: colors.white,
+    bottom: 50,
+    right: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

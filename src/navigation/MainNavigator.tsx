@@ -21,6 +21,7 @@ import { HistoryScreen } from '@screens/ManageHistory';
 import {
   ChangePassword,
   FAQs,
+  LoyaltyPointsDetails,
   ProfileSetting,
   RefundRequest2,
   RoyaltyPoints,
@@ -129,6 +130,10 @@ export const SettingNavigator = () => {
       <Stack.Screen name="FAQs" component={FAQs} />
       <Stack.Screen name="RefundRequest2" component={RefundRequest2} />
       <Stack.Screen name="RoyaltyPoints" component={RoyaltyPoints} />
+      <Stack.Screen
+        name="LoyaltyPointsDetails"
+        component={LoyaltyPointsDetails}
+      />
     </Stack.Navigator>
   );
 };

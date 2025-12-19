@@ -36,7 +36,7 @@ export const RoyaltyPointsBar: React.FC<RoyaltyPointsProps> = ({
       >
         <View style={style.royaltyContent}>
           <View style={style.royaltyTitleContainer}>
-            <Text style={style.royaltyTitle}>{t('royalty_points')}</Text>
+            <Text style={style.royaltyTitle}>{t('loyalty_points')}</Text>
             <AntDesign name="right" size={18} color={colors.white} />
           </View>
 

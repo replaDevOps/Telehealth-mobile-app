@@ -21,18 +21,10 @@ import type {
 import { SearchBar } from 'react-native-screens';
 import { ConsultationCard, PaymentCard, HistoryTabs } from '../components';
 
-/* ============================================
- * CONSTANTS
- * ============================================ */
-
 const DROPDOWN_OPTIONS: DropdownOption[] = [
   { label: 'Consultation', value: 'consultation' },
   { label: 'Appointment', value: 'appointment' },
 ];
-
-/* ============================================
- * MAIN COMPONENT
- * ============================================ */
 
 export function HistoryScreen({ navigation }) {
   const { t } = useTranslation();
@@ -42,18 +34,10 @@ export function HistoryScreen({ navigation }) {
     'consultation',
   );
 
-  /* ============================================
-   * FILTERED DATA
-   * ============================================ */
-
   const filteredPayments = useMemo(() => {
     if (!selectedType) return [];
     return PAYMENT_HISTORY.filter(item => item.kind === selectedType);
   }, [selectedType]);
-
-  /* ============================================
-   * NAVIGATION HANDLERS
-   * ============================================ */
 
   const handleNavigateToPrescription = useCallback(() => {
     navigation.navigate('PrescriptionScreen');
@@ -109,10 +93,6 @@ export function HistoryScreen({ navigation }) {
     [navigation],
   );
 
-  /* ============================================
-   * RENDER METHODS
-   * ============================================ */
-
   const renderConsultationCard = useCallback(
     (item: ConsultationItem) => (
       <ConsultationCard
@@ -135,10 +115,6 @@ export function HistoryScreen({ navigation }) {
     ),
     [handleNavigateToCardDetails],
   );
-
-  /* ============================================
-   * MAIN RENDER
-   * ============================================ */
 
   return (
     <SafeAreaView style={styles.container}>

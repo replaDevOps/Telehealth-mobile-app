@@ -38,7 +38,6 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
 
-
   giveReviewButton: {
     backgroundColor: colors.primary,
     paddingHorizontal: 16,
@@ -75,12 +74,12 @@ export const styles = StyleSheet.create({
   clinicName: {
     fontSize: 15,
     fontWeight: '600',
-    color:colors.secondaryText,
+    color: colors.secondaryText,
   },
   clinicLocation: {
     fontSize: 11,
     color: colors.secondaryText,
-  
+
     marginTop: 2,
   },
   consultButton: {
@@ -88,8 +87,8 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 4,
-    borderWidth:1,
-    borderColor:colors.border
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   consultButtonText: {
     color: colors.white,
@@ -190,6 +189,8 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.secondaryText,
   },
+  points_use: { color: colors.red },
+  points_earn: { color: colors.green },
   detailValue: {
     fontSize: 14,
     fontWeight: '500',
@@ -204,7 +205,6 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: '#f5f3ff',
     padding: 16,
-    marginHorizontal: 16,
     marginVertical: 20,
     borderRadius: 12,
   },

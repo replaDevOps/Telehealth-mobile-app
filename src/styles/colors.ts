@@ -1,6 +1,6 @@
 export const colors = {
   primary: '#7625D7',
-  primaryTint: "#A772E5",
+  primaryTint: '#A772E5',
   primary2: '#0D0121',
   white: '#FFFFFF',
   black: '#151515',
@@ -18,7 +18,8 @@ export const colors = {
   gray: '#F1F3F8',
   dardkGray: '#F1F1F1',
   lightGray: '#E9EDF7',
-  borderDark:"#8E8E8E",
+  borderDark: '#8E8E8E',
+  lightYellow: '#EBAD0033',
   // blue: '#2075D9',
   // skyBlue: '#295FC833',
   // yellow: '#FEEF06',

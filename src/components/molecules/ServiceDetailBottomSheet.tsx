@@ -12,6 +12,8 @@ import {
 import { colors } from '../../styles/colors';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
+import { coinIcon } from '@assets/images';
+import { TagSvg } from '@assets/icons';
 
 interface Service {
   id: string;
@@ -102,6 +104,17 @@ export const ServiceDetailBottomSheet: React.FC<
                   />
                   <Text style={styles.duration}>{service.duration}</Text>
                 </View>
+              </View>
+            </View>
+
+            <View style={{ flexDirection: 'row', gap: 20 }}>
+              <View style={styles.pointTag}>
+                <Image source={coinIcon} style={{ width: 20, height: 20 }} />
+                <Text style={styles.pointTagText}>Earn 10 loyalty points </Text>
+              </View>
+              <View style={styles.pointTag}>
+                <TagSvg />
+                <Text style={styles.pointTagText}>40% off SAR.80</Text>
               </View>
             </View>
 
@@ -210,6 +223,17 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 12,
   },
+  pointTag: {
+    backgroundColor: colors.lightYellow,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+  },
+  pointTagText: { color: colors.yellow, fontWeight: '600' },
 
   tagText: {
     fontSize: 12,

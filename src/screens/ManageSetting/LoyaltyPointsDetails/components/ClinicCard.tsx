@@ -53,7 +53,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
     gap: 10,
-    marginHorizontal: 20,
   },
   leftSection: {
     flex: 1,

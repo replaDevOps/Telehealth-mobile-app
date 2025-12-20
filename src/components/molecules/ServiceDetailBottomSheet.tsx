@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
   },
-  pointTagText: { color: colors.yellow, fontWeight: '600' },
+  pointTagText: { color: colors.yellow, fontWeight: '600', fontSize: 12 },
 
   tagText: {
     fontSize: 12,

@@ -2,6 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { colors } from '../../styles/colors';
+import { coinIcon } from '@assets/images';
+import { TagSvg } from '@assets/icons';
 
 interface ServiceCardProps {
   image: any;
@@ -15,48 +17,58 @@ interface ServiceCardProps {
   procedure?: string;
 }
 
-export const ServiceCard: React.FC<ServiceCardProps> = ({
+export const ServiceCard = ({
   image,
   type,
   serviceGroup,
   serviceName,
   price,
   duration,
-  description,
-  procedure,
   onPress,
-}) => {
+}: ServiceCardProps) => {
   return (
     <TouchableOpacity
-      style={styles.serviceCard}
+      style={styles.containner}
       onPress={onPress}
       activeOpacity={0.7}
     >
-      <Image source={image} style={styles.serviceImage} />
+      <View style={styles.serviceCard}>
+        <Image source={image} style={styles.serviceImage} />
 
-      <View style={styles.serviceInfoContainter}>
-        <View style={styles.serviceInfo}>
-          <View style={styles.serviceTags}>
-            <View style={styles.tag}>
-              <Text style={styles.TypetagText}>{type}</Text>
+        <View style={styles.serviceInfoContainter}>
+          <View style={styles.serviceInfo}>
+            <View style={styles.serviceTags}>
+              <View style={styles.tag}>
+                <Text style={styles.TypetagText}>{type}</Text>
+              </View>
+              <View style={styles.tag}>
+                <Text style={styles.SGtagText}>{serviceGroup}</Text>
+              </View>
             </View>
-            <View style={styles.tag}>
-              <Text style={styles.SGtagText}>{serviceGroup}</Text>
+            <Text style={styles.price}>{price}</Text>
+          </View>
+
+          <View style={styles.serviceFooter}>
+            <Text style={styles.serviceName}>{serviceName}</Text>
+            <View style={styles.durationContainer}>
+              <Ionicons
+                name="time-outline"
+                size={14}
+                color={colors.secondaryText}
+              />
+              <Text style={styles.duration}>{duration}</Text>
             </View>
           </View>
-          <Text style={styles.price}>{price}</Text>
         </View>
-
-        <View style={styles.serviceFooter}>
-          <Text style={styles.serviceName}>{serviceName}</Text>
-          <View style={styles.durationContainer}>
-            <Ionicons
-              name="time-outline"
-              size={14}
-              color={colors.secondaryText}
-            />
-            <Text style={styles.duration}>{duration}</Text>
-          </View>
+      </View>
+      <View style={{ flexDirection: 'row', gap: 10, marginTop: 5 }}>
+        <View style={styles.pointTag}>
+          <Image source={coinIcon} style={{ width: 15, height: 15 }} />
+          <Text style={styles.pointTagText}>Earn 10 loyalty points </Text>
+        </View>
+        <View style={styles.pointTag}>
+          <TagSvg width={15} height={15} />
+          <Text style={styles.pointTagText}>40% off SAR.80</Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -64,13 +76,14 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
 };
 
 const styles = StyleSheet.create({
-  serviceCard: {
-    flexDirection: 'row',
+  containner: {
     backgroundColor: colors.white,
     padding: 12,
-
     borderBottomWidth: 1,
     borderColor: '#F0F0F0',
+  },
+  serviceCard: {
+    flexDirection: 'row',
   },
   serviceImage: {
     width: 60,
@@ -135,5 +148,22 @@ const styles = StyleSheet.create({
   duration: {
     fontSize: 13,
     color: colors.secondaryText || '#666666',
+  },
+  pointTag: {
+    backgroundColor: colors.lightYellow,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+  },
+  pointTagText: { color: colors.yellow, fontWeight: '600', fontSize: 12 },
+
+  tagText: {
+    fontSize: 12,
+    color: colors.primary,
+    fontWeight: '500',
   },
 });

@@ -1,4 +1,4 @@
-import { RecommandImage } from '@assets/images';
+import { coinIcon, RecommandImage } from '@assets/images';
 import { Header2 } from '@components/common/Header2';
 import React from 'react';
 import {
@@ -16,7 +16,7 @@ import { CustomButton } from '@components/common/CustomButton';
 import { useCart } from '@context/CartContext';
 import { SERVICES } from '@constants/appData';
 import { styles } from './style';
-import { EmptyContentSvg, ShopingCartSvg } from '@assets/icons';
+import { EmptyContentSvg, ShopingCartSvg, TagSvg } from '@assets/icons';
 import { useTranslation } from 'react-i18next';
 
 export function CartScreen({ navigation }) {
@@ -125,60 +125,26 @@ export function CartScreen({ navigation }) {
                   {clinicGroup.clinic.location}, 2.2km
                 </Text>
               </View>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+              >
+                <Image source={coinIcon} style={{ width: 18, height: 18 }} />
+                <Text style={styles.loyaltyPoint}>500</Text>
+              </View>
             </View>
 
             {/* Services in Cart */}
             {clinicGroup.services.map(service => (
-              <View key={service.id} style={styles.serviceCard}>
-                <Image source={service.image} style={styles.serviceImage} />
-                <View style={styles.serviceContent}>
-                  <View style={styles.serviceHeader}>
-                    <View style={styles.serviceBadges}>
-                      <View style={styles.categoryBadge}>
-                        <Text style={styles.categoryBadgeText}>
-                          {service.type}
-                        </Text>
-                      </View>
-                      <View style={styles.nameBadge}>
-                        <Text style={styles.nameBadgeText}>
-                          {service.serviceGroup}
-                        </Text>
-                      </View>
-                    </View>
-                    <TouchableOpacity
-                      style={styles.removeButton}
-                      onPress={() => handleRemoveService(service.id)}
-                    >
-                      <View style={styles.removeCircle}>
-                        <Text style={styles.removeIcon}>×</Text>
-                      </View>
-                    </TouchableOpacity>
-                  </View>
-                  <Text style={styles.serviceName}>{service.serviceName}</Text>
-                  <View style={styles.serviceFooter}>
-                    <View style={styles.durationContainer}>
-                      <Ionicons
-                        name="time-outline"
-                        size={18}
-                        color={colors.secondaryText}
-                      />
-                      <Text style={styles.duration}>{service.duration}</Text>
-                    </View>
-                    <Text style={styles.servicePrice}>{service.price}</Text>
-                  </View>
-                </View>
-              </View>
-            ))}
-
-            {/* Suggested Services Section */}
-            {getSuggestedServices(clinicGroup.clinic.id).length > 0 && (
-              <View style={styles.suggestedSection}>
-                <Text style={styles.suggestedTitle}>{t('suggested_services')}</Text>
-
-                {getSuggestedServices(clinicGroup.clinic.id).map(service => (
-                  <View key={service.id} style={styles.suggestedServiceCard}>
-                    <Image source={service.image} style={styles.serviceImage} />
-                    <View style={styles.serviceContent}>
+              <View key={service.id} style={styles.serviceCardContainner}>
+                <View style={styles.serviceCard}>
+                  <Image source={service.image} style={styles.serviceImage} />
+                  <View style={styles.serviceContent}>
+                    <View style={styles.serviceHeader}>
                       <View style={styles.serviceBadges}>
                         <View style={styles.categoryBadge}>
                           <Text style={styles.categoryBadgeText}>
@@ -191,48 +157,146 @@ export function CartScreen({ navigation }) {
                           </Text>
                         </View>
                       </View>
-                      <Text style={styles.serviceName}>
-                        {service.serviceName}
-                      </Text>
-                      <View style={styles.serviceFooter}>
-                        <View style={styles.durationContainer}>
+                      <TouchableOpacity
+                        style={styles.removeButton}
+                        onPress={() => handleRemoveService(service.id)}
+                      >
+                        <View style={styles.removeCircle}>
+                          <Text style={styles.removeIcon}>×</Text>
+                        </View>
+                      </TouchableOpacity>
+                    </View>
+                    <Text style={styles.serviceName}>
+                      {service.serviceName}
+                    </Text>
+                    <View style={styles.serviceFooter}>
+                      <View style={styles.durationContainer}>
+                        <Ionicons
+                          name="time-outline"
+                          size={18}
+                          color={colors.secondaryText}
+                        />
+                        <Text style={styles.duration}>{service.duration}</Text>
+                      </View>
+                      <Text style={styles.servicePrice}>{service.price}</Text>
+                    </View>
+                  </View>
+                </View>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    gap: 10,
+                    marginTop: 5,
+                    flexShrink: 1,
+                  }}
+                >
+                  <View style={styles.pointTag}>
+                    <Image
+                      source={coinIcon}
+                      style={{ width: 15, height: 15 }}
+                    />
+                    <Text style={styles.pointTagText}>
+                      Earn 10 loyalty points
+                    </Text>
+                  </View>
+                  <View style={styles.pointTag}>
+                    <TagSvg width={15} height={15} />
+                    <Text style={styles.pointTagText}>40% off SAR.80</Text>
+                  </View>
+                </View>
+              </View>
+            ))}
+
+            {/* Suggested Services Section */}
+            {getSuggestedServices(clinicGroup.clinic.id).length > 0 && (
+              <View style={styles.suggestedSection}>
+                <Text style={styles.suggestedTitle}>
+                  {t('suggested_services')}
+                </Text>
+
+                {getSuggestedServices(clinicGroup.clinic.id).map(service => (
+                  <View
+                    key={service.id}
+                    style={styles.suggestedServiceCardContainner}
+                  >
+                    <View style={styles.suggestedServiceCard}>
+                      <Image
+                        source={service.image}
+                        style={styles.serviceImage}
+                      />
+                      <View style={styles.serviceContent}>
+                        <View style={styles.serviceBadges}>
+                          <View style={styles.categoryBadge}>
+                            <Text style={styles.categoryBadgeText}>
+                              {service.type}
+                            </Text>
+                          </View>
+                          <View style={styles.nameBadge}>
+                            <Text style={styles.nameBadgeText}>
+                              {service.serviceGroup}
+                            </Text>
+                          </View>
+                        </View>
+                        <Text style={styles.serviceName}>
+                          {service.serviceName}
+                        </Text>
+                        <View style={styles.serviceFooter}>
+                          <View style={styles.durationContainer}>
+                            <Ionicons
+                              name="time-outline"
+                              size={18}
+                              color={colors.secondaryText}
+                            />
+                            <Text style={styles.duration}>
+                              {service.duration}
+                            </Text>
+                          </View>
+                          <View style={styles.suggestedPriceContainer}>
+                            <Text style={styles.servicePrice}>
+                              {service.price}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() =>
+                          handleAddSuggestedService(service, clinicGroup.clinic)
+                        }
+                        style={styles.addSuggestedButton}
+                      >
+                        <View
+                          style={{
+                            position: 'absolute',
+                            right: -6,
+                            top: -6,
+                          }}
+                        >
                           <Ionicons
-                            name="time-outline"
+                            name="add-circle"
                             size={18}
-                            color={colors.secondaryText}
+                            color={colors.primary}
                           />
-                          <Text style={styles.duration}>
-                            {service.duration}
-                          </Text>
                         </View>
-                        <View style={styles.suggestedPriceContainer}>
-                          <Text style={styles.servicePrice}>
-                            {service.price}
-                          </Text>
-                        </View>
+                        <ShopingCartSvg width={20} height={20} />
+                      </TouchableOpacity>
+                    </View>
+                    <View
+                      style={{ flexDirection: 'row', gap: 10, marginTop: 5 }}
+                    >
+                      <View style={styles.pointTag}>
+                        <Image
+                          source={coinIcon}
+                          style={{ width: 15, height: 15 }}
+                        />
+                        <Text style={styles.pointTagText}>
+                          Earn 10 loyalty points{' '}
+                        </Text>
+                      </View>
+                      <View style={styles.pointTag}>
+                        <TagSvg width={15} height={15} />
+                        <Text style={styles.pointTagText}>40% off SAR.80</Text>
                       </View>
                     </View>
-                    <TouchableOpacity
-                      onPress={() =>
-                        handleAddSuggestedService(service, clinicGroup.clinic)
-                      }
-                      style={styles.addSuggestedButton}
-                    >
-                      <View
-                        style={{
-                          position: 'absolute',
-                          right: -6,
-                          top: -6,
-                        }}
-                      >
-                        <Ionicons
-                          name="add-circle"
-                          size={18}
-                          color={colors.primary}
-                        />
-                      </View>
-                      <ShopingCartSvg width={20} height={20} />
-                    </TouchableOpacity>
                   </View>
                 ))}
               </View>
@@ -251,7 +315,9 @@ export function CartScreen({ navigation }) {
               onPress={() => handleCheckout(clinicGroup)}
             />
 
-            <Text style={styles.taxNote}>{t('taxes_calculated_at_checkout')}</Text>
+            <Text style={styles.taxNote}>
+              {t('taxes_calculated_at_checkout')}
+            </Text>
           </View>
         ))}
 

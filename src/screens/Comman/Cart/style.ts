@@ -32,7 +32,7 @@ export const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  
+
   // Empty State Styles
   emptyContainer: {
     flex: 1,
@@ -49,7 +49,7 @@ export const styles = StyleSheet.create({
   browseButton: {
     minWidth: 200,
   },
-  
+
   // Clinic Section
   clinicSection: {
     backgroundColor: colors.gray,
@@ -91,14 +91,17 @@ export const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.secondaryText,
   },
-  
+
   // Service Card Styles
-  serviceCard: {
-    flexDirection: 'row',
+
+  serviceCardContainner: {
     backgroundColor: colors.lightGray,
     borderRadius: 12,
     padding: 12,
     marginBottom: 12,
+  },
+  serviceCard: {
+    flexDirection: 'row',
   },
   serviceImage: {
     width: 64,
@@ -188,7 +191,7 @@ export const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#000',
   },
-  
+
   // Suggested Services Styles
   suggestedSection: {
     marginTop: 16,
@@ -200,8 +203,7 @@ export const styles = StyleSheet.create({
     color: '#000',
     marginBottom: 12,
   },
-  suggestedServiceCard: {
-    flexDirection: 'row',
+  suggestedServiceCardContainner: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 12,
@@ -210,6 +212,9 @@ export const styles = StyleSheet.create({
     borderColor: colors.border,
     borderStyle: 'dashed',
   },
+  suggestedServiceCard: {
+    flexDirection: 'row',
+  },
   suggestedPriceContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -217,7 +222,7 @@ export const styles = StyleSheet.create({
   },
   addSuggestedButton: {
     padding: 5,
-    borderRadius: "50%",
+    borderRadius: '50%',
     borderColor: colors.border,
     borderWidth: 1,
     alignItems: 'center',
@@ -225,9 +230,8 @@ export const styles = StyleSheet.create({
     position: 'absolute',
     right: 12,
     top: '10%',
-  
   },
-  
+
   // Subtotal and Checkout
   subtotalContainer: {
     flexDirection: 'row',
@@ -268,5 +272,28 @@ export const styles = StyleSheet.create({
   },
   bottomSpacing: {
     height: 20,
+  },
+  pointTag: {
+    backgroundColor: colors.lightYellow,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  pointTagText: { color: colors.yellow, fontSize: 12 },
+
+  tagText: {
+    fontSize: 6,
+    color: colors.primary,
+    fontWeight: '500',
+  },
+  loyaltyPoint: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.yellow,
+    textAlign: 'right',
   },
 });

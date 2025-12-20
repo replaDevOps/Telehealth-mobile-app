@@ -89,12 +89,14 @@ export const LoyaltyPointsDetails = () => {
     <View style={styles.container}>
       <Header2 title={t('history')} />
 
-      <ClinicCard
-        clinicImage={clinicImage}
-        category={category}
-        clinicName={clinicName}
-        totalPoints={totalPoints}
-      />
+      <View style={{ marginHorizontal: 20 }}>
+        <ClinicCard
+          clinicImage={clinicImage}
+          category={category}
+          clinicName={clinicName}
+          totalPoints={totalPoints}
+        />
+      </View>
 
       <GenericTabs
         tabs={pointsTabs}

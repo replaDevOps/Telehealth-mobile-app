@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { colors } from '../../styles/colors';
 import { useTranslation } from 'react-i18next';
+import { coinIcon } from '@assets/images';
 
 interface ClinicInfoProps {
   category: string;
@@ -31,7 +32,24 @@ export const ClinicInfo: React.FC<ClinicInfoProps> = ({
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.clinicName}>{name}</Text>
+      <View
+        style={{
+          flexDirection: 'row',
+        }}
+      >
+        <Text style={styles.clinicName}>{name} 👑</Text>
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: 6,
+          }}
+        >
+          <Image source={coinIcon} style={{ width: 18, height: 18 }} />
+          <Text style={styles.loyaltyPoint}>500</Text>
+        </View>
+      </View>
 
       <View style={styles.locationRow}>
         <View style={styles.locationName}>
@@ -75,6 +93,12 @@ const styles = StyleSheet.create({
     color: colors.text,
     flex: 1,
   },
+  loyaltyPoint: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.yellow,
+    textAlign: 'right',
+  },
   consultButton: {
     backgroundColor: colors.black,
     paddingHorizontal: 16,
@@ -115,5 +139,8 @@ const styles = StyleSheet.create({
   statText: {
     fontSize: 14,
     color: colors.secondaryText,
+  },
+  featuredIcon: {
+    fontSize: 12,
   },
 });

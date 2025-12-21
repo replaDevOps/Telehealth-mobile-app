@@ -110,5 +110,17 @@ export const styles = StyleSheet.create({
       fontWeight: 'bold',
       zIndex: 9999,
     },
+    loadingText: {
+      fontSize: 14,
+      color: colors.secondaryText,
+      paddingVertical: 8,
+      fontStyle: 'italic',
+    },
+    emptyText: {
+      fontSize: 14,
+      color: colors.secondaryText,
+      paddingVertical: 8,
+      fontStyle: 'italic',
+    },
   });
   

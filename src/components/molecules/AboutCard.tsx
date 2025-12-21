@@ -9,6 +9,7 @@ import {
 import { colors } from '../../styles/colors';
 import { TouchableOpacity } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { RecommandImage } from '@assets/images';
 
 // Update the Device type to match your actual data structure
 type Device = {
@@ -22,14 +23,14 @@ type Device = {
 
 type AboutClinicProps = {
   description: string;
-  devices: Device[];
+  devices?: Device[];
   style?: object;
   onDevicePress: (device: Device) => void;
 };
 
 const AboutClinic = ({
   description,
-  devices,
+  devices = [],
   style,
   onDevicePress,
 }: AboutClinicProps) => {
@@ -44,42 +45,61 @@ const AboutClinic = ({
       <Text style={[styles.sectionTitle, styles.devicesTitle]}>{t('devices')}</Text>
 
       <View style={styles.devicesList}>
-        {devices.map(device => (
-          <TouchableOpacity
-            key={device.id}
-            style={styles.deviceCard}
-            onPress={() => onDevicePress(device)}
-          >
-            {/* Left image */}
-            <Image source={device.image} style={styles.deviceImage} />
+        {devices && Array.isArray(devices) && devices.length > 0 ? (
+          devices.map(device => {
+            // Ensure device has required properties, preserve originalDevice if it exists
+            const safeDevice = {
+              id: device?.id || '',
+              image: device?.image || RecommandImage,
+              title: device?.title || 'Device',
+              note: device?.note || 'Available for use in treatments.',
+              badge: device?.badge || { 1: device?.title || 'Device' },
+              // Preserve originalDevice for API calls
+              originalDevice: device?.originalDevice || null,
+            };
 
-            {/* Middle text */}
-            <View style={styles.textContainer}>
-              <Text style={styles.deviceTitle} numberOfLines={1}>
-                {device.title}
-              </Text>
+            return (
+              <TouchableOpacity
+                key={safeDevice.id}
+                style={styles.deviceCard}
+                onPress={() => onDevicePress(safeDevice)}
+              >
+                {/* Left image */}
+                <Image source={safeDevice.image} style={styles.deviceImage} />
 
-              {/* Show the note */}
-              <Text style={styles.deviceSubtitle} numberOfLines={2}>
-                {device.note}
-              </Text>
+                {/* Middle text */}
+                <View style={styles.textContainer}>
+                  <Text style={styles.deviceTitle} numberOfLines={1}>
+                    {safeDevice.title}
+                  </Text>
 
-              {/* Badge section */}
-              <View style={styles.badgeContainer}>
-                <Text style={styles.badgeLabel}>
-                  {Object.values(device.badge)[0]}
-                </Text>
-                {Object.keys(device.badge).length > 1 && (
-                  <View style={styles.badgeCount}>
-                    <Text style={styles.badgeCountText}>
-                      +{Object.keys(device.badge).length - 1}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            </View>
-          </TouchableOpacity>
-        ))}
+                  {/* Show the note */}
+                  <Text style={styles.deviceSubtitle} numberOfLines={2}>
+                    {safeDevice.note}
+                  </Text>
+
+                  {/* Badge section */}
+                  {safeDevice.badge && Object.keys(safeDevice.badge).length > 0 && (
+                    <View style={styles.badgeContainer}>
+                      <Text style={styles.badgeLabel}>
+                        {Object.values(safeDevice.badge)[0]}
+                      </Text>
+                      {Object.keys(safeDevice.badge).length > 1 && (
+                        <View style={styles.badgeCount}>
+                          <Text style={styles.badgeCountText}>
+                            +{Object.keys(safeDevice.badge).length - 1}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
+                </View>
+              </TouchableOpacity>
+            );
+          })
+        ) : (
+          <Text style={styles.noDevicesText}>No devices available</Text>
+        )}
       </View>
     </View>
   );
@@ -172,6 +192,12 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 11,
     fontWeight: '600',
+  },
+  noDevicesText: {
+    fontSize: 14,
+    color: colors.secondaryText,
+    textAlign: 'center',
+    paddingVertical: 20,
   },
 });
 

@@ -100,7 +100,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
     if (!profileImage) {
       /* show image error if needed */ valid = false;
     }
-
+    
     if (valid) {
       const payload = {
         fullName,
@@ -123,6 +123,8 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
       Toast.success(data.data.message);
       setLoading(false);
       navigation.navigate('SignIn');
+    }else{
+      setLoading(false);
     }
   };
 

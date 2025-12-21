@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,10 +7,14 @@ import {
   ScrollView,
   Modal,
   TouchableWithoutFeedback,
+  ActivityIndicator,
 } from 'react-native';
 import { colors } from '../../styles/colors';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
+import { apiClient } from '@services/api/api-client';
+import { API } from '@services/api/api-endpoint';
+import { Toast } from 'toastify-react-native';
 
 // Import checkbox and section components
 interface CheckboxItemProps {
@@ -70,44 +74,207 @@ const FilterSection: React.FC<FilterSectionProps> = ({
   );
 };
 
+interface ClinicType {
+  id: string;
+  name: string;
+}
+
+interface ServiceGroup {
+  id: number;
+  name: string;
+}
+
+interface ServiceFilter {
+  id: number;
+  name: string;
+}
+
 interface FilterBottomSheetProps {
   visible: boolean;
   onClose: () => void;
   onApplyFilters: (filters: FilterState) => void;
+  clinicID?: number;
+  initialFilters?: FilterState | null;
 }
 
 interface FilterState {
-  clinicTypes: { [key: string]: boolean };
-  serviceGroups: { [key: string]: boolean };
-  serviceNames: { [key: string]: boolean };
+  clinicTypes: { [key: string]: boolean }; // Using clinic type IDs as keys
+  serviceGroups: { [key: number]: boolean }; // Using group IDs as keys
+  serviceNames: { [key: number]: boolean }; // Using service IDs as keys
 }
 
 export const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
   visible,
   onClose,
   onApplyFilters,
+  clinicID,
+  initialFilters,
 }) => {
   const { t } = useTranslation();
+  const [clinicTypes, setClinicTypes] = useState<ClinicType[]>([]);
+  const [serviceGroups, setServiceGroups] = useState<ServiceGroup[]>([]);
+  const [serviceFilters, setServiceFilters] = useState<ServiceFilter[]>([]);
+  const [loadingClinicTypes, setLoadingClinicTypes] = useState(false);
+  const [loadingGroups, setLoadingGroups] = useState(false);
+  const [loadingServices, setLoadingServices] = useState(false);
+  
   const [filters, setFilters] = useState<FilterState>({
-    clinicTypes: {
-      [t('dentistry')]: false,
-      [t('dermatology')]: false,
-    },
-    serviceGroups: {
-      [t('diagnostics')]: false,
-      [t('oral_surgery')]: false,
-      [t('prosthodontics')]: false,
-      [t('periodontics')]: false,
-      [t('restorative')]: false,
-      [t('pedodontics')]: false,
-      [t('implant')]: false,
-    },
-    serviceNames: {
-      [t('oral_examination')]: false,
-      [t('oral_exam_home_visit')]: false,
-      [t('implant_consultation')]: false,
-    },
+    clinicTypes: {},
+    serviceGroups: {},
+    serviceNames: {},
   });
+
+  // Initialize filters with previously applied filters when visible
+  useEffect(() => {
+    if (visible && initialFilters) {
+      setFilters(initialFilters);
+      // Fetch service groups if clinic types are selected
+      const selectedClinicTypes = Object.keys(initialFilters.clinicTypes || {})
+        .filter(key => initialFilters.clinicTypes[key])
+        .map(key => key);
+      if (selectedClinicTypes.length > 0) {
+        // Use a flag to preserve filters when fetching groups
+        // We'll fetch groups but preserve the service names from initialFilters
+        fetchServiceGroups(selectedClinicTypes[0], true);
+      }
+    } else if (visible && !initialFilters) {
+      // Reset filters if no initial filters provided
+      setFilters({
+        clinicTypes: {},
+        serviceGroups: {},
+        serviceNames: {},
+      });
+    }
+  }, [visible, initialFilters]);
+
+  // Fetch clinic types and service filters when component mounts or becomes visible
+  useEffect(() => {
+    if (visible) {
+      fetchClinicTypes();
+      if (clinicID) {
+        fetchServiceFilters();
+      }
+    }
+  }, [visible, clinicID]);
+
+  // Fetch service groups when clinic types are selected (but not when initializing from initialFilters)
+  useEffect(() => {
+    // Skip if we're initializing from initialFilters (handled in the other useEffect)
+    if (!visible) return;
+    
+    const selectedClinicTypes = Object.keys(filters.clinicTypes)
+      .filter(key => filters.clinicTypes[key])
+      .map(key => key);
+    
+    if (selectedClinicTypes.length > 0) {
+      // Only fetch if we don't have groups already (to avoid refetching on initial load)
+      if (serviceGroups.length === 0) {
+        fetchServiceGroups(selectedClinicTypes[0], false);
+      }
+    } else {
+      setServiceGroups([]);
+      setFilters(prev => ({
+        ...prev,
+        serviceGroups: {},
+        // Only clear service names if we're not preserving initial filters
+        serviceNames: initialFilters?.serviceNames || {},
+      }));
+    }
+  }, [filters.clinicTypes, visible]);
+
+  const fetchClinicTypes = async () => {
+    try {
+      setLoadingClinicTypes(true);
+      const response = await apiClient.get(API.CLINIC.GET_CLINIC_TYPES);
+      if (response.data.success && response.data.data) {
+        setClinicTypes(response.data.data);
+        // Initialize filter state with clinic types, preserving existing selections
+        setFilters(prev => {
+          const initialClinicTypes: { [key: string]: boolean } = {};
+          response.data.data.forEach((type: ClinicType) => {
+            // Preserve existing selection if available, otherwise set to false
+            initialClinicTypes[type.id] = prev.clinicTypes[type.id] ?? false;
+          });
+          return {
+            ...prev,
+            clinicTypes: initialClinicTypes,
+          };
+        });
+      }
+    } catch (error: any) {
+      console.error('Error fetching clinic types:', error);
+      Toast.error(error.message || 'Failed to fetch clinic types');
+    } finally {
+      setLoadingClinicTypes(false);
+    }
+  };
+
+  const fetchServiceGroups = async (clinicType: string, preserveFilters: boolean = false) => {
+    try {
+      setLoadingGroups(true);
+      const response = await apiClient.get(API.CLINIC.GET_GROUPS, {
+        params: {
+          clinicType: clinicType,
+        },
+      });
+      if (response.data.success && response.data.data) {
+        setServiceGroups(response.data.data);
+        // Initialize filter state with service groups, preserving existing selections
+        setFilters(prev => {
+          const initialGroups: { [key: number]: boolean } = {};
+          response.data.data.forEach((group: ServiceGroup) => {
+            // Preserve existing selection if available, otherwise set to false
+            initialGroups[group.id] = prev.serviceGroups[group.id] ?? false;
+          });
+          return {
+            ...prev,
+            serviceGroups: initialGroups,
+            // Preserve service names if preserveFilters is true, otherwise clear them
+            serviceNames: preserveFilters ? prev.serviceNames : {},
+          };
+        });
+      }
+    } catch (error: any) {
+      console.error('Error fetching service groups:', error);
+      Toast.error(error.message || 'Failed to fetch service groups');
+    } finally {
+      setLoadingGroups(false);
+    }
+  };
+
+  const fetchServiceFilters = async () => {
+    if (!clinicID) return;
+
+    try {
+      setLoadingServices(true);
+      const response = await apiClient.get(API.CLINIC.GET_SERVICES_FILTER, {
+        params: {
+          clinicID: clinicID.toString(),
+        },
+      });
+
+      if (response.data.success && response.data.data) {
+        setServiceFilters(response.data.data);
+        // Initialize filter state with service filters, preserving existing selections
+        setFilters(prev => {
+          const initialServices: { [key: number]: boolean } = {};
+          response.data.data.forEach((service: ServiceFilter) => {
+            // Preserve existing selection if available, otherwise set to false
+            initialServices[service.id] = prev.serviceNames[service.id] ?? false;
+          });
+          return {
+            ...prev,
+            serviceNames: initialServices,
+          };
+        });
+      }
+    } catch (error: any) {
+      console.error('Error fetching service filters:', error);
+      Toast.error(error.message || 'Failed to fetch service filters');
+    } finally {
+      setLoadingServices(false);
+    }
+  };
 
   // Calculate selected filters count
   const selectedFiltersCount = useMemo(() => {
@@ -118,57 +285,47 @@ export const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
     return count;
   }, [filters]);
 
-  const handleClinicTypeToggle = (type: string) => {
+  const handleClinicTypeToggle = (typeId: string) => {
     setFilters({
       ...filters,
       clinicTypes: {
         ...filters.clinicTypes,
-        [type]: !filters.clinicTypes[type],
+        [typeId]: !filters.clinicTypes[typeId],
       },
     });
   };
 
-  const handleServiceGroupToggle = (service: string) => {
+  const handleServiceGroupToggle = (groupId: number) => {
     setFilters({
       ...filters,
       serviceGroups: {
         ...filters.serviceGroups,
-        [service]: !filters.serviceGroups[service],
+        [groupId]: !filters.serviceGroups[groupId],
       },
     });
   };
 
-  const handleServiceNameToggle = (service: string) => {
+  const handleServiceNameToggle = (serviceId: number) => {
     setFilters({
       ...filters,
       serviceNames: {
         ...filters.serviceNames,
-        [service]: !filters.serviceNames[service],
+        [serviceId]: !filters.serviceNames[serviceId],
       },
     });
   };
 
   const handleReset = () => {
-    setFilters({
-      clinicTypes: {
-        [t('dentistry')]: false,
-        [t('dermatology')]: false,
-      },
-      serviceGroups: {
-        [t('diagnostics')]: false,
-        [t('oral_surgery')]: false,
-        [t('prosthodontics')]: false,
-        [t('periodontics')]: false,
-        [t('restorative')]: false,
-        [t('pedodontics')]: false,
-        [t('implant')]: false,
-      },
-      serviceNames: {
-        [t('oral_examination')]: false,
-        [t('oral_exam_home_visit')]: false,
-        [t('implant_consultation')]: false,
-      },
+    const resetClinicTypes: { [key: string]: boolean } = {};
+    clinicTypes.forEach(type => {
+      resetClinicTypes[type.id] = false;
     });
+    setFilters({
+      clinicTypes: resetClinicTypes,
+      serviceGroups: {},
+      serviceNames: {},
+    });
+    setServiceGroups([]);
   };
 
   const handleApply = () => {
@@ -210,40 +367,64 @@ export const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
           >
             {/* Clinic Type */}
             <FilterSection title={t('clinic_type')}>
-              <CheckboxItem
-                label={t('dentistry')}
-                checked={filters.clinicTypes[t('dentistry')]}
-                onPress={() => handleClinicTypeToggle(t('dentistry'))}
-              />
-              <CheckboxItem
-                label={t('dermatology')}
-                checked={filters.clinicTypes[t('dermatology')]}
-                onPress={() => handleClinicTypeToggle(t('dermatology'))}
-              />
+              {loadingClinicTypes ? (
+                <ActivityIndicator size="small" color={colors.primary} style={styles.loadingIndicator} />
+              ) : clinicTypes.length > 0 ? (
+                clinicTypes.map((clinicType) => (
+                  <CheckboxItem
+                    key={clinicType.id}
+                    label={clinicType.name}
+                    checked={filters.clinicTypes[clinicType.id] || false}
+                    onPress={() => handleClinicTypeToggle(clinicType.id)}
+                  />
+                ))
+              ) : (
+                <Text style={styles.emptyMessage}>{t('no_clinic_types_found') || 'No clinic types found'}</Text>
+              )}
             </FilterSection>
 
             {/* Service Group */}
             <FilterSection title={t('service_group')}>
-              {Object.keys(filters.serviceGroups).map(service => (
-                <CheckboxItem
-                  key={service}
-                  label={service}
-                  checked={filters.serviceGroups[service]}
-                  onPress={() => handleServiceGroupToggle(service)}
-                />
-              ))}
+              {loadingGroups ? (
+                <ActivityIndicator size="small" color={colors.primary} style={styles.loadingIndicator} />
+              ) : Object.keys(filters.clinicTypes).filter(key => filters.clinicTypes[key]).length > 0 && serviceGroups.length > 0 ? (
+                serviceGroups.map((group) => (
+                  <CheckboxItem
+                    key={group.id}
+                    label={group.name}
+                    checked={filters.serviceGroups[group.id] || false}
+                    onPress={() => handleServiceGroupToggle(group.id)}
+                  />
+                ))
+              ) : (
+                <Text style={styles.emptyMessage}>
+                  {Object.keys(filters.clinicTypes).filter(key => filters.clinicTypes[key]).length > 0
+                    ? t('no_service_groups_found') || 'No service groups found'
+                    : t('select_clinic_type_first') || 'Select a clinic type first'}
+                </Text>
+              )}
             </FilterSection>
 
             {/* Service Name */}
             <FilterSection title={t('service_name')}>
-              {Object.keys(filters.serviceNames).map(service => (
-                <CheckboxItem
-                  key={service}
-                  label={service}
-                  checked={filters.serviceNames[service]}
-                  onPress={() => handleServiceNameToggle(service)}
-                />
-              ))}
+              {loadingServices ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="small" color={colors.primary} />
+                </View>
+              ) : serviceFilters.length > 0 ? (
+                serviceFilters.map((service) => (
+                  <CheckboxItem
+                    key={service.id}
+                    label={service.name}
+                    checked={filters.serviceNames[service.id] || false}
+                    onPress={() => handleServiceNameToggle(service.id)}
+                  />
+                ))
+              ) : (
+                <Text style={styles.emptyMessage}>
+                  {t('no_services_found') || 'No services found'}
+                </Text>
+              )}
             </FilterSection>
           </ScrollView>
 
@@ -398,6 +579,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  loadingIndicator: {
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  loadingContainer: {
+    paddingVertical: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyMessage: {
+    fontSize: 14,
+    color: colors.secondaryText,
+    textAlign: 'center',
+    marginTop: 10,
+    paddingVertical: 10,
   },
 });
 

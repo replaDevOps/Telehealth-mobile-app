@@ -86,6 +86,11 @@
   "onboarding3_content": "Connect with your doctor through chat, audio, or video.",
   "home": "Home",
   "clinic": "Clinic",
+  "no_clinics_found": "No Clinics Found",
+  "no_clinics_message": "We couldn't find any clinics matching your criteria. Try adjusting your filters or search terms.",
+  "no_services_found": "No services found",
+  "no_reviews_found": "No reviews found",
+  "minutes": "min",
   "history": "History",
   "setting": "Setting",
   "location_makkah": "Makkah, Saudi Arabia",
@@ -390,5 +395,11 @@
   "payment_type": "payment Type",
   "redemption": "Redemption",
   "no_of_service": "no. of service",
-  "payInInstallments": "pay in installements"
+  "payInInstallments": "pay in installements",
+  "by_date": "By Date",
+  "by_rating": "By Rating",
+  "no_clinic_types_found": "No clinic types found",
+  "no_service_groups_found": "No service groups found",
+  "select_clinic_type_first": "Select a clinic type first",
+  "select_service_group_first": "Select service groups first"
 }

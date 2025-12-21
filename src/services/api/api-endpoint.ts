@@ -35,4 +35,17 @@ export const API = {
     DELETE_USER_ACCOUNT: '/patient-setting/deleteUserAccount',
     FAQs: '/patient-setting/faqs',
   },
+  CLINIC: {
+    GET_CLINICS: '/patient-common/get-clinics',
+    GET_CLINIC_TYPES: '/patient-common/clinicTypes',
+    GET_GROUPS: '/patient-common/groups',
+    GET_SERVICES: '/patient-common/services',
+    GET_CLINIC_DETAILS: '/patient-common/clinidDetials',
+    GET_CLINIC_DESCRIPTION: '/patient-common/clinicDescription',
+    GET_CLINIC_SERVICES: '/patient-common/clinicServices',
+    GET_CLINIC_REVIEWS: '/patient-common/clinicReviews',
+    GET_DEVICE_DETAILS: '/patient-common/deviceDetails',
+    GET_SERVICES_FILTER: '/patient-common/servicesFilter',
+    GET_SERVICE_DETAILS: '/patient-common/serviceDetails',
+  },
 };

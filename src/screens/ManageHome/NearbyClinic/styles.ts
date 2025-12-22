@@ -9,13 +9,13 @@ export const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+        justifyContent: 'center',
+        alignItems: 'center',
     backgroundColor: colors.white,
-  },
+      },
   loadingText: {
     marginTop: mvs(10),
     fontSize: 16,
     color: colors.secondaryText,
-  },
+      },
 });

@@ -128,7 +128,7 @@ export const SelectLocation = () => {
           <Text style={styles.locationInfoText}>
             {t('selected_location')}: {selectedLocation.latitude.toFixed(6)}, {selectedLocation.longitude.toFixed(6)}
           </Text>
-        </View>
+      </View>
       )}
     </SafeAreaView>
   );

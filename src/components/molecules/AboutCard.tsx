@@ -59,42 +59,42 @@ const AboutClinic = ({
             };
 
             return (
-              <TouchableOpacity
+          <TouchableOpacity
                 key={safeDevice.id}
-                style={styles.deviceCard}
+            style={styles.deviceCard}
                 onPress={() => onDevicePress(safeDevice)}
-              >
-                {/* Left image */}
+          >
+            {/* Left image */}
                 <Image source={safeDevice.image} style={styles.deviceImage} />
 
-                {/* Middle text */}
-                <View style={styles.textContainer}>
-                  <Text style={styles.deviceTitle} numberOfLines={1}>
+            {/* Middle text */}
+            <View style={styles.textContainer}>
+              <Text style={styles.deviceTitle} numberOfLines={1}>
                     {safeDevice.title}
-                  </Text>
+              </Text>
 
-                  {/* Show the note */}
-                  <Text style={styles.deviceSubtitle} numberOfLines={2}>
+              {/* Show the note */}
+              <Text style={styles.deviceSubtitle} numberOfLines={2}>
                     {safeDevice.note}
-                  </Text>
+              </Text>
 
-                  {/* Badge section */}
+              {/* Badge section */}
                   {safeDevice.badge && Object.keys(safeDevice.badge).length > 0 && (
-                    <View style={styles.badgeContainer}>
-                      <Text style={styles.badgeLabel}>
+              <View style={styles.badgeContainer}>
+                <Text style={styles.badgeLabel}>
                         {Object.values(safeDevice.badge)[0]}
-                      </Text>
+                </Text>
                       {Object.keys(safeDevice.badge).length > 1 && (
-                        <View style={styles.badgeCount}>
-                          <Text style={styles.badgeCountText}>
+                  <View style={styles.badgeCount}>
+                    <Text style={styles.badgeCountText}>
                             +{Object.keys(safeDevice.badge).length - 1}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
+                    </Text>
+                  </View>
+                )}
+              </View>
                   )}
-                </View>
-              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
             );
           })
         ) : (

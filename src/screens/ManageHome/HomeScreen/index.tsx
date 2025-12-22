@@ -176,25 +176,25 @@ export const HomeScreen = ({ navigation }) => {
           <Text style={styles.emptyMessage}>{t('no_clinics_message')}</Text>
         </View>
       ) : (
-        <ScrollView style={styles.content}>
+      <ScrollView style={styles.content}>
           {recommendedClinics.length > 0 && (
-            <RecommendedClinics
+        <RecommendedClinics
               clinics={recommendedClinics}
-              onClinicPress={clinic =>
+          onClinicPress={clinic =>
                 navigation.navigate('ClinicDetail', { clinic, clinicID: parseInt(clinic.id) })
-              }
-            />
+          }
+        />
           )}
 
           {nearbyClinics.length > 0 && (
-            <NearbyClinics
+        <NearbyClinics
               clinics={nearbyClinics}
-              onClinicPress={clinic =>
+          onClinicPress={clinic =>
                 navigation.navigate('ClinicDetail', { clinic, clinicID: parseInt(clinic.id) })
-              }
-            />
+          }
+        />
           )}
-        </ScrollView>
+      </ScrollView>
       )}
     </View>
   );

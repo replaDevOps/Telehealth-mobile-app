@@ -57,7 +57,7 @@ export const FilterScreen = ({ navigation, route }) => {
           Makkah: false,
           Madina: false,
           Jeddah: false,
-        },
+    },
         ratings: currentFilters.ratings || {
           5: false,
           4: false,
@@ -71,18 +71,18 @@ export const FilterScreen = ({ navigation, route }) => {
       clinicTypes: null,
       serviceGroups: {},
       serviceNames: {},
-      cities: {
-        Makkah: false,
-        Madina: false,
-        Jeddah: false,
-      },
-      ratings: {
-        5: false,
-        4: false,
-        3: false,
-        2: false,
-        1: false,
-      },
+    cities: {
+      Makkah: false,
+      Madina: false,
+      Jeddah: false,
+    },
+    ratings: {
+      5: false,
+      4: false,
+      3: false,
+      2: false,
+      1: false,
+    },
     };
   });
 
@@ -391,12 +391,12 @@ export const FilterScreen = ({ navigation, route }) => {
         {/* Clinic Type */}
         <FilterSection title={t('clinic_type')}>
           {clinicTypes.map((clinicType) => (
-            <CheckboxItem
+          <CheckboxItem
               key={clinicType.id}
               label={clinicType.name}
               checked={filters.clinicTypes === clinicType.id}
               onPress={() => handleClinicTypeToggle(clinicType.id)}
-            />
+          />
           ))}
         </FilterSection>
 
@@ -406,12 +406,12 @@ export const FilterScreen = ({ navigation, route }) => {
             <Text style={styles.loadingText}>Loading groups...</Text>
           ) : groups.length > 0 ? (
             groups.map((group) => (
-              <CheckboxItem
+          <CheckboxItem
                 key={group.id}
                 label={group.name}
                 checked={filters.serviceGroups[group.id] || false}
                 onPress={() => handleServiceGroupToggle(group.id)}
-              />
+          />
             ))
           ) : filters.clinicTypes ? (
             <Text style={styles.emptyText}>No groups available</Text>
@@ -426,12 +426,12 @@ export const FilterScreen = ({ navigation, route }) => {
             <Text style={styles.loadingText}>Loading services...</Text>
           ) : services.length > 0 ? (
             services.map((service) => (
-              <CheckboxItem
+          <CheckboxItem
                 key={service.id}
                 label={service.name}
                 checked={filters.serviceNames[service.id] || false}
                 onPress={() => handleServiceNameToggle(service.id)}
-              />
+          />
             ))
           ) : Object.keys(filters.serviceGroups).some(key => filters.serviceGroups[Number(key)]) ? (
             <Text style={styles.emptyText}>No services available</Text>

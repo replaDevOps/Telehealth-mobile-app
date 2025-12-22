@@ -215,7 +215,7 @@ export const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
       const response = await apiClient.get(API.CLINIC.GET_GROUPS, {
         params: {
           clinicType: clinicType,
-        },
+    },
       });
       if (response.data.success && response.data.data) {
         setServiceGroups(response.data.data);
@@ -250,8 +250,8 @@ export const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
       const response = await apiClient.get(API.CLINIC.GET_SERVICES_FILTER, {
         params: {
           clinicID: clinicID.toString(),
-        },
-      });
+    },
+  });
 
       if (response.data.success && response.data.data) {
         setServiceFilters(response.data.data);
@@ -371,12 +371,12 @@ export const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
                 <ActivityIndicator size="small" color={colors.primary} style={styles.loadingIndicator} />
               ) : clinicTypes.length > 0 ? (
                 clinicTypes.map((clinicType) => (
-                  <CheckboxItem
+              <CheckboxItem
                     key={clinicType.id}
                     label={clinicType.name}
                     checked={filters.clinicTypes[clinicType.id] || false}
                     onPress={() => handleClinicTypeToggle(clinicType.id)}
-                  />
+              />
                 ))
               ) : (
                 <Text style={styles.emptyMessage}>{t('no_clinic_types_found') || 'No clinic types found'}</Text>
@@ -389,7 +389,7 @@ export const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
                 <ActivityIndicator size="small" color={colors.primary} style={styles.loadingIndicator} />
               ) : Object.keys(filters.clinicTypes).filter(key => filters.clinicTypes[key]).length > 0 && serviceGroups.length > 0 ? (
                 serviceGroups.map((group) => (
-                  <CheckboxItem
+                <CheckboxItem
                     key={group.id}
                     label={group.name}
                     checked={filters.serviceGroups[group.id] || false}
@@ -413,12 +413,12 @@ export const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
                 </View>
               ) : serviceFilters.length > 0 ? (
                 serviceFilters.map((service) => (
-                  <CheckboxItem
+                <CheckboxItem
                     key={service.id}
                     label={service.name}
                     checked={filters.serviceNames[service.id] || false}
                     onPress={() => handleServiceNameToggle(service.id)}
-                  />
+                />
                 ))
               ) : (
                 <Text style={styles.emptyMessage}>

@@ -57,7 +57,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
   const [sortOption, setSortOption] = useState('by_date');
   const [sortedReviews, setSortedReviews] = useState<Review[]>([]);
   const [isFocus, setIsFocus] = useState(false);
-  
+
   // API data states
   const [clinicDetail, setClinicDetail] = useState<ClinicDetailResponse | null>(null);
   const [clinicDescription, setClinicDescription] = useState<ClinicDescriptionResponse | null>(null);
@@ -487,7 +487,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
 
   const handleServicePress = async (service: any) => {
     if (!service || !service.id) {
-      setSelectedService(service);
+    setSelectedService(service);
       setServiceDetailVisible(true);
       return;
     }
@@ -808,22 +808,22 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
                 <ActivityIndicator size="large" color="#7625D7" />
               </View>
             ) : filteredServices.length > 0 ? (
-              <View style={styles.servicesList}>
+            <View style={styles.servicesList}>
                 {filteredServices.map(service => (
-                  <ServiceCard
-                    key={service.id}
-                    image={service.image}
-                    type={service.type}
-                    serviceGroup={service.serviceGroup}
-                    serviceName={service.serviceName}
-                    price={service.price}
-                    duration={service.duration}
-                    description={service.description}
-                    procedure={service.procedure}
-                    onPress={() => handleServicePress(service)}
-                  />
-                ))}
-              </View>
+                <ServiceCard
+                  key={service.id}
+                  image={service.image}
+                  type={service.type}
+                  serviceGroup={service.serviceGroup}
+                  serviceName={service.serviceName}
+                  price={service.price}
+                  duration={service.duration}
+                  description={service.description}
+                  procedure={service.procedure}
+                  onPress={() => handleServicePress(service)}
+                />
+              ))}
+            </View>
             ) : (
               <View style={styles.emptyContainer}>
                 <Text style={styles.emptyText}>{t('no_services_found')}</Text>
@@ -863,20 +863,20 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
                 <ActivityIndicator size="large" color="#7625D7" />
               </View>
             ) : reviews.length > 0 ? (
-              <View style={styles.reviewsList}>
+            <View style={styles.reviewsList}>
                 {transformReviews(reviews).map(review => (
-                  <ReviewCard
-                    key={review.id}
-                    review={review}
-                    isExpanded={expandedReviewId === review.id}
-                    onPress={() =>
-                      setExpandedReviewId(
-                        expandedReviewId === review.id ? null : review.id,
-                      )
-                    }
-                  />
-                ))}
-              </View>
+                <ReviewCard
+                  key={review.id}
+                  review={review}
+                  isExpanded={expandedReviewId === review.id}
+                  onPress={() =>
+                    setExpandedReviewId(
+                      expandedReviewId === review.id ? null : review.id,
+                    )
+                  }
+                />
+              ))}
+            </View>
             ) : (
               <View style={styles.emptyContainer}>
                 <Text style={styles.emptyText}>{t('no_reviews_found')}</Text>

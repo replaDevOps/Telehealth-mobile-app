@@ -60,6 +60,24 @@ const initialState: State = {
   deleteModalVisible: false,
 };
 
+// Field mapping configuration: API field -> State field with optional transformer
+const fieldMapping: Record<string, { stateKey: keyof State; transformer?: (value: any) => any }> = {
+  name: { stateKey: 'fullName' },
+  phoneNo: { stateKey: 'phone' },
+  email: { stateKey: 'email' },
+  age: { stateKey: 'age', transformer: (val) => String(val ?? '') },
+  gender: { 
+    stateKey: 'gender', 
+    transformer: (val) => {
+      if (!val) return '';
+      // Capitalize first letter to match dropdown values (Male, Female, Other)
+      return val.charAt(0).toUpperCase() + val.slice(1).toLowerCase();
+    }
+  },
+  notificationStatus: { stateKey: 'notificationEnabled', transformer: (val) => !!val },
+  language: { stateKey: 'language', transformer: (val) => val ?? 'English' },
+};
+
 export const ProfileSetting = ({ navigation }: { navigation: any }) => {
   const { t } = useTranslation();
   const {isAuthenticated}=useAuthStore()
@@ -76,42 +94,53 @@ export const ProfileSetting = ({ navigation }: { navigation: any }) => {
     fetchProfile();
   }, []);
 
-
   const fetchProfile = async () => {
     const [res, err] = await tryCatch(
       apiClient.get(API.SETTINGS.VIEW_PROFILE),
     );
-
+    console.log("🚀 ~ fetchProfile ~ res:", res)
     if (err) {
       Toast.error((err as Error).message);
       return;
     }
 
-    const data = res.data;
-
-    dispatch({
-      fullName: data.name ?? '',
-      phone: data.phoneNo ?? '',
-      email: data.email ?? '',
-      age: String(data.age ?? ''),
-      gender: data.gender ?? '',
-      notificationEnabled: !!data.notificationStatus,
-      language: data.language ?? 'English',
+    // Handle both res.data.data and res.data structures
+    const data = res.data?.data || res.data || res;
+    
+    // Automatically map API response to state
+    const mappedData: Partial<State> = {};
+    
+    Object.keys(fieldMapping).forEach((apiKey) => {
+      const mapping = fieldMapping[apiKey];
+      const apiValue = data[apiKey];
+      
+      if (mapping.transformer) {
+        mappedData[mapping.stateKey] = mapping.transformer(apiValue);
+      } else {
+        mappedData[mapping.stateKey] = apiValue ?? '';
+      }
     });
+
+    dispatch(mappedData);
   };
 
   const updateProfile = async () => {
+    console.log("🚀 ~ updateProfile ~ validateForm:", validateForm())
     setLoading(true);
     if (!validateForm()) {
+      console.log("🚀 ~ updateProfile ~ validateForm:", validateForm())
       setLoading(false);
       return;
     }
+
+    // Prepare payload matching API requirements
+    // Gender should be lowercase (API expects "male", "female", "other")
     const payload = {
-      name: state.fullName,
-      phoneNo: state.phone,
-      email: state.email,
-      age: state.age,
-      gender: state.gender,
+      name: state.fullName.trim(),
+      phoneNo: state.phone.trim(),
+      email: state.email.trim(),
+      age: state.age.trim(),
+      gender: state.gender.toLowerCase(), // Convert to lowercase for API
       notificationStatus: state.notificationEnabled,
       language: state.language,
     };
@@ -119,14 +148,20 @@ export const ProfileSetting = ({ navigation }: { navigation: any }) => {
     const [res, err] = await tryCatch(
       apiClient.post(API.SETTINGS.UPDATE_PROFILE, payload),
     );
-
+    console.log("🚀 ~ updateProfile ~ res:", res)
     if (err) {
-      Toast.error((err as Error).message);
+      Toast.error((err as Error).message || 'Failed to update profile');
       setLoading(false);
       return;
     }
 
-    Toast.success(res.data.message);
+    // Show success message
+    const successMessage = res.data?.message || res.data?.data?.message || 'Profile updated successfully';
+    Toast.success(successMessage);
+    
+    // Refresh profile data after successful update
+    await fetchProfile();
+    
     setLoading(false);
     navigation.goBack();
   };

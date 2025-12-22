@@ -125,7 +125,7 @@ export const NearbyClinics = () => {
           <Text style={styles.loadingText}>
             {locationLoading ? 'Getting your location...' : 'Loading clinics...'}
           </Text>
-        </View>
+      </View>
       ) : (
         <MapView
           provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}

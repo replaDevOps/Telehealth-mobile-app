@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,95 +15,386 @@ import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { CustomButton } from '@components/common/CustomButton';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
+import { apiClient } from '@services/api/api-client';
+import { API } from '@services/api/api-endpoint';
+import { Toast } from 'toastify-react-native';
 
 type RootStackParamList = {
   ConsultationPayment: {
     consultationType: string;
-    consultationTypeId: 'chat' | 'audio' | 'video'; // Add this
+    consultationTypeId: 'chat' | 'audio' | 'video';
     duration: string;
     price: string;
     serviceType: string;
     serviceGroup: string;
     service: string;
+    doctors?: any; // Optional doctors data from API
   };
 };
+
+interface ServiceType {
+  id: string | number;
+  name: string;
+}
+
+interface ServiceGroup {
+  id: string | number;
+  name: string;
+}
+
+interface Service {
+  id: string | number;
+  name: string;
+}
+
+interface ConsultationTypesData {
+  id: number;
+  chatConsultation: boolean;
+  chatConsultationPrice: string;
+  videoConsultation: boolean;
+  videoConsultationPrice: string;
+  voiceConsultation: boolean;
+  voiceConsultationPrice: string;
+}
+
+interface ConsultationTypeCard {
+  id: 'chat' | 'video' | 'voice';
+  name: string;
+  price: string;
+  Icon: any;
+}
 
 export default function ConsultDoctorBottomSheet({
   visible,
   onClose,
+  clinicID,
 }: {
   visible: boolean;
   onClose: () => void;
+  clinicID?: number | string;
 }) {
   const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const [isLoading, setIsLoading] = useState(false);
 
+  // Dropdown states
   const [serviceType, setServiceType] = useState('');
   const [serviceGroup, setServiceGroup] = useState('');
   const [service, setService] = useState('');
-  const [selectedConsultation, setSelectedConsultation] = useState<
-    'chat' | 'audio' | 'video'
-  >('chat');
+  const [selectedConsultation, setSelectedConsultation] = useState<string>('');
 
-  const consultationTypes = [
-    {
-      id: 'chat' as const,
-      title: t('chat_consultation'),
-      duration: '30 min',
-      price: '20 SAR',
+  // API data states
+  const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]);
+  const [serviceGroups, setServiceGroups] = useState<ServiceGroup[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+  const [consultationTypeCards, setConsultationTypeCards] = useState<ConsultationTypeCard[]>([]);
+
+  // Loading states
+  const [loadingServiceTypes, setLoadingServiceTypes] = useState(false);
+  const [loadingServiceGroups, setLoadingServiceGroups] = useState(false);
+  const [loadingServices, setLoadingServices] = useState(false);
+  const [loadingConsultationTypes, setLoadingConsultationTypes] = useState(false);
+
+  // Map consultation types data to cards
+  const mapConsultationTypesToCards = (data: ConsultationTypesData | null): ConsultationTypeCard[] => {
+    if (!data) return [];
+
+    const cards: ConsultationTypeCard[] = [];
+
+    if (data.chatConsultation) {
+      cards.push({
+        id: 'chat',
+        name: t('chat_consultation'),
+        price: `${data.chatConsultationPrice} SAR`,
       Icon: ChatSvg,
-    },
-    {
-      id: 'audio' as const,
-      title: t('audio_consultation'),
-      duration: '30 min',
-      price: '30 SAR',
-      Icon: AudioSvg,
-    },
-    {
-      id: 'video' as const,
-      title: t('video_consultation'),
-      duration: '30 min',
-      price: '40 SAR',
-      Icon: VedioSvg,
-    },
-  ];
+      });
+    }
 
-  const serviceTypes = [
-    { label: t('general'), value: 'general' },
-    { label: t('specialist'), value: 'specialist' },
-  ];
-  const serviceGroups = [
-    { label: t('internal_medicine'), value: 'internal' },
-    { label: t('pediatrics'), value: 'pediatrics' },
-  ];
-  const services = [
-    { label: t('flu_check_up'), value: 'flu' },
-    { label: t('vaccination'), value: 'vaccine' },
-  ];
+    if (data.videoConsultation) {
+      cards.push({
+        id: 'video',
+        name: t('video_consultation'),
+        price: `${data.videoConsultationPrice} SAR`,
+        Icon: VedioSvg,
+      });
+    }
+
+    if (data.voiceConsultation) {
+      cards.push({
+        id: 'voice',
+        name: t('audio_consultation'),
+        price: `${data.voiceConsultationPrice} SAR`,
+      Icon: AudioSvg,
+      });
+    }
+
+    return cards;
+  };
+
+  // Fetch service types
+  const fetchServiceTypes = async () => {
+    if (!clinicID) return;
+
+    setLoadingServiceTypes(true);
+    try {
+      const response = await apiClient.get(API.CONSULTATIONS.GET_SERVICE_TYPES, {
+        params: { clinicID },
+      });
+
+      const data = response.data?.data || response.data || [];
+      setServiceTypes(Array.isArray(data) ? data : []);
+    } catch (error: any) {
+      console.error('Error fetching service types:', error);
+      Toast.error(error?.message || 'Failed to load service types');
+    } finally {
+      setLoadingServiceTypes(false);
+    }
+  };
+
+  // Fetch service groups
+  const fetchServiceGroups = async (selectedServiceType: string) => {
+    if (!clinicID || !selectedServiceType) {
+      setServiceGroups([]);
+      setService('');
+      setServices([]);
+      return;
+    }
+
+    setLoadingServiceGroups(true);
+    try {
+      const response = await apiClient.get(API.CONSULTATIONS.GET_GROUPS, {
+        params: { clinicID, serviceType: selectedServiceType },
+      });
+
+      const data = response.data?.data || response.data || [];
+      setServiceGroups(Array.isArray(data) ? data : []);
+      // Reset dependent dropdowns
+      setService('');
+      setServices([]);
+    } catch (error: any) {
+      console.error('Error fetching service groups:', error);
+      Toast.error(error?.message || 'Failed to load service groups');
+      setServiceGroups([]);
+    } finally {
+      setLoadingServiceGroups(false);
+    }
+  };
+
+  // Fetch services
+  const fetchServices = async (selectedGroupID: string | number) => {
+    if (!clinicID || !selectedGroupID) {
+      setServices([]);
+      setService('');
+      return;
+    }
+
+    setLoadingServices(true);
+    try {
+      const response = await apiClient.get(API.CONSULTATIONS.GET_SERVICES, {
+        params: { clinicID, groupID: selectedGroupID },
+      });
+
+      const data = response.data?.data || response.data || [];
+      setServices(Array.isArray(data) ? data : []);
+      setService('');
+    } catch (error: any) {
+      console.error('Error fetching services:', error);
+      Toast.error(error?.message || 'Failed to load services');
+      setServices([]);
+    } finally {
+      setLoadingServices(false);
+    }
+  };
+
+  // Fetch consultation types
+  const fetchConsultationTypes = async () => {
+    if (!clinicID) return;
+
+    setLoadingConsultationTypes(true);
+    try {
+      const response = await apiClient.get(API.CONSULTATIONS.GET_CONSULTATION_TYPES, {
+        params: { clinicID },
+      });
+
+      const data = response.data?.data || response.data;
+      if (data) {
+        const cards = mapConsultationTypesToCards(data);
+        setConsultationTypeCards(cards);
+        // Auto-select first consultation type if available
+        if (cards.length > 0 && !selectedConsultation) {
+          setSelectedConsultation(cards[0].id);
+        }
+      } else {
+        setConsultationTypeCards([]);
+      }
+    } catch (error: any) {
+      console.error('Error fetching consultation types:', error);
+      Toast.error(error?.message || 'Failed to load consultation types');
+      setConsultationTypeCards([]);
+    } finally {
+      setLoadingConsultationTypes(false);
+    }
+  };
+
+  // Fetch data when bottom sheet opens
+  useEffect(() => {
+    if (visible && clinicID) {
+      fetchServiceTypes();
+      fetchConsultationTypes();
+      // Reset selections
+      setServiceType('');
+      setServiceGroup('');
+      setService('');
+      setSelectedConsultation('');
+    }
+  }, [visible, clinicID]);
+
+  // Fetch groups when service type changes
+  useEffect(() => {
+    if (serviceType) {
+      fetchServiceGroups(serviceType);
+    } else {
+      setServiceGroups([]);
+      setService('');
+      setServices([]);
+    }
+  }, [serviceType]);
+
+  // Fetch services when group changes
+  useEffect(() => {
+    if (serviceGroup) {
+      // Find the group ID from the selected value
+      const selectedGroup = serviceGroups.find(
+        g => String(g.id) === serviceGroup || g.name === serviceGroup
+      );
+      if (selectedGroup) {
+        fetchServices(selectedGroup.id);
+      }
+    } else {
+      setServices([]);
+      setService('');
+    }
+  }, [serviceGroup]);
+
+  // Convert API data to dropdown format
+  const serviceTypeOptions = serviceTypes.map(item => ({
+    label: item.name || String(item.id),
+    value: item.name || String(item.id),
+  }));
+
+  const serviceGroupOptions = serviceGroups.map(item => ({
+    label: item.name || String(item.id),
+    value: String(item.id),
+  }));
+
+  const serviceOptions = services.map(item => ({
+    label: item.name || String(item.id),
+    value: String(item.id),
+  }));
 
   const handleFindDoctor = async () => {
-    const selected = consultationTypes.find(t => t.id === selectedConsultation);
-    if (!selected) return;
+    // Validate required fields
+    if (!selectedConsultation) {
+      Toast.error('Please select a consultation type');
+      return;
+    }
+
+    if (!service) {
+      Toast.error('Please select a service');
+      return;
+    }
+
+    if (!serviceGroup) {
+      Toast.error('Please select a service group');
+      return;
+    }
+
+    if (!serviceType) {
+      Toast.error('Please select a service type');
+      return;
+    }
+
+    const selectedCard = consultationTypeCards.find(
+      card => card.id === selectedConsultation
+    );
+
+    if (!selectedCard) {
+      Toast.error('Please select a consultation type');
+      return;
+    }
+
+    // Get the selected service ID
+    const selectedService = services.find(s => String(s.id) === service);
+    if (!selectedService) {
+      Toast.error('Invalid service selected');
+      return;
+    }
+
+    // Get the selected group ID
+    const selectedGroup = serviceGroups.find(g => String(g.id) === serviceGroup);
+    if (!selectedGroup) {
+      Toast.error('Invalid service group selected');
+      return;
+    }
+
+    // Map consultation type to API format (Chat, Video, Voice)
+    const consultationTypeMap: Record<string, string> = {
+      chat: 'Chat',
+      video: 'Video',
+      voice: 'Voice',
+    };
+    const consultationType = consultationTypeMap[selectedCard.id] || 'Chat';
 
     // Show loading state
     setIsLoading(true);
 
-    // Simulate API call or processing delay
-    setTimeout(() => {
+    try {
+      // Prepare payload
+      const payload = {
+        serviceID: Number(selectedService.id),
+        type: consultationType,
+        groupID: Number(selectedGroup.id),
+        serviceType: serviceType,
+      };
+
+      console.log('Finding doctors with payload:', payload);
+
+      // Call findDoctors API
+      const response = await apiClient.post(API.CONSULTATIONS.FIND_DOCTORS, payload);
+
+      // Check for success: false in response
+      if (response.data?.success === false) {
+        const errorMessage = response.data?.message || 'Failed to find doctors';
+        Toast.error(errorMessage);
+        setIsLoading(false);
+        return;
+      }
+
+      // Success - navigate to ConsultationPayment with response data
+      const doctorsData = response.data?.data || response.data;
       setIsLoading(false);
+      
       navigation.navigate('ConsultationPayment', {
-        consultationType: selected.title,
-        consultationTypeId: selected.id, // Pass the type ID
-        duration: selected.duration,
-        price: selected.price,
-        serviceType: serviceType || t('general'),
-        serviceGroup: serviceGroup || t('internal_medicine'),
-        service: service || t('flu_check_up'),
+        consultationType: selectedCard.name,
+        consultationTypeId: selectedCard.id === 'voice' ? 'audio' : selectedCard.id,
+        duration: '30 min',
+        price: selectedCard.price,
+        serviceType: serviceType,
+        serviceGroup: selectedGroup.name || serviceGroup,
+        service: selectedService.name || service,
+        doctors: doctorsData, // Pass doctors data if available
       });
       onClose();
-    }, 2000);
+    } catch (error: any) {
+      console.error('Error finding doctors:', error);
+      const errorMessage = 
+        error?.response?.data?.message || 
+        error?.data?.message ||
+        error?.message || 
+        'Failed to find doctors';
+      Toast.error(errorMessage);
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -147,43 +438,85 @@ export default function ConsultDoctorBottomSheet({
                 </Text>
               </View>
 
+              {/* Service Type Dropdown */}
+              <View style={styles.dropdownContainer}>
+                {loadingServiceTypes ? (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                ) : (
               <CustomDropdown
                 label={t('service_type')}
                 value={serviceType}
                 onValueChange={setServiceType}
-                options={serviceTypes}
+                    options={serviceTypeOptions}
                 placeholder={t('select_type')}
               />
+                )}
+              </View>
+
+              {/* Service Group Dropdown */}
+              <View style={styles.dropdownContainer}>
+                {loadingServiceGroups ? (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                ) : (
               <CustomDropdown
                 label={t('service_group')}
                 value={serviceGroup}
                 onValueChange={setServiceGroup}
-                options={serviceGroups}
-                placeholder={t('select_group')}
+                    options={serviceGroupOptions}
+                    placeholder={
+                      !serviceType
+                        ? t('select_service_type_first') || 'Select service type first'
+                        : serviceGroupOptions.length === 0
+                        ? t('no_service_groups_found') || 'No service groups found'
+                        : t('select_group')
+                    }
               />
+                )}
+              </View>
+
+              {/* Service Dropdown */}
+              <View style={styles.dropdownContainer}>
+                {loadingServices ? (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                ) : (
               <CustomDropdown
                 label={t('service')}
                 value={service}
                 onValueChange={setService}
-                options={services}
-                placeholder={t('select_service')}
+                    options={serviceOptions}
+                    placeholder={
+                      !serviceGroup
+                        ? t('select_service_group_first') || 'Select service group first'
+                        : serviceOptions.length === 0
+                        ? t('no_services_found') || 'No services found'
+                        : t('select_service')
+                    }
               />
+                )}
+              </View>
 
               {/* Consultation Type */}
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>{t('consultation_type')}</Text>
-                {consultationTypes.map(type => {
-                  const isSelected = selectedConsultation === type.id;
-                  const Icon = type.Icon;
+                {loadingConsultationTypes ? (
+                  <ActivityIndicator size="small" color={colors.primary} style={styles.loadingIndicator} />
+                ) : consultationTypeCards.length === 0 ? (
+                  <Text style={styles.emptyText}>
+                    {t('no_consultation_types_found') || 'No consultation types available'}
+                  </Text>
+                ) : (
+                  consultationTypeCards.map(card => {
+                    const isSelected = selectedConsultation === card.id;
+                    const Icon = card.Icon;
 
                   return (
                     <TouchableOpacity
-                      key={type.id}
+                        key={card.id}
                       style={[
                         styles.consultationCard,
                         isSelected && styles.consultationCardSelected,
                       ]}
-                      onPress={() => setSelectedConsultation(type.id)}
+                        onPress={() => setSelectedConsultation(card.id)}
                     >
                       <View style={styles.consultationLeft}>
                         <View style={[styles.iconContainer]}>
@@ -192,27 +525,30 @@ export default function ConsultDoctorBottomSheet({
 
                         <View style={styles.consultationInfo}>
                           <Text style={[styles.consultationTitle]}>
-                            {type.title}
+                              {card.name}
                           </Text>
                           <View style={styles.durationContainer}>
                             <Ionicons name="time-outline" size={20} />
-                            <Text style={styles.duration}>{type.duration}</Text>
+                              <Text style={styles.duration}>
+                                30 min
+                              </Text>
                           </View>
                         </View>
                       </View>
 
                       <Text style={[styles.consultationPrice]}>
-                        {type.price}
+                          {card.price}
                       </Text>
                     </TouchableOpacity>
                   );
-                })}
+                  })
+                )}
               </View>
 
               <CustomButton
                 onPress={handleFindDoctor}
                 title={isLoading ? t('finding') : t('find_doctor')}
-                disabled={isLoading}
+                disabled={isLoading || !selectedConsultation}
               />
 
               <View style={styles.bottomSpacing} />
@@ -233,6 +569,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     paddingHorizontal: 20,
     paddingTop: 12,
+    maxHeight: '90%',
   },
   handleBar: {
     width: 40,
@@ -271,6 +608,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.text,
     marginBottom: 8,
+  },
+  dropdownContainer: {
+    marginBottom: 20,
+  },
+  loadingIndicator: {
+    marginVertical: 10,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: colors.secondaryText,
+    textAlign: 'center',
+    paddingVertical: 20,
   },
   consultationCard: {
     flexDirection: 'row',

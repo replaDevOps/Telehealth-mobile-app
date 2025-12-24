@@ -35,16 +35,18 @@ interface ServiceDetailBottomSheetProps {
   onAddToCart: (service: Service) => void;
   onCheckout: (service: Service) => void;
   loading?: boolean;
+  addingToCart?: boolean;
 }
 
 export const ServiceDetailBottomSheet: React.FC<
   ServiceDetailBottomSheetProps
-> = ({ visible, onClose, service, onAddToCart, onCheckout, loading = false }) => {
+> = ({ visible, onClose, service, onAddToCart, onCheckout, loading = false, addingToCart = false }) => {
   const { t } = useTranslation();
   
   if (!visible) return null;
 
   const handleAddToCart = () => {
+    if (addingToCart || !service) return;
     onAddToCart(service);
   };
 
@@ -82,90 +84,95 @@ export const ServiceDetailBottomSheet: React.FC<
             </View>
           ) : service ? (
             <>
-              <ScrollView
-                style={styles.scrollView}
-                contentContainerStyle={styles.content}
-                showsVerticalScrollIndicator={false}
-              >
-                {/* Service Image */}
-                <Image source={service.image} style={styles.serviceImage} />
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={styles.content}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Service Image */}
+            <Image source={service.image} style={styles.serviceImage} />
 
-                {/* Service Tags */}
-                <View style={styles.serviceInfoContainter}>
-                  <View style={styles.serviceInfo}>
-                    <View style={styles.serviceTags}>
-                      <View style={styles.tag}>
-                        <Text style={styles.TypetagText}>{service.type}</Text>
-                      </View>
-                      <View style={styles.tag}>
-                        <Text style={styles.SGtagText}>{service.serviceGroup}</Text>
-                      </View>
-                    </View>
-                    <Text style={styles.price}>{service.price}</Text>
+            {/* Service Tags */}
+            <View style={styles.serviceInfoContainter}>
+              <View style={styles.serviceInfo}>
+                <View style={styles.serviceTags}>
+                  <View style={styles.tag}>
+                    <Text style={styles.TypetagText}>{service.type}</Text>
                   </View>
-
-                  <View style={styles.serviceFooter}>
-                    <Text style={styles.serviceName}>{service.serviceName}</Text>
-                    <View style={styles.durationContainer}>
-                      <Ionicons
-                        name="time-outline"
-                        size={14}
-                        color={colors.secondaryText}
-                      />
-                      <Text style={styles.duration}>{service.duration}</Text>
-                    </View>
+                  <View style={styles.tag}>
+                    <Text style={styles.SGtagText}>{service.serviceGroup}</Text>
                   </View>
                 </View>
-
-                <View style={{ flexDirection: 'row', gap: 20 }}>
-                  <View style={styles.pointTag}>
-                    <Image source={coinIcon} style={{ width: 20, height: 20 }} />
-                    <Text style={styles.pointTagText}>Earn 10 loyalty points </Text>
-                  </View>
-                  <View style={styles.pointTag}>
-                    <TagSvg />
-                    <Text style={styles.pointTagText}>40% off SAR.80</Text>
-                  </View>
-                </View>
-
-                {/* Description Section */}
-                {service.description && (
-                  <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>{t('description')}</Text>
-                    <Text style={styles.sectionText}>
-                      {service.description || t('injectable_material_text')}
-                    </Text>
-                  </View>
-                )}
-
-                {/* Procedure Section */}
-                {service.procedure && (
-                  <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>{t('procedure')}</Text>
-                    <Text style={styles.sectionText}>
-                      {service.procedure || t('injected_under_skin_text')}
-                    </Text>
-                  </View>
-                )}
-              </ScrollView>
-
-              {/* Footer Buttons */}
-              <View style={styles.footer}>
-                <TouchableOpacity
-                  style={styles.addToCartButton}
-                  onPress={handleAddToCart}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.addToCartText}>{t('add_to_cart')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.checkoutButton}
-                  onPress={handleCheckout}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.checkoutText}>{t('checkout')}</Text>
-                </TouchableOpacity>
+                <Text style={styles.price}>{service.price}</Text>
               </View>
+
+              <View style={styles.serviceFooter}>
+                <Text style={styles.serviceName}>{service.serviceName}</Text>
+                <View style={styles.durationContainer}>
+                  <Ionicons
+                    name="time-outline"
+                    size={14}
+                    color={colors.secondaryText}
+                  />
+                  <Text style={styles.duration}>{service.duration}</Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={{ flexDirection: 'row', gap: 20 }}>
+              <View style={styles.pointTag}>
+                <Image source={coinIcon} style={{ width: 20, height: 20 }} />
+                <Text style={styles.pointTagText}>Earn 10 loyalty points </Text>
+              </View>
+              <View style={styles.pointTag}>
+                <TagSvg />
+                <Text style={styles.pointTagText}>40% off SAR.80</Text>
+              </View>
+            </View>
+
+            {/* Description Section */}
+            {service.description && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>{t('description')}</Text>
+                <Text style={styles.sectionText}>
+                  {service.description || t('injectable_material_text')}
+                </Text>
+              </View>
+            )}
+
+            {/* Procedure Section */}
+            {service.procedure && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>{t('procedure')}</Text>
+                <Text style={styles.sectionText}>
+                  {service.procedure || t('injected_under_skin_text')}
+                </Text>
+              </View>
+            )}
+          </ScrollView>
+
+          {/* Footer Buttons */}
+          <View style={styles.footer}>
+            <TouchableOpacity
+                  style={[styles.addToCartButton, addingToCart && styles.addToCartButtonDisabled]}
+              onPress={handleAddToCart}
+              activeOpacity={0.7}
+                  disabled={addingToCart}
+            >
+                  {addingToCart ? (
+                    <ActivityIndicator size="small" color={colors.black} />
+                  ) : (
+              <Text style={styles.addToCartText}>{t('add_to_cart')}</Text>
+                  )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.checkoutButton}
+              onPress={handleCheckout}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.checkoutText}>{t('checkout')}</Text>
+            </TouchableOpacity>
+          </View>
             </>
           ) : (
             <View style={styles.emptyState}>
@@ -306,6 +313,9 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  addToCartButtonDisabled: {
+    opacity: 0.5,
   },
   addToCartText: {
     fontSize: 16,

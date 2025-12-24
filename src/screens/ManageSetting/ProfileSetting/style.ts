@@ -185,6 +185,17 @@ export const styles = StyleSheet.create({
         fontSize: 17,
         fontWeight: '600',
       },
+      loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingTop: mvs(50),
+      },
+      loadingText: {
+        marginTop: mvs(16),
+        fontSize: 16,
+        color: colors.secondaryText,
+      },
   });
   
   

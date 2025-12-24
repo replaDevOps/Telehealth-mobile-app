@@ -71,6 +71,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
   const [loadingDescription, setLoadingDescription] = useState(false);
   const [loadingDeviceDetail, setLoadingDeviceDetail] = useState(false);
   const [loadingServiceDetail, setLoadingServiceDetail] = useState(false);
+  const [loadingAddToCart, setLoadingAddToCart] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; long: number } | null>(null);
   
   // Get clinic ID from route params
@@ -97,9 +98,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       if (!services.length) {
         fetchClinicServices();
       }
-      if (!serviceFilters.length) {
-        fetchServiceFilters();
-      }
+      // Don't fetch service filters initially - only fetch when service groups are selected
     }
     if (activeTab === t('reviews') && clinicID) {
       if (!reviews.length) {
@@ -230,10 +229,10 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
         setDevices(descriptionResponse.data.devices || []);
       }
 
-      // Fetch services, reviews, and service filters after getting clinic details
+      // Fetch services and reviews after getting clinic details
+      // Don't fetch service filters initially - only fetch when service groups are selected
       fetchClinicServices();
       fetchClinicReviews();
-      fetchServiceFilters();
     } catch (error: any) {
       console.error('Error fetching clinic details:', error);
       Toast.error(error.message || 'Failed to fetch clinic details');
@@ -242,14 +241,21 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     }
   };
 
-  const fetchServiceFilters = async () => {
-    if (!clinicID) return;
+  const fetchServiceFilters = async (groupIDs?: number[]) => {
+    // If groupIDs is provided, both clinicID and groupIDs (with at least one element) must be present
+    if (!clinicID || !groupIDs || groupIDs.length === 0) {
+      return;
+    }
 
     try {
+      const params: any = {
+        clinicID: clinicID.toString(),
+        groupIDs: groupIDs, // groupIDs is required when calling this function
+      };
+
+      // Axios will automatically format array as groupIDs[]=1&groupIDs[]=2
       const response = await apiClient.get(API.CLINIC.GET_SERVICES_FILTER, {
-        params: {
-          clinicID: clinicID.toString(),
-        },
+        params: params,
       });
 
       if (response.data.success && response.data.data) {
@@ -432,10 +438,11 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
         serviceType: '',
       };
 
-      // Add selected clinic types as serviceType (if only one selected)
+      // Add selected clinic type as serviceType (only one can be selected)
       const selectedClinicTypes = Object.keys(filters.clinicTypes || {})
         .filter(key => filters.clinicTypes[key]);
-      if (selectedClinicTypes.length === 1) {
+      if (selectedClinicTypes.length > 0) {
+        // Since only one clinic type can be selected, use the first (and only) one
         params.serviceType = selectedClinicTypes[0];
       }
 
@@ -549,8 +556,38 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     navigation.navigate('ChatOnboarding');
   };
 
-  const handleAddToCart = (service: any) => {
-    // Add service with clinic details to cart
+  const handleAddToCart = async (service: any) => {
+    if (!service || !service.id) {
+      Toast.error('Invalid service');
+      return;
+    }
+
+    setLoadingAddToCart(true);
+
+    try {
+      // Extract service ID - it might be a string, convert to number
+      const serviceID = typeof service.id === 'string' ? parseInt(service.id, 10) : service.id;
+      
+      if (isNaN(serviceID)) {
+        Toast.error('Invalid service ID');
+        setLoadingAddToCart(false);
+        return;
+      }
+
+      // Call API to add service to cart
+      const response = await apiClient.post(API.CART.ADD_TO_CART, {
+        serviceID: serviceID,
+      });
+
+      // Check if API returned success: false (even with 200 status)
+      if (response.data?.success === false) {
+        const errorMessage = response.data?.message || 'Failed to add service to cart';
+        Toast.error(errorMessage);
+        setLoadingAddToCart(false);
+        return;
+      }
+
+      // Also add to local cart context for immediate UI update
     const cartItem = {
       service: service,
       clinic: {
@@ -565,10 +602,19 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
 
     addToCart(cartItem);
 
-    console.log('Service added to cart:', cartItem);
+      // Show success message
+      const successMessage = response.data?.message || response.data?.data?.message || 'Service added to cart successfully';
+      Toast.success(successMessage);
 
     setServiceDetailVisible(false);
     navigation.navigate('CartScreen');
+    } catch (error: any) {
+      console.error('Error adding service to cart:', error);
+      const errorMessage = error?.message || error?.response?.data?.message || 'Failed to add service to cart';
+      Toast.error(errorMessage);
+    } finally {
+      setLoadingAddToCart(false);
+    }
   };
 
   const handleCheckout = (service: any) => {
@@ -921,6 +967,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
         onAddToCart={handleAddToCart}
         onCheckout={handleCheckout}
         loading={loadingServiceDetail}
+        addingToCart={loadingAddToCart}
       />
 
       <DeviceDetailBottomSheet
@@ -933,6 +980,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       <ConsultDoctorBottomSheet
         visible={showBottomSheet}
         onClose={() => setShowBottomSheet(false)}
+        clinicID={clinicID || undefined}
       />
     </View>
   );

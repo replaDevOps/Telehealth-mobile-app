@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { RouteProp } from '@react-navigation/native';
 import { KeyboardAvoidScrollview } from '../../../components/common/keyboard-avoid-scrollview';
 import { LogoSvg } from '../../../assets/icons';
 import { Header2 } from '../../../components/common/Header2';
@@ -11,15 +12,21 @@ import { AuthStackParamList } from '../../../navigation/AuthNavigator';
 import { styles } from './styles';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import { apiClient } from '@services/api/api-client';
+import { API } from '@services/api/api-endpoint';
+import { Toast } from 'toastify-react-native';
 
 type NavProps = StackNavigationProp<AuthStackParamList, 'SetPassword'>;
+type RouteProps = RouteProp<AuthStackParamList, 'SetPassword'>;
 
 interface Props {
   navigation: NavProps;
+  route: RouteProps;
 }
 
-export const SetPassword: React.FC<Props> = ({ navigation }) => {
+export const SetPassword: React.FC<Props> = ({ navigation, route }) => {
   const { t } = useTranslation();
+  const token = route.params?.token;
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
@@ -32,7 +39,7 @@ export const SetPassword: React.FC<Props> = ({ navigation }) => {
     return passwordRegex.test(password);
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     setError('');
 
     if (!password || !confirmPassword) {
@@ -52,12 +59,51 @@ export const SetPassword: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
+    if (!token) {
+      setError('Invalid token. Please try again.');
+      Toast.error('Invalid token. Please try again.');
+      return;
+    }
+
     setLoading(true);
-    setTimeout(() => {
+
+    try {
+      const payload = {
+        token: token,
+        password: password.trim(),
+        confirmationPassword: confirmPassword.trim(),
+      };
+
+      console.log('Resetting password with payload:', { ...payload, password: '***', confirmationPassword: '***' });
+
+      const response = await apiClient.post(API.AUTH.RESET_PASSWORD, payload);
+
+      // Check for success: false in response
+      if (response.data?.success === false) {
+        const errorMessage = response.data?.message || 'Failed to reset password';
+        setError(errorMessage);
+        Toast.error(errorMessage);
+        setLoading(false);
+        return;
+      }
+
+      // Success
+      const successMessage = response.data?.message || 'Password reset successfully';
+      Toast.success(successMessage);
+      
+      // Navigate to sign in screen
+      navigation.navigate('SignIn');
+    } catch (error: any) {
+      console.error('Reset password error:', error);
+      const errorMessage = 
+        error?.response?.data?.message || 
+        error?.data?.message ||
+        error?.message || 
+        'Failed to reset password. Please try again.';
+      setError(errorMessage);
+      Toast.error(errorMessage);
       setLoading(false);
-      console.log('Password created:', password);
-      navigation.navigate('Main', { screen: 'Home' });
-    }, 1000);
+    }
   };
 
   return (

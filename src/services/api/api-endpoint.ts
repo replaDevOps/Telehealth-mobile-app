@@ -48,4 +48,24 @@ export const API = {
     GET_SERVICES_FILTER: '/patient-common/servicesFilter',
     GET_SERVICE_DETAILS: '/patient-common/serviceDetails',
   },
+  CART: {
+    ADD_TO_CART: '/cart/add',
+    VIEW_CART_DETAILS: '/cart/viewCartDetails',
+    REMOVE_FROM_CART: '/cart/remove', // DELETE /cart/remove/{cartID}
+  },
+  CHECKOUT: {
+    CHECKOUT: '/checkout/checkout',
+  },
+  CONSULTATIONS: {
+    GET_SERVICE_TYPES: '/patient-consultations/serviceTypes',
+    GET_GROUPS: '/patient-consultations/groups',
+    GET_SERVICES: '/patient-consultations/services',
+    GET_CONSULTATION_TYPES: '/patient-consultations/consultationsTypes',
+    FIND_DOCTORS: '/patient-consultations/findDoctors',
+  },
+  NOTIFICATIONS: {
+    VIEW_ALL: '/patient-notifications/viewAll',
+    DELETE: '/patient-notifications/delete',
+    CLEAR_ALL: '/patient-notifications/clearAll',
+  },
 };

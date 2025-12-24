@@ -7,6 +7,7 @@ import {
   ScrollView,
   Image,
   StatusBar,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../../../styles/colors';
@@ -20,6 +21,10 @@ import { styles } from './style';
 import { PaymentMethod, SuccessMessageModal } from '@components/molecules'; // Verify this path
 import { useTranslation } from 'react-i18next';
 import { coinIcon } from '@assets/images';
+import { apiClient } from '@services/api/api-client';
+import { API } from '@services/api/api-endpoint';
+import { Toast } from 'toastify-react-native';
+import { useAuthStore } from '@store';
 
 export function CheckoutScreen({ route, navigation }) {
   const { t } = useTranslation();
@@ -35,6 +40,8 @@ export function CheckoutScreen({ route, navigation }) {
   });
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [redeemPoints, setRedeemPoints] = useState('');
 
   const allPaymentMethods = [
     {
@@ -85,23 +92,118 @@ export function CheckoutScreen({ route, navigation }) {
     }
   };
 
-  const handleProceedToPayment = () => {
-    // Validate payment details if credit card is selected
-    if (selectedPayment === 'credit') {
-      const { cardholderName, cardNumber, expiryDate, cvv } = cardDetails;
-      if (!cardholderName || !cardNumber || !expiryDate || !cvv) {
-        alert(t('fill_card_details'));
-        return;
-      }
+  const parseExpiryDate = (expiryDate: string) => {
+    // Expected format: MM/YY or MM/YYYY
+    const parts = expiryDate.split('/');
+    if (parts.length !== 2) {
+      return { month: '', year: '' };
+    }
+    const month = parts[0].trim();
+    let year = parts[1].trim();
+    // If year is 2 digits, assume 20XX
+    if (year.length === 2) {
+      year = `20${year}`;
+    }
+    return { month, year };
+  };
+
+  const handleProceedToPayment = async () => {
+    // Only allow credit/debit card payment for now
+    if (selectedPayment !== 'credit') {
+      Toast.error('Only card payment is available at the moment');
+      return;
     }
 
-    console.log('Processing payment:', {
-      services,
-      total,
-      selectedPayment,
-      cardDetails: selectedPayment === 'credit' ? cardDetails : null,
-    });
-    setShowSuccessModal(true);
+    // Check authentication
+    const authState = useAuthStore.getState();
+    const token = authState.auth?.user?.token;
+    
+    if (!token) {
+      Toast.error('Please login to proceed with checkout');
+      // Optionally navigate to login screen
+      // navigation.navigate('SignIn');
+      return;
+    }
+
+    // Validate payment details
+    const { cardholderName, cardNumber, expiryDate, cvv } = cardDetails;
+    if (!cardholderName || !cardNumber || !expiryDate || !cvv) {
+      Toast.error(t('fill_card_details') || 'Please fill all card details');
+      return;
+    }
+
+    // Validate expiry date format
+    const { month, year } = parseExpiryDate(expiryDate);
+    if (!month || !year || month.length !== 2 || year.length !== 4) {
+      Toast.error('Please enter expiry date in MM/YY format');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Prepare checkout payload
+      const payload = {
+        paymentMethod: 'stripe',
+        cardNumber: cardNumber.replace(/\s/g, ''), // Remove spaces
+        expMonth: month,
+        expYear: year,
+        cvc: cvv,
+        cardholderName: cardholderName,
+        redeemPoints: redeemPoints || '',
+      };
+
+      console.log('Checkout payload:', { ...payload, cardNumber: '***', cvc: '***' });
+      console.log('Auth token present:', !!token);
+
+      const response = await apiClient.post(API.CHECKOUT.CHECKOUT, payload);
+
+      // Check for success: false in response
+      if (response.data?.success === false) {
+        const errorMessage = response.data?.message || 'Checkout failed';
+        Toast.error(errorMessage);
+        setShowErrorModal(true);
+        setLoading(false);
+        return;
+      }
+
+      // Success
+      const successMessage = response.data?.message || 'Payment processed successfully';
+      Toast.success(successMessage);
+      setShowSuccessModal(true);
+      setLoading(false);
+    } catch (error: any) {
+      console.error('Checkout error:', error);
+      
+      // Handle 401 Unauthenticated error
+      if (error?.status === 401 || error?.response?.status === 401) {
+        Toast.error('Session expired. Please login again.');
+        
+        try {
+          // Call logout API
+          await apiClient.post(API.AUTH.LOGOUT);
+        } catch (logoutError: any) {
+          // Even if logout API call fails, proceed with logout
+          console.log('Logout API error:', logoutError);
+        } finally {
+          // Clear auth store and navigate to login
+          useAuthStore.getState().logout();
+          navigation.replace('Auth', { screen: 'SignIn' });
+        }
+        
+        setLoading(false);
+        return;
+      }
+
+      const errorMessage = 
+        error?.response?.data?.message || 
+        error?.data?.message ||
+        error?.message || 
+        'Failed to process payment';
+      Toast.error(errorMessage);
+      setShowErrorModal(true);
+      setLoading(false);
+    }
   };
   const HandleRequest = () => {
     console.log('the okay button is pressed');
@@ -210,7 +312,15 @@ export function CheckoutScreen({ route, navigation }) {
 
         {/* Payment Methods Section - Only show card form for credit card */}
         <PaymentMethod
-          onPaymentChange={setSelectedPayment}
+          selectedPayment="credit" // Force credit card selection
+          onPaymentChange={(payment) => {
+            // Only allow credit card, ignore other selections
+            if (payment !== 'credit') {
+              Toast.error('Only card payment is available at the moment');
+              return;
+            }
+            setSelectedPayment(payment);
+          }}
           cardholderName={cardDetails.cardholderName}
           onCardholderNameChange={text =>
             setCardDetails(prev => ({ ...prev, cardholderName: text }))
@@ -229,13 +339,14 @@ export function CheckoutScreen({ route, navigation }) {
           compact={true}
           showRoyaltyPoints={true}
           royaltyPoints={300}
-          onRedeemPoints={points => console.log('Redeem', points)}
+          pointsToRedeem={redeemPoints}
+          onPointsToRedeemChange={setRedeemPoints}
           onApplyCoupon={code => console.log('Apply', code)}
           showCouponCode
         />
 
-        {/* Pay in Installments - As separate section */}
-        {installmentPaymentMethods.length > 0 && (
+        {/* Pay in Installments - Disabled for now */}
+        {/* {installmentPaymentMethods.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionSubtitle}>
               {t('pay_in_installments')}
@@ -262,7 +373,7 @@ export function CheckoutScreen({ route, navigation }) {
               </TouchableOpacity>
             ))}
           </View>
-        )}
+        )} */}
 
         {/* Coupon Code Section */}
         <View style={styles.couponSection}>
@@ -330,12 +441,17 @@ export function CheckoutScreen({ route, navigation }) {
       {/* Bottom Button */}
       <View style={styles.bottomContainer}>
         <TouchableOpacity
-          style={styles.proceedButton}
+          style={[styles.proceedButton, loading && { opacity: 0.7 }]}
           onPress={handleProceedToPayment}
+          disabled={loading}
         >
-          <Text style={styles.proceedButtonText}>
-            {t('proceed_to_payment')}
-          </Text>
+          {loading ? (
+            <ActivityIndicator size="small" color={colors.white} />
+          ) : (
+            <Text style={styles.proceedButtonText}>
+              {t('proceed_to_payment')}
+            </Text>
+          )}
         </TouchableOpacity>
       </View>
 

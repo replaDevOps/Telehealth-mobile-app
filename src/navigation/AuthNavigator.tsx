@@ -20,7 +20,9 @@ export type AuthStackParamList = {
   CreatePassword: undefined;
   Profile: undefined;
   ForgetPassword: undefined;
-  SetPassword: undefined;
+  SetPassword: {
+    token?: string;
+  };
   OTPScreen: {
     source: 'forgotPassword' | 'signUp';
     method: 'email' | 'phone';

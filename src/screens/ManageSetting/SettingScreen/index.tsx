@@ -5,30 +5,69 @@ import UserProfile from '../../../components/common/UserProfile';
 import { Header2 } from '../../../components/common/Header2';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
 
 import {
   ProfileSvg,
   FAQsSvg,
   RefundSvg,
-  LoyaltyPSvg,
   LogoutSvg,
 } from '@assets/icons';
 import style from './style';
 import { RoyaltyPointsBar } from '@components/molecules';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@store';
+import { apiClient } from '../../../services/api/api-client';
+import { API } from '../../../services/api/api-endpoint';
+import { tryCatch } from '../../../utils';
 
 export const SettingScreen = ({ navigation }: { navigation: any }) => {
   const { t } = useTranslation();
   const { logout } = useAuthStore();
   const [profileImage, setProfileImage] = useState<string>('');
+  const [profileData, setProfileData] = useState<any>(null);
+
+  // Fetch profile data on component mount and when screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      fetchProfileData();
+    }, [])
+  );
+
+  const fetchProfileData = async () => {
+    const [res, err] = await tryCatch(
+      apiClient.get(API.SETTINGS.VIEW_PROFILE),
+    );
+
+    if (err) {
+      // Silently fail - don't show error toast for profile data fetch
+      console.log('Failed to fetch profile data:', err);
+      return;
+    }
+
+    // Extract profile data from response
+    const data = res.data?.data || res.data || res;
+    
+    // Store full profile data
+    setProfileData(data);
+    
+    // Extract profile image
+    const imageUrl = data?.profileImage || data?.image || data?.profile_image || '';
+    if (imageUrl) {
+      setProfileImage(imageUrl);
+    }
+  };
 
   // =============== Handlers ===============
   const handleImageSelected = (uri: string) => {
     setProfileImage(uri);
+    // Optionally refresh profile image after upload
+    // fetchProfileImage();
+    
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     Alert.alert(
       t('log_out'),
       t('are_you_sure_logout'),
@@ -37,9 +76,18 @@ export const SettingScreen = ({ navigation }: { navigation: any }) => {
         {
           text: t('log_out'),
           style: 'destructive',
-          onPress: () => {
-            logout();
-            navigation.replace('Auth', { screen: 'SignIn' });
+          onPress: async () => {
+            try {
+              // Call logout API
+              await apiClient.post(API.AUTH.LOGOUT);
+            } catch (error: any) {
+              // Even if API call fails, proceed with logout
+              console.log('Logout API error:', error);
+            } finally {
+              // Clear auth store and navigate to login
+              logout();
+              navigation.replace('Auth', { screen: 'SignIn' });
+            }
           },
         },
       ],
@@ -52,7 +100,9 @@ export const SettingScreen = ({ navigation }: { navigation: any }) => {
     {
       icon: ProfileSvg,
       title: t('profile_settings'),
-      onPress: () => navigation.navigate('ProfileSetting'),
+      onPress: () => navigation.navigate('ProfileSetting', {
+        profileData: profileData,
+      }),
     },
     {
       icon: FAQsSvg,

@@ -6,31 +6,104 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import React, { useState, useCallback } from 'react';
-import { launchImageLibrary } from 'react-native-image-picker';
+import React, { useState, useCallback, useEffect } from 'react';
+import { launchImageLibrary, ImagePickerResponse, Asset } from 'react-native-image-picker';
 import { mvs } from '../../config/metrices';
 import { colors } from '../../styles/colors';
 import { EditSvg } from '../../assets/icons';
+import { API } from '../../services/api/api-endpoint';
+import { BASE_URL } from '../../constants';
+import { Toast } from 'toastify-react-native';
+import { useAuthStore } from '@store';
 
 interface UserProfileProps {
   profileImage?: string;
   onImageSelected?: (uri: string) => void;
+  autoUpload?: boolean; // If true, uploads immediately. If false, just returns the image URI
+  onImageAssetSelected?: (asset: Asset) => void; // Callback with full asset object when autoUpload is false
 }
 
 const UserProfile: React.FC<UserProfileProps> = ({
   profileImage: initialProfileImage = '',
   onImageSelected,
+  autoUpload = true, // Default to true for backward compatibility
+  onImageAssetSelected,
 }) => {
   const [profileImage, setProfileImage] = useState(initialProfileImage);
   const [isUploading, setIsUploading] = useState(false);
 
+  // Update profile image when prop changes
+  useEffect(() => {
+    if (initialProfileImage) {
+      setProfileImage(initialProfileImage);
+    }
+  }, [initialProfileImage]);
+
+  const uploadProfileImage = useCallback(async (asset: Asset) => {
+    if (!asset.uri) return;
+  
+    setIsUploading(true);
+  
+    try {
+      const formData = new FormData();
+      
+      const uriParts = asset.uri.split('.');
+      const fileExtension = uriParts[uriParts.length - 1] || 'jpg';
+      const fileName = asset.fileName || `profile_${Date.now()}.${fileExtension}`;
+      
+      let fileType = asset.type || 'image/jpeg';
+      if (!asset.type) {
+        const ext = fileExtension.toLowerCase();
+        if (ext === 'png') fileType = 'image/png';
+        else if (ext === 'jpg' || ext === 'jpeg') fileType = 'image/jpeg';
+      }
+      console.log("🚀 ~ uploadProfileImage ~ useAuthStore.getState():", useAuthStore.getState())
+      formData.append('image', {
+        uri: asset.uri,
+        type: fileType,
+        name: fileName,
+      } as any);
+      // Use fetch instead of axios
+      const response = await fetch(`${BASE_URL}${API.SETTINGS.UPDATE_PROFILE_IMAGE}`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          // Add your auth token if needed
+          'Authorization': `Bearer ${useAuthStore.getState().auth?.token}`,
+        },
+      });
+  
+      const data = await response.json();
+  
+      if (!response.ok || data.success === false) {
+        throw new Error(data.message || 'Upload failed');
+      }
+  
+      const imageUrl = data.data?.image || data.image || asset.uri;
+      setProfileImage(imageUrl);
+      onImageSelected?.(imageUrl);
+      Toast.success(data.message || 'Profile image updated successfully');
+  
+    } catch (error: any) {
+      console.error('Upload failed:', error);
+      // Set local image even if upload fails to make it appear as if image is set
+      setProfileImage(asset.uri);
+      onImageSelected?.(asset.uri);
+      Toast.error(error?.message || 'Failed to upload image');
+    } finally {
+      setIsUploading(false);
+    }
+  }, [onImageSelected]);
+
   const openImagePicker = useCallback(() => {
     const options = {
       mediaType: 'photo' as const,
-      quality: 0.8,
+      quality: 0.8 as const,
+      includeBase64: false,
     };
 
-    launchImageLibrary(options, async response => {
+    launchImageLibrary(options, async (response: ImagePickerResponse) => {
       if (response.didCancel) {
         console.log('User cancelled image picker');
         return;
@@ -41,25 +114,21 @@ const UserProfile: React.FC<UserProfileProps> = ({
         return;
       }
 
-      const uri = response.assets?.[0]?.uri;
-      if (!uri) return;
+      const asset = response.assets?.[0];
+      if (!asset?.uri) return;
 
-      // ----> Simulate upload – replace with your real mutation <----
-      setIsUploading(true);
-      try {
-        // Example: await uploadToBackend(uri);
-        await new Promise(resolve => setTimeout(resolve, 1000)); // demo delay
-
-        setProfileImage(uri);
-        onImageSelected?.(uri);
-      } catch (e) {
-        console.error('Upload failed', e);
-        Alert.alert('Upload failed', 'Please try again.');
-      } finally {
-        setIsUploading(false);
+      // If autoUpload is false, just return the image URI/asset without uploading
+      if (!autoUpload) {
+        setProfileImage(asset.uri);
+        onImageSelected?.(asset.uri);
+        onImageAssetSelected?.(asset);
+        return;
       }
+
+      // Upload the selected image (default behavior)
+      await uploadProfileImage(asset);
     });
-  }, [onImageSelected]);
+  }, [uploadProfileImage, autoUpload, onImageSelected, onImageAssetSelected]);
 
   const imageSource = profileImage
     ? { uri: profileImage }

@@ -401,5 +401,7 @@
   "no_clinic_types_found": "No clinic types found",
   "no_service_groups_found": "No service groups found",
   "select_clinic_type_first": "Select a clinic type first",
-  "select_service_group_first": "Select service groups first"
+  "select_service_group_first": "Select service groups first",
+  "select_service_type_first": "Select service type first",
+  "no_consultation_types_found": "No consultation types available"
 }

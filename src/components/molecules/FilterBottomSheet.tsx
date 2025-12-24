@@ -147,17 +147,15 @@ export const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
     }
   }, [visible, initialFilters]);
 
-  // Fetch clinic types and service filters when component mounts or becomes visible
+  // Fetch clinic types when component mounts or becomes visible
   useEffect(() => {
     if (visible) {
       fetchClinicTypes();
-      if (clinicID) {
-        fetchServiceFilters();
-      }
+      // Don't fetch service filters initially - only fetch when service groups are selected
     }
   }, [visible, clinicID]);
 
-  // Fetch service groups when clinic types are selected (but not when initializing from initialFilters)
+  // Fetch service groups when clinic type is selected (single select only)
   useEffect(() => {
     // Skip if we're initializing from initialFilters (handled in the other useEffect)
     if (!visible) return;
@@ -167,20 +165,40 @@ export const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
       .map(key => key);
     
     if (selectedClinicTypes.length > 0) {
-      // Only fetch if we don't have groups already (to avoid refetching on initial load)
-      if (serviceGroups.length === 0) {
-        fetchServiceGroups(selectedClinicTypes[0], false);
-      }
+      // Since only one clinic type can be selected, use the first (and only) one
+      // Fetch service groups for the selected clinic type
+      fetchServiceGroups(selectedClinicTypes[0], false);
     } else {
+      // No clinic type selected, clear service groups and service names
       setServiceGroups([]);
       setFilters(prev => ({
         ...prev,
         serviceGroups: {},
-        // Only clear service names if we're not preserving initial filters
-        serviceNames: initialFilters?.serviceNames || {},
+        serviceNames: {},
       }));
     }
   }, [filters.clinicTypes, visible]);
+
+  // Fetch service filters when service groups are selected
+  useEffect(() => {
+    if (!visible || !clinicID) return;
+    
+    const selectedGroupIds = Object.keys(filters.serviceGroups)
+      .filter(key => filters.serviceGroups[Number(key)])
+      .map(key => Number(key));
+    
+    // Only fetch service filters when service groups are selected (with groupIDs)
+    if (selectedGroupIds.length > 0) {
+      fetchServiceFilters(selectedGroupIds);
+    } else {
+      // If no groups selected, clear service filters
+      setServiceFilters([]);
+      setFilters(prev => ({
+        ...prev,
+        serviceNames: {},
+      }));
+    }
+  }, [filters.serviceGroups, visible, clinicID]);
 
   const fetchClinicTypes = async () => {
     try {
@@ -216,7 +234,7 @@ export const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
         params: {
           clinicType: clinicType,
     },
-      });
+  });
       if (response.data.success && response.data.data) {
         setServiceGroups(response.data.data);
         // Initialize filter state with service groups, preserving existing selections
@@ -242,16 +260,30 @@ export const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
     }
   };
 
-  const fetchServiceFilters = async () => {
-    if (!clinicID) return;
+  const fetchServiceFilters = async (groupIDs?: number[]) => {
+    // If groupIDs is provided, both clinicID and groupIDs (with at least one element) must be present
+    if (!clinicID || !groupIDs || groupIDs.length === 0) {
+        return;
+      }
 
     try {
       setLoadingServices(true);
+      const params: any = {
+        clinicID: clinicID.toString(),
+        
+      };
+
+      // Add groupIDs array if provided
+      // Axios will automatically format array as groupIDs[]=1&groupIDs[]=2
+      if (groupIDs && groupIDs.length > 0) {
+        params.groupIDs = groupIDs;
+      } 
+
+      console.log('params', params);
+
       const response = await apiClient.get(API.CLINIC.GET_SERVICES_FILTER, {
-        params: {
-          clinicID: clinicID.toString(),
-    },
-  });
+        params: params,
+      });
 
       if (response.data.success && response.data.data) {
         setServiceFilters(response.data.data);
@@ -286,13 +318,39 @@ export const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
   }, [filters]);
 
   const handleClinicTypeToggle = (typeId: string) => {
+    // Clinic type can only be one selection (single select)
+    // If clicking the same type that's already selected, deselect it
+    // Otherwise, clear all and select only this one
+    const isCurrentlySelected = filters.clinicTypes[typeId];
+    
+    if (isCurrentlySelected) {
+      // Deselect if already selected
     setFilters({
       ...filters,
       clinicTypes: {
         ...filters.clinicTypes,
-        [typeId]: !filters.clinicTypes[typeId],
-      },
+          [typeId]: false,
+        },
+        // Clear service groups and service names when deselecting clinic type
+        serviceGroups: {},
+        serviceNames: {},
+      });
+    } else {
+      // Clear all clinic types and select only this one
+      const newClinicTypes: { [key: string]: boolean } = {};
+      clinicTypes.forEach(type => {
+        newClinicTypes[type.id] = false;
+      });
+      newClinicTypes[typeId] = true;
+      
+      setFilters({
+        ...filters,
+        clinicTypes: newClinicTypes,
+        // Clear service groups and service names when selecting a new clinic type
+        serviceGroups: {},
+        serviceNames: {},
     });
+    }
   };
 
   const handleServiceGroupToggle = (groupId: number) => {

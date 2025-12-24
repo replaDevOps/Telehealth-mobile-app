@@ -42,6 +42,29 @@ export const styles = StyleSheet.create({
         lineHeight: 20,
         color: colors.secondaryText, // Slightly muted text
       },
+      loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingTop: mvs(50),
+      },
+      loadingText: {
+        marginTop: mvs(16),
+        fontSize: 16,
+        color: colors.secondaryText,
+      },
+      emptyContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingTop: mvs(50),
+        paddingHorizontal: mvs(20),
+      },
+      emptyText: {
+        fontSize: 16,
+        color: colors.secondaryText,
+        textAlign: 'center',
+      },
   });
   
   

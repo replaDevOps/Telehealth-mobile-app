@@ -71,18 +71,44 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
       lastSubmittedOtp.current = otp;
       console.log('OTP submitted:', otp);
 
-      const { data } = await apiClient.post(API.AUTH.VERIFY_OTP, {
+      // Use different endpoint based on source
+      const endpoint = source === 'forgotPassword' 
+        ? API.AUTH.VERIFY_OTP_PASSWORD 
+        : API.AUTH.VERIFY_OTP;
+
+      const response = await apiClient.post(endpoint, {
         otp,
       });
-      console.log("🚀 ~ handleNext ~ data:", data)
-      Toast.success(data.message);
+
+      // Check for success: false in response
+      if (response.data?.success === false) {
+        const errorMessage = response.data?.message || 'Invalid OTP';
+        Toast.error(errorMessage);
+        lastSubmittedOtp.current = ''; // Reset on error so user can retry
+        setLoading(false);
+        return;
+      }
+
+      const successMessage = response.data?.message || 'OTP verified successfully';
+      Toast.success(successMessage);
+      
       if (source === 'forgotPassword') {
-        navigation.navigate('SetPassword');
+        // Extract token from response for password reset
+        const token = response.data?.data?.token || response.data?.token;
+        navigation.navigate('SetPassword', {
+          token: token,
+        });
       } else {
         navigation.navigate('CreatePassword');
       }
     } catch (error: any) {
-      Toast.error(error.message);
+      console.error('OTP verification error:', error);
+      const errorMessage = 
+        error?.response?.data?.message || 
+        error?.data?.message ||
+        error?.message || 
+        'Failed to verify OTP';
+      Toast.error(errorMessage);
       lastSubmittedOtp.current = ''; // Reset on error so user can retry
       setLoading(false);
     } finally {

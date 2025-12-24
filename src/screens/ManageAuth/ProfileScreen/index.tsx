@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { Asset } from 'react-native-image-picker';
 import { KeyboardAvoidScrollview } from '../../../components/common/keyboard-avoid-scrollview';
 
 import { CustomTextInput } from '../../../components/common/CustomTextInput';
@@ -14,10 +15,10 @@ import PhoneNumberInput from '../../../components/common/PhoneTextInput';
 import { colors } from '../../../styles/colors';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import { tryCatch } from '@utils';
-import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
 import { Toast } from 'toastify-react-native';
+import { BASE_URL } from '@constants';
+import { useAuthStore } from '@store';
 
 type RootStackParamList = {
   SetupProfile: undefined;
@@ -36,6 +37,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [gender, setGender] = useState('');
   const [age, setAge] = useState('');
   const [profileImage, setProfileImage] = useState('');
+  const [profileImageAsset, setProfileImageAsset] = useState<Asset | null>(null);
   const [phone, setPhone] = useState('');
   const [countryCode, setCountryCode] = useState('PK');
   const [phoneError, setPhoneError] = useState('');
@@ -54,6 +56,13 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleImageSelected = (uri: string) => {
     setProfileImage(uri);
+  };
+
+  const handleImageAssetSelected = (asset: Asset) => {
+    if (asset.uri) {
+      setProfileImage(asset.uri);
+      setProfileImageAsset(asset);
+    }
   };
 
   const handleConfirm = async () => {
@@ -102,28 +111,70 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
     }
     
     if (valid) {
-      const payload = {
-        fullName,
-        email,
-        phoneNo: phone,
-        nationality,
-        nationalID: IdCardNumber,
-        gender,
-        age,
-      };
+      try {
+        // Create FormData to include image file
+        const formData = new FormData();
+        
+        // Add text fields
+        formData.append('fullName', fullName.trim());
+        formData.append('email', email.trim());
+        formData.append('phoneNo', phone.trim());
+        formData.append('nationality', nationality);
+        formData.append('nationalID', IdCardNumber.trim());
+        formData.append('gender', gender);
+        formData.append('age', age.trim());
 
-      const [data, err] = await tryCatch(
-        apiClient.post(API.AUTH.REGISTER, payload),
-      );
-      if (err) {
-        Toast.error((err as Error).message);
+        // Add image if available
+        if (profileImageAsset && profileImageAsset.uri) {
+          const uriParts = profileImageAsset.uri.split('.');
+          const fileExtension = uriParts[uriParts.length - 1] || 'jpg';
+          const fileName = profileImageAsset.fileName || `profile_${Date.now()}.${fileExtension}`;
+          
+          let fileType = profileImageAsset.type || 'image/jpeg';
+          if (!profileImageAsset.type) {
+            const ext = fileExtension.toLowerCase();
+            if (ext === 'png') fileType = 'image/png';
+            else if (ext === 'jpg' || ext === 'jpeg') fileType = 'image/jpeg';
+          }
+
+          formData.append('image', {
+            uri: profileImageAsset.uri,
+            type: fileType,
+            name: fileName,
+          } as any);
+        }
+
+        // Get auth token if available
+        const token = useAuthStore.getState().auth?.user?.token;
+        
+        // Use fetch for FormData upload
+        const response = await fetch(`${BASE_URL}${API.AUTH.REGISTER}`, {
+          method: 'POST',
+          body: formData,
+          headers: {
+            ...(token && { 'Authorization': `Bearer ${token}` }),
+          },
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || data.success === false) {
+          const errorMessage = data.message || data.data?.message || 'Registration failed';
+          Toast.error(errorMessage);
         setLoading(false);
         return;
       }
-      Toast.success(data.data.message);
+
+        const successMessage = data.message || data.data?.message || 'Registration successful';
+        Toast.success(successMessage);
       setLoading(false);
       navigation.navigate('SignIn');
-    }else{
+      } catch (error: any) {
+        console.error('Registration error:', error);
+        Toast.error(error?.message || 'Failed to register');
+        setLoading(false);
+      }
+    } else {
       setLoading(false);
     }
   };
@@ -155,6 +206,8 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
           <UserProfile
             profileImage={profileImage}
             onImageSelected={handleImageSelected}
+            autoUpload={false}
+            onImageAssetSelected={handleImageAssetSelected}
           />
 
           <View style={styles.content}>

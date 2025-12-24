@@ -17,6 +17,7 @@ import { colors } from '../../../styles/colors';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { CustomButton } from '@components/common/CustomButton';
 import { useCart } from '@context/CartContext';
+import { useCartCountContext } from '@context/CartCountContext';
 import { SERVICES } from '@constants/appData';
 import { styles } from './style';
 import { EmptyContentSvg, ShopingCartSvg } from '@assets/icons';
@@ -30,6 +31,7 @@ import { useFocusEffect } from '@react-navigation/native';
 export function CartScreen({ navigation }) {
   const { t } = useTranslation();
   const { removeFromCart, addToCart } = useCart();
+  const { triggerRefresh, decrementCartCount } = useCartCountContext();
   const [cartData, setCartData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [removingCartId, setRemovingCartId] = useState<number | null>(null);
@@ -213,6 +215,12 @@ export function CartScreen({ navigation }) {
       // Show success message
       const successMessage = response.data?.message || 'Item removed from cart';
       Toast.success(successMessage);
+
+      // Optimistically decrement cart count for immediate UI update
+      decrementCartCount();
+      
+      // Trigger cart count refresh to sync with API
+      triggerRefresh();
 
       // Refresh cart from API
       if (userLocation) {

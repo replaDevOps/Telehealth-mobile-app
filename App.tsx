@@ -4,6 +4,7 @@ import { StatusBar } from 'react-native';
 import AppNavigator from './src/navigation/root-navigation';
 import { setGlobalFont } from './src/utils/overrideText';
 import { CartProvider } from '@context/CartContext';
+import { CartCountProvider } from '@context/CartCountContext';
 import './src/services/i18n';
 import { Provider as PaperProvider } from 'react-native-paper';
 import ToastManager from 'toastify-react-native';
@@ -20,7 +21,9 @@ const App = () => {
       />
       <PaperProvider>
         <CartProvider>
-          <AppNavigator />
+          <CartCountProvider>
+            <AppNavigator />
+          </CartCountProvider>
         </CartProvider>
       </PaperProvider>
       <ToastManager

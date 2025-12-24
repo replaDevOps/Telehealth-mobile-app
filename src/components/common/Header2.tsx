@@ -128,9 +128,11 @@ const Header2: React.FC<Header2Props> = ({
         <TouchableOpacity style={styles.headerButton} onPress={HandleCart}>
           <View style={styles.cartContainer}>
             <ShopingCartSvg />
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{cartCount}</Text>
-            </View>
+            {cartCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{cartCount}</Text>
+              </View>
+            )}
           </View>
         </TouchableOpacity>
       ) : showLanguage ? (

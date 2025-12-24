@@ -12,6 +12,7 @@ import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
 import { ClinicApiResponse } from '../../../types/clinic.types';
 import { Toast } from 'toastify-react-native';
+import { useCartCount } from '../../../hooks/useCartCount';
 
 interface Clinic {
   id: string;
@@ -25,6 +26,7 @@ interface Clinic {
 
 export const HomeScreen = ({ navigation }) => {
   const { t } = useTranslation();
+  const { cartCount } = useCartCount();
   const [recommendedClinics, setRecommendedClinics] = useState<Clinic[]>([]);
   const [nearbyClinics, setNearbyClinics] = useState<Clinic[]>([]);
   const [loading, setLoading] = useState(true);
@@ -163,7 +165,7 @@ export const HomeScreen = ({ navigation }) => {
         onNotificationPress={handleNotificationPress}
         onSearchPress={handleSearchPress}
         onSLPress={handleSLPress}
-        cartItemCount={4}
+        cartItemCount={cartCount}
       />
 
       {loading ? (

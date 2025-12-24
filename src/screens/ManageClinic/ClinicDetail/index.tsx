@@ -18,6 +18,8 @@ import AboutClinic from '@components/molecules/AboutCard';
 import ConsultDoctorBottomSheet from '@components/molecules/ConsultDoctorBottomSheet';
 import { styles } from './style';
 import { useCart } from '@context/CartContext';
+import { useCartCountContext } from '@context/CartCountContext';
+import { useCartCount } from '../../../hooks/useCartCount';
 import { useTranslation } from 'react-i18next';
 import { Dropdown } from 'react-native-element-dropdown';
 import Geolocation from '@react-native-community/geolocation';
@@ -44,6 +46,8 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
   const { t } = useTranslation();
   const { clinic } = route.params;
   const { addToCart } = useCart();
+  const { triggerRefresh, incrementCartCount } = useCartCountContext();
+  const { cartCount } = useCartCount();
   const [activeTab, setActiveTab] = useState(t('services'));
   const [searchQuery, setSearchQuery] = useState('');
   const [filterVisible, setFilterVisible] = useState(false);
@@ -73,13 +77,13 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
   const [loadingServiceDetail, setLoadingServiceDetail] = useState(false);
   const [loadingAddToCart, setLoadingAddToCart] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; long: number } | null>(null);
-  
+
   // Get clinic ID from route params
   // Clinic object from ClinicScreen has id as string (clinicID.toString())
   // We need to extract the numeric clinicID for API calls
-  const clinicID = route.params?.clinicID || 
-                   clinic?.clinicID || 
-                   (clinic?.id ? parseInt(clinic.id) : null);
+  const clinicID = route.params?.clinicID ||
+    clinic?.clinicID ||
+    (clinic?.id ? parseInt(clinic.id) : null);
 
   const sortData: SortOption[] = [
     { label: t('by_date') || 'By Date', value: 'by_date' },
@@ -397,11 +401,11 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
   const handleSortChange = (item: SortOption) => {
     setSortOption(item.value);
     setIsFocus(false);
-    
+
     // Map dropdown value to API orderBy parameter
     // API only accepts 'recent' or 'rating'
     let orderBy = 'recent';
-    
+
     switch (item.value) {
       case 'by_date':
         orderBy = 'recent';
@@ -412,7 +416,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       default:
         orderBy = 'recent';
     }
-    
+
     // Fetch reviews with new sort order from API
     fetchClinicReviews(orderBy);
   };
@@ -430,7 +434,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
 
     try {
       setLoadingServices(true);
-      
+
       // Build params for service API
       const params: any = {
         name: searchQuery || '',
@@ -494,23 +498,23 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
 
   const handleServicePress = async (service: any) => {
     if (!service || !service.id) {
-    setSelectedService(service);
+      setSelectedService(service);
       setServiceDetailVisible(true);
       return;
     }
-    
+
     // Open bottom sheet first, then clear previous data and fetch
     setServiceDetailVisible(true);
     setLoadingServiceDetail(true);
     setSelectedService(null);
-    
+
     try {
       // Fetch service details from API
       const response = await apiClient.get(`${API.CLINIC.GET_SERVICE_DETAILS}/${service.id}`);
-      
+
       if (response.data.success && response.data.data) {
         const serviceDetail = response.data.data;
-        
+
         // Transform API service to component format
         let tags: string[] = [];
         try {
@@ -518,7 +522,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
         } catch {
           tags = [];
         }
-        
+
         const transformedService = {
           id: serviceDetail.id.toString(),
           image: serviceDetail.image ? { uri: serviceDetail.image } : RecommandImage,
@@ -536,7 +540,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
           groupID: serviceDetail.groupID,
           clinicID: serviceDetail.clinicID,
         };
-        
+
         setSelectedService(transformedService);
       } else {
         // Fallback to service from list if API fails
@@ -567,7 +571,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     try {
       // Extract service ID - it might be a string, convert to number
       const serviceID = typeof service.id === 'string' ? parseInt(service.id, 10) : service.id;
-      
+
       if (isNaN(serviceID)) {
         Toast.error('Invalid service ID');
         setLoadingAddToCart(false);
@@ -588,26 +592,32 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       }
 
       // Also add to local cart context for immediate UI update
-    const cartItem = {
-      service: service,
-      clinic: {
-        id: clinic.id || clinic._id || `clinic_${Date.now()}`,
-        name: clinic.name,
-        location: clinic.location,
-        image: clinic.image,
-        specialty: clinic.specialty,
-        rating: clinic.rating,
-      },
-    };
+      const cartItem = {
+        service: service,
+        clinic: {
+          id: clinic.id || clinic._id || `clinic_${Date.now()}`,
+          name: clinic.name,
+          location: clinic.location,
+          image: clinic.image,
+          specialty: clinic.specialty,
+          rating: clinic.rating,
+        },
+      };
 
-    addToCart(cartItem);
+      addToCart(cartItem);
 
       // Show success message
       const successMessage = response.data?.message || response.data?.data?.message || 'Service added to cart successfully';
       Toast.success(successMessage);
 
-    setServiceDetailVisible(false);
-    navigation.navigate('CartScreen');
+      // Optimistically increment cart count for immediate UI update
+      incrementCartCount();
+
+      // Trigger cart count refresh to sync with API
+      triggerRefresh();
+
+      setServiceDetailVisible(false);
+      navigation.navigate('CartScreen');
     } catch (error: any) {
       console.error('Error adding service to cart:', error);
       const errorMessage = error?.message || error?.response?.data?.message || 'Failed to add service to cart';
@@ -642,17 +652,17 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       console.warn('Device or device.id is missing:', device);
       return;
     }
-    
+
     // Open bottom sheet first, then clear previous data and fetch
     setDeviceDetailVisible(true);
     setLoadingDeviceDetail(true);
     setSelectedDevice(null);
-    
+
     try {
       // Get device ID - handle both string and number, and check for originalDevice
-      const deviceId = device.originalDevice?.id || 
-                       (typeof device.id === 'string' ? parseInt(device.id) : device.id);
-      
+      const deviceId = device.originalDevice?.id ||
+        (typeof device.id === 'string' ? parseInt(device.id) : device.id);
+
       if (!deviceId || isNaN(deviceId)) {
         console.warn('Invalid device ID:', deviceId);
         // Fallback to device from list if ID is invalid
@@ -660,13 +670,13 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
         setLoadingDeviceDetail(false);
         return;
       }
-      
+
       // Fetch device details from API
       const response = await apiClient.get(`${API.CLINIC.GET_DEVICE_DETAILS}/${deviceId}`);
-      
+
       if (response.data.success && response.data.data) {
         const deviceDetail = response.data.data;
-        
+
         // Transform API device to component format
         const badge: { [key: number]: string } = {};
         if (deviceDetail.service_details && deviceDetail.service_details.length > 0) {
@@ -676,7 +686,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
         } else {
           badge[1] = deviceDetail.name;
         }
-        
+
         const transformedDevice = {
           id: deviceDetail.id.toString(),
           image: deviceDetail.image ? { uri: deviceDetail.image } : RecommandImage,
@@ -685,7 +695,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
           badge: badge,
           purpose: deviceDetail.purpose || '',
         };
-        
+
         setSelectedDevice(transformedDevice);
       } else {
         // Fallback to device from list if API fails
@@ -719,39 +729,39 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
 
   // Use clinic description data if available, otherwise use clinic detail
   const clinicDescriptionData = clinicDescription?.data;
-  
-  const clinicName = clinicDescriptionData?.businessName || 
-                     displayClinic.name || 
-                     displayClinic.clinicName || 
-                     clinic?.name || 
-                     'Clinic';
+
+  const clinicName = clinicDescriptionData?.businessName ||
+    displayClinic.name ||
+    displayClinic.clinicName ||
+    clinic?.name ||
+    'Clinic';
   const clinicSpecialty = displayClinic.businessType || clinic?.specialty || 'General';
-  const clinicLocation = clinicDescriptionData?.address || 
-                         clinicDescriptionData?.city || 
-                         displayClinic.details?.address || 
-                         displayClinic.details?.city || 
-                         clinic?.location || 
-                         'Location not available';
+  const clinicLocation = clinicDescriptionData?.address ||
+    clinicDescriptionData?.city ||
+    displayClinic.details?.address ||
+    displayClinic.details?.city ||
+    clinic?.location ||
+    'Location not available';
   const clinicRating = parseFloat(displayClinic.avgRating) || parseFloat(clinic?.rating) || 0;
-  const clinicDistance = (displayClinic as ClinicDetailResponse).distance 
-    ? `${((displayClinic as ClinicDetailResponse).distance! / 1000).toFixed(1)}km` 
-    : clinicDetail?.distance 
-    ? `${(clinicDetail.distance / 1000).toFixed(1)}km`
-    : '2.2km';
-  
+  const clinicDistance = (displayClinic as ClinicDetailResponse).distance
+    ? `${((displayClinic as ClinicDetailResponse).distance! / 1000).toFixed(1)}km`
+    : clinicDetail?.distance
+      ? `${(clinicDetail.distance / 1000).toFixed(1)}km`
+      : '2.2km';
+
   const clinicImage = clinicDescriptionData?.coverImage
     ? { uri: clinicDescriptionData.coverImage }
-    : clinicDetail?.details?.coverImage 
-    ? { uri: clinicDetail.details.coverImage }
-    : clinicDetail?.details?.logo
-    ? { uri: clinicDetail.details.logo }
-    : clinic?.image || RecommandImage;
-  
+    : clinicDetail?.details?.coverImage
+      ? { uri: clinicDetail.details.coverImage }
+      : clinicDetail?.details?.logo
+        ? { uri: clinicDetail.details.logo }
+        : clinic?.image || RecommandImage;
+
   const clinicLogo = clinicDescriptionData?.logo
     ? { uri: clinicDescriptionData.logo }
-    : clinicDetail?.details?.logo 
-    ? { uri: clinicDetail.details.logo }
-    : ClinicProfile;
+    : clinicDetail?.details?.logo
+      ? { uri: clinicDetail.details.logo }
+      : ClinicProfile;
 
   // Transform services for display
   const transformedServices = transformServices(services);
@@ -764,7 +774,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     if (!apiDevices || !Array.isArray(apiDevices)) {
       return [];
     }
-    
+
     // Filter only active devices and transform to component format
     return apiDevices
       .filter(device => device.status === 'active')
@@ -815,6 +825,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
           onSharePress={() => navigation.navigate('CartScreen')}
           onNotificationPress={handleNotificationPress}
           notificationCount={3}
+          cartCount={cartCount}
         />
 
         {/* Clinic Information */}
@@ -854,22 +865,22 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
                 <ActivityIndicator size="large" color="#7625D7" />
               </View>
             ) : filteredServices.length > 0 ? (
-            <View style={styles.servicesList}>
+              <View style={styles.servicesList}>
                 {filteredServices.map(service => (
-                <ServiceCard
-                  key={service.id}
-                  image={service.image}
-                  type={service.type}
-                  serviceGroup={service.serviceGroup}
-                  serviceName={service.serviceName}
-                  price={service.price}
-                  duration={service.duration}
-                  description={service.description}
-                  procedure={service.procedure}
-                  onPress={() => handleServicePress(service)}
-                />
-              ))}
-            </View>
+                  <ServiceCard
+                    key={service.id}
+                    image={service.image}
+                    type={service.type}
+                    serviceGroup={service.serviceGroup}
+                    serviceName={service.serviceName}
+                    price={service.price}
+                    duration={service.duration}
+                    description={service.description}
+                    procedure={service.procedure}
+                    onPress={() => handleServicePress(service)}
+                  />
+                ))}
+              </View>
             ) : (
               <View style={styles.emptyContainer}>
                 <Text style={styles.emptyText}>{t('no_services_found')}</Text>
@@ -909,20 +920,20 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
                 <ActivityIndicator size="large" color="#7625D7" />
               </View>
             ) : reviews.length > 0 ? (
-            <View style={styles.reviewsList}>
+              <View style={styles.reviewsList}>
                 {transformReviews(reviews).map(review => (
-                <ReviewCard
-                  key={review.id}
-                  review={review}
-                  isExpanded={expandedReviewId === review.id}
-                  onPress={() =>
-                    setExpandedReviewId(
-                      expandedReviewId === review.id ? null : review.id,
-                    )
-                  }
-                />
-              ))}
-            </View>
+                  <ReviewCard
+                    key={review.id}
+                    review={review}
+                    isExpanded={expandedReviewId === review.id}
+                    onPress={() =>
+                      setExpandedReviewId(
+                        expandedReviewId === review.id ? null : review.id,
+                      )
+                    }
+                  />
+                ))}
+              </View>
             ) : (
               <View style={styles.emptyContainer}>
                 <Text style={styles.emptyText}>{t('no_reviews_found')}</Text>

@@ -9,6 +9,7 @@ import {
   Pressable,
   Animated,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { KeyboardAvoidScrollview } from '../../../components/common/keyboard-avoid-scrollview';
 import { CustomTextInput } from '../../../components/common/CustomTextInput';
@@ -27,6 +28,7 @@ import { API } from '@services/api/api-endpoint';
 import { apiClient } from '@services/api/api-client';
 import { Toast } from 'toastify-react-native';
 import { useAuthStore } from '@store';
+import { RouteProp } from '@react-navigation/native';
 
 const { height } = Dimensions.get('window');
 
@@ -60,11 +62,50 @@ const initialState: State = {
   deleteModalVisible: false,
 };
 
-export const ProfileSetting = ({ navigation }: { navigation: any }) => {
+// Field mapping configuration: API field -> State field with optional transformer
+const fieldMapping: Record<string, { stateKey: keyof State; transformer?: (value: any) => any }> = {
+  name: { stateKey: 'fullName' },
+  phoneNo: { stateKey: 'phone' },
+  email: { stateKey: 'email' },
+  age: { stateKey: 'age', transformer: (val) => String(val ?? '') },
+  gender: { 
+    stateKey: 'gender', 
+    transformer: (val) => {
+      if (!val) return '';
+      // Capitalize first letter to match dropdown values (Male, Female, Other)
+      return val.charAt(0).toUpperCase() + val.slice(1).toLowerCase();
+    }
+  },
+  notificationStatus: { stateKey: 'notificationEnabled', transformer: (val) => !!val },
+  language: { stateKey: 'language', transformer: (val) => val ?? 'English' },
+};
+
+// Helper function to map API data to state
+const mapProfileDataToState = (data: any): Partial<State> => {
+  const mappedData: Partial<State> = {};
+  
+  Object.keys(fieldMapping).forEach((apiKey) => {
+    const mapping = fieldMapping[apiKey];
+    const apiValue = data[apiKey];
+    
+    if (mapping.transformer) {
+      mappedData[mapping.stateKey] = mapping.transformer(apiValue);
+    } else {
+      mappedData[mapping.stateKey] = apiValue ?? '';
+    }
+  });
+
+  return mappedData;
+};
+
+export const ProfileSetting = ({ navigation, route }: { navigation: any; route?: RouteProp<any, 'ProfileSetting'> }) => {
   const { t } = useTranslation();
   const {isAuthenticated}=useAuthStore()
+  const { logout } = useAuthStore();
   console.log("🚀 ~ ProfileSetting ~ isAuthenticated:", isAuthenticated)
   const [loading, setLoading] = useState(false);
+  const [loadingData, setLoadingData] = useState(true);
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const [state, dispatch] = useReducer(
     (state: State, action: Partial<State>) => ({ ...state, ...action }),
     initialState,
@@ -73,45 +114,59 @@ export const ProfileSetting = ({ navigation }: { navigation: any }) => {
   const slideAnim = useRef(new Animated.Value(height)).current;
 
   useEffect(() => {
+    // Check if profile data was passed from SettingScreen
+    const passedProfileData = route?.params?.profileData;
+    
+    if (passedProfileData) {
+      // Use passed data instead of fetching
+      const mappedData = mapProfileDataToState(passedProfileData);
+      dispatch(mappedData);
+      setLoadingData(false);
+    } else {
+      // Fetch profile data if not passed
     fetchProfile();
-  }, []);
-
+    }
+  }, [route?.params?.profileData]);
 
   const fetchProfile = async () => {
+    setLoadingData(true);
     const [res, err] = await tryCatch(
       apiClient.get(API.SETTINGS.VIEW_PROFILE),
     );
-
+    console.log("🚀 ~ fetchProfile ~ res:", res)
     if (err) {
       Toast.error((err as Error).message);
+      setLoadingData(false);
       return;
     }
 
-    const data = res.data;
+    // Handle both res.data.data and res.data structures
+    const data = res.data?.data || res.data || res;
+    
+    // Automatically map API response to state
+    const mappedData = mapProfileDataToState(data);
 
-    dispatch({
-      fullName: data.name ?? '',
-      phone: data.phoneNo ?? '',
-      email: data.email ?? '',
-      age: String(data.age ?? ''),
-      gender: data.gender ?? '',
-      notificationEnabled: !!data.notificationStatus,
-      language: data.language ?? 'English',
-    });
+    dispatch(mappedData);
+    setLoadingData(false);
   };
 
   const updateProfile = async () => {
+    console.log("🚀 ~ updateProfile ~ validateForm:", validateForm())
     setLoading(true);
     if (!validateForm()) {
+      console.log("🚀 ~ updateProfile ~ validateForm:", validateForm())
       setLoading(false);
       return;
     }
+
+    // Prepare payload matching API requirements
+    // Gender should be lowercase (API expects "male", "female", "other")
     const payload = {
-      name: state.fullName,
-      phoneNo: state.phone,
-      email: state.email,
-      age: state.age,
-      gender: state.gender,
+      name: state.fullName.trim(),
+      phoneNo: state.phone.trim(),
+      email: state.email.trim(),
+      age: state.age.trim(),
+      gender: state.gender.toLowerCase(), // Convert to lowercase for API
       notificationStatus: state.notificationEnabled,
       language: state.language,
     };
@@ -119,14 +174,20 @@ export const ProfileSetting = ({ navigation }: { navigation: any }) => {
     const [res, err] = await tryCatch(
       apiClient.post(API.SETTINGS.UPDATE_PROFILE, payload),
     );
-
+    console.log("🚀 ~ updateProfile ~ res:", res)
     if (err) {
-      Toast.error((err as Error).message);
+      Toast.error((err as Error).message || 'Failed to update profile');
       setLoading(false);
       return;
     }
 
-    Toast.success(res.data.message);
+    // Show success message
+    const successMessage = res.data?.message || res.data?.data?.message || 'Profile updated successfully';
+    Toast.success(successMessage);
+    
+    // Refresh profile data after successful update
+    await fetchProfile();
+    
     setLoading(false);
     navigation.goBack();
   };
@@ -174,9 +235,45 @@ export const ProfileSetting = ({ navigation }: { navigation: any }) => {
     }).start(() => dispatch({ deleteModalVisible: false }));
   };
 
-  const handleDeleteAccount = () => {
+  const handleDeleteAccount = async () => {
+    setDeletingAccount(true);
+    
+    try {
+      // Call delete account API
+      const response = await apiClient.delete(API.SETTINGS.DELETE_USER_ACCOUNT);
+
+      // Check for success: false in response
+      if (response.data?.success === false) {
+        const errorMessage = response.data?.message || 'Failed to delete account';
+        Toast.error(errorMessage);
+        setDeletingAccount(false);
+        closeDeleteModal();
+        return;
+      }
+
+      // Success - show success message
+      const successMessage = response.data?.message || 'Account deleted successfully';
+      Toast.success(successMessage);
+      
+      // Close modal
+      closeDeleteModal();
+      
+      // Logout and navigate to login
+      setTimeout(() => {
+        logout();
+        navigation.replace('Auth', { screen: 'SignIn' });
+      }, 1000);
+    } catch (error: any) {
+      console.error('Delete account error:', error);
+      const errorMessage = 
+        error?.response?.data?.message || 
+        error?.data?.message ||
+        error?.message || 
+        'Failed to delete account. Please try again.';
+      Toast.error(errorMessage);
+      setDeletingAccount(false);
     closeDeleteModal();
-    Alert.alert(t('account_deleted'), t('account_permanently_deleted'));
+    }
   };
 
   return (
@@ -189,6 +286,12 @@ export const ProfileSetting = ({ navigation }: { navigation: any }) => {
           loading={loading}
         />
 
+        {loadingData ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.loadingText}>{t('loading') || 'Loading...'}</Text>
+          </View>
+        ) : (
         <View style={styles.container}>
           {/* === All your existing fields (Personal Info, Password, Language, Mode) === */}
           {/* ... (unchanged code omitted for brevity) ... */}
@@ -301,6 +404,7 @@ export const ProfileSetting = ({ navigation }: { navigation: any }) => {
             textStyle={styles.deleteButtonText}
           />
         </View>
+        )}
 
         {/* ================== DELETE ACCOUNT BOTTOM SHEET MODAL ================== */}
         <Modal
@@ -330,12 +434,17 @@ export const ProfileSetting = ({ navigation }: { navigation: any }) => {
                 </Text>
                 {/* Delete button */}
                 <TouchableOpacity
-                  style={styles.modalDeleteButton}
+                  style={[styles.modalDeleteButton, deletingAccount && { opacity: 0.6 }]}
                   onPress={handleDeleteAccount}
+                  disabled={deletingAccount}
                 >
+                  {deletingAccount ? (
+                    <ActivityIndicator size="small" color={colors.white} />
+                  ) : (
                   <Text style={styles.modalDeleteButtonText}>
                     {t('delete_account')}
                   </Text>
+                  )}
                 </TouchableOpacity>
                 {/* Cancel */}
                 <TouchableOpacity

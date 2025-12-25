@@ -19,6 +19,7 @@ interface ClinicHeaderProps {
   onSharePress?: () => void;
   onNotificationPress?: () => void;
   notificationCount?: number;
+  cartCount?: number;
 }
 
 export const ClinicHeader: React.FC<ClinicHeaderProps> = ({
@@ -28,6 +29,7 @@ export const ClinicHeader: React.FC<ClinicHeaderProps> = ({
   onSharePress,
   onNotificationPress,
   notificationCount = 0,
+  cartCount = 0,
 }) => {
   return (
     <ImageBackground source={backgroundImage} style={styles.headerBackground}>
@@ -43,6 +45,11 @@ export const ClinicHeader: React.FC<ClinicHeaderProps> = ({
               onPress={onSharePress}
             >
               <ShopingCartSvg />
+              {cartCount > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{cartCount}</Text>
+                </View>
+              )}
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.headerButton}

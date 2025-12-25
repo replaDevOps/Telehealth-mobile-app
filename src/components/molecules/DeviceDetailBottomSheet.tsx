@@ -12,6 +12,7 @@ import {
 import { colors } from '../../styles/colors';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
+import { ActivityIndicator } from 'react-native-paper';
 
 interface Device {
   id: string;
@@ -25,11 +26,12 @@ interface DeviceDetailBottomSheetProps {
   visible: boolean;
   onClose: () => void;
   device: Device | null;
+  loading?: boolean;
 }
 
 export const DeviceDetailBottomSheet: React.FC<
   DeviceDetailBottomSheetProps
-> = ({ visible, onClose, device }) => {
+> = ({ visible, onClose, device, loading = false }) => {
   const { t } = useTranslation();
   // Always render the component, even if device is null
   const services = device ? Object.values(device.badge) : [];
@@ -56,7 +58,12 @@ export const DeviceDetailBottomSheet: React.FC<
           </TouchableOpacity>
 
           {/* Content */}
-          {device ? (
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={styles.loadingText}>{t('loading') || 'Loading...'}</Text>
+            </View>
+          ) : device ? (
             <ScrollView
               style={styles.scrollView}
               contentContainerStyle={styles.content}
@@ -204,6 +211,17 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     color: colors.text,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: colors.secondaryText,
   },
 });
 

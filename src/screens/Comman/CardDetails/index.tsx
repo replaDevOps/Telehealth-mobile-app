@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   ScrollView,
   Image,
   StatusBar,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -17,15 +18,18 @@ import { RecommandImage } from '@assets/images';
 import RatingBottomSheet from '@components/molecules/RatingBottomSheet';
 import { RouteProp, useRoute } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
+import { apiClient } from '@services/api/api-client';
+import { API } from '@services/api/api-endpoint';
+import Toast from 'toastify-react-native';
 
 type CardDetailsRouteParams = {
   paymentId: string;
-  clinicName: string;
-  clinicLocation: string;
-  status: string;
-  statusColor: string;
-  dateTime: string;
-  price: string;
+  clinicName?: string;
+  clinicLocation?: string;
+  status?: string;
+  statusColor?: string;
+  dateTime?: string;
+  price?: string;
   image?: any;
   reason?: string;
 
@@ -57,10 +61,118 @@ export function CardDetails({ navigation }: { navigation: any }) {
   const params = route.params;
   const reason = params.reason;
 
+  // Determine if it's appointment or consultation based on params
   const isAppointment = !!params.services?.length;
-  const isConsultation = !isAppointment;
+  const isConsultation = !!params.consultationType || (!params.services?.length && !params.consultationType);
 
   const [showRating, setShowRating] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [paymentDetails, setPaymentDetails] = useState<any>(null);
+  
+  // State for displaying data
+  const [displayData, setDisplayData] = useState({
+    clinicName: params.clinicName || '',
+    clinicLocation: params.clinicLocation || '',
+    status: params.status || '',
+    statusColor: params.statusColor || colors.green,
+    dateTime: params.dateTime || '',
+    price: params.price || '',
+    image: params.image,
+    consultationType: params.consultationType,
+    duration: params.duration,
+    doctorName: params.doctorName,
+    doctorAvatar: params.doctorAvatar,
+    serviceName: params.serviceName,
+    services: params.services || [],
+  });
+
+  // Fetch payment details from API
+  useEffect(() => {
+    fetchPaymentDetails();
+  }, [params.paymentId]);
+
+  const fetchPaymentDetails = async () => {
+    if (!params.paymentId) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      // Determine which API to call
+      const endpoint = isAppointment
+        ? `${API.HISTORY.GET_APPOINTMENT_DETAILS}/${params.paymentId}`
+        : `${API.HISTORY.GET_CONSULTATION_PAYMENT_DETAILS}/${params.paymentId}`;
+
+      const response = await apiClient.get(endpoint);
+      console.log('Payment details response:', response.data);
+
+      if (response.data?.success !== false && response.data?.data) {
+        const data = response.data.data;
+        setPaymentDetails(data);
+
+        // Map API response to display data
+        if (isAppointment) {
+          // Appointment payment details
+          setDisplayData({
+            clinicName: data.clinic?.name || data.clinicName || params.clinicName || '',
+            clinicLocation: data.clinic?.location || data.clinicLocation || params.clinicLocation || '',
+            status: data.status || params.status || '',
+            statusColor: data.status === 'Completed' || data.status === 'Success' 
+              ? colors.green 
+              : data.status === 'Pending' 
+              ? colors.yellow 
+              : colors.red,
+            dateTime: data.date || data.created_at || params.dateTime || '',
+            price: data.price || data.amount || params.price || '',
+            image: data.clinic?.image ? { uri: data.clinic.image } : params.image || RecommandImage,
+            services: data.services?.map((service: any, index: number) => ({
+              id: service.id || index,
+              name: service.name || service.serviceName || '',
+              duration: service.duration || '',
+              price: service.price || '0',
+              category: service.category || service.group?.name || '',
+              categoryBadge: service.category || service.group?.name || '',
+              image: service.image ? { uri: service.image } : RecommandImage,
+            })) || params.services || [],
+            consultationType: undefined,
+            duration: undefined,
+            doctorName: undefined,
+            doctorAvatar: undefined,
+            serviceName: undefined,
+          });
+        } else {
+          // Consultation payment details
+          setDisplayData({
+            clinicName: data.clinic?.name || data.clinicName || params.clinicName || '',
+            clinicLocation: data.clinic?.location || data.clinicLocation || params.clinicLocation || '',
+            status: data.status || params.status || '',
+            statusColor: data.status === 'Completed' || data.status === 'Success' 
+              ? colors.green 
+              : data.status === 'Pending' 
+              ? colors.yellow 
+              : colors.red,
+            dateTime: data.date || data.created_at || params.dateTime || '',
+            price: data.price || data.amount || params.price || '',
+            image: data.clinic?.image ? { uri: data.clinic.image } : params.image || RecommandImage,
+            consultationType: data.type || data.consultationType || params.consultationType,
+            duration: data.duration || data.service?.duration || params.duration,
+            doctorName: data.doctor?.name || data.doctorName || params.doctorName,
+            doctorAvatar: data.doctor?.image || data.doctorAvatar || params.doctorAvatar,
+            serviceName: data.service?.name || data.serviceName || params.serviceName,
+            services: [],
+          });
+        }
+      }
+    } catch (error: any) {
+      console.error('Error fetching payment details:', error);
+      Toast.error(error?.message || t('failed_to_load_payment_details') || 'Failed to load payment details');
+      // Keep using params data if API fails
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleGiveReview_Vist = () => {
     isAppointment
@@ -97,6 +209,21 @@ export function CardDetails({ navigation }: { navigation: any }) {
     });
   };
 
+  if (loading) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+        <StatusBar barStyle="dark-content" />
+        <Header2 title={params.paymentId} />
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={{ marginTop: 12, color: colors.secondaryText }}>
+            {t('loading') || 'Loading...'}
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
       <StatusBar barStyle="dark-content" />
@@ -106,13 +233,13 @@ export function CardDetails({ navigation }: { navigation: any }) {
         <View style={styles.clinicInfo}>
           <View style={styles.clinicLeft}>
             <Image
-              source={params.image || RecommandImage}
+              source={displayData.image || RecommandImage}
               style={styles.clinicImage}
               resizeMode="cover"
             />
             <View>
-              <Text style={styles.clinicName}>{params.clinicName}</Text>
-              <Text style={styles.clinicLocation}>{params.clinicLocation}</Text>
+              <Text style={styles.clinicName}>{displayData.clinicName}</Text>
+              <Text style={styles.clinicLocation}>{displayData.clinicLocation}</Text>
             </View>
           </View>
 
@@ -135,7 +262,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
         </View>
 
         {isAppointment &&
-          params.services?.map(service => (
+          displayData.services?.map(service => (
             <View key={service.id} style={styles.serviceCard}>
               <View style={styles.serviceLeft}>
                 <Image source={service.image} style={styles.serviceImage} />
@@ -201,14 +328,14 @@ export function CardDetails({ navigation }: { navigation: any }) {
 
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>{t('status')}</Text>
-            <Text style={[styles.detailValue, { color: params.statusColor }]}>
-              {params.status}
+            <Text style={[styles.detailValue, { color: displayData.statusColor }]}>
+              {displayData.status}
             </Text>
           </View>
 
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>{t('date_time')}</Text>
-            <Text style={styles.detailValue}>{params.dateTime}</Text>
+            <Text style={styles.detailValue}>{displayData.dateTime}</Text>
           </View>
         </View>
 
@@ -236,36 +363,36 @@ export function CardDetails({ navigation }: { navigation: any }) {
             <Text style={styles.points_use}>- SAR 300</Text>
           </View>
 
-          {params.consultationType && (
+          {displayData.consultationType && (
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>{t('consultation_type')}</Text>
-              <Text style={styles.detailValue}>{params.consultationType}</Text>
+              <Text style={styles.detailValue}>{displayData.consultationType}</Text>
             </View>
           )}
 
-          {params.doctorName && (
+          {displayData.doctorName && (
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>{t('doctor_name')}</Text>
-              <Text style={styles.detailValue}>{params.doctorName}</Text>
+              <Text style={styles.detailValue}>{displayData.doctorName}</Text>
             </View>
           )}
 
-          {params.duration && (
+          {displayData.duration && (
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>{t('duration')}</Text>
-              <Text style={styles.detailValue}>{params.duration}</Text>
+              <Text style={styles.detailValue}>{displayData.duration}</Text>
             </View>
           )}
 
-          {params.serviceName && (
+          {displayData.serviceName && (
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>{t('service')}</Text>
-              <Text style={styles.detailValue}>{params.serviceName}</Text>
+              <Text style={styles.detailValue}>{displayData.serviceName}</Text>
             </View>
           )}
           <View style={styles.totalContainer}>
             <Text style={styles.totalLabel}>{t('total')}</Text>
-            <Text style={styles.totalAmount}>{params.price}</Text>
+            <Text style={styles.totalAmount}>{displayData.price}</Text>
           </View>
         </View>
       </ScrollView>

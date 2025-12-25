@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Image } from 'react-native';
+import { View, Text, Image, TouchableOpacity, Platform, ActionSheetIOS } from 'react-native';
 import { Suggestion } from '../Suggestion';
 import { Message as MessageType, Service } from '../../../types/chat.types';
 import { styles } from './style';
@@ -8,16 +8,41 @@ interface MessageProps {
   msg: MessageType;
   showAvatar: boolean;
   handleServicePress: (service: Service) => void;
+  handleDeleteMessage?: (messageID: string) => void;
 }
 
 export const Message: React.FC<MessageProps> = ({
   msg,
   showAvatar,
   handleServicePress,
+  handleDeleteMessage,
 }) => {
   const isUser = msg.type === 'user';
   const hasText = msg.text && msg.text.trim().length > 0;
   const hasImages = msg.images && msg.images.length > 0;
+
+  const handleLongPress = () => {
+    if (!isUser || !handleDeleteMessage) return;
+
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['Cancel', 'Delete'],
+          destructiveButtonIndex: 1,
+          cancelButtonIndex: 0,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) {
+            handleDeleteMessage(msg.id);
+          }
+        }
+      );
+    } else {
+      // For Android, we'll use Alert (already imported in ChatScreen)
+      // The Alert will be shown from ChatScreen's handleDeleteMessage
+      handleDeleteMessage(msg.id);
+    }
+  };
 
   return (
     <View style={styles.messageContainer}>
@@ -48,7 +73,12 @@ export const Message: React.FC<MessageProps> = ({
 
       {/* User Message */}
       {isUser && (
-        <View style={styles.userMessageWrapper}>
+        <TouchableOpacity
+          style={styles.userMessageWrapper}
+          onLongPress={handleLongPress}
+          activeOpacity={0.9}
+          disabled={!handleDeleteMessage}
+        >
           {showAvatar && msg.user && (
             <View style={styles.userMessageHeader}>
               <Text style={styles.timestamp}>{msg.timestamp}</Text>
@@ -65,15 +95,20 @@ export const Message: React.FC<MessageProps> = ({
               {hasImages && (
                 <View style={styles.imagesRow}>
                   {msg.images?.map((img, i) => {
-                    console.log(`Image ${i}:`, img);
-                    console.log(`Image ${i} type:`, typeof img);
-                    console.log(`Image ${i} has uri:`, img?.uri);
-                    console.log(`Image ${i} uri type:`, typeof img?.uri);
+                    // Ensure image URI is properly formatted
+                    const imageUri = typeof img === 'string' 
+                      ? img 
+                      : img?.uri || img;
+                    
+                    // If URI doesn't start with http, prepend BASE_URL
+                    const fullImageUri = imageUri && !imageUri.startsWith('http') && !imageUri.startsWith('file://')
+                      ? `https://telehealth.repla-projects.com/${imageUri}`
+                      : imageUri;
 
                     return (
                       <Image
                         key={`img-${i}`}
-                        source={img}
+                        source={{ uri: fullImageUri }}
                         style={styles.uploadedImage}
                       />
                     );
@@ -82,7 +117,7 @@ export const Message: React.FC<MessageProps> = ({
               )}
             </View>
           )}
-        </View>
+        </TouchableOpacity>
       )}
     </View>
   );

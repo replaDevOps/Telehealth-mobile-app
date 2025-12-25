@@ -14,6 +14,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
 import { coinIcon } from '@assets/images';
 import { TagSvg } from '@assets/icons';
+import { ActivityIndicator } from 'react-native-paper';
 
 interface Service {
   id: string;
@@ -33,15 +34,19 @@ interface ServiceDetailBottomSheetProps {
   service: Service | null;
   onAddToCart: (service: Service) => void;
   onCheckout: (service: Service) => void;
+  loading?: boolean;
+  addingToCart?: boolean;
 }
 
 export const ServiceDetailBottomSheet: React.FC<
   ServiceDetailBottomSheetProps
-> = ({ visible, onClose, service, onAddToCart, onCheckout }) => {
+> = ({ visible, onClose, service, onAddToCart, onCheckout, loading = false, addingToCart = false }) => {
   const { t } = useTranslation();
-  if (!service) return null;
+  
+  if (!visible) return null;
 
   const handleAddToCart = () => {
+    if (addingToCart || !service) return;
     onAddToCart(service);
   };
 
@@ -72,6 +77,13 @@ export const ServiceDetailBottomSheet: React.FC<
           </TouchableOpacity>
 
           {/* Content */}
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={styles.loadingText}>{t('loading') || 'Loading...'}</Text>
+            </View>
+          ) : service ? (
+            <>
           <ScrollView
             style={styles.scrollView}
             contentContainerStyle={styles.content}
@@ -142,11 +154,16 @@ export const ServiceDetailBottomSheet: React.FC<
           {/* Footer Buttons */}
           <View style={styles.footer}>
             <TouchableOpacity
-              style={styles.addToCartButton}
+                  style={[styles.addToCartButton, addingToCart && styles.addToCartButtonDisabled]}
               onPress={handleAddToCart}
               activeOpacity={0.7}
+                  disabled={addingToCart}
             >
+                  {addingToCart ? (
+                    <ActivityIndicator size="small" color={colors.black} />
+                  ) : (
               <Text style={styles.addToCartText}>{t('add_to_cart')}</Text>
+                  )}
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.checkoutButton}
@@ -156,6 +173,12 @@ export const ServiceDetailBottomSheet: React.FC<
               <Text style={styles.checkoutText}>{t('checkout')}</Text>
             </TouchableOpacity>
           </View>
+            </>
+          ) : (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>{t('no_service_selected') || 'No service selected'}</Text>
+            </View>
+          )}
         </View>
       </View>
     </Modal>
@@ -291,6 +314,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  addToCartButtonDisabled: {
+    opacity: 0.5,
+  },
   addToCartText: {
     fontSize: 16,
     fontWeight: '600',
@@ -350,6 +376,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: colors.secondaryText,
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: colors.secondaryText,
   },
 });
 

@@ -4,6 +4,7 @@ import React, {
   useState,
   createRef,
   RefObject,
+  useCallback,
 } from 'react';
 import { TextInput, TouchableOpacity, View, Text } from 'react-native';
 import { useIsFocused, RouteProp } from '@react-navigation/native';
@@ -38,6 +39,7 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
   const [inputValues, setInputValues] = useState<string[]>(Array(5).fill(''));
 
   const inputRefs = useRef<RefObject<TextInput | null>[]>([]);
+  const lastSubmittedOtp = useRef<string>('');
 
   const source = route.params?.source;
   const method = route.params?.method;
@@ -51,6 +53,69 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
       .map(() => createRef<TextInput>());
   }, []);
 
+  const handleNext = useCallback(async () => {
+    if (inputValues.some(value => value.length !== 1)) {
+      console.log('Invalid OTP', inputValues);
+      Toast.error(t('please_enter_valid_otp'));
+      return;
+    }
+    const otp = inputValues.join('');
+    
+    // Prevent duplicate submissions
+    if (lastSubmittedOtp.current === otp && loading) {
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      lastSubmittedOtp.current = otp;
+      console.log('OTP submitted:', otp);
+
+      // Use different endpoint based on source
+      const endpoint = source === 'forgotPassword' 
+        ? API.AUTH.VERIFY_OTP_PASSWORD 
+        : API.AUTH.VERIFY_OTP;
+
+      const response = await apiClient.post(endpoint, {
+        otp,
+      });
+
+      // Check for success: false in response
+      if (response.data?.success === false) {
+        const errorMessage = response.data?.message || 'Invalid OTP';
+        Toast.error(errorMessage);
+        lastSubmittedOtp.current = ''; // Reset on error so user can retry
+        setLoading(false);
+        return;
+      }
+
+      const successMessage = response.data?.message || 'OTP verified successfully';
+      Toast.success(successMessage);
+      
+      if (source === 'forgotPassword') {
+        // Extract token from response for password reset
+        const token = response.data?.data?.token || response.data?.token;
+        navigation.navigate('SetPassword', {
+          token: token,
+        });
+      } else {
+        navigation.navigate('CreatePassword');
+      }
+    } catch (error: any) {
+      console.error('OTP verification error:', error);
+      const errorMessage = 
+        error?.response?.data?.message || 
+        error?.data?.message ||
+        error?.message || 
+        'Failed to verify OTP';
+      Toast.error(errorMessage);
+      lastSubmittedOtp.current = ''; // Reset on error so user can retry
+      setLoading(false);
+    } finally {
+      setLoading(false);
+    }
+  }, [inputValues, loading, source, navigation, t]);
+
   const handleChangeText = (text: string, index: number) => {
     const digit = text.replace(/[^0-9]/g, '');
     const newValues = [...inputValues];
@@ -60,38 +125,15 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
     if (digit && index < 4) {
       inputRefs.current[index + 1]?.current?.focus();
     }
-
-    const filled = newValues.every(v => v.length === 1);
-    setLoading(filled);
   };
 
-  const handleNext = async () => {
-    if (inputValues.some(value => value.length !== 1)) {
-      Toast.error(t('please_enter_valid_otp'));
-      return;
+  useEffect(() => {
+    const filled = inputValues.every(v => v.length === 1);
+    const otp = inputValues.join('');
+    if (filled && !loading && lastSubmittedOtp.current !== otp) {
+      handleNext();
     }
-    try {
-      setLoading(true);
-      const otp = inputValues.join('');
-      console.log('OTP submitted:', otp);
-
-      const { data } = await apiClient.post(API.AUTH.VERIFY_OTP, {
-        otp,
-      });
-      console.log("🚀 ~ handleNext ~ data:", data)
-      Toast.success(data.message);
-      if (source === 'forgotPassword') {
-        navigation.navigate('SetPassword');
-      } else {
-        navigation.navigate('CreatePassword');
-      }
-    } catch (error: any) {
-      Toast.error(error.message);
-      setLoading(false);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [inputValues, loading, handleNext]);
 
   async function handleResendOTP() {
     setLoading(true);

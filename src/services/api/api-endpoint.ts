@@ -35,4 +35,51 @@ export const API = {
     DELETE_USER_ACCOUNT: '/patient-setting/deleteUserAccount',
     FAQs: '/patient-setting/faqs',
   },
+  CLINIC: {
+    GET_CLINICS: '/patient-common/get-clinics',
+    GET_CLINIC_TYPES: '/patient-common/clinicTypes',
+    GET_GROUPS: '/patient-common/groups',
+    GET_SERVICES: '/patient-common/services',
+    GET_CLINIC_DETAILS: '/patient-common/clinidDetials',
+    GET_CLINIC_DESCRIPTION: '/patient-common/clinicDescription',
+    GET_CLINIC_SERVICES: '/patient-common/clinicServices',
+    GET_CLINIC_REVIEWS: '/patient-common/clinicReviews',
+    GET_DEVICE_DETAILS: '/patient-common/deviceDetails',
+    GET_SERVICES_FILTER: '/patient-common/servicesFilter',
+    GET_SERVICE_DETAILS: '/patient-common/serviceDetails',
+  },
+  CART: {
+    ADD_TO_CART: '/cart/add',
+    VIEW_CART_DETAILS: '/cart/viewCartDetails',
+    REMOVE_FROM_CART: '/cart/remove', // DELETE /cart/remove/{cartID}
+  },
+  CHECKOUT: {
+    CHECKOUT: '/checkout/checkout',
+  },
+  CONSULTATIONS: {
+    GET_SERVICE_TYPES: '/patient-consultations/serviceTypes',
+    GET_GROUPS: '/patient-consultations/groups',
+    GET_SERVICES: '/patient-consultations/services',
+    GET_CONSULTATION_TYPES: '/patient-consultations/consultationsTypes',
+    FIND_DOCTORS: '/patient-consultations/findDoctors',
+    BOOK_CONSULTATION: '/patient-consultations/bookConsultations',
+    GET_CONSULTATION_MESSAGES: '/patient-consultations/consultationsMessages', // GET /consultationsMessages/{consultationID}
+    SEND_MESSAGE: '/patient-consultations/sendMessage',
+    DELETE_MESSAGE: '/patient-consultations/deleteMessage', // DELETE /deleteMessage/{messageID}
+    DOWNLOAD_PRESCRIPTION: '/patient-consultations/downloadPrescription', // GET /downloadPrescription?consultationID={id}
+  },
+  NOTIFICATIONS: {
+    VIEW_ALL: '/patient-notifications/viewAll',
+    DELETE: '/patient-notifications/delete',
+    CLEAR_ALL: '/patient-notifications/clearAll',
+  },
+  HISTORY: {
+    GET_CONSULTATIONS: '/history/consultations', // GET /consultations?name=
+    GET_CONSULTATION_MESSAGES: '/history/consultationsMessages', // GET /consultationsMessages/{id}
+    GET_PRESCRIPTION: '/history/viewPrescreptions', // GET /viewPrescreptions/{id}
+    GET_CONSULTATION_PAYMENTS: '/history/consultationPayment', // GET /consultationPayment?name=
+    GET_APPOINTMENT_PAYMENTS: '/history/appointmentPayments', // GET /appointmentPayments?name=
+    GET_CONSULTATION_PAYMENT_DETAILS: '/history/consultationPaymentDetails', // GET /consultationPaymentDetails/{id}
+    GET_APPOINTMENT_DETAILS: '/history/appointmentDetails', // GET /appointmentDetails/{id}
+  },
 };

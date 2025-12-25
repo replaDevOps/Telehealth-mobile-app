@@ -9,6 +9,7 @@ interface MessageListProps {
   scrollRef: React.RefObject<ScrollView | null>;
   showAvatar: boolean;
   handleServicePress: (service: Service) => void;
+  handleDeleteMessage?: (messageID: string) => void;
 }
 
 export const MessageList: React.FC<MessageListProps> = ({
@@ -16,6 +17,7 @@ export const MessageList: React.FC<MessageListProps> = ({
   scrollRef,
   showAvatar,
   handleServicePress,
+  handleDeleteMessage,
 }) => {
   return (
     <ScrollView
@@ -31,6 +33,7 @@ export const MessageList: React.FC<MessageListProps> = ({
           msg={msg}
           showAvatar={showAvatar}
           handleServicePress={handleServicePress}
+          handleDeleteMessage={handleDeleteMessage}
         />
       ))}
     </ScrollView>

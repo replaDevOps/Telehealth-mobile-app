@@ -173,4 +173,19 @@ export const styles = StyleSheet.create({
       height: 40,
       fontSize: 16,
     },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingVertical: 50,
+    },
+    emptyContainer: {
+      paddingVertical: 40,
+      alignItems: 'center',
+    },
+    emptyText: {
+      fontSize: 16,
+      color: colors.secondaryText,
+      textAlign: 'center',
+    },
   });

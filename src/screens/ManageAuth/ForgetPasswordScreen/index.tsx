@@ -6,6 +6,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { colors } from '../../../styles/colors';
 import { mvs } from '../../../config/metrices';
@@ -18,6 +19,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { styles } from './style';
 import { CustomTextInput } from '@components/common/CustomTextInput';
 import { useTranslation } from 'react-i18next';
+import { apiClient } from '@services/api/api-client';
+import { API } from '@services/api/api-endpoint';
+import { Toast } from 'toastify-react-native';
 
 interface ForgetPasswordScreenProps {
   navigation: any;
@@ -34,7 +38,8 @@ export function ForgetPasswordScreen({
   const [phoneError, setPhoneError] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isPhoneValid, setIsPhoneValid] = useState(false);
-  const [emailError, setEmailError] = useState(''); // ← ADD
+  const [emailError, setEmailError] = useState('');
+  const [loading, setLoading] = useState(false);
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.white }}>
       <KeyboardAvoidingView
@@ -130,8 +135,8 @@ export function ForgetPasswordScreen({
           </View>
 
           <CustomButton
-            title={t('next')}
-            onPress={() => {
+            title={loading ? t('processing') || 'Processing...' : t('next')}
+            onPress={async () => {
               let valid = true;
 
               if (selectedTab === 'email') {
@@ -150,17 +155,71 @@ export function ForgetPasswordScreen({
                 }
               }
 
-              if (valid) {
+              if (!valid || loading) {
+                return;
+              }
+
+              setLoading(true);
+              setErrorMessage('');
+              setEmailError('');
+              setPhoneError('');
+
+              try {
+                let response;
+                
+                if (selectedTab === 'email') {
+                  // Call forgot password by email API
+                  response = await apiClient.post(API.AUTH.FORGOT_PASSWORD_EMAIL, {
+                    email: email.trim(),
+                  });
+                } else {
+                  // Call forgot password by phone API
+                  response = await apiClient.post(API.AUTH.FORGOT_PASSWORD_PHONE, {
+                    phoneNO: phone.trim(),
+                  });
+                }
+
+                // Check for success: false in response
+                if (response.data?.success === false) {
+                  const errorMsg = response.data?.message || 'Failed to send OTP';
+                  Toast.error(errorMsg);
+                  setLoading(false);
+                  return;
+                }
+
+                // Success - show success message and navigate to OTP screen
+                const successMessage = response.data?.message || 'OTP sent successfully';
+                Toast.success(successMessage);
+                
                 navigation.navigate('OTPScreen', {
                   source: 'forgotPassword',
                   method: selectedTab, // 'email' or 'phone'
-                  email: selectedTab === 'email' ? email : undefined,
-                  phone: selectedTab === 'phone' ? phone : undefined,
+                  email: selectedTab === 'email' ? email.trim() : undefined,
+                  phone: selectedTab === 'phone' ? phone.trim() : undefined,
                   countryCode:
                     selectedTab === 'phone' ? countryCode : undefined,
                 });
+              } catch (error: any) {
+                console.error('Forgot password error:', error);
+                const errorMsg = 
+                  error?.response?.data?.message || 
+                  error?.data?.message ||
+                  error?.message || 
+                  'Failed to send OTP. Please try again.';
+                
+                Toast.error(errorMsg);
+                
+                // Set field-specific error
+                if (selectedTab === 'email') {
+                  setEmailError(errorMsg);
+                } else {
+                  setPhoneError(errorMsg);
+                }
+              } finally {
+                setLoading(false);
               }
             }}
+            disabled={loading}
           />
 
           <View style={styles.signinRow}>

@@ -1,6 +1,6 @@
 import { Header2 } from '@components/common/Header2';
 import React, { useState } from 'react';
-import { View, Text, ScrollView, Modal, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, Modal, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../../../styles/colors';
 import { CustomButton } from '@components/common/CustomButton';
@@ -8,11 +8,14 @@ import { RecommandImage, doctor } from '@assets/images';
 import { styles } from './style';
 import { PaymentMethod, SuccessMessageModal } from '@components/molecules';
 import { useTranslation } from 'react-i18next';
+import { Toast as Toastify } from 'toastify-react-native';
 import { Toast } from '@components/common/Toast';
+import { apiClient } from '@services/api/api-client';
+import { API } from '@services/api/api-endpoint';
 
 export function ConsultationPayment({ navigation, route }) {
   const { t } = useTranslation();
-  const [selectedPayment, setSelectedPayment] = useState('credit');
+  const [selectedPayment, setSelectedPayment] = useState<'credit' | 'applepay' | 'stc' | 'tabby' | 'tamara'>('credit');
   const [cardholderName, setCardholderName] = useState('');
   const [cardNumber, setCardNumber] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
@@ -39,36 +42,147 @@ export function ConsultationPayment({ navigation, route }) {
     service: 'Impacted Surgical Exposure - Difficult',
   };
 
+  // Debug: Log received data
+  React.useEffect(() => {
+    console.log('ConsultationPayment received params:', consultationData);
+  }, []);
+
   const consultationType = consultationData.consultationTypeId || 'chat';
 
-  const handleConnectWithDoctor = () => {
-    console.log('Connecting with doctor...', consultationType);
+  // Handle payment method change - only allow card payment
+  const handlePaymentChange = (payment: 'credit' | 'applepay' | 'stc' | 'tabby' | 'tamara') => {
+    if (payment !== 'credit') {
+      Alert.alert(
+        t('payment_method_not_available') || 'Payment Method Not Available',
+        t('only_card_payment_available') || 'Only card payment is currently available. Please select card payment to proceed.',
+        [
+          {
+            text: t('ok') || 'OK',
+            onPress: () => setSelectedPayment('credit'), // Reset to card
+          },
+        ]
+      );
+      return;
+    }
+    setSelectedPayment(payment);
+  };
 
-    // Validate payment if credit card is selected
-    if (selectedPayment === 'credit') {
+  const handleConnectWithDoctor = async () => {
+    // Only card payment is implemented
+    if (selectedPayment !== 'credit') {
+      Alert.alert(
+        t('payment_method_not_available') || 'Payment Method Not Available',
+        t('only_card_payment_available') || 'Only card payment is currently available. Please select card payment to proceed.',
+        [{ text: t('ok') || 'OK' }]
+      );
+      return;
+    }
+
+    // Validate card details
       if (!cardholderName || !cardNumber || !expiryDate || !cvv) {
-        alert(t('fill_card_details'));
+      Alert.alert(
+        t('fill_card_details') || 'Fill Card Details',
+        t('please_fill_all_card_details') || 'Please fill in all card details to proceed.',
+        [{ text: t('ok') || 'OK' }]
+      );
+      return;
+    }
+
+    // Parse expiry date from MM/YYYY format to expMonth and expYear
+    const expiryParts = expiryDate.split('/');
+    if (expiryParts.length !== 2) {
+      Alert.alert(
+        t('invalid_expiry_date') || 'Invalid Expiry Date',
+        t('please_enter_valid_expiry_date') || 'Please enter a valid expiry date in MM/YYYY format.',
+        [{ text: t('ok') || 'OK' }]
+      );
         return;
       }
+
+    const expMonth = expiryParts[0].trim();
+    const expYear = expiryParts[1].trim();
+
+    if (!expMonth || !expYear || expMonth.length !== 2 || expYear.length !== 4) {
+      Alert.alert(
+        t('invalid_expiry_date') || 'Invalid Expiry Date',
+        t('please_enter_valid_expiry_date') || 'Please enter a valid expiry date in MM/YYYY format.',
+        [{ text: t('ok') || 'OK' }]
+      );
+      return;
     }
 
     setIsLoading(true);
 
-    setTimeout(() => {
+    try {
+      // Prepare booking payload
+      const payload = {
+        paymentMethod: 'stripe',
+        cardNumber: cardNumber.replace(/\s/g, ''), // Remove spaces from card number
+        expMonth: expMonth,
+        expYear: expYear,
+        cvc: cvv,
+        cardholderName: cardholderName,
+        // Include consultation data if available
+        serviceID: consultationData.serviceID,
+        consultationType: consultationData.consultationType,
+        serviceType: consultationData.serviceType,
+        serviceGroup: consultationData.serviceGroup,
+      };
+
+      console.log('Booking consultation with payload:', payload);
+
+      // Call book consultation API
+      const response = await apiClient.post(API.CONSULTATIONS.BOOK_CONSULTATION, payload);
+
+      console.log('Book consultation response:', response.data);
+
+      // Check for success: false in response
+      if (response.data?.success === false) {
+        const errorMessage = response.data?.message || 'Failed to book consultation';
+        Toastify.error(errorMessage);
+        setIsLoading(false);
+        return;
+      }
+
+      // Success - navigate based on consultation type
       setIsLoading(false);
 
+      // Show success message
+      setToast({
+        visible: true,
+        message: response.data?.message || t('consultation_booked_successfully') || 'Consultation booked successfully',
+        type: 'success',
+      });
+
+      // Extract consultationID and recipientID from response
+      // Response structure: { success: true, message: '...', data: { id: 11, doctorID: 31, doctor: {...}, ... } }
+      const consultationResponse = response.data?.data || response.data?.consultation || response.data;
+      const consultationID = consultationResponse?.id || response.data?.consultationID || response.data?.data?.consultationID;
+      const recipientID = consultationResponse?.doctorID || response.data?.recipientID || response.data?.data?.recipientID || response.data?.data?.doctorID;
+      const doctorData = consultationResponse?.doctor;
+      const clinicData = consultationResponse?.clinic;
+
+      console.log('Extracted consultationID:', consultationID);
+      console.log('Extracted recipientID (doctorID):', recipientID);
+      console.log('Doctor data:', doctorData);
+
+      // Navigate after a short delay
+      setTimeout(() => {
       if (consultationType === 'chat') {
         navigation.navigate('ChatScreen', {
           chatType: 'doctor',
+            consultationID: consultationID, // Pass consultationID for fetching messages
+            recipientID: recipientID, // Pass recipientID for sending messages
           doctorInfo: {
-            id: 'doctor_1',
-            name: 'Dr. Sultan Khan',
-            avatar: 'https://i.pravatar.cc/150?img=12',
+              id: String(doctorData?.id || recipientID || 'doctor_1'),
+              name: doctorData?.name || 'Dr. Sultan Khan',
+              avatar: doctorData?.image ? { uri: doctorData.image } : 'https://i.pravatar.cc/150?img=12',
+              specialization: doctorData?.specialization,
           },
           clinicInfo: {
-            name: 'Eden Medical Center',
-            location: 'Makkah, Saudi Arabia, 2.2km',
-            image: RecommandImage,
+              name: clinicData?.name || 'Eden Medical Center',
+              location: clinicData?.location || 'Makkah, Saudi Arabia, 2.2km',
+              image: clinicData?.image ? { uri: clinicData.image } : RecommandImage,
           },
         });
       } else if (consultationType === 'audio') {
@@ -88,9 +202,20 @@ export function ConsultationPayment({ navigation, route }) {
           },
         });
       } else {
-        setShowErrorModal(true);
+          // Navigate back or to home
+          navigation.navigate('EntryPoint');
       }
-    }, 2000);
+      }, 1500);
+    } catch (error: any) {
+      console.error('Error booking consultation:', error);
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.data?.message ||
+        error?.message ||
+        t('failed_to_book_consultation') || 'Failed to book consultation';
+      Toastify.error(errorMessage);
+      setIsLoading(false);
+    }
   };
 
   const getHeaderTitle = () => {
@@ -136,7 +261,9 @@ export function ConsultationPayment({ navigation, route }) {
       >
         {/* Success Banner */}
         <View style={styles.successBanner}>
-          <Text style={styles.successText}>{t('doctors_available')}</Text>
+          <Text style={styles.successText}>
+            {consultationData.message || t('doctors_available')}
+          </Text>
         </View>
 
         {/* Consultation Summary */}
@@ -189,7 +316,8 @@ export function ConsultationPayment({ navigation, route }) {
 
         {/* Payment Method Component */}
         <PaymentMethod
-          onPaymentChange={setSelectedPayment}
+          selectedPayment={selectedPayment}
+          onPaymentChange={handlePaymentChange}
           cardholderName={cardholderName}
           onCardholderNameChange={setCardholderName}
           cardNumber={cardNumber}

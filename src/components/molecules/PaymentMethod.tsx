@@ -181,7 +181,19 @@ export function PaymentMethod({
 
   const handleExpiryDateChange = useCallback(
     (text: string) => {
-      onExpiryDateChange?.(text) ?? setInternalExpiryDate(text);
+      // Remove all non-numeric characters
+      const numericText = text.replace(/\D/g, '');
+      
+      // Format as MM/YYYY
+      let formattedText = '';
+      if (numericText.length > 0) {
+        formattedText = numericText.substring(0, 2); // MM
+        if (numericText.length > 2) {
+          formattedText += '/' + numericText.substring(2, 6); // /YYYY
+        }
+      }
+      
+      onExpiryDateChange?.(formattedText) ?? setInternalExpiryDate(formattedText);
     },
     [onExpiryDateChange],
   );
@@ -388,11 +400,11 @@ function CardDetailsForm({
           <Text style={styles.inputLabel}>{t('expiry_date')}</Text>
           <TextInput
             style={styles.input}
-            placeholder="01/2025"
+            placeholder="MM/YYYY"
             placeholderTextColor="#9ca3af"
             value={expiryDate}
             onChangeText={onExpiryDateChange}
-            keyboardType="numeric"
+            keyboardType="number-pad"
             maxLength={7}
           />
         </View>

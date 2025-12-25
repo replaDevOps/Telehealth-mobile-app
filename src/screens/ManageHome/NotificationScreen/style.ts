@@ -76,5 +76,29 @@ export const styles = StyleSheet.create({
       textAlign: 'center',
       lineHeight: 20,
     },
+    clearAllContainer: {
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      backgroundColor: colors.white,
+    },
+    clearAllButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'flex-end',
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+    },
+    clearAllText: {
+      color: colors.primary,
+      fontSize: 14,
+      fontWeight: '600',
+      marginLeft: 6,
+    },
+    rightActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
   });
   

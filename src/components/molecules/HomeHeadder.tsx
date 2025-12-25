@@ -64,9 +64,11 @@ const HomeHeader = ({
               activeOpacity={0.7}
             >
               <ShopingCartSvg />
+              {cartItemCount > 0 && (
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>{cartItemCount}</Text>
               </View>
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity

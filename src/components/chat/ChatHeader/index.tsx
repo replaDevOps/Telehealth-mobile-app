@@ -5,6 +5,7 @@ import { Header2 } from '@components/common/Header2';
 import { colors } from '../../../styles/colors';
 import { styles } from './style';
 import { DoctorInfo } from '../../../types/chat.types';
+import { useCartCount } from '../../../hooks/useCartCount';
 
 interface ChatHeaderProps {
   chatType: 'ai' | 'doctor';
@@ -25,8 +26,10 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   handleEndConsultation,
   handleCart,
 }) => {
+  const { cartCount } = useCartCount();
+  
   return chatType === 'ai' ? (
-    <Header2 title="Chat" showCart logo HandleCart={handleCart} />
+    <Header2 title="Chat" showCart logo HandleCart={handleCart} cartCount={cartCount} />
   ) : (
     <View style={styles.doctorHeaderContainer}>
       <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>

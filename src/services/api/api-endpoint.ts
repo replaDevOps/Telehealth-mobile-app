@@ -81,5 +81,6 @@ export const API = {
     GET_APPOINTMENT_PAYMENTS: '/history/appointmentPayments', // GET /appointmentPayments?name=
     GET_CONSULTATION_PAYMENT_DETAILS: '/history/consultationPaymentDetails', // GET /consultationPaymentDetails/{id}
     GET_APPOINTMENT_DETAILS: '/history/appointmentDetails', // GET /appointmentDetails/{id}
+    RATE_CLINIC: '/history/rateClinic', // POST /rateClinic
   },
 };

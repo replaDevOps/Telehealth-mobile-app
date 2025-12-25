@@ -67,7 +67,9 @@ export function CardDetails({ navigation }: { navigation: any }) {
 
   const [showRating, setShowRating] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [submittingRating, setSubmittingRating] = useState(false);
   const [paymentDetails, setPaymentDetails] = useState<any>(null);
+  const [clinicID, setClinicID] = useState<number | null>(null);
   
   // State for displaying data
   const [displayData, setDisplayData] = useState({
@@ -111,6 +113,10 @@ export function CardDetails({ navigation }: { navigation: any }) {
       if (response.data?.success !== false && response.data?.data) {
         const data = response.data.data;
         setPaymentDetails(data);
+
+        // Extract clinicID for rating
+        const extractedClinicID = data.clinicID || data.clinic?.id || null;
+        setClinicID(extractedClinicID);
 
         // Map API response to display data
         if (isAppointment) {
@@ -190,9 +196,33 @@ export function CardDetails({ navigation }: { navigation: any }) {
   };
 
   const handleGiveReview = () => setShowRating(true);
-  const handleRatingSubmit = (rating: number, feedback: string) => {
-    console.log('Rating:', rating, 'Feedback:', feedback);
-    setShowRating(false);
+  
+  const handleRatingSubmit = async (rating: number, feedback: string) => {
+    if (!clinicID) {
+      Toast.error(t('clinic_id_required') || 'Clinic ID is required');
+      return;
+    }
+
+    setSubmittingRating(true);
+    try {
+      const response = await apiClient.post(API.HISTORY.RATE_CLINIC, {
+        clinicID: clinicID,
+        rating: rating,
+        review: feedback || '',
+      });
+
+      if (response.data?.success !== false) {
+        Toast.success(t('review_submitted_successfully') || 'Review submitted successfully');
+        setShowRating(false);
+      } else {
+        throw new Error(response.data?.message || 'Failed to submit review');
+      }
+    } catch (error: any) {
+      console.error('Error submitting review:', error);
+      Toast.error(error?.response?.data?.message || error?.message || t('failed_to_submit_review') || 'Failed to submit review');
+    } finally {
+      setSubmittingRating(false);
+    }
   };
 
   const handleDownloadInvoice = () => {
@@ -417,6 +447,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
         visible={showRating}
         onClose={() => setShowRating(false)}
         onSubmit={handleRatingSubmit}
+        loading={submittingRating}
       />
     </SafeAreaView>
   );

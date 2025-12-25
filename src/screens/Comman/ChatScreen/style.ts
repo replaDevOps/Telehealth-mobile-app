@@ -51,6 +51,17 @@ export const styles = StyleSheet.create({
         fontSize: 13,
         fontWeight: '600',
       },
+      loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 40,
+      },
+      loadingText: {
+        marginTop: 12,
+        fontSize: 14,
+        color: colors.secondaryText,
+      },
       visitButton: {
         backgroundColor: colors.lightGray,
         paddingHorizontal: 20,

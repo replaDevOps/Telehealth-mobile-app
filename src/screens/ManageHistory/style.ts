@@ -25,6 +25,28 @@ export const styles = StyleSheet.create({
   placeholder: {
     width: 32,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: colors.secondaryText,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: colors.secondaryText,
+    textAlign: 'center',
+  },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',

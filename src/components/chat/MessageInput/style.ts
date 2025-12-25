@@ -34,6 +34,8 @@ export const styles = StyleSheet.create({
         marginRight: 8,
         borderColor: colors.border,
         borderWidth: 1,
+        maxHeight: 100, // Limit input height to prevent excessive expansion
+        minHeight: 44, // Minimum height for single line
       },
       sendButton: {
         width: 44,

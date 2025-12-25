@@ -22,7 +22,7 @@ const App = () => {
       <PaperProvider>
         <CartProvider>
           <CartCountProvider>
-            <AppNavigator />
+          <AppNavigator />
           </CartCountProvider>
         </CartProvider>
       </PaperProvider>

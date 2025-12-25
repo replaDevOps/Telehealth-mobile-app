@@ -126,8 +126,8 @@ export function CheckoutScreen({ route, navigation }) {
     }
 
     // Validate payment details
-    const { cardholderName, cardNumber, expiryDate, cvv } = cardDetails;
-    if (!cardholderName || !cardNumber || !expiryDate || !cvv) {
+      const { cardholderName, cardNumber, expiryDate, cvv } = cardDetails;
+      if (!cardholderName || !cardNumber || !expiryDate || !cvv) {
       Toast.error(t('fill_card_details') || 'Please fill all card details');
       return;
     }
@@ -448,9 +448,9 @@ export function CheckoutScreen({ route, navigation }) {
           {loading ? (
             <ActivityIndicator size="small" color={colors.white} />
           ) : (
-            <Text style={styles.proceedButtonText}>
-              {t('proceed_to_payment')}
-            </Text>
+          <Text style={styles.proceedButtonText}>
+            {t('proceed_to_payment')}
+          </Text>
           )}
         </TouchableOpacity>
       </View>

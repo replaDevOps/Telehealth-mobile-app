@@ -124,7 +124,7 @@ export const ProfileSetting = ({ navigation, route }: { navigation: any; route?:
       setLoadingData(false);
     } else {
       // Fetch profile data if not passed
-      fetchProfile();
+    fetchProfile();
     }
   }, [route?.params?.profileData]);
 
@@ -272,7 +272,7 @@ export const ProfileSetting = ({ navigation, route }: { navigation: any; route?:
         'Failed to delete account. Please try again.';
       Toast.error(errorMessage);
       setDeletingAccount(false);
-      closeDeleteModal();
+    closeDeleteModal();
     }
   };
 
@@ -441,9 +441,9 @@ export const ProfileSetting = ({ navigation, route }: { navigation: any; route?:
                   {deletingAccount ? (
                     <ActivityIndicator size="small" color={colors.white} />
                   ) : (
-                    <Text style={styles.modalDeleteButtonText}>
-                      {t('delete_account')}
-                    </Text>
+                  <Text style={styles.modalDeleteButtonText}>
+                    {t('delete_account')}
+                  </Text>
                   )}
                 </TouchableOpacity>
                 {/* Cancel */}

@@ -85,8 +85,8 @@ export const SettingScreen = ({ navigation }: { navigation: any }) => {
               console.log('Logout API error:', error);
             } finally {
               // Clear auth store and navigate to login
-              logout();
-              navigation.replace('Auth', { screen: 'SignIn' });
+            logout();
+            navigation.replace('Auth', { screen: 'SignIn' });
             }
           },
         },

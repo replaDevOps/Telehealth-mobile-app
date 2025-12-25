@@ -29,6 +29,10 @@ type RootStackParamList = {
     serviceGroup: string;
     service: string;
     doctors?: any; // Optional doctors data from API
+    consultationPrice?: number; // Consultation price from API
+    servicePrice?: number; // Service price from API
+    serviceID?: number; // Service ID from API
+    message?: string; // Message from API (e.g., "2 doctors are available for this consultation")
   };
 };
 
@@ -361,7 +365,7 @@ export default function ConsultDoctorBottomSheet({
 
       // Call findDoctors API
       const response = await apiClient.post(API.CONSULTATIONS.FIND_DOCTORS, payload);
-
+      console.log('Find doctors response:', response.data);
       // Check for success: false in response
       if (response.data?.success === false) {
         const errorMessage = response.data?.message || 'Failed to find doctors';
@@ -371,19 +375,68 @@ export default function ConsultDoctorBottomSheet({
       }
 
       // Success - navigate to ConsultationPayment with response data
-      const doctorsData = response.data?.data || response.data;
+      // Handle both nested and flat response structures
+      const apiData = response.data?.data || response.data;
+      console.log('Extracted API data:', apiData);
       setIsLoading(false);
       
-      navigation.navigate('ConsultationPayment', {
-        consultationType: selectedCard.name,
-        consultationTypeId: selectedCard.id === 'voice' ? 'audio' : selectedCard.id,
-        duration: '30 min',
-        price: selectedCard.price,
-        serviceType: serviceType,
-        serviceGroup: selectedGroup.name || serviceGroup,
-        service: selectedService.name || service,
-        doctors: doctorsData, // Pass doctors data if available
-      });
+      // Map API response to navigation params
+      // API response structure:
+      // {
+      //   consultationPrice: 100,
+      //   consultationType: "Chat",
+      //   duration: 76,
+      //   message: "2 doctors are available for this consultation",
+      //   serviceGroup: "Dedodeodldoe",
+      //   serviceID: 13,
+      //   serviceName: "lays service updated",
+      //   servicePrice: 234,
+      //   serviceType: "Dermatology",
+      //   totalPrice: 334
+      // }
+      
+      // Map consultation type from API to consultationTypeId
+      const consultationTypeMap: Record<string, 'chat' | 'audio' | 'video'> = {
+        'Chat': 'chat',
+        'Video': 'video',
+        'Voice': 'audio',
+      };
+      
+      const consultationTypeId = consultationTypeMap[apiData?.consultationType] || 
+        (selectedCard.id === 'voice' ? 'audio' : selectedCard.id);
+      
+      // Format duration (convert number to string with "min")
+      const duration = apiData?.duration 
+        ? `${apiData.duration} min` 
+        : '30 min';
+      
+      // Format total price (from API) - this is the final price to pay
+      const totalPrice = apiData?.totalPrice 
+        ? `${apiData.totalPrice} SAR` 
+        : apiData?.consultationPrice 
+        ? `${apiData.consultationPrice} SAR`
+        : selectedCard.price;
+      
+      // Prepare navigation params with proper mapping
+      const navigationParams = {
+        consultationType: apiData?.consultationType || selectedCard.name,
+        consultationTypeId: consultationTypeId,
+        duration: duration,
+        price: totalPrice, // Use totalPrice from API
+        serviceType: apiData?.serviceType || serviceType,
+        serviceGroup: apiData?.serviceGroup || selectedGroup.name || serviceGroup,
+        service: apiData?.serviceName || selectedService.name || service,
+        message: apiData?.message, // Message from API (e.g., "2 doctors are available for this consultation")
+        doctors: apiData, // Pass full API response data
+        // Additional API data for reference
+        consultationPrice: apiData?.consultationPrice,
+        servicePrice: apiData?.servicePrice,
+        serviceID: apiData?.serviceID,
+      };
+      
+      console.log('Navigation params:', navigationParams);
+      
+      navigation.navigate('ConsultationPayment', navigationParams);
       onClose();
     } catch (error: any) {
       console.error('Error finding doctors:', error);

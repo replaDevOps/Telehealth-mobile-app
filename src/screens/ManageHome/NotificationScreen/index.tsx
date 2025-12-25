@@ -120,7 +120,7 @@ export const NotificationScreen = () => {
       t('are_you_sure_clear_all') || 'Are you sure you want to clear all notifications?',
       [
         { text: t('cancel') || 'Cancel', style: 'cancel' },
-        {
+    {
           text: t('clear_all') || 'Clear All',
           style: 'destructive',
           onPress: async () => {
@@ -231,7 +231,7 @@ export const NotificationScreen = () => {
               </View>
 
               <View style={styles.rightActions}>
-                {notification.unread && <View style={styles.unreadDot} />}
+              {notification.unread && <View style={styles.unreadDot} />}
                 <TouchableOpacity
                   onPress={() => handleDeleteNotification(notification.id)}
                   disabled={deletingId === notification.id}

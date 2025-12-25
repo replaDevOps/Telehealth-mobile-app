@@ -62,10 +62,24 @@ export const API = {
     GET_SERVICES: '/patient-consultations/services',
     GET_CONSULTATION_TYPES: '/patient-consultations/consultationsTypes',
     FIND_DOCTORS: '/patient-consultations/findDoctors',
+    BOOK_CONSULTATION: '/patient-consultations/bookConsultations',
+    GET_CONSULTATION_MESSAGES: '/patient-consultations/consultationsMessages', // GET /consultationsMessages/{consultationID}
+    SEND_MESSAGE: '/patient-consultations/sendMessage',
+    DELETE_MESSAGE: '/patient-consultations/deleteMessage', // DELETE /deleteMessage/{messageID}
+    DOWNLOAD_PRESCRIPTION: '/patient-consultations/downloadPrescription', // GET /downloadPrescription?consultationID={id}
   },
   NOTIFICATIONS: {
     VIEW_ALL: '/patient-notifications/viewAll',
     DELETE: '/patient-notifications/delete',
     CLEAR_ALL: '/patient-notifications/clearAll',
+  },
+  HISTORY: {
+    GET_CONSULTATIONS: '/history/consultations', // GET /consultations?name=
+    GET_CONSULTATION_MESSAGES: '/history/consultationsMessages', // GET /consultationsMessages/{id}
+    GET_PRESCRIPTION: '/history/viewPrescreptions', // GET /viewPrescreptions/{id}
+    GET_CONSULTATION_PAYMENTS: '/history/consultationPayment', // GET /consultationPayment?name=
+    GET_APPOINTMENT_PAYMENTS: '/history/appointmentPayments', // GET /appointmentPayments?name=
+    GET_CONSULTATION_PAYMENT_DETAILS: '/history/consultationPaymentDetails', // GET /consultationPaymentDetails/{id}
+    GET_APPOINTMENT_DETAILS: '/history/appointmentDetails', // GET /appointmentDetails/{id}
   },
 };

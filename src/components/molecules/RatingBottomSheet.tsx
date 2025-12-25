@@ -22,7 +22,7 @@ import { useTranslation } from 'react-i18next';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-const RatingBottomSheet = ({ visible, onClose, onSubmit }) => {
+const RatingBottomSheet = ({ visible, onClose, onSubmit, loading = false }) => {
   const { t } = useTranslation();
   const [rating, setRating] = useState(4);
   const [feedback, setFeedback] = useState('');
@@ -83,10 +83,9 @@ const RatingBottomSheet = ({ visible, onClose, onSubmit }) => {
   ).current;
 
   const handleSubmit = () => {
+    if (loading) return; // Prevent multiple submissions
     onSubmit?.(rating, feedback);
-    setFeedback('');
-    setRating(4);
-    closeModal();
+    // Don't reset or close here - let parent handle it after API call
   };
 
   const renderStars = () => (
@@ -187,7 +186,12 @@ const RatingBottomSheet = ({ visible, onClose, onSubmit }) => {
 
           {/* Sticky submit button */}
           <View style={styles.submitWrapper}>
-            <CustomButton title={t('submit_feedback')} onPress={handleSubmit} />
+            <CustomButton 
+              title={loading ? (t('submitting') || 'Submitting...') : t('submit_feedback')} 
+              onPress={handleSubmit}
+              disabled={loading}
+              loading={loading}
+            />
           </View>
         </Animated.View>
       </KeyboardAvoidingView>

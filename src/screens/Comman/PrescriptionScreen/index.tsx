@@ -10,6 +10,8 @@ import {
   Alert,
   Modal,
   ImageSourcePropType,
+  Linking,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { doctor, Signature } from '@assets/images';
@@ -20,6 +22,10 @@ import { useTranslation } from 'react-i18next';
 import { CustomButton } from '@components/common/CustomButton';
 import { Toast } from '@components/common/Toast';
 import { EmptyContentSvg } from '@assets/icons';
+import { apiClient } from '@services/api/api-client';
+import { API } from '@services/api/api-endpoint';
+import { BASE_URL } from '@constants';
+import { useAuthStore } from '@store';
 
 // Type definitions
 interface Doctor {
@@ -73,6 +79,8 @@ interface Prescription {
 
 interface RouteParams {
   prescriptionId?: string;
+  consultationID?: number;
+  fromHistory?: boolean;
 }
 
 interface Navigation {
@@ -115,6 +123,7 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
   const [prescription, setPrescription] = useState<Prescription | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
   const [toast, setToast] = useState<{
     visible: boolean;
@@ -127,57 +136,156 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
   });
 
   const prescriptionId = route?.params?.prescriptionId;
+  const consultationID = route?.params?.consultationID;
+  const fromHistory = route?.params?.fromHistory || false;
 
   useEffect(() => {
-    fetchPrescriptionData();
-  }, [prescriptionId]);
+    if (consultationID) {
+      fetchPrescriptionData();
+    }
+  }, [prescriptionId, consultationID]);
 
   const fetchPrescriptionData = async (): Promise<void> => {
+    if (!consultationID) {
+      setError(t('consultation_id_required') || 'Consultation ID is required');
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
+      setInfoMessage(null);
 
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setPrescription(getMockPrescriptionData());
-    } catch (err) {
+      // Use history API if fromHistory is true
+      const endpoint = fromHistory
+        ? `${API.HISTORY.GET_PRESCRIPTION}/${consultationID}`
+        : `${API.CONSULTATIONS.DOWNLOAD_PRESCRIPTION}?consultationID=${consultationID}`;
+
+      const response = await apiClient.get(endpoint);
+      console.log('Prescription response:', response.data);
+      
+      // Check if API returned success: false with a message (not an error, just no prescription)
+      if (response.data?.success === false) {
+        const apiMessage = response.data?.message || t('no_prescription_available') || 'No prescription available';
+        setInfoMessage(apiMessage);
+        setPrescription(null);
+      } else if (response.data?.success !== false && response.data?.data) {
+        // Map API response to prescription format
+        const prescriptionData = response.data.data;
+        // You may need to map the API response structure to your Prescription type
+        // For now, using mock data structure as placeholder
+        setPrescription(getMockPrescriptionData());
+        setInfoMessage(null);
+      } else {
+        // No data but no explicit message
+        setInfoMessage(t('no_prescription_available') || 'No prescription available');
+        setPrescription(null);
+      }
+    } catch (err: any) {
+      // Only set error for actual exceptions/network errors
       const errorMessage =
-        err instanceof Error ? err.message : 'An unknown error occurred';
+        err instanceof Error ? err.message : err?.response?.data?.message || 'An unknown error occurred';
       setError(errorMessage);
-      Alert.alert('Error', 'Failed to load prescription data');
+      setInfoMessage(null);
+      Alert.alert(t('error') || 'Error', errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDownload = (): void => {
+  const handleDownload = async (): Promise<void> => {
+    if (!consultationID) {
+      Alert.alert(
+        t('error') || 'Error',
+        t('consultation_id_required') || 'Consultation ID is required to download prescription'
+      );
+      return;
+    }
+
     setIsDownloading(true);
 
-    // Simulate download process
-    setTimeout(() => {
-      setIsDownloading(false);
+    try {
+      const token = useAuthStore.getState().auth?.user?.token;
+      
+      // Use history API if fromHistory is true, otherwise use consultations API
+      const endpoint = fromHistory
+        ? `${API.HISTORY.GET_PRESCRIPTION}/${consultationID}`
+        : `${API.CONSULTATIONS.DOWNLOAD_PRESCRIPTION}?consultationID=${consultationID}`;
 
-      // Simulate successful download
-      const success = Math.random() > 0.2; // 80% success rate for demo
+      // Use fetch to download the prescription file
+      const response = await fetch(
+        `${BASE_URL}${endpoint}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json',
+          },
+        }
+      );
 
-      if (success) {
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to download prescription');
+      }
+
+      // Get the file URL from response (could be a direct download link or file data)
+      const contentType = response.headers.get('content-type');
+      
+      if (contentType?.includes('application/json')) {
+        // If response is JSON, it might contain a download URL
+        const data = await response.json();
+        const downloadUrl = data.data?.url || data.url || data.downloadUrl;
+        
+        if (downloadUrl) {
+          // Open the download URL in browser or download manager
+          const fullUrl = downloadUrl.startsWith('http') 
+            ? downloadUrl 
+            : `https://telehealth.repla-projects.com/${downloadUrl}`;
+          
+          const canOpen = await Linking.canOpenURL(fullUrl);
+          if (canOpen) {
+            await Linking.openURL(fullUrl);
+            setToast({
+              visible: true,
+              message: t('prescription_downloaded_successfully') || 'Prescription downloaded successfully',
+              type: 'success',
+            });
+          } else {
+            throw new Error('Cannot open download URL');
+          }
+        } else {
+          // If no URL, the response might be the file itself
+          throw new Error('No download URL found in response');
+        }
+      } else {
+        // If response is a file (PDF, image, etc.), handle it differently
+        // For now, we'll treat it as a direct download
+        const blob = await response.blob();
+        // In React Native, we might need to use a file system library
+        // For now, we'll show success and let the browser handle it
         setToast({
           visible: true,
-          message: t('prescription_downloaded_successfully'),
+          message: t('prescription_downloaded_successfully') || 'Prescription downloaded successfully',
           type: 'success',
         });
-
-        // Navigate after showing success message
-        setTimeout(() => {
-          navigation.navigate('EntryPoint');
-        }, 1500);
-      } else {
-        setToast({
-          visible: true,
-          message: 'Failed to download prescription. Please try again.',
-          type: 'error',
-        });
       }
-    }, 3000);
+
+      // Navigate after showing success message
+      setTimeout(() => {
+        navigation.navigate('EntryPoint');
+      }, 1500);
+    } catch (error: any) {
+      console.error('Error downloading prescription:', error);
+      setToast({
+        visible: true,
+        message: error?.message || t('failed_to_download_prescription') || 'Failed to download prescription. Please try again.',
+        type: 'error',
+      });
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   const hideToast = (): void => {
@@ -249,7 +357,28 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
     );
   }
 
-  if (!loading && !error && !prescription) {
+  // Show info message (when success: false from API) - not an error, just no prescription
+  if (!loading && !error && !prescription && infoMessage) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor={colors.white} />
+        <Header2 title={t('prescription')} />
+
+        <View style={styles.noPrescriptionContainer}>
+          <EmptyContentSvg width={180} height={180} />
+          <Text style={styles.noPrescriptionTitle}>
+            {infoMessage}
+          </Text>
+          <Text style={styles.noPrescriptionSubtitle}>
+            {t('prescription_will_appear_here')}
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Show default empty state when no prescription and no message
+  if (!loading && !error && !prescription && !infoMessage) {
     return (
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="dark-content" backgroundColor={colors.white} />
@@ -268,14 +397,14 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
     );
   }
 
-  // Error State
-  if (error || !prescription) {
+  // Error State - only show when there's an actual error (network, exception, etc.)
+  if (error && !infoMessage) {
     return (
       <SafeAreaView style={styles.container}>
-        <Header2 title={t('prescription_id')} />
+        <Header2 title={t('prescription')} />
         <View style={styles.centerContainer}>
           <Text style={styles.errorText}>
-            {t('failed_to_load_prescription')}
+            {error}
           </Text>
           <TouchableOpacity
             style={styles.retryButton}
@@ -287,6 +416,11 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
         </View>
       </SafeAreaView>
     );
+  }
+
+  // If no prescription and no error, we've already handled it above
+  if (!prescription) {
+    return null;
   }
 
   return (

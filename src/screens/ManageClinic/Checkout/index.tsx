@@ -116,7 +116,7 @@ export function CheckoutScreen({ route, navigation }) {
 
     // Check authentication
     const authState = useAuthStore.getState();
-    const token = authState.auth?.user?.token;
+    const token = authState.auth?.token;
     
     if (!token) {
       Toast.error('Please login to proceed with checkout');

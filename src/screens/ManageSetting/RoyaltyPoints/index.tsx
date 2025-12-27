@@ -1,14 +1,91 @@
 import { Header2 } from '@components/common/Header2';
-import React from 'react';
-import { View, FlatList } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, FlatList, Text, ActivityIndicator, TouchableOpacity, StyleSheet } from 'react-native';
 import { mvs } from '@config/metrices';
 import { styles } from './style';
 import { useTranslation } from 'react-i18next';
-import { LOYALTYPOINTSDATA } from '@constants';
 import { ClinicCard } from '../LoyaltyPointsDetails/components';
+import { apiClient } from '@services/api/api-client';
+import { API } from '@services/api/api-endpoint';
+import { RecommandImage } from '@assets/images';
+import { colors } from '../../../styles/colors';
+import { useFocusEffect } from '@react-navigation/native';
+import { RewardsMilestonesBottomSheet } from '@components/molecules';
+import { MILESTONETIERS } from '@constants';
 
 export const RoyaltyPoints = ({ navigation }) => {
   const { t } = useTranslation();
+  const [loyaltyPointsData, setLoyaltyPointsData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
+
+  const fetchLoyaltyPoints = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await apiClient.get(API.SETTINGS.LOYALTY_POINTS);
+      console.log("🚀 ~ fetchLoyaltyPoints ~ response:", response);
+      console.log("🚀 ~ fetchLoyaltyPoints ~ response.data:", response.data);
+      
+      // API response structure: response.data = { success: true, clinics: [...] }
+      // OR response.data.data = { success: true, clinics: [...] }
+      let responseData = response.data;
+      
+      // Check if data is nested
+      if (responseData?.data && typeof responseData.data === 'object') {
+        responseData = responseData.data;
+      }
+      
+      if (responseData?.success !== false && responseData?.clinics) {
+        const clinicsList = responseData.clinics || [];
+        console.log("🚀 ~ fetchLoyaltyPoints ~ clinicsList:", clinicsList);
+        
+        // Map API response to expected format
+        const mappedData = clinicsList.map((item: any, index: number) => {
+          const clinicId = item.clinicID?.toString() || item.clinic?.id?.toString() || index.toString();
+          const clinicName = item.clinic?.clinicName || item.clinicName || 'Unknown Clinic';
+          const points = item.total_loyalty_points || item.totalLoyaltyPoints || 0;
+          const image = item.clinic?.image 
+            ? { uri: item.clinic.image } 
+            : item.clinicImage 
+            ? (typeof item.clinicImage === 'string' ? { uri: item.clinicImage } : item.clinicImage)
+            : RecommandImage;
+          const category = item.clinic?.category || item.category || 'General';
+          
+          console.log(`Mapped item ${index}:`, { clinicId, clinicName, points, category });
+          
+          return {
+            id: clinicId,
+            clinicId: clinicId,
+            clinicName: clinicName,
+            points: points,
+            image: image,
+            category: category,
+          };
+        });
+
+        console.log("🚀 ~ fetchLoyaltyPoints ~ mappedData:", mappedData);
+        setLoyaltyPointsData(mappedData);
+      } else {
+        console.log("🚀 ~ fetchLoyaltyPoints ~ No clinics found in response");
+        setLoyaltyPointsData([]);
+      }
+    } catch (error: any) {
+      console.error('Error fetching loyalty points:', error);
+      setError(error?.response?.data?.message || error?.message || t('failed_to_load_loyalty_points') || 'Failed to load loyalty points');
+      setLoyaltyPointsData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch data on mount and when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchLoyaltyPoints();
+    }, [])
+  );
 
   const handlePointDetails = (item: any) => {
     navigation.navigate('LoyaltyPointsDetails', {
@@ -30,17 +107,84 @@ export const RoyaltyPoints = ({ navigation }) => {
     />
   );
 
+  const renderEmptyComponent = () => {
+    if (loading) {
+      return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 100 }}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={{ marginTop: 16, color: colors.secondaryText }}>
+            {t('loading') || 'Loading...'}
+          </Text>
+        </View>
+      );
+    }
+
+    if (error) {
+      return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 100, paddingHorizontal: 20 }}>
+          <Text style={{ color: colors.red, textAlign: 'center', marginBottom: 16 }}>
+            {error}
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 100 }}>
+        <Text style={{ color: colors.secondaryText, textAlign: 'center' }}>
+          {t('no_loyalty_points_found') || 'No loyalty points found'}
+        </Text>
+      </View>
+    );
+  };
+
+  const handleClaim = (tierName: string) => {
+    console.log(`Claiming reward for ${tierName}`);
+  };
+
   return (
     <View style={styles.container}>
-      <Header2 title={t('loyalty_points')} />
+      <Header2 
+        title={t('loyalty_points')}
+        rightElement={
+          <TouchableOpacity 
+            onPress={() => setShowHowItWorks(true)}
+            activeOpacity={0.7}
+          >
+            <Text style={headerStyles.howItWorksText}>{t('how_it_works') || 'How it works'}</Text>
+          </TouchableOpacity>
+        }
+      />
       <View style={{ flex: 1, paddingHorizontal: 20, marginTop: mvs(20) }}>
         <FlatList
-          data={LOYALTYPOINTSDATA}
+          data={loyaltyPointsData}
           renderItem={renderItem}
           keyExtractor={item => item.id}
-          contentContainerStyle={styles.listContainer}
+          contentContainerStyle={[
+            styles.listContainer,
+            loyaltyPointsData.length === 0 && { flex: 1 }
+          ]}
+          ListEmptyComponent={renderEmptyComponent}
+          refreshing={loading}
+          onRefresh={fetchLoyaltyPoints}
         />
       </View>
+      
+      <RewardsMilestonesBottomSheet
+        visible={showHowItWorks}
+        onClose={() => setShowHowItWorks(false)}
+        tiers={MILESTONETIERS}
+        onClaim={handleClaim}
+      />
     </View>
   );
 };
+
+const headerStyles = StyleSheet.create({
+  howItWorksText: {
+    color: colors.primary,
+    fontSize: mvs(14),
+    textDecorationLine: 'underline',
+    fontWeight: '500',
+  },
+});

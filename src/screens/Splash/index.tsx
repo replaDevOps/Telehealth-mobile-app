@@ -6,7 +6,7 @@ import LogoSvg from '../../assets/icons/LogoSvg';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { colors } from '../../styles/colors';
-import { useAuthStore } from '@store';
+import { useAuthStore, useProfileStore } from '@store';
 
 type SplashScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -17,11 +17,18 @@ type Props = {
 export const SplashScreen: React.FC<Props> = ({ navigation }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const { isAuthenticated } = useAuthStore();
+  const { fetchProfile } = useProfileStore();
 
   useEffect(() => {
     const checkAndNavigate = async () => {
       try {
         const selectedLanguage = await AsyncStorage.getItem('selectedLanguage');
+        
+        // If user is authenticated, fetch profile data once on app start
+        if (isAuthenticated) {
+          fetchProfile();
+        }
+        
         setTimeout(() => {
           if (!selectedLanguage) {
             navigation.replace('Auth', { screen: 'LanguageSelection' });

@@ -145,7 +145,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
         }
 
         // Get auth token if available
-        const token = useAuthStore.getState().auth?.user?.token;
+        const token = useAuthStore.getState().auth?.token;
         
         // Use fetch for FormData upload
         const response = await fetch(`${BASE_URL}${API.AUTH.REGISTER}`, {

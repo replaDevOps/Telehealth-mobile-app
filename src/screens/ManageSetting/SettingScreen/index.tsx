@@ -1,5 +1,5 @@
 // SettingScreen.tsx
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import UserProfile from '../../../components/common/UserProfile';
 import { Header2 } from '../../../components/common/Header2';
@@ -17,54 +17,39 @@ import {
 import style from './style';
 import { RoyaltyPointsBar } from '@components/molecules';
 import { useTranslation } from 'react-i18next';
-import { useAuthStore } from '@store';
+import { useAuthStore, useProfileStore } from '@store';
 import { apiClient } from '../../../services/api/api-client';
 import { API } from '../../../services/api/api-endpoint';
-import { tryCatch } from '../../../utils';
 
 export const SettingScreen = ({ navigation }: { navigation: any }) => {
   const { t } = useTranslation();
-  const { logout } = useAuthStore();
-  const [profileImage, setProfileImage] = useState<string>('');
-  const [profileData, setProfileData] = useState<any>(null);
+  const { logout, isAuthenticated } = useAuthStore();
+  const { profileData, fetchProfile, refreshProfile } = useProfileStore();
+  
+  // Extract profile image and loyalty points from store
+  const profileImage = profileData?.image || profileData?.profileImage || profileData?.profile_image || '';
+  const loyaltyPoints = profileData?.loyaltyPoints 
+    ? (typeof profileData.loyaltyPoints === 'string' 
+        ? parseInt(profileData.loyaltyPoints, 10) 
+        : profileData.loyaltyPoints)
+    : 0;
 
-  // Fetch profile data on component mount and when screen is focused
+  // Fetch profile data on component mount and when screen is focused (only if authenticated)
+  // The store will use cached data if available and fresh
   useFocusEffect(
     useCallback(() => {
-      fetchProfileData();
-    }, [])
+      if (isAuthenticated) {
+        fetchProfile();
+      }
+    }, [isAuthenticated, fetchProfile])
   );
-
-  const fetchProfileData = async () => {
-    const [res, err] = await tryCatch(
-      apiClient.get(API.SETTINGS.VIEW_PROFILE),
-    );
-
-    if (err) {
-      // Silently fail - don't show error toast for profile data fetch
-      console.log('Failed to fetch profile data:', err);
-      return;
-    }
-
-    // Extract profile data from response
-    const data = res.data?.data || res.data || res;
-    
-    // Store full profile data
-    setProfileData(data);
-    
-    // Extract profile image
-    const imageUrl = data?.profileImage || data?.image || data?.profile_image || '';
-    if (imageUrl) {
-      setProfileImage(imageUrl);
-    }
-  };
 
   // =============== Handlers ===============
   const handleImageSelected = (uri: string) => {
-    setProfileImage(uri);
-    // Optionally refresh profile image after upload
-    // fetchProfileImage();
-    
+    // Update profile in store
+    useProfileStore.getState().updateProfile({ image: uri });
+    // Refresh profile data after image upload
+    refreshProfile();
   };
 
   const handleLogout = async () => {
@@ -84,9 +69,10 @@ export const SettingScreen = ({ navigation }: { navigation: any }) => {
               // Even if API call fails, proceed with logout
               console.log('Logout API error:', error);
             } finally {
-              // Clear auth store and navigate to login
-            logout();
-            navigation.replace('Auth', { screen: 'SignIn' });
+              // Clear auth store and profile store, then navigate to login
+              useProfileStore.getState().clearProfile();
+              logout();
+              navigation.replace('Auth', { screen: 'SignIn' });
             }
           },
         },
@@ -159,7 +145,7 @@ export const SettingScreen = ({ navigation }: { navigation: any }) => {
 
         {/* Royalty Points Section */}
         <RoyaltyPointsBar
-          points={300}
+          points={loyaltyPoints}
           validTill="18/09/2025"
           onPress={() => navigation.navigate('RoyaltyPoints')}
         />

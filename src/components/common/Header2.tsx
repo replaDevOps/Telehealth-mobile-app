@@ -39,6 +39,7 @@ interface Header2Props {
   logo?: boolean;
   handleBackPress?: () => void;
   loading?: boolean;
+  rightElement?: React.ReactNode;
 }
 
 const Header2: React.FC<Header2Props> = ({
@@ -61,6 +62,7 @@ const Header2: React.FC<Header2Props> = ({
   handleSkip,
   logo = false,
   loading = false,
+  rightElement,
 }) => {
   const navigation = useNavigation<NavigationProp>();
   const { t, i18n } = useTranslation();
@@ -168,6 +170,8 @@ const Header2: React.FC<Header2Props> = ({
         <TouchableOpacity style={styles.icon} onPress={handleNotification}>
           <Ionicons name="notifications" size={25} color={colors.black} />
         </TouchableOpacity>
+      ) : rightElement ? (
+        rightElement
       ) : (
         <View style={styles.emptySpace} />
       )}

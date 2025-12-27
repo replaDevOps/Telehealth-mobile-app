@@ -10,9 +10,11 @@ import {
   Alert,
   Modal,
   ImageSourcePropType,
-  Linking,
+  Share,
   Platform,
 } from 'react-native';
+import RNHTMLtoPDF from 'react-native-html-to-pdf';
+import RNFS from 'react-native-fs';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { doctor, Signature } from '@assets/images';
 import { Header2 } from '@components/common/Header2';
@@ -170,12 +172,20 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
         const apiMessage = response.data?.message || t('no_prescription_available') || 'No prescription available';
         setInfoMessage(apiMessage);
         setPrescription(null);
-      } else if (response.data?.success !== false && response.data?.data) {
+      } else if (response.data?.success !== false) {
+        // API response structure: { success: true, prescriptions: [...], clinic: {...}, doctor: {...}, service: {...}, patient: {...} }
+        const apiData = response.data;
+        
+        // Check if prescriptions array exists and has data
+        if (!apiData.prescriptions || (Array.isArray(apiData.prescriptions) && apiData.prescriptions.length === 0)) {
+          setInfoMessage(t('no_prescription_available') || 'No prescription available');
+          setPrescription(null);
+          return;
+        }
+
         // Map API response to prescription format
-        const prescriptionData = response.data.data;
-        // You may need to map the API response structure to your Prescription type
-        // For now, using mock data structure as placeholder
-        setPrescription(getMockPrescriptionData());
+        const mappedPrescription = mapApiResponseToPrescription(apiData);
+        setPrescription(mappedPrescription);
         setInfoMessage(null);
       } else {
         // No data but no explicit message
@@ -206,7 +216,11 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
     setIsDownloading(true);
 
     try {
-      const token = useAuthStore.getState().auth?.user?.token;
+      const token = useAuthStore.getState().auth?.token;
+      
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
       
       // Use history API if fromHistory is true, otherwise use consultations API
       const endpoint = fromHistory
@@ -224,58 +238,48 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
           },
         }
       );
-
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to download prescription');
+        throw new Error(errorData.message || `Failed to download prescription: ${response.status}`);
       }
 
-      // Get the file URL from response (could be a direct download link or file data)
-      const contentType = response.headers.get('content-type');
+      // Get the content type from response
+      const contentType = response.headers.get('content-type') || '';
       
-      if (contentType?.includes('application/json')) {
-        // If response is JSON, it might contain a download URL
-        const data = await response.json();
-        const downloadUrl = data.data?.url || data.url || data.downloadUrl;
-        
-        if (downloadUrl) {
-          // Open the download URL in browser or download manager
-          const fullUrl = downloadUrl.startsWith('http') 
-            ? downloadUrl 
-            : `https://telehealth.repla-projects.com/${downloadUrl}`;
-          
-          const canOpen = await Linking.canOpenURL(fullUrl);
-          if (canOpen) {
-            await Linking.openURL(fullUrl);
+      // Parse the response body
+      const responseData = await response.json();
+      
+      // Check if response contains prescription data to generate PDF
+      // Don't open any URLs - just generate and save PDF
+      if (responseData?.success === true && responseData?.prescriptions) {
+        // If the response contains prescription data, generate and save as PDF
+        try {
+          await generateAndSavePDF(responseData);
+          setToast({
+            visible: true,
+            message: t('prescription_saved_successfully') || 'Prescription saved as PDF successfully',
+            type: 'success',
+          });
+        } catch (pdfError: any) {
+          console.error('PDF generation error:', pdfError);
+          // Fallback to sharing as text if PDF generation fails
+          try {
+            await sharePrescriptionAsText(responseData);
+          } catch (shareError: any) {
+            console.log('Share error:', shareError);
             setToast({
               visible: true,
-              message: t('prescription_downloaded_successfully') || 'Prescription downloaded successfully',
+              message: t('prescription_available') || 'Prescription is available on screen',
               type: 'success',
             });
-          } else {
-            throw new Error('Cannot open download URL');
           }
-        } else {
-          // If no URL, the response might be the file itself
-          throw new Error('No download URL found in response');
         }
       } else {
-        // If response is a file (PDF, image, etc.), handle it differently
-        // For now, we'll treat it as a direct download
-        const blob = await response.blob();
-        // In React Native, we might need to use a file system library
-        // For now, we'll show success and let the browser handle it
-        setToast({
-          visible: true,
-          message: t('prescription_downloaded_successfully') || 'Prescription downloaded successfully',
-          type: 'success',
-        });
+        // If no URL and no prescription data, show error
+        throw new Error(t('no_download_url_found') || 'No download URL found in response');
       }
 
-      // Navigate after showing success message
-      setTimeout(() => {
-        navigation.navigate('EntryPoint');
-      }, 1500);
+      // Don't navigate automatically - let user stay on the prescription screen
     } catch (error: any) {
       console.error('Error downloading prescription:', error);
       setToast({
@@ -292,57 +296,418 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
     setToast(prev => ({ ...prev, visible: false }));
   };
 
-  const getMockPrescriptionData = (): Prescription => ({
-    id: '#1235',
-    doctor: {
-      name: 'Ali Abdul Aziz',
-      credentials: 'MBBS, Dermatologist',
-      signatureImage: Signature,
-      image: doctor,
-    },
-    appointmentDate: '5 November, 2025',
-    appointmentTime: '1:20 PM',
-    clinic: {
-      name: 'Glow modern Aesthetics Clinic',
-      location: 'Riyadh, Saudi Arabia',
-      specialization: 'Extraction of Wisdom Tooth consultation',
-    },
-    patient: {
-      name: 'Ahmed Ali',
-      age: 28,
-      gender: 'Male',
-    },
-    diagnosis: {
-      summary: [
-        'Mild to Moderate Acne Vulgaris with inflammation on cheeks and forehead.',
-        'Mild to Moderate Acne Vulgaris with inflammation on cheeks and forehead.',
-      ],
-    },
-    treatment: {
-      name: 'Deep Acne Cleansing',
-      notes:
-        'Patient requires 3 sessions spaced 2 weeks apart. Avoid direct sunlight for 48 hours after treatment.',
-    },
-    medications: [
-      {
-        id: 1,
-        name: 'Medicine 1',
-        genericName: 'Tetracycline 1% Gel',
-        dosage: 'Apply twice daily',
-        duration: '14 days',
-        instructions:
-          'Apply a thin layer on affected areas after washing face.',
+  // Generate HTML content for PDF
+  const generatePrescriptionHTML = (apiData: any): string => {
+    const prescriptions = apiData.prescriptions || [];
+    const clinic = apiData.clinic || {};
+    const doctor = apiData.doctor || {};
+    const patient = apiData.patient || {};
+    const service = apiData.service || {};
+    const prescriptionConsultationID = apiData.id || consultationID || 'N/A';
+
+    // Format date
+    const formatDate = (dateStr: string): string => {
+      if (!dateStr) return '';
+      try {
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('en-GB', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+        });
+      } catch (e) {
+        return dateStr;
+      }
+    };
+
+    const formatTime = (dateStr: string): string => {
+      if (!dateStr) return '';
+      try {
+        const date = new Date(dateStr);
+        return date.toLocaleTimeString('en-GB', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true,
+        });
+      } catch (e) {
+        return '';
+      }
+    };
+
+    const firstPrescription = prescriptions[0];
+    const appointmentDate = formatDate(firstPrescription?.created_at || '');
+    const appointmentTime = formatTime(firstPrescription?.created_at || '');
+
+    // Build doctor credentials
+    const credentials = [
+      doctor.qualification,
+      doctor.specialization,
+    ].filter(Boolean).join(', ') || 'Doctor';
+
+    // Build medications HTML
+    let medicationsHTML = '';
+    prescriptions.forEach((prescription: any) => {
+      let duration = '';
+      if (prescription.startDate && prescription.endDate) {
+        try {
+          const start = new Date(prescription.startDate);
+          const end = new Date(prescription.endDate);
+          const diffTime = Math.abs(end.getTime() - start.getTime());
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          duration = diffDays === 0 ? '1 day' : `${diffDays + 1} days`;
+        } catch (e) {
+          duration = prescription.endDate || '';
+        }
+      }
+
+      medicationsHTML += `
+        <div style="margin-bottom: 20px; padding: 15px; border: 1px solid #e0e0e0; border-radius: 8px;">
+          <h3 style="margin: 0 0 10px 0; color: #333;">${prescription.name || 'N/A'}</h3>
+          <p style="margin: 5px 0; color: #666;"><strong>Description:</strong> ${prescription.description || 'N/A'}</p>
+          <p style="margin: 5px 0; color: #666;"><strong>Start Date:</strong> ${prescription.startDate || 'N/A'}</p>
+          <p style="margin: 5px 0; color: #666;"><strong>End Date:</strong> ${prescription.endDate || 'N/A'}</p>
+          <p style="margin: 5px 0; color: #666;"><strong>Duration:</strong> ${duration}</p>
+        </div>
+      `;
+    });
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Prescription #${consultationID}</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              padding: 20px;
+              color: #333;
+              line-height: 1.6;
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 30px;
+              border-bottom: 2px solid #333;
+              padding-bottom: 20px;
+            }
+            .section {
+              margin-bottom: 25px;
+            }
+            .section-title {
+              font-size: 18px;
+              font-weight: bold;
+              color: #333;
+              margin-bottom: 15px;
+              border-bottom: 1px solid #e0e0e0;
+              padding-bottom: 5px;
+            }
+            .info-grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 20px;
+              margin-bottom: 25px;
+            }
+            .info-item {
+              margin-bottom: 10px;
+            }
+            .info-label {
+              font-weight: bold;
+              color: #666;
+              margin-bottom: 5px;
+            }
+            .info-value {
+              color: #333;
+            }
+            .signature {
+              text-align: right;
+              margin-top: 40px;
+              padding-top: 20px;
+              border-top: 1px solid #e0e0e0;
+            }
+            @media print {
+              body { padding: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Prescription #${prescriptionConsultationID}</h1>
+            <p>${appointmentDate} | ${appointmentTime}</p>
+          </div>
+
+          <div class="section">
+            <div class="info-grid">
+              <div>
+                <h3 class="section-title">Clinic Information</h3>
+                <div class="info-item">
+                  <div class="info-label">Clinic Name:</div>
+                  <div class="info-value">${clinic.clinicName || clinic.name || 'N/A'}</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">Location:</div>
+                  <div class="info-value">${clinic.location || clinic.city || 'N/A'}</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">Specialization:</div>
+                  <div class="info-value">${service.serviceType || service.name || 'N/A'}</div>
+                </div>
+              </div>
+
+              <div>
+                <h3 class="section-title">Patient Information</h3>
+                <div class="info-item">
+                  <div class="info-label">Patient Name:</div>
+                  <div class="info-value">${patient.name || 'N/A'}</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">Age:</div>
+                  <div class="info-value">${patient.age || 'N/A'}</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">Gender:</div>
+                  <div class="info-value">${patient.gender || 'N/A'}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <h3 class="section-title">Doctor Information</h3>
+            <p><strong>Name:</strong> ${doctor.name || 'N/A'}</p>
+            <p><strong>Credentials:</strong> ${credentials}</p>
+          </div>
+
+          ${service.name ? `
+          <div class="section">
+            <h3 class="section-title">Treatment Details</h3>
+            <p><strong>Treatment Name:</strong> ${service.name}</p>
+            <p><strong>Description:</strong> ${service.description || service.procedure || 'N/A'}</p>
+          </div>
+          ` : ''}
+
+          <div class="section">
+            <h3 class="section-title">Medications</h3>
+            ${medicationsHTML || '<p>No medications prescribed.</p>'}
+          </div>
+
+          <div class="signature">
+            <p><strong>Doctor's Signature</strong></p>
+            ${doctor.signature ? `<img src="${doctor.signature}" alt="Doctor Signature" style="max-width: 200px; height: auto;" />` : '<p>_________________</p>'}
+          </div>
+        </body>
+      </html>
+    `;
+
+    return html;
+  };
+
+  // Generate and save PDF
+  const generateAndSavePDF = async (apiData: any): Promise<void> => {
+    if (!prescription) {
+      throw new Error('No prescription data available');
+    }
+
+    const htmlContent = generatePrescriptionHTML(apiData);
+
+    try {
+      // Determine the download directory based on platform
+      let downloadDir = '';
+      let fileName = `Prescription_${consultationID || Date.now()}.pdf`;
+
+      if (Platform.OS === 'android') {
+        // For Android, save to Downloads folder
+        downloadDir = RNFS.DownloadDirectoryPath;
+      } else {
+        // For iOS, save to Documents directory
+        downloadDir = RNFS.DocumentDirectoryPath;
+      } 
+      console.log('Download directory:', downloadDir);
+
+      // Generate PDF from HTML
+      const options = {
+        html: htmlContent,
+        fileName: fileName,
+        directory: Platform.OS === 'ios' ? 'Documents' : downloadDir,
+        base64: false,
+        width: 595, // A4 width in points
+        height: 842, // A4 height in points
+      };
+
+      const file = await RNHTMLtoPDF.convert(options);
+      console.log('PDF generated at:', file.filePath);
+
+      // For Android, ensure the file is in the Downloads folder
+      if (Platform.OS === 'android' && file.filePath) {
+        const finalPath = `${downloadDir}/${fileName}`;
+        // Move file to Downloads if it's not already there
+        if (file.filePath !== finalPath) {
+          await RNFS.moveFile(file.filePath, finalPath);
+          console.log('PDF moved to Downloads:', finalPath);
+        }
+      }
+
+      // Don't open Share dialog or Linking - just save the file
+      setToast({
+        visible: true,
+        message: t('prescription_saved_successfully') || `Prescription saved as PDF successfully\nLocation: ${Platform.OS === 'android' ? 'Downloads' : 'Documents'}`,
+        type: 'success',
+      });
+    } catch (error: any) {
+      console.error('PDF generation error:', error);
+      // If PDF generation fails, try to share as text
+      throw error;
+    }
+  };
+
+  // Fallback: Share prescription as text
+  const sharePrescriptionAsText = async (apiData: any): Promise<void> => {
+    const prescriptions = apiData.prescriptions || [];
+    const clinic = apiData.clinic || {};
+    const doctor = apiData.doctor || {};
+    
+    let shareMessage = `Prescription Details\n\n`;
+    shareMessage += `Clinic: ${clinic.clinicName || clinic.name || 'N/A'}\n`;
+    shareMessage += `Doctor: ${doctor.name || 'N/A'}\n`;
+    shareMessage += `Date: ${new Date().toLocaleDateString()}\n\n`;
+    shareMessage += `Medications:\n`;
+    
+    prescriptions.forEach((prescription: any, index: number) => {
+      shareMessage += `${index + 1}. ${prescription.name || 'N/A'}\n`;
+      shareMessage += `   Description: ${prescription.description || 'N/A'}\n`;
+      shareMessage += `   Start Date: ${prescription.startDate || 'N/A'}\n`;
+      shareMessage += `   End Date: ${prescription.endDate || 'N/A'}\n\n`;
+    });
+    
+    const result = await Share.share({
+      message: shareMessage,
+      title: t('prescription') || 'Prescription',
+    });
+    
+    if (result.action === Share.sharedAction) {
+      setToast({
+        visible: true,
+        message: t('prescription_shared_successfully') || 'Prescription shared successfully',
+        type: 'success',
+      });
+    }
+  };
+
+  // Map API response to Prescription format
+  const mapApiResponseToPrescription = (apiData: any): Prescription => {
+    // Format date from ISO string to readable format
+    const formatDate = (dateStr: string): string => {
+      if (!dateStr) return '';
+      try {
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('en-GB', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+        });
+      } catch (e) {
+        return dateStr;
+      }
+    };
+
+    // Format time from ISO string
+    const formatTime = (dateStr: string): string => {
+      if (!dateStr) return '';
+      try {
+        const date = new Date(dateStr);
+        return date.toLocaleTimeString('en-GB', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true,
+        });
+      } catch (e) {
+        return '';
+      }
+    };
+
+    // Get the first prescription's created_at for appointment date/time
+    const firstPrescription = apiData.prescriptions?.[0];
+    const appointmentDateStr = firstPrescription?.created_at || apiData.created_at || '';
+    
+    // Map medications from prescriptions array
+    const medications: Medication[] = (apiData.prescriptions || []).map((prescription: any, index: number) => {
+      // Calculate duration from startDate to endDate
+      let duration = '';
+      if (prescription.startDate && prescription.endDate) {
+        try {
+          const start = new Date(prescription.startDate);
+          const end = new Date(prescription.endDate);
+          const diffTime = Math.abs(end.getTime() - start.getTime());
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          duration = diffDays === 0 ? '1 day' : `${diffDays + 1} days`;
+        } catch (e) {
+          duration = prescription.endDate || '';
+        }
+      }
+
+      return {
+        id: prescription.id || index + 1,
+        name: prescription.name || '',
+        genericName: prescription.name || '', // API doesn't provide generic name, use name
+        dosage: prescription.description || '', // Use description as dosage/instructions
+        duration: duration,
+        instructions: prescription.description || '',
+      };
+    });
+
+    // Map doctor data
+    const doctorData = apiData.doctor || {};
+    const doctorImage = doctorData.image 
+      ? { uri: doctorData.image } 
+      : doctor;
+    const signatureImage = doctorData.signature
+      ? { uri: doctorData.signature }
+      : Signature;
+
+    // Build doctor credentials from qualification and specialization
+    const credentials = [
+      doctorData.qualification,
+      doctorData.specialization,
+    ].filter(Boolean).join(', ') || 'Doctor';
+
+    // Map clinic data
+    const clinicData = apiData.clinic || {};
+    
+    // Map service to treatment
+    const serviceData = apiData.service || {};
+    const treatment = serviceData.name ? {
+      name: serviceData.name || '',
+      notes: serviceData.description || serviceData.procedure || '',
+    } : undefined;
+
+    // Map patient data
+    const patientData = apiData.patient || {};
+
+    return {
+      id: `#${consultationID || 'N/A'}`,
+      doctor: {
+        name: doctorData.name || '',
+        credentials: credentials,
+        signatureImage: signatureImage,
+        image: doctorImage,
       },
-      {
-        id: 2,
-        name: 'Medicine 2',
-        genericName: 'Doxycycline 100mg',
-        dosage: '1 capsule daily',
-        duration: '10 days',
-        instructions: 'Take after meal with a full glass of water.',
+      appointmentDate: formatDate(appointmentDateStr),
+      appointmentTime: formatTime(appointmentDateStr),
+      clinic: {
+        name: clinicData.clinicName || clinicData.name || '',
+        location: clinicData.location || clinicData.city || '',
+        specialization: serviceData.name || serviceData.serviceType || '',
       },
-    ],
-  });
+      patient: {
+        name: patientData.name || '',
+        age: parseInt(patientData.age || '0', 10),
+        gender: patientData.gender || '',
+      },
+      diagnosis: undefined, // API doesn't provide diagnosis
+      treatment: treatment,
+      medications: medications,
+    };
+  };
 
   // Loading State
   if (loading) {
@@ -516,7 +881,7 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
         <Section title={t('doctors_signature')}>
           <View style={styles.signatureBox}>
             <Image
-              source={Signature}
+              source={prescription.doctor.signatureImage}
               style={styles.signatureImage}
               resizeMode="contain"
             />
@@ -548,7 +913,6 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
 };
 
 const DoctorCard: React.FC<DoctorCardProps> = ({ doctor, date, time }) => {
-  const { t } = useTranslation();
   return (
     <View style={styles.doctorCard}>
       <Image source={doctor.image} style={styles.avatar} />

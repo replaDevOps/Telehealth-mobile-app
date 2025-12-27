@@ -27,7 +27,7 @@ import { tryCatch } from '@utils';
 import { API } from '@services/api/api-endpoint';
 import { apiClient } from '@services/api/api-client';
 import { Toast } from 'toastify-react-native';
-import { useAuthStore } from '@store';
+import { useAuthStore, useProfileStore } from '@store';
 import { RouteProp } from '@react-navigation/native';
 
 const { height } = Dimensions.get('window');
@@ -185,7 +185,10 @@ export const ProfileSetting = ({ navigation, route }: { navigation: any; route?:
     const successMessage = res.data?.message || res.data?.data?.message || 'Profile updated successfully';
     Toast.success(successMessage);
     
-    // Refresh profile data after successful update
+    // Refresh profile data in store after successful update
+    useProfileStore.getState().refreshProfile();
+    
+    // Also refresh local profile data
     await fetchProfile();
     
     setLoading(false);

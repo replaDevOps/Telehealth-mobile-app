@@ -34,6 +34,13 @@ export const API = {
     CHANGE_PASSWORD: '/patient-setting/changePassword',
     DELETE_USER_ACCOUNT: '/patient-setting/deleteUserAccount',
     FAQs: '/patient-setting/faqs',
+    LOYALTY_POINTS_DESCRIPTION: '/patient-setting/loyaltyPointsDescription', // GET /loyaltyPointsDescription
+    LOYALTY_POINTS: '/patient-setting/loyaltyPoints', // GET /loyaltyPoints
+    LOYALTY_POINTS_EARNED: '/patient-setting/loyaltyPointsEarn', // GET /loyaltyPointsEarn?clinicID={id}
+    LOYALTY_POINTS_USED: '/patient-setting/loyaltyPointsUsed', // GET /loyaltyPointsUsed?clinicID={id}
+    TIER_PROGRESS: '/patient-setting/tierProgress', // GET /tierProgress?clinicID={id}
+    CLAIM_REWARD: '/patient-setting/claimReward', // POST /claimReward
+    RESET_TIERS: '/patient-setting/resetTiers', // GET /resetTiers?clinicID={id}
   },
   CLINIC: {
     GET_CLINICS: '/patient-common/get-clinics',
@@ -67,6 +74,7 @@ export const API = {
     SEND_MESSAGE: '/patient-consultations/sendMessage',
     DELETE_MESSAGE: '/patient-consultations/deleteMessage', // DELETE /deleteMessage/{messageID}
     DOWNLOAD_PRESCRIPTION: '/patient-consultations/downloadPrescription', // GET /downloadPrescription?consultationID={id}
+    DOWNLOAD_INVOICE: '/patient-consultations/download-invoice', // GET /download-invoice?consultationID={id}&lat={lat}&long={long}
   },
   NOTIFICATIONS: {
     VIEW_ALL: '/patient-notifications/viewAll',
@@ -82,5 +90,9 @@ export const API = {
     GET_CONSULTATION_PAYMENT_DETAILS: '/history/consultationPaymentDetails', // GET /consultationPaymentDetails/{id}
     GET_APPOINTMENT_DETAILS: '/history/appointmentDetails', // GET /appointmentDetails/{id}
     RATE_CLINIC: '/history/rateClinic', // POST /rateClinic
+  },
+  REFUND: {
+    GET_REFUND_APPOINTMENTS: '/patient-setting/refundAppointments', // GET /refundAppointments?name=
+    GET_REFUND_APPOINTMENT_DETAILS: '/patient-setting/refundAppointmentDetails', // GET /refundAppointmentDetails/{id}?lat={lat}&long={long}
   },
 };

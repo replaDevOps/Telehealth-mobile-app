@@ -73,18 +73,22 @@ export function HistoryScreen({ navigation }) {
 
           const consultationType = typeMap[consultation.type] || typeMap['Chat'];
 
+          const clinicData = consultation.clinic || {};
+          const doctorData = consultation.doctor || {};
+          const serviceData = consultation.service || {};
+          
           return {
             id: String(consultation.id),
             date: consultation.date || consultation.created_at || '',
-            serviceName: consultation.service?.name || consultation.serviceName || '',
-            duration: consultation.service?.duration 
-              ? `${consultation.service.duration} min`
+            serviceName: serviceData.name || consultation.serviceName || '',
+            duration: serviceData.duration 
+              ? `${serviceData.duration} min`
               : consultation.duration || '',
             type: consultationType.type,
             icon: consultationType.icon,
-            doctorName: consultation.doctor?.name || consultation.doctorName || '',
-            doctorAvatar: consultation.doctor?.image || consultation.doctorAvatar || '',
-            clinicName: consultation.clinic?.name || consultation.clinicName || '',
+            doctorName: doctorData.name || consultation.doctorName || '',
+            doctorAvatar: doctorData.image || consultation.doctorAvatar || '',
+            clinicName: consultation.clinicName || clinicData.clinicName || clinicData.name || '',
             price: consultation.price || '0',
             // Store original data for navigation
             consultationID: consultation.id,
@@ -136,27 +140,39 @@ export function HistoryScreen({ navigation }) {
       console.log('Payments response:', response.data);
 
       if (response.data?.success !== false && response.data?.data) {
-        const apiPayments = Array.isArray(response.data.data)
-          ? response.data.data
-          : [];
+        let apiPayments = response.data.data;
+        
+        // Handle array response - if data is an array, use it directly
+        // If data is an object with a data property that's an array, use that
+        if (!Array.isArray(apiPayments)) {
+          if (Array.isArray(apiPayments.data)) {
+            apiPayments = apiPayments.data;
+          } else {
+            apiPayments = [];
+          }
+        }
 
         // Map API response to PaymentItem format
         const mappedPayments: PaymentItem[] = apiPayments.map((payment: any) => {
           if (selectedType === 'consultation') {
             // Map consultation payment
+            const clinicData = payment.clinic || {};
+            const doctorData = payment.doctor || {};
+            const serviceData = payment.service || {};
+            
             return {
               id: String(payment.id || payment.paymentId || Date.now()),
               kind: 'consultation' as const,
               date: payment.date || payment.created_at || '',
               paymentId: String(payment.paymentId || payment.id || ''),
               type: payment.type || payment.consultationType,
-              duration: payment.duration || payment.service?.duration || '',
-              serviceName: payment.serviceName || payment.service?.name || '',
+              duration: payment.duration || serviceData.duration || '',
+              serviceName: payment.serviceName || serviceData.name || '',
               doctorStatus: payment.doctorStatus || payment.status,
-              doctorName: payment.doctorName || payment.doctor?.name || '',
-              doctorAvatar: payment.doctorAvatar || payment.doctor?.image || '',
-              clinicName: payment.clinicName || payment.clinic?.name || '',
-              clinicLocation: payment.clinicLocation || payment.clinic?.location || '',
+              doctorName: payment.doctorName || doctorData.name || '',
+              doctorAvatar: payment.doctorAvatar || doctorData.image || '',
+              clinicName: payment.clinicName || clinicData.clinicName || clinicData.name || '',
+              clinicLocation: payment.clinicLocation || clinicData.location || '',
               price: payment.price || payment.amount || '0',
               status: payment.status || 'Completed',
               statusColor: payment.status === 'Completed' || payment.status === 'Success' 
@@ -167,15 +183,18 @@ export function HistoryScreen({ navigation }) {
             } as PaymentConsultationItem;
           } else {
             // Map appointment payment
+            const clinicData = payment.clinic || {};
+            const services = payment.services || [];
+            
             return {
               id: String(payment.id || payment.paymentId || Date.now()),
               kind: 'appointment' as const,
               date: payment.date || payment.created_at || '',
               paymentId: String(payment.paymentId || payment.id || ''),
-              clinicImg: !!payment.clinicImage || !!payment.clinic?.image,
-              clinicName: payment.clinicName || payment.clinic?.name || '',
-              clinicLocation: payment.clinicLocation || payment.clinic?.location || '',
-              numberOfService: String(payment.services?.length || payment.numberOfServices || 0),
+              clinicImg: !!payment.clinicImage || !!clinicData.image,
+              clinicName: payment.clinicName || clinicData.clinicName || clinicData.name || '',
+              clinicLocation: payment.clinicLocation || clinicData.location || '',
+              numberOfService: String(services.length || payment.numberOfServices || 0),
               price: payment.price || payment.amount || '0',
               status: payment.status || 'Completed',
               statusColor: payment.status === 'Completed' || payment.status === 'Success' 
@@ -183,15 +202,18 @@ export function HistoryScreen({ navigation }) {
                 : payment.status === 'Pending' 
                 ? colors.yellow 
                 : colors.red,
-              services: payment.services?.map((service: any, index: number) => ({
-                id: service.id || index,
-                name: service.name || service.serviceName || '',
-                duration: service.duration || '',
-                price: service.price || '0',
-                category: service.category || service.group?.name || '',
-                categoryBadge: service.category || service.group?.name || '',
-                image: service.image ? { uri: service.image } : RecommandImage,
-              })) || [],
+              services: services.map((service: any, index: number) => {
+                const serviceGroup = service.group || {};
+                return {
+                  id: service.id || index,
+                  name: service.name || service.serviceName || '',
+                  duration: service.duration || '',
+                  price: service.price || '0',
+                  category: service.category || serviceGroup.name || '',
+                  categoryBadge: service.category || serviceGroup.name || '',
+                  image: service.image ? { uri: service.image } : RecommandImage,
+                };
+              }) || [],
             } as PaymentAppointmentItem;
           }
         });

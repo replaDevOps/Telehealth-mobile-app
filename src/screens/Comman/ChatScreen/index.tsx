@@ -62,6 +62,8 @@ export function ChatScreen({ navigation, route }) {
   const [showBottomSheet, setShowBottomSheet] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [consultationData, setConsultationData] = useState<any>(null);
+  const [storedClinicInfo, setStoredClinicInfo] = useState(clinicInfo);
 
   const scrollRef = useRef<ScrollView>(null);
 
@@ -121,9 +123,40 @@ export function ChatScreen({ navigation, route }) {
           : [];
 
         // Extract consultation data for doctor/patient info
-        const consultationData = response.data?.data;
-        const doctorData = consultationData?.doctor;
-        const patientData = consultationData?.patient;
+        const consultationDataFromAPI = response.data?.data;
+        const doctorData = consultationDataFromAPI?.doctor;
+        const patientData = consultationDataFromAPI?.patient;
+        const clinicDataFromAPI = consultationDataFromAPI?.clinic;
+        const serviceDataFromAPI = consultationDataFromAPI?.service;
+
+        // Store consultation data
+        setConsultationData(consultationDataFromAPI);
+
+        // Update clinic info from API if available
+        // Note: The API response might not include clinic object, only clinicID
+        // Use service data as fallback for clinic image/name
+        if (clinicDataFromAPI) {
+          setStoredClinicInfo({
+            id: clinicDataFromAPI.id || clinicDataFromAPI.clinicID || consultationDataFromAPI?.clinicID,
+            name: clinicDataFromAPI.clinicName || clinicDataFromAPI.name || clinicInfo.name,
+            location: clinicDataFromAPI.location || clinicDataFromAPI.city || clinicInfo.location,
+            image: clinicDataFromAPI.image ? { uri: clinicDataFromAPI.image } : clinicInfo.image,
+          });
+        } else if (serviceDataFromAPI) {
+          // If no clinic data, use service data as fallback for image
+          // Service has clinicID and image, which we can use
+          setStoredClinicInfo({
+            id: consultationDataFromAPI?.clinicID || clinicInfo.id,
+            name: clinicInfo.name || serviceDataFromAPI.name || 'Clinic',
+            location: clinicInfo.location || 'Location not available',
+            image: serviceDataFromAPI.image ? { uri: serviceDataFromAPI.image } : clinicInfo.image,
+          });
+        } else {
+          // If no clinic or service data, keep using clinicInfo from route params
+          console.log('No clinic or service data in API response, using clinicInfo from route params');
+          // storedClinicInfo is already initialized with clinicInfo from route params
+        }
+
 
         // Update doctorInfo if available from API
         if (doctorData && chatType === 'doctor') {
@@ -512,34 +545,41 @@ export function ChatScreen({ navigation, route }) {
         <View style={styles.clinicLeft}>
           <Image
             source={
-              typeof clinicInfo.image === 'number'
-                ? { uri: Image.resolveAssetSource(clinicInfo.image).uri }
-                : clinicInfo.image
+              typeof storedClinicInfo.image === 'number'
+                ? { uri: Image.resolveAssetSource(storedClinicInfo.image).uri }
+                : storedClinicInfo.image
             }
             style={styles.clinicImage}
           />
           <View>
-            <Text style={styles.clinicName}>{clinicInfo.name}</Text>
-            <Text style={styles.clinicLocation}>{clinicInfo.location}</Text>
+            <Text style={styles.clinicName}>{storedClinicInfo.name}</Text>
+            <Text style={styles.clinicLocation}>{storedClinicInfo.location}</Text>
           </View>
         </View>
 
         <TouchableOpacity
           style={styles.consultButton}
-          onPress={() =>
-            chatType === 'doctor'
-              ? navigation.navigate('ClinicDetail', {
-                  clinic: {
-                    id: `clinic_${Date.now()}`,
-                    name: 'AI Health Clinic',
-                    location: 'None',
-                    image: RecommandImage,
-                    specialty: 'General',
-                    rating: 3,
-                  },
-                })
-              : setShowBottomSheet(true)
-          }
+          onPress={() => {
+            if (chatType === 'doctor') {
+              // Navigate to ClinicDetail with clinic data
+              // Use clinicID from consultation data if available, otherwise use stored clinic info
+              const clinicID = consultationData?.clinicID || consultationData?.clinic?.id || consultationData?.clinic?.clinicID;
+              const clinicToNavigate = consultationData?.clinic || storedClinicInfo;
+              
+              navigation.navigate('ClinicDetail', {
+                clinic: {
+                  id: clinicID || clinicToNavigate?.id || clinicToNavigate?.clinicID || storedClinicInfo.id,
+                  name: clinicToNavigate?.clinicName || clinicToNavigate?.name || storedClinicInfo.name,
+                  location: clinicToNavigate?.location || clinicToNavigate?.city || storedClinicInfo.location,
+                  image: clinicToNavigate?.image ? { uri: clinicToNavigate.image } : storedClinicInfo.image,
+                  specialty: consultationData?.service?.serviceType || consultationData?.service?.name || 'General',
+                  rating: 0, // API doesn't provide rating in consultation data
+                },
+              });
+            } else {
+              setShowBottomSheet(true);
+            }
+          }}
         >
           <Text style={styles.consultButtonText}>
             {chatType === 'doctor' ? t('visit') : t('consult_now')}

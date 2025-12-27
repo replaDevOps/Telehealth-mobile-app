@@ -30,6 +30,8 @@
     "react-native": "0.82.1",
     "react-native-element-dropdown": "^2.12.4",
     "react-native-fast-image": "^8.6.3",
+    "react-native-fs": "^2.20.0",
+    "react-native-html-to-pdf": "^0.12.0",
     "react-native-image-picker": "^8.2.1",
     "react-native-keyboard-aware-scroll-view": "^0.9.5",
     "react-native-linear-gradient": "^2.8.3",

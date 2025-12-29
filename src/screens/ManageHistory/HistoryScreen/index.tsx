@@ -130,7 +130,8 @@ export function HistoryScreen({ navigation }) {
       const endpoint = selectedType === 'appointment'
         ? API.HISTORY.GET_APPOINTMENT_PAYMENTS
         : API.HISTORY.GET_CONSULTATION_PAYMENTS;
-
+      console.log('endpoint', endpoint);
+     
       const response = await apiClient.get(endpoint, {
         params: {
           name: searchQuery || '',
@@ -205,13 +206,13 @@ export function HistoryScreen({ navigation }) {
               services: services.map((service: any, index: number) => {
                 const serviceGroup = service.group || {};
                 return {
-                  id: service.id || index,
-                  name: service.name || service.serviceName || '',
-                  duration: service.duration || '',
-                  price: service.price || '0',
+                id: service.id || index,
+                name: service.name || service.serviceName || '',
+                duration: service.duration || '',
+                price: service.price || '0',
                   category: service.category || serviceGroup.name || '',
                   categoryBadge: service.category || serviceGroup.name || '',
-                  image: service.image ? { uri: service.image } : RecommandImage,
+                image: service.image ? { uri: service.image } : RecommandImage,
                 };
               }) || [],
             } as PaymentAppointmentItem;
@@ -313,6 +314,7 @@ export function HistoryScreen({ navigation }) {
           ...commonParams,
           image: item.clinicImg ? RecommandImage : undefined,
           services: item.services || [],
+          isAppointment: true,
         });
       }
     },

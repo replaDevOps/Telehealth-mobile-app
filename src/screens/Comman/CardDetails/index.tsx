@@ -30,6 +30,7 @@ import { useAuthStore } from '@store';
 
 type CardDetailsRouteParams = {
   paymentId: string;
+  isAppointment?: boolean;
   clinicName?: string;
   clinicLocation?: string;
   status?: string;
@@ -69,7 +70,8 @@ export function CardDetails({ navigation }: { navigation: any }) {
   const reason = params.reason;
 
   // Determine if it's appointment or consultation based on params
-  const isAppointment = !!params.services?.length;
+  const isAppointment = params.isAppointment;
+  console.log('isAppointment', isAppointment);
 
   const [showRating, setShowRating] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -180,7 +182,8 @@ export function CardDetails({ navigation }: { navigation: any }) {
         endpoint = `${API.HISTORY.GET_APPOINTMENT_DETAILS}/${params.paymentId}`;
       } else {
         endpoint = `${API.HISTORY.GET_CONSULTATION_PAYMENT_DETAILS}/${params.paymentId}`;
-      }
+      } 
+      console.log('endpoint', endpoint);
 
       const response = await apiClient.get(endpoint);
       console.log('Payment details response:', endpoint, response.data);
@@ -219,24 +222,24 @@ export function CardDetails({ navigation }: { navigation: any }) {
         // If data is an array, extract the first item
         if (Array.isArray(data)) {
           if (data.length === 0) {
-            setPaymentDetails(null);
-            setDisplayData({
-              clinicName: '',
-              clinicLocation: '',
-              status: '',
-              statusColor: colors.green,
-              dateTime: '',
-              price: '',
-              image: undefined,
-              consultationType: undefined,
-              duration: undefined,
-              doctorName: undefined,
-              doctorAvatar: undefined,
-              serviceName: undefined,
-              services: [],
-            });
-            setLoading(false);
-            return;
+          setPaymentDetails(null);
+          setDisplayData({
+            clinicName: '',
+            clinicLocation: '',
+            status: '',
+            statusColor: colors.green,
+            dateTime: '',
+            price: '',
+            image: undefined,
+            consultationType: undefined,
+            duration: undefined,
+            doctorName: undefined,
+            doctorAvatar: undefined,
+            serviceName: undefined,
+            services: [],
+          });
+          setLoading(false);
+          return;
           }
           // Extract first item from array
           data = data[0];

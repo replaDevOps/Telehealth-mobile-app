@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   ImageBackground,
   StatusBar,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -13,6 +14,8 @@ import { doctor } from '@assets/images';
 import { mvs } from '@config/metrices';
 import ConsultationEndedModal from '@components/molecules/EndSectionModal';
 import { useTranslation } from 'react-i18next';
+import { useWebRTC } from '../../../hooks/useWebRTC';
+import { Toast } from 'toastify-react-native';
 
 export function AudioConsultation({ navigation, route }) {
   const { t } = useTranslation();
@@ -22,36 +25,87 @@ export function AudioConsultation({ navigation, route }) {
     specialization: 'Dermatologist',
   };
 
-  const [callStatus, setCallStatus] = useState(t('connecting'));
+  // Get consultation parameters from route
+  const consultationId = route?.params?.consultationId || `consultation_${Date.now()}`;
+  const userId = route?.params?.userId || `patient_${Date.now()}`;
+  const isInitiator = route?.params?.isInitiator ?? true;
+  const signalingServerUrl = route?.params?.signalingServerUrl || 'http://192.168.1.100:3001';
+
   const [callDuration, setCallDuration] = useState(0);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isSpeakerOn, setIsSpeakerOn] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+
+  // Initialize WebRTC for audio-only call
+  const {
+    isConnected,
+    isConnecting,
+    isMuted,
+    isReady,
+    error,
+    toggleMute,
+    startCall,
+    endCall,
+    joinCall,
+  } = useWebRTC({
+    userId,
+    roomId: consultationId,
+    isVideoEnabled: false,
+    isAudioEnabled: true,
+    signalingServerUrl,
+  });
+
+  // Keep speaker state locally (WebRTC handles audio routing)
+  const [isSpeakerOn, setIsSpeakerOn] = useState(false);
+
   const handleGetPrescription = () => {
     setModalVisible(false);
     console.log('User wants to get the prescription');
     navigation.navigate('PrescriptionScreen');
-    // Navigate to prescription screen or trigger download
   };
 
   const handleClose = () => {
     setModalVisible(false);
+    endCall();
     navigation.navigate('EntryPoint');
   };
 
+  // Start/join call when WebRTC is ready
   useEffect(() => {
-    // Simulate connecting to call
-    const connectTimer = setTimeout(() => {
-      setCallStatus(t('connected'));
-    }, 3000);
+    if (isReady) {
+      const initCall = async () => {
+        try {
+          if (isInitiator) {
+            await startCall();
+          } else {
+            await joinCall();
+          }
+        } catch (err) {
+          console.error('Error initializing call:', err);
+          Toast.error('Failed to connect to call');
+        }
+      };
 
-    return () => clearTimeout(connectTimer);
+      initCall();
+    }
+  }, [isReady, isInitiator]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      endCall();
+    };
   }, []);
 
+  // Show error toast
   useEffect(() => {
-    // Start call duration timer when connected
+    if (error) {
+      Toast.error(error);
+    }
+  }, [error]);
+
+  // Start call duration timer when connected
+  useEffect(() => {
     let interval;
-    if (callStatus === t('connected')) {
+    if (isConnected) {
       interval = setInterval(() => {
         setCallDuration(prev => prev + 1);
       }, 1000);
@@ -60,7 +114,7 @@ export function AudioConsultation({ navigation, route }) {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [callStatus]);
+  }, [isConnected]);
 
   const formatDuration = seconds => {
     const mins = Math.floor(seconds / 60);
@@ -69,15 +123,23 @@ export function AudioConsultation({ navigation, route }) {
   };
 
   const handleEndCall = () => {
+    endCall();
     setModalVisible(true);
   };
 
-  const toggleMute = () => {
-    setIsMuted(!isMuted);
+  const toggleSpeaker = () => {
+    // Note: Speaker toggle would need native module integration
+    // For now, just toggle the state
+    setIsSpeakerOn(!isSpeakerOn);
+    // TODO: Implement native speaker toggle
   };
 
-  const toggleSpeaker = () => {
-    setIsSpeakerOn(!isSpeakerOn);
+  // Determine call status
+  const getCallStatus = () => {
+    if (error && !isConnected) return t('failed');
+    if (isConnecting) return t('connecting');
+    if (isConnected) return formatDuration(callDuration);
+    return t('connecting');
   };
 
   return (
@@ -102,9 +164,7 @@ export function AudioConsultation({ navigation, route }) {
           <View style={styles.topSection}>
             <Text style={styles.doctorName}>{doctorInfo.name}</Text>
             <Text style={styles.callStatus}>
-              {callStatus === t('connected')
-                ? formatDuration(callDuration)
-                : callStatus}
+              {getCallStatus()}
             </Text>
           </View>
 

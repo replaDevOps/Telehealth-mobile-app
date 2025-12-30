@@ -86,7 +86,7 @@ export const NearbyClinics = () => {
     );
   };
 
-  const fetchClinics = async (lat: number, long: number) => {
+  const fetchClinics = async (lat: number, long: number, pageNo: number = 1, recordsPerPage: number = 10) => {
     try {
       setLoading(true);
       const response = await apiClient.get(API.CLINIC.GET_CLINICS, {
@@ -94,6 +94,8 @@ export const NearbyClinics = () => {
           name: '',
           lat: lat.toString(),
           long: long.toString(),
+          pageNo: pageNo,
+          recordsPerPage: recordsPerPage,
         },
       });
 

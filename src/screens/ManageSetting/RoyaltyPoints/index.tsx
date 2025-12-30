@@ -17,29 +17,64 @@ export const RoyaltyPoints = ({ navigation }) => {
   const { t } = useTranslation();
   const [loyaltyPointsData, setLoyaltyPointsData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const recordsPerPage = 10;
 
-  const fetchLoyaltyPoints = async () => {
+  const fetchLoyaltyPoints = async (pageNo: number = 1, append: boolean = false) => {
     try {
-      setLoading(true);
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+        setCurrentPage(1);
+        setHasMore(true);
+      }
       setError(null);
-      const response = await apiClient.get(API.SETTINGS.LOYALTY_POINTS);
+      const response = await apiClient.get(API.SETTINGS.LOYALTY_POINTS, {
+        params: {
+          pageNo: pageNo,
+          recordsPerPage: recordsPerPage,
+        },
+      });
       console.log("🚀 ~ fetchLoyaltyPoints ~ response:", response);
       console.log("🚀 ~ fetchLoyaltyPoints ~ response.data:", response.data);
       
-      // API response structure: response.data = { success: true, clinics: [...] }
-      // OR response.data.data = { success: true, clinics: [...] }
-      let responseData = response.data;
+      // API response structure with pagination:
+      // {
+      //   success: true,
+      //   total: 3,
+      //   currentPage: 2,
+      //   perPage: 1,
+      //   nextPageUrl: "...",
+      //   previousPageUrl: "...",
+      //   data: [...] // or clinics: [...]
+      // }
+      const responseData = response.data;
       
-      // Check if data is nested
-      if (responseData?.data && typeof responseData.data === 'object') {
-        responseData = responseData.data;
+      // Extract data array - check multiple possible locations
+      let clinicsList: any[] = [];
+      if (Array.isArray(responseData)) {
+        // Response is an array directly (legacy format)
+        clinicsList = responseData;
+      } else if (Array.isArray(responseData?.data)) {
+        // Data is in response.data.data
+        clinicsList = responseData.data;
+      } else if (Array.isArray(responseData?.clinics)) {
+        // Data is in response.data.clinics
+        clinicsList = responseData.clinics;
       }
       
-      if (responseData?.success !== false && responseData?.clinics) {
-        const clinicsList = responseData.clinics || [];
-        console.log("🚀 ~ fetchLoyaltyPoints ~ clinicsList:", clinicsList);
+      console.log("🚀 ~ fetchLoyaltyPoints ~ clinicsList:", clinicsList);
+      
+      // Check if there's more data using nextPageUrl from backend
+      const hasMoreData = !!(responseData?.nextPageUrl);
+      setHasMore(hasMoreData);
+      
+      if (responseData?.success !== false && clinicsList.length > 0) {
         
         // Map API response to expected format
         const mappedData = clinicsList.map((item: any, index: number) => {
@@ -66,24 +101,48 @@ export const RoyaltyPoints = ({ navigation }) => {
         });
 
         console.log("🚀 ~ fetchLoyaltyPoints ~ mappedData:", mappedData);
-        setLoyaltyPointsData(mappedData);
+        
+        if (append) {
+          setLoyaltyPointsData(prev => [...prev, ...mappedData]);
+        } else {
+          setLoyaltyPointsData(mappedData);
+        }
+        
+        // Update current page from backend response
+        if (responseData?.currentPage) {
+          setCurrentPage(responseData.currentPage);
+        } else if (mappedData.length > 0) {
+          setCurrentPage(pageNo);
+        }
       } else {
         console.log("🚀 ~ fetchLoyaltyPoints ~ No clinics found in response");
-        setLoyaltyPointsData([]);
+        if (!append) {
+          setLoyaltyPointsData([]);
+        }
+        setHasMore(false);
       }
     } catch (error: any) {
       console.error('Error fetching loyalty points:', error);
       setError(error?.response?.data?.message || error?.message || t('failed_to_load_loyalty_points') || 'Failed to load loyalty points');
-      setLoyaltyPointsData([]);
+      if (!append) {
+        setLoyaltyPointsData([]);
+      }
     } finally {
       setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const loadMore = () => {
+    if (!loadingMore && hasMore && !loading) {
+      fetchLoyaltyPoints(currentPage + 1, true);
     }
   };
 
   // Fetch data on mount and when screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      fetchLoyaltyPoints();
+      fetchLoyaltyPoints(1, false);
     }, [])
   );
 
@@ -165,8 +224,17 @@ export const RoyaltyPoints = ({ navigation }) => {
             loyaltyPointsData.length === 0 && { flex: 1 }
           ]}
           ListEmptyComponent={renderEmptyComponent}
-          refreshing={loading}
-          onRefresh={fetchLoyaltyPoints}
+          refreshing={loading && loyaltyPointsData.length === 0}
+          onRefresh={() => fetchLoyaltyPoints(1, false)}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={
+            loadingMore ? (
+              <View style={{ paddingVertical: 20 }}>
+                <ActivityIndicator size="small" color={colors.primary} />
+              </View>
+            ) : null
+          }
         />
       </View>
       

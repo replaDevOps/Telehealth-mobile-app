@@ -61,7 +61,7 @@ export const ClinicScreen = ({ navigation, route }) => {
     fetchAllClinics(searchQuery, filterParams);
   }, [filterParams]);
 
-  const fetchAllClinics = async (query: string = '', filters: FilterParams | null = null) => {
+  const fetchAllClinics = async (query: string = '', filters: FilterParams | null = null, pageNo: number = 1, recordsPerPage: number = 10) => {
     try {
       setLoading(true);
       
@@ -73,6 +73,8 @@ export const ClinicScreen = ({ navigation, route }) => {
         city: '',
         rating: '',
         businessType: filters?.clinicTypes || '',
+        pageNo: pageNo,
+        recordsPerPage: recordsPerPage,
       };
 
       // Add groupIDs as array

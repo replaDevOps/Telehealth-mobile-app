@@ -6,7 +6,7 @@ import LogoSvg from '../../assets/icons/LogoSvg';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { colors } from '../../styles/colors';
-import { useAuthStore, useProfileStore } from '@store';
+import { useAuthStore, useProfileStore, useLocationStore } from '@store';
 
 type SplashScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -18,11 +18,17 @@ export const SplashScreen: React.FC<Props> = ({ navigation }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const { isAuthenticated } = useAuthStore();
   const { fetchProfile } = useProfileStore();
+  const { fetchLocation } = useLocationStore();
 
   useEffect(() => {
     const checkAndNavigate = async () => {
       try {
         const selectedLanguage = await AsyncStorage.getItem('selectedLanguage');
+        
+        // Fetch location if permission is available (non-blocking)
+        fetchLocation().catch(err => {
+          console.warn('Location fetch failed:', err);
+        });
         
         // If user is authenticated, fetch profile data once on app start
         if (isAuthenticated) {

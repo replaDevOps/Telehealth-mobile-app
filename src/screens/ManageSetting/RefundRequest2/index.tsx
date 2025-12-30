@@ -5,10 +5,9 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  ScrollView,
+  FlatList,
   StatusBar,
   ActivityIndicator,
-  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -53,37 +52,74 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [appointments, setAppointments] = useState<AppintItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const recordsPerPage = 10;
 
   // Fetch refund appointments from API
-  const fetchRefundAppointments = async () => {
+  const fetchRefundAppointments = async (pageNo: number = 1, append: boolean = false) => {
     try {
-      setLoading(true);
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+        setCurrentPage(1);
+        setHasMore(true);
+      }
       setError(null);
       
-      const endpoint = `${API.REFUND.GET_REFUND_APPOINTMENTS}?name=${searchQuery}`;
-      const [response, err] = await tryCatch(apiClient.get(endpoint));
+      const [response, err] = await tryCatch(apiClient.get(API.REFUND.GET_REFUND_APPOINTMENTS, {
+        params: {
+          name: searchQuery || '',
+          pageNo: pageNo,
+          recordsPerPage: recordsPerPage,
+        },
+      }));
       console.log("🚀 ~ fetchRefundAppointments ~ response:", response);
       
       if (err) {
         console.error('Error fetching refund appointments:', err);
-        setError(err?.response?.data?.message || err?.message || t('failed_to_load_refunds') || 'Failed to load refund requests');
-        setAppointments([]);
+        const errorMessage = (err as any)?.response?.data?.message || (err as any)?.message || t('failed_to_load_refunds') || 'Failed to load refund requests';
+        setError(errorMessage);
+        if (!append) {
+          setAppointments([]);
+        }
         return;
       }
 
       console.log('🚀 ~ fetchRefundAppointments ~ response:', response);
 
-      // API response structure: { data: { success: true, data: [...] } }
-      if (response.data?.success !== false && response.data?.data) {
-        const responseData = response.data.data;
-        const appointmentsList = Array.isArray(responseData) 
-          ? responseData 
-          : Array.isArray(responseData?.data)
-          ? responseData.data
-          : (responseData.appointments || []);
+      // API response structure with pagination:
+      // {
+      //   success: true,
+      //   total: 3,
+      //   currentPage: 2,
+      //   perPage: 1,
+      //   nextPageUrl: "...",
+      //   previousPageUrl: "...",
+      //   data: [...]
+      // }
+      const responseData = response.data;
+      
+      // Extract data array
+      let appointmentsList: any[] = [];
+      if (Array.isArray(responseData)) {
+        appointmentsList = responseData;
+      } else if (Array.isArray(responseData?.data)) {
+        appointmentsList = responseData.data;
+      } else if (Array.isArray(responseData?.appointments)) {
+        appointmentsList = responseData.appointments;
+      }
 
-        console.log('🚀 ~ fetchRefundAppointments ~ appointmentsList:', appointmentsList);
+      console.log('🚀 ~ fetchRefundAppointments ~ appointmentsList:', appointmentsList);
+
+      // Check if there's more data using nextPageUrl from backend
+      const hasMoreData = !!(responseData?.nextPageUrl);
+      setHasMore(hasMoreData);
+      
+      if (responseData?.success !== false && appointmentsList.length > 0) {
 
         // Map API response to AppintItem format
         const mappedAppointments: AppintItem[] = appointmentsList.map((item: any, index: number) => {
@@ -121,7 +157,7 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
           const status = item.status || item.appointment_status || item.appointmentStatus || t('pending');
           const statusColor = item.statusColor || 
             (status.toLowerCase().includes('completed') ? colors.green :
-             status.toLowerCase().includes('pending') ? colors.orange :
+             status.toLowerCase().includes('pending') ? colors.yellow :
              status.toLowerCase().includes('cancelled') ? colors.red : colors.green);
 
           return {
@@ -142,23 +178,47 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
         });
 
         console.log('🚀 ~ fetchRefundAppointments ~ mappedAppointments:', mappedAppointments);
-        setAppointments(mappedAppointments);
+        
+        if (append) {
+          setAppointments(prev => [...prev, ...mappedAppointments]);
+        } else {
+          setAppointments(mappedAppointments);
+        }
+        
+        // Update current page from backend response
+        if (responseData?.currentPage) {
+          setCurrentPage(responseData.currentPage);
+        } else if (mappedAppointments.length > 0) {
+          setCurrentPage(pageNo);
+        }
       } else {
-        setAppointments([]);
+        if (!append) {
+          setAppointments([]);
+        }
+        setHasMore(false);
       }
     } catch (error: any) {
       console.error('Error fetching refund appointments:', error);
       setError(error?.response?.data?.message || error?.message || t('failed_to_load_refunds') || 'Failed to load refund requests');
-      setAppointments([]);
+      if (!append) {
+        setAppointments([]);
+      }
     } finally {
       setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const loadMore = () => {
+    if (!loadingMore && hasMore && !loading) {
+      fetchRefundAppointments(currentPage + 1, true);
     }
   };
 
   // Fetch data on mount and when search query changes
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      fetchRefundAppointments();
+      fetchRefundAppointments(1, false);
     }, 300); // Debounce search
 
     return () => clearTimeout(timeoutId);
@@ -167,15 +227,8 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
   // Refresh data when screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      fetchRefundAppointments();
+      fetchRefundAppointments(1, false);
     }, [])
-  );
-
-  // Filter appointments based on search query (client-side filtering as backup)
-  const filteredAppointments = appointments.filter(
-    item =>
-      item.clinicName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.clinicLocation.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   const renderAppointCard = (item: AppintItem) => {
@@ -268,40 +321,46 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
       </View>
 
       {/* Content */}
-      <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={loading}
-            onRefresh={fetchRefundAppointments}
-            colors={[colors.primary]}
-          />
+      <FlatList
+        data={appointments}
+        renderItem={({ item }) => renderAppointCard(item)}
+        keyExtractor={(item) => item.id}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.5}
+        refreshing={loading && appointments.length === 0}
+        onRefresh={() => fetchRefundAppointments(1, false)}
+        ListEmptyComponent={
+          loading ? (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 100 }}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={{ marginTop: 16, color: colors.secondaryText }}>
+                {t('loading') || 'Loading...'}
+              </Text>
+            </View>
+          ) : error ? (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 100, paddingHorizontal: 20 }}>
+              <Text style={{ color: colors.red, textAlign: 'center' }}>
+                {error}
+              </Text>
+            </View>
+          ) : (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 100 }}>
+              <Text style={{ color: colors.secondaryText, textAlign: 'center' }}>
+                {t('no_refund_requests') || 'No refund requests found'}
+              </Text>
+            </View>
+          )
         }
-      >
-        {loading && appointments.length === 0 ? (
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 100 }}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={{ marginTop: 16, color: colors.secondaryText }}>
-              {t('loading') || 'Loading...'}
-            </Text>
-          </View>
-        ) : error ? (
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 100, paddingHorizontal: 20 }}>
-            <Text style={{ color: colors.red, textAlign: 'center' }}>
-              {error}
-            </Text>
-          </View>
-        ) : filteredAppointments.length === 0 ? (
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 100 }}>
-            <Text style={{ color: colors.secondaryText, textAlign: 'center' }}>
-              {t('no_refund_requests') || 'No refund requests found'}
-            </Text>
-          </View>
-        ) : (
-          filteredAppointments.map(renderAppointCard)
-        )}
-      </ScrollView>
+        ListFooterComponent={
+          loadingMore ? (
+            <View style={{ paddingVertical: 20 }}>
+              <ActivityIndicator size="small" color={colors.primary} />
+            </View>
+          ) : null
+        }
+        contentContainerStyle={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+      />
     </SafeAreaView>
   );
 }

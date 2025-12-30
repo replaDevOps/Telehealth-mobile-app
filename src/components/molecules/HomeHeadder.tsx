@@ -13,7 +13,7 @@ import { FilterSvg, ShopingCartSvg } from '@assets/icons';
 import { useTranslation } from 'react-i18next';
 
 interface HomeHeaderProps {
-  location?: string;
+  location?: string | null; // Can be null if no location available
   country?: string;
   onLocationPress?: () => void;
   onCartPress?: () => void;
@@ -24,7 +24,7 @@ interface HomeHeaderProps {
 }
 
 const HomeHeader = ({
-  location = 'Makkah, Saudi Arabia',
+  location,
   onLocationPress,
   onCartPress,
   onNotificationPress,
@@ -49,11 +49,17 @@ const HomeHeader = ({
               onPress={onLocationPress}
               activeOpacity={0.7}
             >
-              <Ionicons name="location" size={18} color={colors.white} />
-              <Text style={styles.locationText} numberOfLines={1}>
-                {t('location_makkah')}
-              </Text>
-              <Ionicons name="chevron-down" size={18} color={colors.white} />
+              {location ? (
+                <>
+                  <Ionicons name="location" size={18} color={colors.white} />
+                  <Text style={styles.locationText} numberOfLines={1}>
+                    {location}
+                  </Text>
+                  <Ionicons name="chevron-down" size={18} color={colors.white} />
+                </>
+              ) : (
+                <Ionicons name="chevron-down" size={18} color={colors.white} />
+              )}
             </TouchableOpacity>
           </View>
 

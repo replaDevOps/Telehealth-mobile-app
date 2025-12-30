@@ -94,5 +94,6 @@ export const API = {
   REFUND: {
     GET_REFUND_APPOINTMENTS: '/patient-setting/refundAppointments', // GET /refundAppointments?name=
     GET_REFUND_APPOINTMENT_DETAILS: '/patient-setting/refundAppointmentDetails', // GET /refundAppointmentDetails/{id}?lat={lat}&long={long}
+    SEND_REFUND_REQUEST: '/history/sendRefundRequests', // POST /sendRefundRequests
   },
 };

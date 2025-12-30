@@ -126,7 +126,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
   //   }
   // }, [reviews, sortOption]);
 
-  const fetchClinicDescription = async () => {
+  const fetchClinicDescription = async (pageNo: number = 1, recordsPerPage: number = 10) => {
     if (!clinicID) return;
 
     try {
@@ -134,13 +134,29 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       const response = await apiClient.get(API.CLINIC.GET_CLINIC_DESCRIPTION, {
         params: {
           clinicID: clinicID.toString(),
+          pageNo: pageNo,
+          recordsPerPage: recordsPerPage,
         },
       });
 
-      if (response.data.success) {
+      // API response structure with pagination:
+      // {
+      //   success: true,
+      //   total: 3,
+      //   currentPage: 2,
+      //   perPage: 1,
+      //   nextPageUrl: "...",
+      //   data: {...}
+      // }
+      const responseData = response.data;
+      
+      // Extract data - description might be an object, not array
+      const descriptionData = responseData?.data || responseData;
+
+      if (responseData?.success !== false && descriptionData) {
         setClinicDescription({
-          data: response.data.data,
-          devices: response.data.devices || [],
+          data: descriptionData,
+          devices: responseData.devices || [],
         });
         // Set devices from description response (filter only active)
         if (response.data.devices && Array.isArray(response.data.devices)) {
@@ -218,6 +234,8 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       const descriptionResponse = await apiClient.get(API.CLINIC.GET_CLINIC_DESCRIPTION, {
         params: {
           clinicID: clinicID.toString(),
+          pageNo: 1,
+          recordsPerPage: 10,
         },
       });
 
@@ -225,12 +243,16 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
         setClinicDetail(detailsResponse.data.data);
       }
 
-      if (descriptionResponse.data.success && descriptionResponse.data.data) {
+      // Extract description data (might be nested in pagination response)
+      const descResponseData = descriptionResponse.data;
+      const descriptionData = descResponseData?.data || descResponseData;
+
+      if (descResponseData?.success !== false && descriptionData) {
         setClinicDescription({
-          data: descriptionResponse.data.data,
-          devices: descriptionResponse.data.devices || [],
+          data: descriptionData,
+          devices: descResponseData.devices || [],
         });
-        setDevices(descriptionResponse.data.devices || []);
+        setDevices(descResponseData.devices || []);
       }
 
       // Fetch services and reviews after getting clinic details
@@ -270,7 +292,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     }
   };
 
-  const fetchClinicServices = async () => {
+  const fetchClinicServices = async (pageNo: number = 1, recordsPerPage: number = 10) => {
     if (!clinicID) return;
 
     try {
@@ -282,6 +304,8 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
           serviceType: '',
           groupIDs: [],
           serviceNames: [],
+          pageNo: pageNo,
+          recordsPerPage: recordsPerPage,
         },
       });
 
@@ -300,7 +324,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     }
   };
 
-  const fetchClinicReviews = async (orderBy: string = 'recent') => {
+  const fetchClinicReviews = async (orderBy: string = 'recent', pageNo: number = 1, recordsPerPage: number = 10) => {
     if (!clinicID) return;
 
     try {
@@ -309,11 +333,32 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
         params: {
           clinicID: clinicID.toString(),
           orderBy: orderBy,
+          pageNo: pageNo,
+          recordsPerPage: recordsPerPage,
         },
       });
 
-      if (response.data.success && response.data.data) {
-        setReviews(response.data.data);
+      // API response structure with pagination:
+      // {
+      //   success: true,
+      //   total: 3,
+      //   currentPage: 2,
+      //   perPage: 1,
+      //   nextPageUrl: "...",
+      //   data: [...]
+      // }
+      const responseData = response.data;
+      
+      // Extract data array
+      let reviewsList: any[] = [];
+      if (Array.isArray(responseData)) {
+        reviewsList = responseData;
+      } else if (Array.isArray(responseData?.data)) {
+        reviewsList = responseData.data;
+      }
+
+      if (responseData?.success !== false && reviewsList.length > 0) {
+        setReviews(reviewsList);
       }
     } catch (error: any) {
       console.error('Error fetching clinic reviews:', error);
@@ -469,12 +514,35 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       }
 
       const response = await apiClient.get(API.CLINIC.GET_CLINIC_SERVICES, {
-        params: params,
+        params: {
+          ...params,
+          pageNo: 1,
+          recordsPerPage: 10,
+        },
       });
 
-      if (response.data.success && response.data.data) {
+      // API response structure with pagination:
+      // {
+      //   success: true,
+      //   total: 3,
+      //   currentPage: 2,
+      //   perPage: 1,
+      //   nextPageUrl: "...",
+      //   data: [...]
+      // }
+      const responseData = response.data;
+      
+      // Extract data array
+      let servicesList: any[] = [];
+      if (Array.isArray(responseData)) {
+        servicesList = responseData;
+      } else if (Array.isArray(responseData?.data)) {
+        servicesList = responseData.data;
+      }
+
+      if (responseData?.success !== false && servicesList.length > 0) {
         // Filter only active services
-        const activeServices = response.data.data.filter(
+        const activeServices = servicesList.filter(
           (service: ClinicService) => service.status === 'Active'
         );
         setServices(activeServices);

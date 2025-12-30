@@ -20,6 +20,9 @@ import { CustomButton } from '@components/common/CustomButton';
 import { CheckBox } from '@rneui/base';
 import { SuccessMessageModal } from '@components/molecules';
 import { useTranslation } from 'react-i18next';
+import { apiClient } from '@services/api/api-client';
+import { API } from '@services/api/api-endpoint';
+import { Toast } from 'toastify-react-native';
 
 export function RefundRequest() {
   const { t } = useTranslation();
@@ -30,6 +33,8 @@ export function RefundRequest() {
   const [reason, setReason] = useState('');
   const [selectedServices, setSelectedServices] = useState<number[]>([]);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string>('');
 
   const toggleService = (serviceId: number) => {
     setSelectedServices(prev =>
@@ -51,17 +56,61 @@ export function RefundRequest() {
     });
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (selectedServices.length === 0) {
-      Alert.alert(t('error'), t('select_at_least_one_service'));
+      Alert.alert(t('error') || 'Error', t('select_at_least_one_service') || 'Please select at least one service');
       return;
     }
     if (!reason.trim()) {
-      Alert.alert(t('error'), t('provide_reason_for_refund'));
+      Alert.alert(t('error') || 'Error', t('provide_reason_for_refund') || 'Please provide a reason for refund');
       return;
     }
 
-    setShowSuccessModal(true);
+    setSubmitting(true);
+    try {
+      // Get appointmentServiceIDs from selected services
+      // For appointments, we need to use appointmentServiceID (the ID from appointment_services array)
+      // This is the ID that the cancellation API expects
+      const appointmentServiceIDs = params.services
+        ?.filter((s: any) => selectedServices.includes(s.id))
+        .map((s: any) => {
+          // Priority: appointmentServiceID > serviceID > id
+          return s.appointmentServiceID || s.serviceID || s.id;
+        })
+        .filter((id: any) => id !== undefined && id !== null) || [];
+
+      if (appointmentServiceIDs.length === 0) {
+        Alert.alert(t('error') || 'Error', t('select_at_least_one_service') || 'Please select at least one service');
+        setSubmitting(false);
+        return;
+      }
+
+      console.log('Submitting refund request with appointmentServiceIDs:', appointmentServiceIDs);
+      console.log('Business info:', params.businessInfo);
+      console.log('Appointment ID:', params.appointmentID);
+
+      const response = await apiClient.post(API.REFUND.SEND_REFUND_REQUEST, {
+        appointmentServiceIDs: appointmentServiceIDs,
+        reason: reason.trim(),
+      });
+      console.log("🚀 ~ handleSubmit ~ response:", response);
+
+      // API response structure: { data: { status: true, message: "..." } }
+      const responseData = response.data?.data || response.data;
+      
+      if (responseData?.status === true) {
+        // Set success message from API response
+        setSuccessMessage(responseData?.message || t('refund_request_sent_successfully') || 'Refund request sent successfully');
+        setShowSuccessModal(true);
+      } else {
+        throw new Error(responseData?.message || response.data?.message || t('failed_to_submit_refund') || 'Failed to submit refund request');
+      }
+    } catch (error: any) {
+      console.error('Error submitting refund request:', error);
+      Toast.error(error?.response?.data?.message || error?.message || t('failed_to_submit_refund') || 'Failed to submit refund request');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const totalRefund =
@@ -205,7 +254,7 @@ export function RefundRequest() {
                       fontSize: 18,
                     }}
                   >
-                    ${totalRefund}
+                    SAR {totalRefund}
                   </Text>
                 </View>
               </View>
@@ -224,7 +273,8 @@ export function RefundRequest() {
           <CustomButton
             title={t('submit_request')}
             onPress={handleSubmit}
-            disabled={selectedServices.length === 0 || !reason.trim()}
+            disabled={selectedServices.length === 0 || !reason.trim() || submitting}
+            loading={submitting}
           />
         </View>
       </SafeAreaView>
@@ -236,7 +286,7 @@ export function RefundRequest() {
           navigation.goBack();
         }}
         title={t('refund_request')}
-        description={t('refund_eligibility_expired')}
+        description={successMessage || t('refund_request_sent_successfully') || 'Refund request sent successfully'}
       />
     </>
   );

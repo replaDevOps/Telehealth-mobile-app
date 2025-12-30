@@ -1,6 +1,6 @@
 /* HistoryScreen.tsx - Refactored */
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { View, ScrollView, StatusBar, ActivityIndicator, Text } from 'react-native';
+import React, { useState, useCallback, useEffect } from 'react';
+import { View, StatusBar, ActivityIndicator, Text, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useFocusEffect } from '@react-navigation/native';
@@ -9,7 +9,6 @@ import { Header2 } from '@components/common/Header2';
 import { CustomDropdown } from '@components/common/CustomDropdwon';
 
 import { RecommandImage } from '@assets/images';
-import { CONSULTATION_HISTORY, PAYMENT_HISTORY } from '@constants';
 import { styles } from '../style';
 
 import type {
@@ -40,28 +39,53 @@ export function HistoryScreen({ navigation }) {
   );
   const [consultations, setConsultations] = useState<ConsultationItem[]>([]);
   const [loadingConsultations, setLoadingConsultations] = useState(false);
+  const [loadingMoreConsultations, setLoadingMoreConsultations] = useState(false);
+  const [consultationsPage, setConsultationsPage] = useState(1);
+  const [hasMoreConsultations, setHasMoreConsultations] = useState(true);
   const [payments, setPayments] = useState<PaymentItem[]>([]);
   const [loadingPayments, setLoadingPayments] = useState(false);
+  const [loadingMorePayments, setLoadingMorePayments] = useState(false);
+  const [paymentsPage, setPaymentsPage] = useState(1);
+  const [hasMorePayments, setHasMorePayments] = useState(true);
+  const recordsPerPage = 10;
 
   // Fetch consultations from API
-  const fetchConsultations = useCallback(async () => {
+  const fetchConsultations = useCallback(async (pageNo: number = 1, append: boolean = false) => {
     if (activeTab !== 'consultation') return;
 
-    setLoadingConsultations(true);
+    if (append) {
+      setLoadingMoreConsultations(true);
+    } else {
+      setLoadingConsultations(true);
+      setConsultationsPage(1);
+      setHasMoreConsultations(true);
+    }
     try {
       const response = await apiClient.get(API.HISTORY.GET_CONSULTATIONS, {
         params: {
           name: searchQuery || '',
+          pageNo: pageNo,
+          recordsPerPage: recordsPerPage,
         },
       });
 
       console.log('Consultations response:', response.data);
 
-      if (response.data?.success !== false && response.data?.data) {
-        const apiConsultations = Array.isArray(response.data.data)
-          ? response.data.data
-          : [];
+      const responseData = response.data;
+      
+      // Extract data array
+      let apiConsultations: any[] = [];
+      if (Array.isArray(responseData)) {
+        apiConsultations = responseData;
+      } else if (Array.isArray(responseData?.data)) {
+        apiConsultations = responseData.data;
+      }
 
+      // Check if there's more data using nextPageUrl from backend
+      const hasMoreData = !!(responseData?.nextPageUrl);
+      setHasMoreConsultations(hasMoreData);
+
+      if (responseData?.success !== false && apiConsultations.length > 0) {
         // Map API response to ConsultationItem format
         const mappedConsultations: ConsultationItem[] = apiConsultations.map((consultation: any) => {
           // Map consultation type to icon
@@ -107,24 +131,53 @@ export function HistoryScreen({ navigation }) {
           };
         });
 
-        setConsultations(mappedConsultations);
+        // Check if there's more data
+        setHasMoreConsultations(mappedConsultations.length === recordsPerPage);
+        
+        if (append) {
+          setConsultations(prev => [...prev, ...mappedConsultations]);
+        } else {
+          setConsultations(mappedConsultations);
+        }
+        
+        if (mappedConsultations.length > 0) {
+          setConsultationsPage(pageNo);
+        }
       } else {
-        setConsultations([]);
+        if (!append) {
+          setConsultations([]);
+        }
+        setHasMoreConsultations(false);
       }
     } catch (error: any) {
       console.error('Error fetching consultations:', error);
       Toast.error(error?.message || t('failed_to_load_consultations') || 'Failed to load consultations');
-      setConsultations([]);
+      if (!append) {
+        setConsultations([]);
+      }
     } finally {
       setLoadingConsultations(false);
+      setLoadingMoreConsultations(false);
     }
   }, [activeTab, searchQuery, t]);
 
+  const loadMoreConsultations = useCallback(() => {
+    if (!loadingMoreConsultations && hasMoreConsultations && !loadingConsultations) {
+      fetchConsultations(consultationsPage + 1, true);
+    }
+  }, [loadingMoreConsultations, hasMoreConsultations, loadingConsultations, consultationsPage, fetchConsultations]);
+
   // Fetch payment history from API
-  const fetchPayments = useCallback(async () => {
+  const fetchPayments = useCallback(async (pageNo: number = 1, append: boolean = false) => {
     if (activeTab !== 'payment') return;
 
-    setLoadingPayments(true);
+    if (append) {
+      setLoadingMorePayments(true);
+    } else {
+      setLoadingPayments(true);
+      setPaymentsPage(1);
+      setHasMorePayments(true);
+    }
     try {
       // Determine which API to call based on selectedType
       const endpoint = selectedType === 'appointment'
@@ -135,24 +188,28 @@ export function HistoryScreen({ navigation }) {
       const response = await apiClient.get(endpoint, {
         params: {
           name: searchQuery || '',
+          pageNo: pageNo,
+          recordsPerPage: recordsPerPage,
         },
       });
 
       console.log('Payments response:', response.data);
 
-      if (response.data?.success !== false && response.data?.data) {
-        let apiPayments = response.data.data;
-        
-        // Handle array response - if data is an array, use it directly
-        // If data is an object with a data property that's an array, use that
-        if (!Array.isArray(apiPayments)) {
-          if (Array.isArray(apiPayments.data)) {
-            apiPayments = apiPayments.data;
-          } else {
-            apiPayments = [];
-          }
-        }
+      const responseData = response.data;
+      
+      // Extract data array
+      let apiPayments: any[] = [];
+      if (Array.isArray(responseData)) {
+        apiPayments = responseData;
+      } else if (Array.isArray(responseData?.data)) {
+        apiPayments = responseData.data;
+      }
 
+      // Check if there's more data using nextPageUrl from backend
+      const hasMoreData = !!(responseData?.nextPageUrl);
+      setHasMorePayments(hasMoreData);
+
+      if (responseData?.success !== false && apiPayments.length > 0) {
         // Map API response to PaymentItem format
         const mappedPayments: PaymentItem[] = apiPayments.map((payment: any) => {
           if (selectedType === 'consultation') {
@@ -219,25 +276,48 @@ export function HistoryScreen({ navigation }) {
           }
         });
 
-        setPayments(mappedPayments);
+        if (append) {
+          setPayments(prev => [...prev, ...mappedPayments]);
+        } else {
+          setPayments(mappedPayments);
+        }
+
+        // Update current page from backend response
+        if (responseData?.currentPage) {
+          setPaymentsPage(responseData.currentPage);
+        } else if (mappedPayments.length > 0) {
+          setPaymentsPage(pageNo);
+        }
       } else {
-        setPayments([]);
+        if (!append) {
+          setPayments([]);
+        }
+        setHasMorePayments(false);
       }
     } catch (error: any) {
       console.error('Error fetching payments:', error);
       Toast.error(error?.message || t('failed_to_load_payments') || 'Failed to load payments');
-      setPayments([]);
+      if (!append) {
+        setPayments([]);
+      }
     } finally {
       setLoadingPayments(false);
+      setLoadingMorePayments(false);
     }
   }, [activeTab, selectedType, searchQuery, t]);
+
+  const loadMorePayments = useCallback(() => {
+    if (!loadingMorePayments && hasMorePayments && !loadingPayments && selectedType) {
+      fetchPayments(paymentsPage + 1, true);
+    }
+  }, [loadingMorePayments, hasMorePayments, loadingPayments, paymentsPage, selectedType, fetchPayments]);
 
   // Fetch consultations when tab changes or search query changes
   useEffect(() => {
     if (activeTab === 'consultation') {
-      fetchConsultations();
+      fetchConsultations(1, false);
     } else if (activeTab === 'payment' && selectedType) {
-      fetchPayments();
+      fetchPayments(1, false);
     }
   }, [activeTab, searchQuery, selectedType]);
 
@@ -245,21 +325,15 @@ export function HistoryScreen({ navigation }) {
   useFocusEffect(
     useCallback(() => {
       if (activeTab === 'consultation') {
-        fetchConsultations();
+        fetchConsultations(1, false);
       } else if (activeTab === 'payment' && selectedType) {
-        fetchPayments();
+        fetchPayments(1, false);
       }
     }, [activeTab, selectedType, fetchConsultations, fetchPayments])
   );
 
-  const filteredPayments = useMemo(() => {
-    if (!selectedType) return [];
-    // Use API data if available, otherwise fallback to hardcoded data
-    if (payments.length > 0) {
-      return payments.filter(item => item.kind === selectedType);
-    }
-    return PAYMENT_HISTORY.filter(item => item.kind === selectedType);
-  }, [selectedType, payments]);
+  // Payments are already filtered by selectedType on the backend
+  // No need for client-side filtering
 
   const handleNavigateToPrescription = useCallback((consultationID?: number) => {
     navigation.navigate('PrescriptionScreen', {
@@ -354,55 +428,87 @@ export function HistoryScreen({ navigation }) {
 
       <HistoryTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
-      <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-      >
-        {activeTab === 'consultation' && (
-          <View style={styles.content}>
-            {loadingConsultations ? (
+      {activeTab === 'consultation' ? (
+        <FlatList
+          data={consultations}
+          renderItem={({ item }) => renderConsultationCard(item)}
+          keyExtractor={(item) => item.id}
+          onEndReached={loadMoreConsultations}
+          onEndReachedThreshold={0.5}
+          refreshing={loadingConsultations && consultations.length === 0}
+          onRefresh={() => fetchConsultations(1, false)}
+          ListEmptyComponent={
+            loadingConsultations ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={colors.primary} />
                 <Text style={styles.loadingText}>{t('loading') || 'Loading...'}</Text>
               </View>
-            ) : consultations.length > 0 ? (
-              consultations.map(renderConsultationCard)
             ) : (
               <View style={styles.emptyContainer}>
                 <Text style={styles.emptyText}>{t('no_consultations_found') || 'No consultations found'}</Text>
               </View>
-            )}
-          </View>
-        )}
-
-        {activeTab === 'payment' && (
-          <View style={styles.content}>
-            <CustomDropdown
-              label={t('type')}
-              placeholder={t('select_type_here')}
-              value={selectedType}
-              onValueChange={setSelectedType}
-              options={DROPDOWN_OPTIONS.map(option => ({
-                ...option,
-                label: t(option.label.toLowerCase()),
-              }))}
-            />
-
-            {loadingPayments ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={colors.primary} />
-                <Text style={styles.loadingText}>{t('loading') || 'Loading...'}</Text>
+            )
+          }
+          ListFooterComponent={
+            loadingMoreConsultations ? (
+              <View style={{ paddingVertical: 20 }}>
+                <ActivityIndicator size="small" color={colors.primary} />
               </View>
-            ) : filteredPayments.length > 0 ? (
-              filteredPayments.map(renderPaymentCard)
-            ) : (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>{t('no_payments_found') || 'No payments found'}</Text>
-              </View>
-            )}
-          </View>
-        )}
-      </ScrollView>
+            ) : null
+          }
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: 16 }}
+          showsVerticalScrollIndicator={false}
+        />
+      ) : (
+        <>
+          {activeTab === 'payment' && (
+            <View style={styles.content}>
+              <CustomDropdown
+                label={t('type')}
+                placeholder={t('select_type_here')}
+                value={selectedType}
+                onValueChange={(value) => setSelectedType(value as PaymentKind | '')}
+                options={DROPDOWN_OPTIONS.map(option => ({
+                  ...option,
+                  label: t(option.label.toLowerCase()),
+                }))}
+              />
+
+              <FlatList
+                data={payments}
+                renderItem={({ item }) => renderPaymentCard(item)}
+                keyExtractor={(item) => item.id}
+                onEndReached={loadMorePayments}
+                onEndReachedThreshold={0.5}
+                refreshing={loadingPayments && payments.length === 0}
+                onRefresh={() => fetchPayments(1, false)}
+                ListEmptyComponent={
+                  loadingPayments ? (
+                    <View style={styles.loadingContainer}>
+                      <ActivityIndicator size="large" color={colors.primary} />
+                      <Text style={styles.loadingText}>{t('loading') || 'Loading...'}</Text>
+                    </View>
+                  ) : (
+                    <View style={styles.emptyContainer}>
+                      <Text style={styles.emptyText}>{t('no_payments_found') || 'No payments found'}</Text>
+                    </View>
+                  )
+                }
+                ListFooterComponent={
+                  loadingMorePayments ? (
+                    <View style={{ paddingVertical: 20 }}>
+                      <ActivityIndicator size="small" color={colors.primary} />
+                    </View>
+                  ) : null
+                }
+                contentContainerStyle={styles.scrollView}
+                showsVerticalScrollIndicator={false}
+              />
+            </View>
+          )}
+        </>
+      )}
     </SafeAreaView>
   );
 }

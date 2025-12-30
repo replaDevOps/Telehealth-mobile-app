@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, ScrollView, StyleSheet, StatusBar, ActivityIndicator, Platform, PermissionsAndroid, Text } from 'react-native';
+import { View, ScrollView, StyleSheet, StatusBar, ActivityIndicator, Text } from 'react-native';
 import HomeHeader from '../../../components/molecules/HomeHeadder';
 import { colors } from '../../../styles/colors';
 import { mvs } from '../../../config/metrices';
@@ -7,12 +7,12 @@ import RecommendedClinics from '../../../components/molecules/RecommendedClinics
 import NearbyClinics from '../../../components/molecules/ClinicListItem';
 import { RecommandImage } from '@assets/images';
 import { useTranslation } from 'react-i18next';
-import Geolocation from '@react-native-community/geolocation';
 import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
 import { ClinicApiResponse } from '../../../types/clinic.types';
 import { Toast } from 'toastify-react-native';
 import { useCartCount } from '../../../hooks/useCartCount';
+import { useLocationStore } from '@store';
 
 interface Clinic {
   id: string;
@@ -27,52 +27,26 @@ interface Clinic {
 export const HomeScreen = ({ navigation }) => {
   const { t } = useTranslation();
   const { cartCount } = useCartCount();
+  const { location } = useLocationStore();
   const [recommendedClinics, setRecommendedClinics] = useState<Clinic[]>([]);
   const [nearbyClinics, setNearbyClinics] = useState<Clinic[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    requestLocationAndFetchClinics();
-  }, []);
+    fetchClinicsWithLocation();
+  }, [location]);
 
-  const requestLocationAndFetchClinics = async () => {
-    try {
-      if (Platform.OS === 'android') {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
-        );
-        if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-          getCurrentLocationAndFetch();
-        } else {
-          // Use default location if permission denied
-          fetchClinics(24.7136, 46.6753);
-        }
-      } else {
-        Geolocation.requestAuthorization();
-        getCurrentLocationAndFetch();
-      }
-    } catch (err) {
-      console.warn('Location permission error:', err);
-      fetchClinics(24.7136, 46.6753);
+  const fetchClinicsWithLocation = () => {
+    if (location) {
+      // Use stored location
+      fetchClinics(location.lat, location.long);
+    } else {
+      // No location available - don't fetch clinics or use dummy location
+      setLoading(false);
     }
   };
 
-  const getCurrentLocationAndFetch = () => {
-    Geolocation.getCurrentPosition(
-      position => {
-        const { latitude, longitude } = position.coords;
-        fetchClinics(latitude, longitude);
-      },
-      error => {
-        console.warn('Error getting location:', error);
-        // Use default location (Riyadh, Saudi Arabia)
-        fetchClinics(24.7136, 46.6753);
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
-    );
-  };
-
-  const fetchClinics = async (lat: number, long: number) => {
+  const fetchClinics = async (lat: number, long: number, pageNo: number = 1, recordsPerPage: number = 10) => {
     try {
       setLoading(true);
       const response = await apiClient.get(API.CLINIC.GET_CLINICS, {
@@ -80,6 +54,8 @@ export const HomeScreen = ({ navigation }) => {
           name: '',
           lat: lat.toString(),
           long: long.toString(),
+          pageNo: pageNo,
+          recordsPerPage: recordsPerPage,
         },
       });
       console.log('response', response.data.data);
@@ -159,7 +135,7 @@ export const HomeScreen = ({ navigation }) => {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
       <HomeHeader
-        location={t('makkah_saudi_arabia')}
+        location={location?.locationText}
         onLocationPress={handleLocationPress}
         onCartPress={handleCartPress}
         onNotificationPress={handleNotificationPress}

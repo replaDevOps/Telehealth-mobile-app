@@ -46,42 +46,76 @@ export const LoyaltyPointsDetails = () => {
   const [showRewards, setShowRewards] = useState(false);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const recordsPerPage = 10;
 
   const handleClaim = (tierName: string) => {
     console.log(`Claiming reward for ${tierName}`);
   };
 
-  const fetchTransactions = async () => {
+  const fetchTransactions = async (pageNo: number = 1, append: boolean = false) => {
     if (!clinicId) {
       setLoading(false);
       return;
     }
 
     try {
-      setLoading(true);
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+        setCurrentPage(1);
+        setHasMore(true);
+      }
       setError(null);
       
       const endpoint = activeTab === 'earned' 
-        ? `${API.SETTINGS.LOYALTY_POINTS_EARNED}?clinicID=${clinicId}`
-        : `${API.SETTINGS.LOYALTY_POINTS_USED}?clinicID=${clinicId}`;
+        ? API.SETTINGS.LOYALTY_POINTS_EARNED
+        : API.SETTINGS.LOYALTY_POINTS_USED;
       
-      const response = await apiClient.get(endpoint);
+      const response = await apiClient.get(endpoint, {
+        params: {
+          clinicID: clinicId,
+          pageNo: pageNo,
+          recordsPerPage: recordsPerPage,
+        },
+      });
       console.log("🚀 ~ fetchTransactions ~ response:",endpoint, response);
       
-      // API response structure: { data: { success: true, data: [...] } }
-      if (response.data?.success !== false && response.data?.data) {
-        const responseData = response.data.data;
-        
-        // Handle different response formats
-        // The data might be directly an array or nested in data.data
-        const transactionsList = Array.isArray(responseData) 
-          ? responseData 
-          : Array.isArray(responseData?.data)
-          ? responseData.data
-          : (responseData.transactions || responseData.points || []);
+      // API response structure with pagination:
+      // {
+      //   success: true,
+      //   total: 3,
+      //   currentPage: 2,
+      //   perPage: 1,
+      //   nextPageUrl: "...",
+      //   previousPageUrl: "...",
+      //   data: [...]
+      // }
+      const responseData = response.data;
+      
+      // Extract data array
+      let transactionsList: any[] = [];
+      if (Array.isArray(responseData)) {
+        transactionsList = responseData;
+      } else if (Array.isArray(responseData?.data)) {
+        transactionsList = responseData.data;
+      } else if (Array.isArray(responseData?.transactions)) {
+        transactionsList = responseData.transactions;
+      } else if (Array.isArray(responseData?.points)) {
+        transactionsList = responseData.points;
+      }
         
         console.log('🚀 ~ fetchTransactions ~ transactionsList:', transactionsList);
+        
+        // Check if there's more data using nextPageUrl from backend
+        const hasMoreData = !!(responseData?.nextPageUrl);
+        setHasMore(hasMoreData);
+        
+        if (responseData?.success !== false && transactionsList.length > 0) {
         
         // Map API response to expected format
         const mappedTransactions = transactionsList.map((item: any, index: number) => {
@@ -115,27 +149,51 @@ export const LoyaltyPointsDetails = () => {
         });
         
         console.log('🚀 ~ fetchTransactions ~ mappedTransactions:', mappedTransactions);
-        setTransactions(mappedTransactions);
+        
+        if (append) {
+          setTransactions(prev => [...prev, ...mappedTransactions]);
+        } else {
+          setTransactions(mappedTransactions);
+        }
+        
+        // Update current page from backend response
+        if (responseData?.currentPage) {
+          setCurrentPage(responseData.currentPage);
+        } else if (mappedTransactions.length > 0) {
+          setCurrentPage(pageNo);
+        }
       } else {
-        setTransactions([]);
+        if (!append) {
+          setTransactions([]);
+        }
+        setHasMore(false);
       }
     } catch (error: any) {
       console.error(`Error fetching ${activeTab} points:`, error);
       setError(error?.response?.data?.message || error?.message || t('failed_to_load_points') || 'Failed to load points');
-      setTransactions([]);
+      if (!append) {
+        setTransactions([]);
+      }
     } finally {
       setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const loadMore = () => {
+    if (!loadingMore && hasMore && !loading && clinicId) {
+      fetchTransactions(currentPage + 1, true);
     }
   };
 
   // Fetch data when tab changes or screen comes into focus
   useEffect(() => {
-    fetchTransactions();
+    fetchTransactions(1, false);
   }, [activeTab, clinicId]);
 
   useFocusEffect(
     useCallback(() => {
-      fetchTransactions();
+      fetchTransactions(1, false);
     }, [activeTab, clinicId])
   );
 
@@ -214,8 +272,17 @@ export const LoyaltyPointsDetails = () => {
                   : t('no_points_used_yet') || 'No points used yet'}
               </Text>
             }
-            refreshing={loading}
-            onRefresh={fetchTransactions}
+            refreshing={loading && transactions.length === 0}
+            onRefresh={() => fetchTransactions(1, false)}
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={
+              loadingMore ? (
+                <View style={{ paddingVertical: 20 }}>
+                  <ActivityIndicator size="small" color={colors.primary} />
+                </View>
+              ) : null
+            }
           />
         )}
 

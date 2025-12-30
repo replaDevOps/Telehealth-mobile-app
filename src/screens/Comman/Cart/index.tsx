@@ -18,7 +18,6 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { CustomButton } from '@components/common/CustomButton';
 import { useCart } from '@context/CartContext';
 import { useCartCountContext } from '@context/CartCountContext';
-import { SERVICES } from '@constants/appData';
 import { styles } from './style';
 import { EmptyContentSvg, ShopingCartSvg } from '@assets/icons';
 import { useTranslation } from 'react-i18next';
@@ -99,6 +98,7 @@ export function CartScreen({ navigation }) {
           long: long.toString(),
         },
       });
+      console.log("🚀 ~ fetchCartDetails ~ response:", response);
 
       if (response.data.success && response.data.data) {
         // Transform API response to match UI structure
@@ -123,7 +123,7 @@ export function CartScreen({ navigation }) {
 
   const transformCartData = (apiData: any): any[] => {
     // Transform API response structure to match UI
-    // API response: { data: [{ clinicID, clinicName, distance_km, totalPrice, totalLoyaltyPoints, items: [...] }] }
+    // API response: { data: [{ clinicID, clinicName, distance_km, totalPrice, totalLoyaltyPoints, items: [...], suggestedServices: [...] }] }
     if (Array.isArray(apiData)) {
       return apiData.map((clinicGroup: any) => ({
         clinic: {
@@ -148,23 +148,34 @@ export function CartScreen({ navigation }) {
           duration: item.duration ? `${item.duration} ${t('minutes') || 'minutes'}` : '0 minutes',
           loyaltyPoints: item.loyaltyPoints,
         })),
+        suggestedServices: (clinicGroup.suggestedServices || []).map((service: any) => ({
+          id: service.id,
+          serviceID: service.id, // Keep serviceID for adding to cart
+          clinicID: service.clinicID,
+          image: service.image ? { uri: service.image } : RecommandImage,
+          type: service.serviceType || 'General',
+          serviceGroup: service.group?.name || 'Group',
+          serviceName: service.name,
+          price: service.price ? `SAR ${parseFloat(service.price).toFixed(2)}` : 'SAR 0.00',
+          duration: service.duration ? `${service.duration} ${t('minutes') || 'minutes'}` : '0 minutes',
+          loyaltyPoints: service.bonusLoyalityPoints || '0',
+          description: service.description,
+          procedure: service.procedure,
+          tags: service.tags,
+        })),
       }));
     }
     
     return [];
   };
 
-  // Get suggested services (services not in cart from same clinic)
+  // Get suggested services from API response for a specific clinic
   const getSuggestedServices = (clinicId: string) => {
-    const cartServiceIds: string[] = [];
-    cartData.forEach(group => {
-      group.services.forEach((service: any) => {
-        cartServiceIds.push(service.id);
-      });
-    });
-    return SERVICES.filter(
-      service => !cartServiceIds.includes(service.id),
-    ).slice(0, 3); // Show 3 suggested services
+    const clinicGroup = cartData.find((group: any) => group.clinic.id === clinicId);
+    if (clinicGroup && clinicGroup.suggestedServices) {
+      return clinicGroup.suggestedServices;
+    }
+    return [];
   };
 
   // Group cart items by clinic (already grouped from API)

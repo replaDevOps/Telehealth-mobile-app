@@ -182,99 +182,136 @@ export function CardDetails({ navigation }: { navigation: any }) {
         endpoint = `${API.HISTORY.GET_APPOINTMENT_DETAILS}/${params.paymentId}`;
       } else {
         endpoint = `${API.HISTORY.GET_CONSULTATION_PAYMENT_DETAILS}/${params.paymentId}`;
-      } 
+      }
       console.log('endpoint', endpoint);
 
       const response = await apiClient.get(endpoint);
       console.log('Payment details response:', endpoint, response.data);
 
-      // Check if API returned success but no data (empty array or null)
-      if (response.data?.success === true) {
-        const responseData = response.data.data;
+      // API response structure for appointment details:
+      // {
+      //   success: true,
+      //   clinic: {...},
+      //   appointment: {...},
+      //   appointment_services: [...],
+      //   transactions: {...}
+      // }
+      // OR for consultations:
+      // {
+      //   success: true,
+      //   data: {...} // nested structure
+      // }
+      const responseData = response.data;
+      
+      if (responseData?.success !== false) {
+        // Extract data - for appointments, data is at root level
+        // For consultations, data might be nested in responseData.data
+        let data = responseData.data || responseData;
         
-        // Check if data is empty array or null/undefined
-        if (!responseData || (Array.isArray(responseData) && responseData.length === 0)) {
-          // API returned success but no data - show empty state
-          setPaymentDetails(null);
-          setDisplayData({
-            clinicName: '',
-            clinicLocation: '',
-            status: '',
-            statusColor: colors.green,
-            dateTime: '',
-            price: '',
-            image: undefined,
-            consultationType: undefined,
-            duration: undefined,
-            doctorName: undefined,
-            doctorAvatar: undefined,
-            serviceName: undefined,
-            services: [],
-          });
-          setLoading(false);
-          return;
-        }
-      }
-
-      if (response.data?.success !== false && response.data?.data) {
-        let data = response.data.data;
-        
-        // If data is an array, extract the first item
+        // If data is an array, extract the first item (legacy format)
         if (Array.isArray(data)) {
           if (data.length === 0) {
-          setPaymentDetails(null);
-          setDisplayData({
-            clinicName: '',
-            clinicLocation: '',
-            status: '',
-            statusColor: colors.green,
-            dateTime: '',
-            price: '',
-            image: undefined,
-            consultationType: undefined,
-            duration: undefined,
-            doctorName: undefined,
-            doctorAvatar: undefined,
-            serviceName: undefined,
-            services: [],
-          });
-          setLoading(false);
-          return;
+            setPaymentDetails(null);
+            setDisplayData({
+              clinicName: '',
+              clinicLocation: '',
+              status: '',
+              statusColor: colors.green,
+              dateTime: '',
+              price: '',
+              image: undefined,
+              consultationType: undefined,
+              duration: undefined,
+              doctorName: undefined,
+              doctorAvatar: undefined,
+              serviceName: undefined,
+              services: [],
+            });
+            setLoading(false);
+            return;
           }
           // Extract first item from array
           data = data[0];
         }
 
-        setPaymentDetails(data);
-
-        // Extract clinicID for rating
-        const extractedClinicID = data.clinicID || data.clinic?.id || null;
-        setClinicID(extractedClinicID);
+        // For appointments, use responseData directly (it's already the object)
+        // For consultations, use extracted data
+        const finalData = isAppointment ? responseData : data;
+        setPaymentDetails(finalData);
 
         // Map API response to display data
         if (isAppointment) {
-          // Appointment payment details
+          // Appointment payment details - map from new API structure
+          // Data is at root level: responseData.clinic, responseData.appointment, etc.
+          const clinicData = finalData.clinic || {};
+          const clinicDetails = clinicData.details || {};
+          const appointmentData = finalData.appointment || {};
+          const appointmentServices = finalData.appointment_services || [];
+          const transactionData = finalData.transactions || {};
+          
+          // Extract clinicID for rating
+          const extractedClinicID = clinicData.clinicID || clinicData.id || appointmentData.clinicID || null;
+          setClinicID(extractedClinicID);
+
+          // Format date from appointment requestDate or transaction date
+          const dateStr = appointmentData.requestDate || transactionData.date || appointmentData.created_at || '';
+          let formattedDateTime = '';
+          if (dateStr) {
+            try {
+              const date = new Date(dateStr);
+              formattedDateTime = date.toLocaleString('en-GB', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true,
+              });
+            } catch (e) {
+              formattedDateTime = dateStr;
+            }
+          }
+
+          // Format price from transaction amount
+          const priceValue = transactionData.amount || '0';
+          const formattedPrice = priceValue ? `SAR ${parseFloat(priceValue).toFixed(2)}` : 'SAR 0.00';
+
+          // Map appointment_services to services array
+          const mappedServices = appointmentServices.map((appointmentService: any, index: number) => {
+            const serviceData = appointmentService.service || {};
+            const groupData = serviceData.group || {};
+            
+            return {
+              id: serviceData.id || appointmentService.serviceID || index,
+              appointmentServiceID: appointmentService.id, // This is the ID needed for refund API
+              name: serviceData.name || '',
+              duration: serviceData.duration ? `${serviceData.duration} min` : '',
+              price: serviceData.price || appointmentService.price || '0',
+              category: groupData.name || serviceData.serviceType || '',
+              categoryBadge: groupData.name || serviceData.serviceType || '',
+              image: serviceData.image ? { uri: serviceData.image } : RecommandImage,
+            };
+          });
+
+          // Determine status from appointment or transaction
+          const status = transactionData.status || appointmentData.status || '';
+          const statusColor = status === 'Paid' || status === 'Completed' || status === 'Success' 
+            ? colors.green 
+            : status === 'Pending' || status === 'Request'
+            ? colors.yellow 
+            : colors.red;
+
           setDisplayData({
-            clinicName: data.clinic?.clinicName || data.clinic?.name || data.clinicName || '',
-            clinicLocation: data.clinic?.location || data.clinicLocation || '',
-            status: data.status || '',
-            statusColor: data.status === 'Completed' || data.status === 'Success' 
-              ? colors.green 
-              : data.status === 'Pending' 
-              ? colors.yellow 
-              : colors.red,
-            dateTime: data.date || data.created_at || '',
-            price: data.price || data.amount || '',
-            image: data.clinic?.image ? { uri: data.clinic.image } : RecommandImage,
-            services: data.services?.map((service: any, index: number) => ({
-              id: service.id || index,
-              name: service.name || service.serviceName || '',
-              duration: service.duration || '',
-              price: service.price || '0',
-              category: service.category || service.group?.name || '',
-              categoryBadge: service.category || service.group?.name || '',
-              image: service.image ? { uri: service.image } : RecommandImage,
-            })) || [],
+            clinicName: clinicData.clinicName || clinicDetails.businessName || clinicData.name || '',
+            clinicLocation: clinicDetails.address || `${clinicDetails.city || ''}${clinicDetails.district ? `, ${clinicDetails.district}` : ''}`.trim() || '',
+            status: status,
+            statusColor: statusColor,
+            dateTime: formattedDateTime,
+            price: formattedPrice,
+            image: clinicData.image || clinicDetails.coverImage || clinicDetails.logo 
+              ? { uri: clinicData.image || clinicDetails.coverImage || clinicDetails.logo } 
+              : RecommandImage,
+            services: mappedServices,
             consultationType: undefined,
             duration: undefined,
             doctorName: undefined,
@@ -283,7 +320,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
           });
         } else {
           // Consultation payment details - map according to the API response structure
-          const consultationData = data;
+          const consultationData = finalData;
           const clinicData = consultationData.clinic || {};
           const doctorData = consultationData.doctor || {};
           const serviceData = consultationData.service || {};
@@ -469,13 +506,6 @@ export function CardDetails({ navigation }: { navigation: any }) {
       return;
     }
 
-    // Get consultationID from paymentDetails
-    const consultationID = paymentDetails.id || paymentDetails.consultationID;
-    if (!consultationID) {
-      Toastify.error(t('consultation_id_required') || 'Consultation ID is required');
-      return;
-    }
-
     setIsDownloadingInvoice(true);
     try {
       // Get user location
@@ -487,8 +517,34 @@ export function CardDetails({ navigation }: { navigation: any }) {
         throw new Error('Authentication token not found');
       }
 
-      // Build API endpoint with query parameters
-      const endpoint = `${API.CONSULTATIONS.DOWNLOAD_INVOICE}?consultationID=${consultationID}&lat=${location.lat}&long=${location.long}`;
+      let endpoint = '';
+      let idForFileName = '';
+
+      if (isAppointment) {
+        // For appointments, use appointmentID from appointment or transaction
+        const appointmentID = paymentDetails.appointment?.id || 
+                             paymentDetails.appointmentID || 
+                             paymentDetails.transactions?.appointmentID ||
+                             paymentDetails.id;
+        
+        if (!appointmentID) {
+          throw new Error(t('appointment_id_required') || 'Appointment ID is required');
+        }
+        
+        idForFileName = appointmentID.toString();
+        // Use appointment invoice endpoint if available, otherwise use consultation endpoint with appointmentID
+        endpoint = `${API.CONSULTATIONS.DOWNLOAD_INVOICE}?appointmentID=${appointmentID}&lat=${location.lat}&long=${location.long}`;
+      } else {
+        // For consultations, use consultationID
+        const consultationID = paymentDetails.id || paymentDetails.consultationID;
+        if (!consultationID) {
+          throw new Error(t('consultation_id_required') || 'Consultation ID is required');
+        }
+        
+        idForFileName = consultationID.toString();
+        endpoint = `${API.CONSULTATIONS.DOWNLOAD_INVOICE}?consultationID=${consultationID}&lat=${location.lat}&long=${location.long}`;
+      }
+
       const url = `${BASE_URL}${endpoint}`;
 
       console.log('Downloading invoice from:', url);
@@ -512,7 +568,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
       
       // Determine the download directory based on platform
       let downloadDir = '';
-      let fileName = `Invoice_${consultationID || Date.now()}.pdf`;
+      let fileName = `Invoice_${idForFileName || Date.now()}.pdf`;
 
       if (Platform.OS === 'android') {
         // For Android, save to Downloads folder
@@ -601,13 +657,57 @@ export function CardDetails({ navigation }: { navigation: any }) {
   };
 
   const handleRefund = () => {
-    navigation.navigate('Refund', {
-      paymentId: params.paymentId,
-      clinicName: params.clinicName,
-      clinicLocation: params.clinicLocation,
-      image: params.image,
-      services: params.services,
-    });
+    // Get business info and services from paymentDetails (API response)
+    if (isAppointment && paymentDetails) {
+      const clinicData = paymentDetails.clinic || {};
+      const clinicDetails = clinicData.details || {};
+      const appointmentServices = paymentDetails.appointment_services || [];
+      
+      // Map services with all necessary info including appointmentServiceID
+      const servicesForRefund = appointmentServices.map((appointmentService: any) => {
+        const serviceData = appointmentService.service || {};
+        const groupData = serviceData.group || {};
+        
+        return {
+          id: serviceData.id || appointmentService.serviceID,
+          appointmentServiceID: appointmentService.id, // Required for cancellation API
+          serviceID: appointmentService.serviceID,
+          name: serviceData.name || '',
+          duration: serviceData.duration ? `${serviceData.duration} min` : '',
+          price: serviceData.price || appointmentService.price || '0',
+          category: groupData.name || serviceData.serviceType || '',
+          categoryBadge: groupData.name || serviceData.serviceType || '',
+          image: serviceData.image ? { uri: serviceData.image } : RecommandImage,
+        };
+      });
+
+      navigation.navigate('Refund', {
+        paymentId: params.paymentId,
+        clinicName: displayData.clinicName || clinicData.clinicName || clinicDetails.businessName || '',
+        clinicLocation: displayData.clinicLocation || clinicDetails.address || '',
+        image: displayData.image,
+        services: servicesForRefund,
+        businessInfo: {
+          clinicID: clinicData.clinicID || clinicData.id,
+          businessName: clinicDetails.businessName || clinicData.clinicName || '',
+          businessEmail: clinicDetails.businessEmail || '',
+          businessNumber: clinicDetails.businessNumber || '',
+          address: clinicDetails.address || '',
+          city: clinicDetails.city || '',
+          district: clinicDetails.district || '',
+        },
+        appointmentID: paymentDetails.appointment?.id,
+      });
+    } else {
+      // Fallback to params for consultations or if no paymentDetails
+      navigation.navigate('Refund', {
+        paymentId: params.paymentId,
+        clinicName: params.clinicName,
+        clinicLocation: params.clinicLocation,
+        image: params.image,
+        services: params.services,
+      });
+    }
   };
 
   // Check if we have no data to display (no paymentDetails and empty displayData)

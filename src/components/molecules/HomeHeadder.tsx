@@ -19,8 +19,11 @@ interface HomeHeaderProps {
   onCartPress?: () => void;
   onNotificationPress?: () => void;
   onSearchPress?: () => void;
+  onSearchChange?: (text: string) => void;
+  searchValue?: string;
   onSLPress?: () => void;
   cartItemCount?: number;
+  notificationCount?: number;
 }
 
 const HomeHeader = ({
@@ -29,8 +32,11 @@ const HomeHeader = ({
   onCartPress,
   onNotificationPress,
   onSearchPress,
+  onSearchChange,
+  searchValue = '',
   onSLPress,
   cartItemCount = 0,
+  notificationCount = 0,
 }: HomeHeaderProps) => {
   const { t } = useTranslation();
   return (
@@ -82,30 +88,40 @@ const HomeHeader = ({
               onPress={onNotificationPress}
               activeOpacity={0.7}
             >
-              <Ionicons name="notifications-outline" size={24} />
+              <View style={styles.notificationIconContainer}>
+                <Ionicons name="notifications-outline" size={24} />
+                {notificationCount > 0 && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>
+                      {notificationCount > 99 ? '99+' : notificationCount}
+                    </Text>
+                  </View>
+                )}
+              </View>
             </TouchableOpacity>
           </View>
         </View>
 
         <View style={styles.searchRow}>
-          <TouchableOpacity
-            style={styles.searchContainer}
-            onPress={onSearchPress}
-            activeOpacity={0.8}
-          >
+          <View style={styles.searchContainer}>
             <TextInput
               style={styles.searchInput}
               placeholder={t('search_clinic')}
               placeholderTextColor="#999"
-              onChangeText={onSearchPress}
+              value={searchValue}
+              onChangeText={onSearchChange}
+              onSubmitEditing={onSearchPress}
+              returnKeyType="search"
             />
-            <Ionicons
-              name="search"
-              size={22}
-              color={colors.black}
-              style={styles.searchIcon}
-            />
-          </TouchableOpacity>
+            <TouchableOpacity onPress={onSearchPress} activeOpacity={0.7}>
+              <Ionicons
+                name="search"
+                size={22}
+                color={colors.black}
+                style={styles.searchIcon}
+              />
+            </TouchableOpacity>
+          </View>
 
           <TouchableOpacity
             style={styles.SLButton}
@@ -188,6 +204,9 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 11,
     fontWeight: 'bold',
+  },
+  notificationIconContainer: {
+    position: 'relative',
   },
   searchRow: {
     flexDirection: 'row',

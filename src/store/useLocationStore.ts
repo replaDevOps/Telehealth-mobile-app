@@ -20,11 +20,13 @@ interface LocationStore {
 const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
   try {
     // Using OpenStreetMap Nominatim API (free, no API key required)
+    // Force English language with accept-language=en parameter
     const response = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`,
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&accept-language=en`,
       {
         headers: {
           'User-Agent': 'TelehealthApp/1.0', // Required by Nominatim
+          'Accept-Language': 'en', // Force English language
         },
       }
     );

@@ -3,6 +3,7 @@ export { useAppointmentStore } from './useAppointmentStore';
 export { useUserStore } from './useUserStore';
 export { useProfileStore } from './useProfileStore';
 export { useLocationStore } from './useLocationStore';
+export { useNotificationStore } from './useNotificationStore';
 export type { Appointment } from './useAppointmentStore';
 export type { Doctor, Patient } from './useUserStore';
 export type { ProfileData } from './useProfileStore';

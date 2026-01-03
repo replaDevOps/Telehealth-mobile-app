@@ -138,74 +138,32 @@ export function ConsultationPayment({ navigation, route }) {
 
       // Check for success: false in response
       if (response.data?.success === false) {
-        const errorMessage = response.data?.message || 'Failed to book consultation';
+        const errorMessage = response.data?.message || t('failed_to_book_consultation') || 'Failed to book consultation';
         Toastify.error(errorMessage);
         setIsLoading(false);
         return;
       }
 
-      // Success - navigate based on consultation type
+      // Success - show toast and navigate to home
       setIsLoading(false);
 
       // Show success message
-      setToast({
-        visible: true,
-        message: response.data?.message || t('consultation_booked_successfully') || 'Consultation booked successfully',
-        type: 'success',
-      });
+      const successMessage = response.data?.message || t('consultation_booked_successfully') || 'Consultation booked successfully';
+      Toastify.success(successMessage);
 
-      // Extract consultationID and recipientID from response
-      // Response structure: { success: true, message: '...', data: { id: 11, doctorID: 31, doctor: {...}, ... } }
-      const consultationResponse = response.data?.data || response.data?.consultation || response.data;
-      const consultationID = consultationResponse?.id || response.data?.consultationID || response.data?.data?.consultationID;
-      const recipientID = consultationResponse?.doctorID || response.data?.recipientID || response.data?.data?.recipientID || response.data?.data?.doctorID;
-      const doctorData = consultationResponse?.doctor;
-      const clinicData = consultationResponse?.clinic;
+      // Extract consultation data from response
+      // Response structure: { success: true, message: '...', consultation: { id: 28, ... } }
+      const consultationResponse = response.data?.consultation || response.data?.data || response.data;
+      const consultationID = consultationResponse?.id || response.data?.consultationID;
+      
+      console.log('Consultation booked successfully. ID:', consultationID);
+      console.log('Waiting for doctor to accept consultation...');
 
-      console.log('Extracted consultationID:', consultationID);
-      console.log('Extracted recipientID (doctorID):', recipientID);
-      console.log('Doctor data:', doctorData);
-
-      // Navigate after a short delay
+      // Navigate to home instead of directly to ChatScreen
+      // The Pusher event will handle navigation to ChatScreen when doctor accepts
       setTimeout(() => {
-      if (consultationType === 'chat') {
-        navigation.navigate('ChatScreen', {
-          chatType: 'doctor',
-            consultationID: consultationID, // Pass consultationID for fetching messages
-            recipientID: recipientID, // Pass recipientID for sending messages
-          doctorInfo: {
-              id: String(doctorData?.id || recipientID || 'doctor_1'),
-              name: doctorData?.name || 'Dr. Sultan Khan',
-              avatar: doctorData?.image ? { uri: doctorData.image } : 'https://i.pravatar.cc/150?img=12',
-              specialization: doctorData?.specialization,
-          },
-          clinicInfo: {
-              name: clinicData?.name || 'Eden Medical Center',
-              location: clinicData?.location || 'Makkah, Saudi Arabia, 2.2km',
-              image: clinicData?.image ? { uri: clinicData.image } : RecommandImage,
-          },
-        });
-      } else if (consultationType === 'audio') {
-        navigation.navigate('AudioConsultation', {
-          doctorInfo: {
-            name: 'Dr. Yasmin Chowdhury',
-            avatar: doctor,
-            specialization: 'Dermatologist',
-          },
-        });
-      } else if (consultationType === 'video') {
-        navigation.navigate('VideoConsultation', {
-          doctorInfo: {
-            name: 'Dr. Yasmin Chowdhury',
-            avatar: doctor,
-            specialization: 'Dermatologist',
-          },
-        });
-      } else {
-          // Navigate back or to home
-          navigation.navigate('EntryPoint');
-      }
-      }, 1500);
+        navigation.navigate('EntryPoint');
+      }, 1000);
     } catch (error: any) {
       console.error('Error booking consultation:', error);
       const errorMessage =

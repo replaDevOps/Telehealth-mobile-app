@@ -20,6 +20,7 @@ import { styles } from './style';
 import { useCart } from '@context/CartContext';
 import { useCartCountContext } from '@context/CartCountContext';
 import { useCartCount } from '../../../hooks/useCartCount';
+import { useNotificationCount } from '../../../hooks/useNotificationCount';
 import { useTranslation } from 'react-i18next';
 import { Dropdown } from 'react-native-element-dropdown';
 import Geolocation from '@react-native-community/geolocation';
@@ -27,6 +28,7 @@ import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
 import { ClinicDetailResponse, ClinicService, ClinicReview, ClinicDescriptionResponse, ClinicDevice, DeviceDetailResponse, ServiceFilterOption } from '../../../types/clinic.types';
 import { Toast } from 'toastify-react-native';
+import { translateCityToEnglish } from '../../../utils/cityTranslator';
 
 // Define types
 interface Review {
@@ -48,6 +50,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
   const { addToCart } = useCart();
   const { triggerRefresh, incrementCartCount } = useCartCountContext();
   const { cartCount } = useCartCount();
+  const { notificationCount } = useNotificationCount();
   const [activeTab, setActiveTab] = useState(t('services'));
   const [searchQuery, setSearchQuery] = useState('');
   const [filterVisible, setFilterVisible] = useState(false);
@@ -69,7 +72,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
   const [services, setServices] = useState<ClinicService[]>([]);
   const [reviews, setReviews] = useState<ClinicReview[]>([]);
   const [serviceFilters, setServiceFilters] = useState<ServiceFilterOption[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Start with false to show UI immediately
   const [loadingServices, setLoadingServices] = useState(false);
   const [loadingReviews, setLoadingReviews] = useState(false);
   const [loadingDescription, setLoadingDescription] = useState(false);
@@ -92,22 +95,23 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
 
   useEffect(() => {
     if (clinicID) {
-      fetchClinicDescription();
+      // Use default location immediately to start fetching data
+      // Location will be updated when real location is available
+      const defaultLocation = { lat: 24.7136, long: 46.6753 };
+      fetchClinicDetails(defaultLocation.lat, defaultLocation.long);
+      
+      // Request location in background and update when available
       requestLocationAndFetchData();
     }
   }, [clinicID]);
 
   useEffect(() => {
-    if (activeTab === t('services') && clinicID) {
-      if (!services.length) {
-        fetchClinicServices();
-      }
-      // Don't fetch service filters initially - only fetch when service groups are selected
+    // Only fetch when tab is active and data is not already loaded
+    if (activeTab === t('services') && clinicID && !services.length && !loadingServices) {
+      fetchClinicServices();
     }
-    if (activeTab === t('reviews') && clinicID) {
-      if (!reviews.length) {
-        fetchClinicReviews();
-      }
+    if (activeTab === t('reviews') && clinicID && !reviews.length && !loadingReviews) {
+      fetchClinicReviews();
     }
   }, [activeTab, clinicID]);
 
@@ -201,43 +205,50 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       position => {
         const { latitude, longitude } = position.coords;
         setUserLocation({ lat: latitude, long: longitude });
-        fetchClinicDetails(latitude, longitude);
+        // Update clinic details with real location (this is just for distance calculation)
+        // Pass isLocationUpdate=true to avoid showing loading state
+        fetchClinicDetails(latitude, longitude, true);
       },
       error => {
         console.warn('Error getting location:', error);
-        // Use default location (Riyadh, Saudi Arabia)
-        fetchClinicDetails(24.7136, 46.6753);
+        // Keep using default location, no need to refetch
       },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+      { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 } // Reduced timeout and use cached location
     );
   };
 
-  const fetchClinicDetails = async (lat: number, long: number) => {
+  const fetchClinicDetails = async (lat: number, long: number, isLocationUpdate: boolean = false) => {
     if (!clinicID) {
       console.error('Clinic ID is missing');
-      setLoading(false);
+      if (!isLocationUpdate) {
+        setLoading(false);
+      }
       return;
     }
 
     try {
-      setLoading(true);
-      // Fetch clinic details with location for distance calculation
-      const detailsResponse = await apiClient.get(API.CLINIC.GET_CLINIC_DETAILS, {
-        params: {
-          lat: lat.toString(),
-          long: long.toString(),
-          clinicID: clinicID.toString(),
-        },
-      });
-
-      // Fetch clinic description and devices
-      const descriptionResponse = await apiClient.get(API.CLINIC.GET_CLINIC_DESCRIPTION, {
-        params: {
-          clinicID: clinicID.toString(),
-          pageNo: 1,
-          recordsPerPage: 10,
-        },
-      });
+      // Only show main loading on initial load, not on location updates
+      if (!isLocationUpdate) {
+        setLoading(true);
+      }
+      
+      // Make API calls in parallel for better performance
+      const [detailsResponse, descriptionResponse] = await Promise.all([
+        apiClient.get(API.CLINIC.GET_CLINIC_DETAILS, {
+          params: {
+            lat: lat.toString(),
+            long: long.toString(),
+            clinicID: clinicID.toString(),
+          },
+        }),
+        apiClient.get(API.CLINIC.GET_CLINIC_DESCRIPTION, {
+          params: {
+            clinicID: clinicID.toString(),
+            pageNo: 1,
+            recordsPerPage: 10,
+          },
+        }),
+      ]);
 
       if (detailsResponse.data.success && detailsResponse.data.data) {
         setClinicDetail(detailsResponse.data.data);
@@ -255,15 +266,26 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
         setDevices(descResponseData.devices || []);
       }
 
-      // Fetch services and reviews after getting clinic details
-      // Don't fetch service filters initially - only fetch when service groups are selected
-      fetchClinicServices();
-      fetchClinicReviews();
+      // Only fetch services and reviews on initial load, not on location updates
+      // They will be fetched when their tabs are activated
+      if (!isLocationUpdate) {
+        // Fetch services and reviews in parallel
+        Promise.all([
+          fetchClinicServices(),
+          fetchClinicReviews(),
+        ]).catch(err => {
+          console.error('Error fetching services/reviews:', err);
+        });
+      }
     } catch (error: any) {
       console.error('Error fetching clinic details:', error);
-      Toast.error(error.message || 'Failed to fetch clinic details');
+      if (!isLocationUpdate) {
+        Toast.error(error.message || 'Failed to fetch clinic details');
+      }
     } finally {
-      setLoading(false);
+      if (!isLocationUpdate) {
+        setLoading(false);
+      }
     }
   };
 
@@ -805,9 +827,9 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     'Clinic';
   const clinicSpecialty = displayClinic.businessType || clinic?.specialty || 'General';
   const clinicLocation = clinicDescriptionData?.address ||
-    clinicDescriptionData?.city ||
+    translateCityToEnglish(clinicDescriptionData?.city) ||
     displayClinic.details?.address ||
-    displayClinic.details?.city ||
+    translateCityToEnglish(displayClinic.details?.city) ||
     clinic?.location ||
     'Location not available';
   const clinicRating = parseFloat(displayClinic.avgRating) || parseFloat(clinic?.rating) || 0;
@@ -871,14 +893,8 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     devices: transformDevices(devices),
   };
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#7625D7" />
-      </View>
-    );
-  }
-
+  // Don't block UI with full loading screen - show content immediately with route params
+  // Individual sections will show their own loading states
   return (
     <View style={styles.container}>
       <ScrollView
@@ -892,7 +908,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
           onBackPress={() => navigation.goBack()}
           onSharePress={() => navigation.navigate('CartScreen')}
           onNotificationPress={handleNotificationPress}
-          notificationCount={3}
+          notificationCount={notificationCount}
           cartCount={cartCount}
         />
 

@@ -11,7 +11,9 @@ import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
 import { ClinicApiResponse } from '../../../types/clinic.types';
 import { Toast } from 'toastify-react-native';
+import { translateCityToEnglish } from '../../../utils/cityTranslator';
 import { useCartCount } from '../../../hooks/useCartCount';
+import { useNotificationCount } from '../../../hooks/useNotificationCount';
 import { useLocationStore } from '@store';
 
 interface Clinic {
@@ -27,14 +29,27 @@ interface Clinic {
 export const HomeScreen = ({ navigation }) => {
   const { t } = useTranslation();
   const { cartCount } = useCartCount();
+  const { notificationCount } = useNotificationCount();
   const { location } = useLocationStore();
   const [recommendedClinics, setRecommendedClinics] = useState<Clinic[]>([]);
   const [nearbyClinics, setNearbyClinics] = useState<Clinic[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetchClinicsWithLocation();
   }, [location]);
+
+  // Refetch when search query changes (with debounce)
+  useEffect(() => {
+    if (!location) return;
+    
+    const timeoutId = setTimeout(() => {
+      fetchClinics(location.lat, location.long, 1, 10, searchQuery);
+    }, 500); // Debounce search
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, location]);
 
   const fetchClinicsWithLocation = () => {
     if (location) {
@@ -46,12 +61,12 @@ export const HomeScreen = ({ navigation }) => {
     }
   };
 
-  const fetchClinics = async (lat: number, long: number, pageNo: number = 1, recordsPerPage: number = 10) => {
+  const fetchClinics = async (lat: number, long: number, pageNo: number = 1, recordsPerPage: number = 10, searchName: string = '') => {
     try {
       setLoading(true);
       const response = await apiClient.get(API.CLINIC.GET_CLINICS, {
         params: {
-          name: '',
+          name: searchName || '',
           lat: lat.toString(),
           long: long.toString(),
           pageNo: pageNo,
@@ -124,7 +139,12 @@ export const HomeScreen = ({ navigation }) => {
   };
 
   const handleSearchPress = () => {
-    // navigation.navigate('Search');
+    // Search is handled by onChangeText with debounce
+    // This can be used for submit if needed
+  };
+
+  const handleSearchChange = (text: string) => {
+    setSearchQuery(text);
   };
 
   const handleSLPress = () => {
@@ -140,8 +160,11 @@ export const HomeScreen = ({ navigation }) => {
         onCartPress={handleCartPress}
         onNotificationPress={handleNotificationPress}
         onSearchPress={handleSearchPress}
+        onSearchChange={handleSearchChange}
+        searchValue={searchQuery}
         onSLPress={handleSLPress}
         cartItemCount={cartCount}
+        notificationCount={notificationCount}
       />
 
       {loading ? (

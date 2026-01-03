@@ -1,5 +1,5 @@
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Header2 } from '@components/common/Header2';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { styles } from './style';
@@ -33,10 +33,10 @@ export const NotificationScreen = () => {
     setLoading(true);
     try {
       const response = await apiClient.get(API.NOTIFICATIONS.VIEW_ALL);
-
+      console.log('Notifications response:', response.data);
       // Check for success: false in response
       if (response.data?.success === false) {
-        const errorMessage = response.data?.message || 'Failed to load notifications';
+        const errorMessage = response.data?.message || t('failed_to_load_notifications') || 'Failed to load notifications';
         Toast.error(errorMessage);
         setNotifications([]);
         setLoading(false);
@@ -44,18 +44,25 @@ export const NotificationScreen = () => {
       }
 
       // Extract notifications from response
+      // API response structure: { success: true, data: [...] }
       const data = response.data?.data || response.data || [];
       const notificationsList = Array.isArray(data) ? data : [];
 
+      console.log('Notifications list from API:', notificationsList);
+
       // Map API response to notification format
+      // API structure: { id, type, description, dateTime }
       const mappedNotifications: Notification[] = notificationsList.map((item: any) => ({
         id: item.id || item.notification_id,
-        title: item.title || item.subject || 'Notification',
-        message: item.message || item.body || item.content || '',
-        time: item.created_at || item.time || item.date || '',
-        unread: item.is_read === false || item.unread === true || item.read === false,
-        is_read: item.is_read !== false,
+        title: item.type || item.title || item.subject || 'Notification', // Prioritize 'type' for title
+        message: item.description || item.message || item.body || item.content || '', // Prioritize 'description' for message
+        time: item.dateTime || item.created_at || item.time || item.date || '', // Prioritize 'dateTime'
+        created_at: item.dateTime || item.created_at || item.time || item.date, // Also store in created_at
+        unread: item.is_read === false || item.unread === true || (item.read !== undefined ? !item.read : true),
+        is_read: item.is_read !== undefined ? item.is_read : (item.read !== undefined ? item.read : false),
       }));
+
+      console.log('Mapped notifications:', mappedNotifications);
 
       setNotifications(mappedNotifications);
     } catch (error: any) {
@@ -64,7 +71,7 @@ export const NotificationScreen = () => {
         error?.response?.data?.message || 
         error?.data?.message ||
         error?.message || 
-        'Failed to load notifications';
+        t('failed_to_load_notifications') || 'Failed to load notifications';
       Toast.error(errorMessage);
       setNotifications([]);
     } finally {
@@ -87,7 +94,7 @@ export const NotificationScreen = () => {
 
       // Check for success: false in response
       if (response.data?.success === false) {
-        const errorMessage = response.data?.message || 'Failed to delete notification';
+        const errorMessage = response.data?.message || t('failed_to_delete_notification') || 'Failed to delete notification';
         Toast.error(errorMessage);
         setDeletingId(null);
         return;
@@ -95,14 +102,14 @@ export const NotificationScreen = () => {
 
       // Success - remove from list
       setNotifications(prev => prev.filter(notif => notif.id !== id));
-      Toast.success(response.data?.message || 'Notification deleted');
+      Toast.success(response.data?.message || t('notification_deleted') || 'Notification deleted');
     } catch (error: any) {
       console.error('Error deleting notification:', error);
       const errorMessage = 
         error?.response?.data?.message || 
         error?.data?.message ||
         error?.message || 
-        'Failed to delete notification';
+        t('failed_to_delete_notification') || 'Failed to delete notification';
       Toast.error(errorMessage);
     } finally {
       setDeletingId(null);
@@ -130,7 +137,7 @@ export const NotificationScreen = () => {
 
               // Check for success: false in response
               if (response.data?.success === false) {
-                const errorMessage = response.data?.message || 'Failed to clear notifications';
+                const errorMessage = response.data?.message || t('failed_to_clear_notifications') || 'Failed to clear notifications';
                 Toast.error(errorMessage);
                 setClearingAll(false);
                 return;
@@ -138,14 +145,14 @@ export const NotificationScreen = () => {
 
               // Success - clear all notifications
               setNotifications([]);
-              Toast.success(response.data?.message || 'All notifications cleared');
+              Toast.success(response.data?.message || t('all_notifications_cleared') || 'All notifications cleared');
             } catch (error: any) {
               console.error('Error clearing notifications:', error);
               const errorMessage = 
                 error?.response?.data?.message || 
                 error?.data?.message ||
                 error?.message || 
-                'Failed to clear notifications';
+                t('failed_to_clear_notifications') || 'Failed to clear notifications';
               Toast.error(errorMessage);
             } finally {
               setClearingAll(false);

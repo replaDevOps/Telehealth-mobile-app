@@ -19,6 +19,7 @@ export interface ClinicInfo {
 
 export interface ImageMessage {
   uri: string;
+  isUploading?: boolean;
 }
 
 export interface Service {

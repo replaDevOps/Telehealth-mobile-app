@@ -159,10 +159,9 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
       setError(null);
       setInfoMessage(null);
 
-      // Use history API if fromHistory is true
-      const endpoint = fromHistory
-        ? `${API.HISTORY.GET_PRESCRIPTION}/${consultationID}`
-        : `${API.CONSULTATIONS.DOWNLOAD_PRESCRIPTION}?consultationID=${consultationID}`;
+      // Use history endpoint for both active and history consultations (returns JSON data)
+      // DOWNLOAD_PRESCRIPTION returns PDF, so we use GET_PRESCRIPTION which returns JSON
+      const endpoint = `${API.HISTORY.GET_PRESCRIPTION}/${consultationID}`;
 
       const response = await apiClient.get(endpoint);
       console.log('Prescription response:', response.data);
@@ -216,42 +215,16 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
     setIsDownloading(true);
 
     try {
-      const token = useAuthStore.getState().auth?.token;
-      
-      if (!token) {
-        throw new Error('Authentication token not found');
-      }
-      
-      // Use history API if fromHistory is true, otherwise use consultations API
-      const endpoint = fromHistory
-        ? `${API.HISTORY.GET_PRESCRIPTION}/${consultationID}`
-        : `${API.CONSULTATIONS.DOWNLOAD_PRESCRIPTION}?consultationID=${consultationID}`;
+      // Always use history endpoint which returns JSON data (not PDF)
+      // DOWNLOAD_PRESCRIPTION returns PDF, so we use GET_PRESCRIPTION which returns JSON
+      const endpoint = `${API.HISTORY.GET_PRESCRIPTION}/${consultationID}`;
 
-      // Use fetch to download the prescription file
-      const response = await fetch(
-        `${BASE_URL}${endpoint}`,
-        {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json',
-          },
-        }
-      );
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Failed to download prescription: ${response.status}`);
-      }
-
-      // Get the content type from response
-      const contentType = response.headers.get('content-type') || '';
-      
-      // Parse the response body
-      const responseData = await response.json();
+      // Fetch prescription data as JSON
+      const response = await apiClient.get(endpoint);
+      const responseData = response.data;
       
       // Check if response contains prescription data to generate PDF
-      // Don't open any URLs - just generate and save PDF
-      if (responseData?.success === true && responseData?.prescriptions) {
+      if (responseData?.success !== false && responseData?.prescriptions && Array.isArray(responseData.prescriptions) && responseData.prescriptions.length > 0) {
         // If the response contains prescription data, generate and save as PDF
         try {
           await generateAndSavePDF(responseData);
@@ -275,8 +248,8 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
           }
         }
       } else {
-        // If no URL and no prescription data, show error
-        throw new Error(t('no_download_url_found') || 'No download URL found in response');
+        // If no prescription data, show error
+        throw new Error(t('no_prescription_data_found') || 'No prescription data found');
       }
 
       // Don't navigate automatically - let user stay on the prescription screen

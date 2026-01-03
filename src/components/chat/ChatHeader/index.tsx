@@ -15,6 +15,18 @@ interface ChatHeaderProps {
   handleGoBack: () => void;
   handleEndConsultation: () => void;
   handleCart: () => void;
+  consultationData?: {
+    doctor?: {
+      name?: string;
+      image?: string;
+    };
+    service?: {
+      name?: string;
+      duration?: number;
+    };
+    type?: string;
+    code?: string;
+  } | null;
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
@@ -25,8 +37,43 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   handleGoBack,
   handleEndConsultation,
   handleCart,
+  consultationData,
 }) => {
   const { cartCount } = useCartCount();
+  
+  // Extract doctor and service info from consultation data
+  const doctorName = consultationData?.doctor?.name || doctorInfo.name;
+  const serviceName = consultationData?.service?.name || '';
+  const consultationType = consultationData?.type || '';
+  const consultationCode = consultationData?.code || '';
+  const serviceDuration = consultationData?.service?.duration;
+  
+  // Build subtitle: "Code | Service Name | Type | Duration"
+  const buildSubtitle = () => {
+    if (!consultationData) {
+      return doctorInfo.serviceName || consultationTime;
+    }
+    
+    const parts: string[] = [];
+    // Add code if available
+    if (consultationCode) {
+      parts.push(consultationCode);
+    }
+    // Add service name if available
+    if (serviceName) {
+      parts.push(serviceName);
+    }
+    // Add type if available
+    if (consultationType) {
+      parts.push(consultationType);
+    }
+    // Add duration if available
+    if (serviceDuration) {
+      parts.push(`${serviceDuration} min`);
+    }
+    
+    return parts.length > 0 ? parts.join(' | ') : (doctorInfo.serviceName || consultationTime);
+  };
   
   return chatType === 'ai' ? (
     <Header2 title="Chat" showCart logo HandleCart={handleCart} cartCount={cartCount} />
@@ -37,13 +84,13 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       </TouchableOpacity>
 
       <View style={styles.doctorHeaderCenter}>
-        <Text style={styles.doctorName}>{doctorInfo.name}</Text>
+        <Text style={styles.doctorName}>{doctorName}</Text>
         <Text style={styles.consultationTime}>
-          {doctorInfo.serviceName || consultationTime}
+          {buildSubtitle()}
         </Text>
       </View>
 
-      {!doctorInfo.serviceName && !fromHistory && (
+      {!fromHistory && (
         <TouchableOpacity
           style={styles.endButton}
           onPress={handleEndConsultation}

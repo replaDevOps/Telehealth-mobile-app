@@ -492,62 +492,60 @@ export default function ConsultDoctorBottomSheet({
                 </Text>
               </View>
 
-              {/* Service Type Dropdown */}
-              <View style={styles.dropdownContainer}>
-                {loadingServiceTypes ? (
+              {/* Service Type Dropdown - Only show if data is available */}
+              {loadingServiceTypes ? (
+                <View style={styles.dropdownContainer}>
                   <ActivityIndicator size="small" color={colors.primary} />
-                ) : (
-              <CustomDropdown
-                label={t('service_type')}
-                value={serviceType}
-                onValueChange={setServiceType}
+                </View>
+              ) : serviceTypeOptions.length > 0 ? (
+                <View style={styles.dropdownContainer}>
+                  <CustomDropdown
+                    label={t('service_type')}
+                    value={serviceType}
+                    onValueChange={setServiceType}
                     options={serviceTypeOptions}
-                placeholder={t('select_type')}
-              />
-                )}
-              </View>
+                    placeholder={t('select_type')}
+                  />
+                </View>
+              ) : null}
 
-              {/* Service Group Dropdown */}
-              <View style={styles.dropdownContainer}>
-                {loadingServiceGroups ? (
-                  <ActivityIndicator size="small" color={colors.primary} />
-                ) : (
-              <CustomDropdown
-                label={t('service_group')}
-                value={serviceGroup}
-                onValueChange={setServiceGroup}
-                    options={serviceGroupOptions}
-                    placeholder={
-                      !serviceType
-                        ? t('select_service_type_first') || 'Select service type first'
-                        : serviceGroupOptions.length === 0
-                        ? t('no_service_groups_found') || 'No service groups found'
-                        : t('select_group')
-                    }
-              />
-                )}
-              </View>
+              {/* Service Group Dropdown - Only show if service type is selected and data is available */}
+              {serviceType && (
+                loadingServiceGroups ? (
+                  <View style={styles.dropdownContainer}>
+                    <ActivityIndicator size="small" color={colors.primary} />
+                  </View>
+                ) : serviceGroupOptions.length > 0 ? (
+                  <View style={styles.dropdownContainer}>
+                    <CustomDropdown
+                      label={t('service_group')}
+                      value={serviceGroup}
+                      onValueChange={setServiceGroup}
+                      options={serviceGroupOptions}
+                      placeholder={t('select_group')}
+                    />
+                  </View>
+                ) : null
+              )}
 
-              {/* Service Dropdown */}
-              <View style={styles.dropdownContainer}>
-                {loadingServices ? (
-                  <ActivityIndicator size="small" color={colors.primary} />
-                ) : (
-              <CustomDropdown
-                label={t('service')}
-                value={service}
-                onValueChange={setService}
-                    options={serviceOptions}
-                    placeholder={
-                      !serviceGroup
-                        ? t('select_service_group_first') || 'Select service group first'
-                        : serviceOptions.length === 0
-                        ? t('no_services_found') || 'No services found'
-                        : t('select_service')
-                    }
-              />
-                )}
-              </View>
+              {/* Service Dropdown - Only show if service group is selected and data is available */}
+              {serviceGroup && (
+                loadingServices ? (
+                  <View style={styles.dropdownContainer}>
+                    <ActivityIndicator size="small" color={colors.primary} />
+                  </View>
+                ) : serviceOptions.length > 0 ? (
+                  <View style={styles.dropdownContainer}>
+                    <CustomDropdown
+                      label={t('service')}
+                      value={service}
+                      onValueChange={setService}
+                      options={serviceOptions}
+                      placeholder={t('select_service')}
+                    />
+                  </View>
+                ) : null
+              )}
 
               {/* Consultation Type */}
               <View style={styles.inputGroup}>

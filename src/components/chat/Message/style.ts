@@ -65,9 +65,33 @@ export const styles = StyleSheet.create({
         gap: 8,
         justifyContent: 'flex-end',
       },
+      botImagesRow: {
+        flexDirection: 'row',
+        marginTop: 8,
+        gap: 8,
+        justifyContent: 'flex-start',
+      },
+      imageContainer: {
+        position: 'relative',
+        width: 80,
+        height: 80,
+        borderRadius: 8,
+        overflow: 'hidden',
+      },
       uploadedImage: {
         width: 80,
         height: 80,
+        borderRadius: 8,
+      },
+      uploadingOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
         borderRadius: 8,
       },
       botMessageWrapper: {

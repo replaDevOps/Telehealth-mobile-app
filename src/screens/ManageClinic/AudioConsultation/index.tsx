@@ -29,7 +29,6 @@ export function AudioConsultation({ navigation, route }) {
   const consultationId = route?.params?.consultationId || `consultation_${Date.now()}`;
   const userId = route?.params?.userId || `patient_${Date.now()}`;
   const isInitiator = route?.params?.isInitiator ?? true;
-  const signalingServerUrl = route?.params?.signalingServerUrl || 'http://192.168.1.100:3001';
 
   const [callDuration, setCallDuration] = useState(0);
   const [modalVisible, setModalVisible] = useState(false);
@@ -50,7 +49,6 @@ export function AudioConsultation({ navigation, route }) {
     roomId: consultationId,
     isVideoEnabled: false,
     isAudioEnabled: true,
-    signalingServerUrl,
   });
 
   // Keep speaker state locally (WebRTC handles audio routing)

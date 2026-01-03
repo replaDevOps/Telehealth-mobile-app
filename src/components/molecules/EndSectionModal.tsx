@@ -18,12 +18,14 @@ interface ConsultationEndedModalProps {
   visible: boolean;
   onClose: () => void;
   onGetPrescription: () => void;
+  hasPrescription?: boolean; // Default to false to hide button unless explicitly set
 }
 
 const ConsultationEndedModal: React.FC<ConsultationEndedModalProps> = ({
   visible,
   onClose,
   onGetPrescription,
+  hasPrescription = false, // Default to false - only show button if prescription exists
 }) => {
   const { t } = useTranslation();
   return (
@@ -45,23 +47,27 @@ const ConsultationEndedModal: React.FC<ConsultationEndedModalProps> = ({
 
           {/* Description */}
           <Text style={styles.description}>
-            {t('consultation_ended_description')}
+            {hasPrescription 
+              ? t('consultation_ended_description')
+              : t('consultation_ended_no_prescription') || 'The consultation has ended. No prescription is available yet.'}
           </Text>
 
           {/* Buttons */}
-          <View style={styles.buttonRow}>
+          <View style={[styles.buttonRow, !hasPrescription && styles.buttonRowCenter]}>
             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
               <Text style={styles.closeButtonText}>{t('close')}</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.prescriptionButton}
-              onPress={onGetPrescription}
-            >
-              <Text style={styles.prescriptionButtonText} numberOfLines={1}>
-                {t('get_prescription')}
-              </Text>
-            </TouchableOpacity>
+            {hasPrescription && (
+              <TouchableOpacity
+                style={styles.prescriptionButton}
+                onPress={onGetPrescription}
+              >
+                <Text style={styles.prescriptionButtonText} numberOfLines={1}>
+                  {t('get_prescription')}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </View>
@@ -72,7 +78,7 @@ const ConsultationEndedModal: React.FC<ConsultationEndedModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: '#15002E80',
+    backgroundColor: 'rgba(21, 0, 46, 0.5)', // Muted purple overlay
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -81,53 +87,55 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: 20,
     padding: 24,
-    alignItems: 'center',
-
+    alignItems: 'flex-start',
     position: 'relative',
   },
   closeIcon: {
     position: 'absolute',
-    top: 12,
-    right: 12,
+    top: 16,
+    right: 16,
     width: 32,
     height: 32,
-    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1,
   },
   closeText: {
-    fontSize: 28,
+    fontSize: 24,
     color: colors.text,
     fontWeight: '400',
-    marginBottom: mvs(10),
-    position: 'absolute',
-    top: -12,
-    right: 5,
+    lineHeight: 24,
   },
   title: {
     fontSize: 18,
     fontWeight: '700',
     color: colors.text,
-    marginBottom: 8,
+    marginBottom: 12,
+    marginTop: 8,
     textAlign: 'center',
+    width: '100%',
   },
   description: {
     fontSize: 14,
     color: colors.secondaryText,
-    textAlign: 'center',
+    textAlign: 'left',
     lineHeight: 20,
     marginBottom: 24,
+    paddingHorizontal: 0,
+    width: '100%',
   },
   buttonRow: {
     flexDirection: 'row',
     gap: 12,
     width: '100%',
+    justifyContent: 'space-between',
+  },
+  buttonRowCenter: {
     justifyContent: 'center',
   },
   closeButton: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderRadius: 12,
     backgroundColor: colors.gray,
     alignItems: 'center',
@@ -141,7 +149,7 @@ const styles = StyleSheet.create({
   },
   prescriptionButton: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderRadius: 12,
     backgroundColor: colors.primary,
     alignItems: 'center',

@@ -5,7 +5,7 @@ import React, {
   useMemo,
   useCallback,
 } from 'react';
-import { View, Text, ScrollView, Image, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, ScrollView, ActivityIndicator, Alert, BackHandler, KeyboardAvoidingView, Keyboard, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ServiceDetailBottomSheet } from '@components/molecules';
 import { styles } from './style';
@@ -34,6 +34,7 @@ import { API } from '@services/api/api-endpoint';
 import { Toast } from 'toastify-react-native';
 import { BASE_URL } from '@constants';
 import { useAuthStore } from '@store';
+import { useProfileStore } from '@store';
 import { pusherService } from '@services/pusher/PusherService';
 
 // ---------- Main Component ----------
@@ -61,14 +62,23 @@ export function ChatScreen({ navigation, route }) {
   );
   const [modalVisible, setModalVisible] = useState(false);
   const [showBottomSheet, setShowBottomSheet] = useState(false);
+  const [hasPrescription, setHasPrescription] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
-  const [sendingMessage, setSendingMessage] = useState(false);
   const [consultationData, setConsultationData] = useState<any>(null);
-  const [storedClinicInfo, setStoredClinicInfo] = useState(clinicInfo);
+  const [flexToggle, setFlexToggle] = useState(false);
 
   const scrollRef = useRef<ScrollView>(null);
   const auth = useAuthStore(state => state.auth);
+  const { profileData } = useProfileStore();
   const patientID = auth?.id;
+  
+  // Get profile image from store
+  const patientProfileImage = profileData?.image;
+  const patientProfileAvatar = patientProfileImage 
+    ? (patientProfileImage.startsWith('http') 
+        ? { uri: patientProfileImage } 
+        : { uri: `https://telehealth.repla-projects.com/${patientProfileImage}` })
+    : patient;
 
   useEffect(() => {
     console.log('clinicInfo.image type:', typeof clinicInfo.image);
@@ -104,10 +114,12 @@ export function ChatScreen({ navigation, route }) {
   }, [consultationID, chatType]);
 
   // Fetch consultation messages from API
-  const fetchConsultationMessages = useCallback(async () => {
+  const fetchConsultationMessages = useCallback(async (silent: boolean = false) => {
     if (!consultationID) return;
 
-    setLoadingMessages(true);
+    if (!silent) {
+      setLoadingMessages(true);
+    }
     try {
       // Use history API if fromHistory is true, otherwise use consultations API
       const endpoint = fromHistory
@@ -129,36 +141,9 @@ export function ChatScreen({ navigation, route }) {
         const consultationDataFromAPI = response.data?.data;
         const doctorData = consultationDataFromAPI?.doctor;
         const patientData = consultationDataFromAPI?.patient;
-        const clinicDataFromAPI = consultationDataFromAPI?.clinic;
-        const serviceDataFromAPI = consultationDataFromAPI?.service;
 
         // Store consultation data
         setConsultationData(consultationDataFromAPI);
-
-        // Update clinic info from API if available
-        // Note: The API response might not include clinic object, only clinicID
-        // Use service data as fallback for clinic image/name
-        if (clinicDataFromAPI) {
-          setStoredClinicInfo({
-            id: clinicDataFromAPI.id || clinicDataFromAPI.clinicID || consultationDataFromAPI?.clinicID,
-            name: clinicDataFromAPI.clinicName || clinicDataFromAPI.name || clinicInfo.name,
-            location: clinicDataFromAPI.location || clinicDataFromAPI.city || clinicInfo.location,
-            image: clinicDataFromAPI.image ? { uri: clinicDataFromAPI.image } : clinicInfo.image,
-          });
-        } else if (serviceDataFromAPI) {
-          // If no clinic data, use service data as fallback for image
-          // Service has clinicID and image, which we can use
-          setStoredClinicInfo({
-            id: consultationDataFromAPI?.clinicID || clinicInfo.id,
-            name: clinicInfo.name || serviceDataFromAPI.name || 'Clinic',
-            location: clinicInfo.location || 'Location not available',
-            image: serviceDataFromAPI.image ? { uri: serviceDataFromAPI.image } : clinicInfo.image,
-          });
-        } else {
-          // If no clinic or service data, keep using clinicInfo from route params
-          console.log('No clinic or service data in API response, using clinicInfo from route params');
-          // storedClinicInfo is already initialized with clinicInfo from route params
-        }
 
 
         // Update doctorInfo if available from API
@@ -169,26 +154,30 @@ export function ChatScreen({ navigation, route }) {
 
         const mappedMessages: Message[] = apiMessages.map((msg: any) => {
           // Determine if message is from user (patient) or doctor
-          // Compare senderID with patientID and doctorID from consultation data
-          const isUser = msg.senderID === patientData?.id ||
-            msg.senderType === 'patient' ||
-            msg.senderRole === 'patient' ||
-            (msg.patientID && msg.patientID === patientData?.id);
+          // Use sender.type from API response (most reliable)
+          const isUser = msg.sender?.type === 'patient' || 
+            String(msg.senderID) === String(patientData?.id) ||
+            String(msg.senderID) === String(patientID);
+
+          // Get sender info from API response (sender object has name, image, type)
+          const senderInfo = msg.sender;
 
           return {
             id: String(msg.id || msg.messageID || Date.now()),
             type: isUser ? 'user' : 'bot',
             text: msg.message || msg.text || msg.content || '',
-            timestamp: msg.created_at || msg.timestamp || msg.createdAt || getCurrentTimestamp(),
+            timestamp: msg.dateTime || msg.created_at || msg.timestamp || msg.createdAt || getCurrentTimestamp(),
             user: isUser
               ? {
-                name: patientData?.name || 'You',
-                avatar: patientData?.image ? { uri: patientData.image } : patient
+                // Use sender info from API if available, otherwise fallback to patientData
+                name: senderInfo?.name || patientData?.name || 'You',
+                avatar: senderInfo?.image ? { uri: senderInfo.image } : (patientData?.image ? { uri: patientData.image } : patient)
               }
-              : showAvatar && doctorData
+              : showAvatar && (senderInfo || doctorData)
                 ? {
-                  name: doctorData.name || doctorInfo.name,
-                  avatar: doctorData.image ? { uri: doctorData.image } : doctorInfo.avatar
+                  // Use sender info from API if available, otherwise fallback to doctorData
+                  name: senderInfo?.name || doctorData?.name || doctorInfo.name,
+                  avatar: senderInfo?.image ? { uri: senderInfo.image } : (doctorData?.image ? { uri: doctorData.image } : doctorInfo.avatar)
                 }
                 : showAvatar && doctorInfo
                   ? { name: doctorInfo.name, avatar: doctorInfo.avatar }
@@ -197,7 +186,8 @@ export function ChatScreen({ navigation, route }) {
               const imagePath = msg.file || msg.image || msg.fileUrl;
               if (!imagePath) return undefined;
 
-              // If image path doesn't start with http, prepend BASE_URL
+              // File is already a full URL from the API, use it directly
+              // Only prepend BASE_URL if it's a relative path
               const fullImageUri = imagePath && !imagePath.startsWith('http') && !imagePath.startsWith('file://')
                 ? `https://telehealth.repla-projects.com/${imagePath}`
                 : imagePath;
@@ -217,11 +207,49 @@ export function ChatScreen({ navigation, route }) {
       console.error('Error fetching consultation messages:', error);
       // On error, show empty array instead of initial messages
       setMessages([]);
-      Toast.error(error?.message || 'Failed to load messages');
+      if (!silent) {
+        Toast.error(error?.message || 'Failed to load messages');
+      }
     } finally {
-      setLoadingMessages(false);
+      if (!silent) {
+        setLoadingMessages(false);
+      }
     }
   }, [consultationID, recipientID, showAvatar, doctorInfo, chatType]);
+
+  // Helper function to check prescription and show modal
+  const checkPrescriptionAndShowModal = useCallback(async () => {
+    // Check if prescription exists before showing modal
+    if (consultationID) {
+      try {
+        // Use history endpoint for both active and history consultations (returns JSON data)
+        // DOWNLOAD_PRESCRIPTION returns PDF, so we use GET_PRESCRIPTION which returns JSON
+        const endpoint = `${API.HISTORY.GET_PRESCRIPTION}/${consultationID}`;
+        
+        const response = await apiClient.get(endpoint);
+        console.log('Prescription check response:', response.data);
+        
+        // Check if prescription exists
+        if (response.data?.success !== false && 
+            response.data?.prescriptions && 
+            Array.isArray(response.data.prescriptions) && 
+            response.data.prescriptions.length > 0) {
+          setHasPrescription(true);
+          console.log('Prescription found, showing Get Prescription button');
+        } else {
+          setHasPrescription(false);
+          console.log('No prescription found');
+        }
+      } catch (error) {
+        console.error('Error checking prescription:', error);
+        setHasPrescription(false);
+      }
+    } else {
+      setHasPrescription(false);
+    }
+    
+    setModalVisible(true);
+  }, [consultationID]);
 
   // Timer for doctor consultation
   useEffect(() => {
@@ -232,7 +260,8 @@ export function ChatScreen({ navigation, route }) {
         if (prev <= 1) {
           clearInterval(timer);
           setIsConsultationActive(false);
-          setModalVisible(true);
+          // Check prescription before showing modal
+          checkPrescriptionAndShowModal();
           return 0;
         }
         return prev - 1;
@@ -240,7 +269,7 @@ export function ChatScreen({ navigation, route }) {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isConsultationActive, chatType]);
+  }, [isConsultationActive, chatType, checkPrescriptionAndShowModal]);
 
   // Auto-scroll when new message arrives
   useEffect(() => {
@@ -248,6 +277,22 @@ export function ChatScreen({ navigation, route }) {
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
     }
   }, [messages.length]);
+
+  // Keyboard listeners for Android flex toggle fix
+  useEffect(() => {
+    const keyboardShowListener = Keyboard.addListener("keyboardDidShow", () => {
+      setFlexToggle(false);
+    });
+
+    const keyboardHideListener = Keyboard.addListener("keyboardDidHide", () => {
+      setFlexToggle(true);
+    });
+
+    return () => {
+      keyboardShowListener.remove();
+      keyboardHideListener.remove();
+    };
+  }, []);
 
   // Setup Pusher listeners for real-time messages
   useEffect(() => {
@@ -268,10 +313,20 @@ export function ChatScreen({ navigation, route }) {
     const handleMessageSent = (data: any) => {
       console.log('Message sent alert:', data);
       if (!isMounted) return;
-      // If the message is for this consultation, refresh messages
-      if (data?.consultationID === consultationID || data?.consultation_id === consultationID) {
-        // Optionally refresh messages or update UI
-        fetchConsultationMessages();
+      
+      // Extract message from data.message if it exists (Pusher event structure)
+      // Handle both structures: {message: {consultationID: ...}} and {consultationID: ...}
+      const messageData = data?.message || data;
+      const messageConsultationID = 
+        messageData?.consultationID || 
+        data?.consultationID || 
+        data?.consultation_id ||
+        (typeof messageData === 'object' && messageData !== null ? messageData.consultationID : null);
+      
+      // If the message is for this consultation, silently reload all messages
+      if (messageConsultationID && (messageConsultationID === consultationID || messageConsultationID === String(consultationID))) {
+        // Silently reload messages without showing loader
+        fetchConsultationMessages(true);
       }
     };
 
@@ -279,54 +334,87 @@ export function ChatScreen({ navigation, route }) {
     const handleMessageReceived = (data: any) => {
       console.log('Message received alert:', data);
       if (!isMounted) return;
-      // If the message is for this consultation, add it to messages
-      if (data?.consultationID === consultationID || data?.consultation_id === consultationID) {
-        // Map the received message to Message format
-        const doctorData = consultationData?.doctor || doctorInfo;
-        const patientData = consultationData?.patient;
-
-        const isUser = data?.senderID === patientID ||
-          data?.senderType === 'patient' ||
-          data?.senderRole === 'patient';
-
-        const newMessage: Message = {
-          id: String(data?.id || data?.messageID || Date.now()),
-          type: isUser ? 'user' : 'bot',
-          text: data?.message || data?.text || data?.content || '',
-          timestamp: data?.created_at || data?.timestamp || data?.createdAt || getCurrentTimestamp(),
-          user: isUser
-            ? {
-              name: patientData?.name || 'You',
-              avatar: patientData?.image ? { uri: patientData.image } : patient
-            }
-            : showAvatar && doctorData
+      
+      // Extract message from data.message if it exists (Pusher event structure)
+      // Handle structure: {message: {consultationID: 35, ...}}
+      const messageData = data?.message || data;
+      
+      // Extract consultationID - handle nested structure
+      const messageConsultationID = 
+        messageData?.consultationID || 
+        data?.consultationID || 
+        data?.consultation_id ||
+        null;
+      
+      // Normalize IDs for comparison (convert to string)
+      const normalizedMessageConsultationID = messageConsultationID ? String(messageConsultationID) : null;
+      const normalizedConsultationID = consultationID ? String(consultationID) : null;
+      
+      console.log('Message received - consultationID:', normalizedMessageConsultationID, 'Current consultationID:', normalizedConsultationID);
+      
+      // If the message is for this consultation
+      if (normalizedMessageConsultationID && normalizedConsultationID && normalizedMessageConsultationID === normalizedConsultationID) {
+        // Transform and append the message directly from Pusher response
+        if (messageData && messageData.id) {
+          const doctorData = consultationData?.doctor || doctorInfo;
+          const patientData = consultationData?.patient;
+          
+          const isUser = messageData.senderID === patientID ||
+            messageData.senderType === 'patient' ||
+            messageData.senderRole === 'patient' ||
+            messageData.sender?.type === 'patient';
+          
+          const senderInfo = messageData.sender;
+          const newMessage: Message = {
+            id: String(messageData.id),
+            type: isUser ? 'user' : 'bot',
+            text: messageData.message || '',
+            timestamp: messageData.dateTime || messageData.created_at || getCurrentTimestamp(),
+            user: isUser
               ? {
-                name: doctorData.name || doctorInfo.name,
-                avatar: doctorData.image ? { uri: doctorData.image } : doctorInfo.avatar
+                name: senderInfo?.name || patientData?.name || 'You',
+                avatar: senderInfo?.image ? { uri: senderInfo.image } : (patientData?.image ? { uri: patientData.image } : patient)
               }
-              : showAvatar && doctorInfo
-                ? { name: doctorInfo.name, avatar: doctorInfo.avatar }
-                : undefined,
-          images: (() => {
-            const imagePath = data?.file || data?.image || data?.fileUrl;
-            if (!imagePath) return undefined;
+              : showAvatar && doctorData
+                ? {
+                  name: senderInfo?.name || doctorData.name || doctorInfo.name,
+                  avatar: senderInfo?.image ? { uri: senderInfo.image } : (doctorData.image ? { uri: doctorData.image } : doctorInfo.avatar)
+                }
+                : showAvatar && doctorInfo
+                  ? { name: doctorInfo.name, avatar: doctorInfo.avatar }
+                  : undefined,
+            images: (() => {
+              const imagePath = messageData.file || messageData.image || messageData.fileUrl;
+              if (!imagePath) return undefined;
 
-            const fullImageUri = imagePath && !imagePath.startsWith('http') && !imagePath.startsWith('file://')
-              ? `https://telehealth.repla-projects.com/${imagePath}`
-              : imagePath;
+              const fullImageUri = imagePath && !imagePath.startsWith('http') && !imagePath.startsWith('file://')
+                ? `https://telehealth.repla-projects.com/${imagePath}`
+                : imagePath;
 
-            return [{ uri: fullImageUri }];
-          })(),
-        };
+              return [{ uri: fullImageUri }];
+            })(),
+          };
 
-        // Add message to state if it doesn't already exist
-        setMessages(prev => {
-          const exists = prev.some(msg => msg.id === newMessage.id);
-          if (exists) {
-            return prev;
-          }
-          return [...prev, newMessage];
+          // Append message if it doesn't already exist
+          setMessages(prev => {
+            const exists = prev.some(msg => msg.id === newMessage.id);
+            if (exists) {
+              console.log('Message already exists, skipping append:', newMessage.id);
+              return prev;
+            }
+            console.log('Appending new message from Pusher:', newMessage.id);
+            return [...prev, newMessage];
+          });
+        }
+        
+        // Also silently reload messages to ensure we have the latest state
+        console.log('Calling fetchConsultationMessages(true) to refresh messages...');
+        fetchConsultationMessages(true).catch(err => {
+          console.error('Error in fetchConsultationMessages:', err);
         });
+      } else {
+        console.log('Consultation ID mismatch - not refreshing messages');
+        console.log('Message consultationID:', normalizedMessageConsultationID, 'Current:', normalizedConsultationID);
       }
     };
 
@@ -386,17 +474,20 @@ export function ChatScreen({ navigation, route }) {
           return;
         }
 
-        // Optimistically add message to UI
-        const tempId = Date.now().toString();
+        // Optimistically add message to UI with uploading state
+        const tempId = `temp-img-${Date.now()}`;
         const newMessage: Message = {
           id: tempId,
           type: 'user',
           text: '',
           timestamp: getCurrentTimestamp(),
           user: showAvatar
-            ? { name: 'You', avatar: patient }
+            ? { 
+                name: profileData?.name || 'You', 
+                avatar: patientProfileAvatar 
+              }
             : undefined,
-          images: [{ uri: asset.uri }],
+          images: [{ uri: asset.uri, isUploading: true }],
         };
 
         setMessages(prev => [...prev, newMessage]);
@@ -404,7 +495,6 @@ export function ChatScreen({ navigation, route }) {
         // Send image via API if consultationID exists
         if (consultationID && recipientID) {
           try {
-            setSendingMessage(true);
             const formData = new FormData();
             formData.append('recipientID', recipientID);
             formData.append('message', '');
@@ -437,27 +527,39 @@ export function ChatScreen({ navigation, route }) {
               throw new Error(data.message || 'Failed to send image');
             }
 
-            // Update message ID with API response if available
-            if (data?.data?.id || data?.id) {
-              setMessages(prev =>
-                prev.map(msg =>
-                  msg.id === tempId
-                    ? {
+            // Update message to remove uploading state and update ID
+            setMessages(prev =>
+              prev.map(msg =>
+                msg.id === tempId
+                  ? {
                       ...msg,
-                      id: String(data?.data?.id || data?.id),
+                      id: String(data?.data?.id || data?.id || tempId),
+                      images: msg.images?.map(img => ({ ...img, isUploading: false })),
                     }
-                    : msg
-                )
-              );
-            }
+                  : msg
+              )
+            );
+
+            // Note: Pusher event (message-sent) will handle refreshing messages silently
+            // No need to reload all messages here
           } catch (error: any) {
             console.error('Error sending image message:', error);
             Toast.error(error?.message || 'Failed to send image');
             // Remove the optimistic message on error
             setMessages(prev => prev.filter(msg => msg.id !== tempId));
-          } finally {
-            setSendingMessage(false);
           }
+        } else {
+          // No consultation ID, just remove uploading state
+          setMessages(prev =>
+            prev.map(msg =>
+              msg.id === tempId
+                ? {
+                    ...msg,
+                    images: msg.images?.map(img => ({ ...img, isUploading: false })),
+                  }
+                : msg
+            )
+          );
         }
       },
     );
@@ -475,7 +577,10 @@ export function ChatScreen({ navigation, route }) {
       text: trimmedMessage,
       timestamp: getCurrentTimestamp(),
       user: showAvatar
-        ? { name: 'You', avatar: patient }
+        ? { 
+            name: profileData?.name || 'You', 
+            avatar: patientProfileAvatar 
+          }
         : undefined,
     };
 
@@ -485,7 +590,6 @@ export function ChatScreen({ navigation, route }) {
     // Send message via API if consultationID exists
     if (consultationID && recipientID) {
       try {
-        setSendingMessage(true);
         const formData = new FormData();
         formData.append('recipientID', String(recipientID));
         formData.append('message', trimmedMessage);
@@ -528,8 +632,6 @@ export function ChatScreen({ navigation, route }) {
         Toast.error(error?.message || 'Failed to send message');
         // Remove the optimistic message on error
         setMessages(prev => prev.filter(msg => msg.id !== tempId));
-      } finally {
-        setSendingMessage(false);
       }
     }
   }, [message, showAvatar, consultationID, recipientID]);
@@ -617,10 +719,10 @@ export function ChatScreen({ navigation, route }) {
     [navigation],
   );
 
-  const handleEndConsultation = useCallback(() => {
+  const handleEndConsultation = useCallback(async () => {
     setIsConsultationActive(false);
-    setModalVisible(true);
-  }, []);
+    await checkPrescriptionAndShowModal();
+  }, [checkPrescriptionAndShowModal]);
 
   const handleGetPrescription = useCallback(() => {
     setModalVisible(false);
@@ -634,9 +736,28 @@ export function ChatScreen({ navigation, route }) {
     navigation.navigate('EntryPoint');
   }, []);
 
-  const handleGoBack = useCallback(() => {
+  const handleGoBack = useCallback(async () => {
+    // Show confirmation dialog before going back
+    if (chatType === 'doctor' && !fromHistory && isConsultationActive) {
+      // Check prescription before showing modal
+      await checkPrescriptionAndShowModal();
+      return true; // Prevent default back action
+    }
     navigation.goBack();
-  }, [navigation]);
+  }, [navigation, chatType, fromHistory, isConsultationActive, checkPrescriptionAndShowModal]);
+
+  // Override back button behavior
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (chatType === 'doctor' && !fromHistory && isConsultationActive) {
+        handleGoBack();
+        return true; // Prevent default back action
+      }
+      return false; // Allow default back action
+    });
+
+    return () => backHandler.remove();
+  }, [chatType, fromHistory, isConsultationActive, handleGoBack]);
 
   const handleCartPress = () => {
     navigation.navigate('CartScreen');
@@ -644,7 +765,17 @@ export function ChatScreen({ navigation, route }) {
 
   // ---------- Main Render ----------
   return (
-    <SafeAreaView style={styles.container}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+      style={
+        flexToggle
+          ? [{ flexGrow: 1 }, styles.container]
+          : [{ flex: 1 }, styles.container]
+      }
+      enabled={!flexToggle}
+    >
+      <SafeAreaView style={styles.container}>
       <ChatHeader
         chatType={chatType}
         doctorInfo={doctorInfo}
@@ -653,54 +784,8 @@ export function ChatScreen({ navigation, route }) {
         handleGoBack={handleGoBack}
         handleEndConsultation={handleEndConsultation}
         handleCart={handleCartPress}
+        consultationData={consultationData}
       />
-
-      {/* Clinic Info */}
-      <View style={styles.clinicInfo}>
-        <View style={styles.clinicLeft}>
-          <Image
-            source={
-              typeof storedClinicInfo.image === 'number'
-                ? { uri: Image.resolveAssetSource(storedClinicInfo.image).uri }
-                : storedClinicInfo.image
-            }
-            style={styles.clinicImage}
-          />
-          <View>
-            <Text style={styles.clinicName}>{storedClinicInfo.name}</Text>
-            <Text style={styles.clinicLocation}>{storedClinicInfo.location}</Text>
-          </View>
-        </View>
-
-        <TouchableOpacity
-          style={styles.consultButton}
-          onPress={() => {
-            if (chatType === 'doctor') {
-              // Navigate to ClinicDetail with clinic data
-              // Use clinicID from consultation data if available, otherwise use stored clinic info
-              const clinicID = consultationData?.clinicID || consultationData?.clinic?.id || consultationData?.clinic?.clinicID;
-              const clinicToNavigate = consultationData?.clinic || storedClinicInfo;
-
-              navigation.navigate('ClinicDetail', {
-                clinic: {
-                  id: clinicID || clinicToNavigate?.id || clinicToNavigate?.clinicID || storedClinicInfo.id,
-                  name: clinicToNavigate?.clinicName || clinicToNavigate?.name || storedClinicInfo.name,
-                  location: clinicToNavigate?.location || clinicToNavigate?.city || storedClinicInfo.location,
-                  image: clinicToNavigate?.image ? { uri: clinicToNavigate.image } : storedClinicInfo.image,
-                  specialty: consultationData?.service?.serviceType || consultationData?.service?.name || 'General',
-                  rating: 0, // API doesn't provide rating in consultation data
-                },
-              });
-            } else {
-              setShowBottomSheet(true);
-            }
-          }}
-        >
-          <Text style={styles.consultButtonText}>
-            {chatType === 'doctor' ? t('visit') : t('consult_now')}
-          </Text>
-        </TouchableOpacity>
-      </View>
 
       {/* Messages */}
       {loadingMessages ? (
@@ -739,11 +824,13 @@ export function ChatScreen({ navigation, route }) {
         visible={modalVisible}
         onClose={handleCloseModal}
         onGetPrescription={handleGetPrescription}
+        hasPrescription={hasPrescription}
       />
       <ConsultDoctorBottomSheet
         visible={showBottomSheet}
         onClose={() => setShowBottomSheet(false)}
       />
     </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 }

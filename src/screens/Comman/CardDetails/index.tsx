@@ -27,6 +27,7 @@ import { API } from '@services/api/api-endpoint';
 import { Toast as Toastify } from 'toastify-react-native';
 import { BASE_URL } from '@constants';
 import { useAuthStore } from '@store';
+import { translateCityToEnglish } from '../../../utils/cityTranslator';
 
 type CardDetailsRouteParams = {
   paymentId: string;
@@ -303,7 +304,11 @@ export function CardDetails({ navigation }: { navigation: any }) {
 
           setDisplayData({
             clinicName: clinicData.clinicName || clinicDetails.businessName || clinicData.name || '',
-            clinicLocation: clinicDetails.address || `${clinicDetails.city || ''}${clinicDetails.district ? `, ${clinicDetails.district}` : ''}`.trim() || '',
+            clinicLocation: (() => {
+              const city = translateCityToEnglish(clinicDetails.city);
+              const district = translateCityToEnglish(clinicDetails.district);
+              return clinicDetails.address || `${city || ''}${district ? `, ${district}` : ''}`.trim() || '';
+            })(),
             status: status,
             statusColor: statusColor,
             dateTime: formattedDateTime,
@@ -693,7 +698,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
           businessEmail: clinicDetails.businessEmail || '',
           businessNumber: clinicDetails.businessNumber || '',
           address: clinicDetails.address || '',
-          city: clinicDetails.city || '',
+          city: translateCityToEnglish(clinicDetails.city) || '',
           district: clinicDetails.district || '',
         },
         appointmentID: paymentDetails.appointment?.id,

@@ -7,7 +7,9 @@ import {
     mediaDevices,
     RTCView,
 } from 'react-native-webrtc';
-import SignalingService, { SignalingCallbacks } from '../services/webrtc/SignalingService';
+import PusherSignalingService, { SignalingCallbacks } from '../services/webrtc/PusherSignalingService';
+// Use PusherSignalingService instead of Socket.IO SignalingService
+const SignalingService = PusherSignalingService;
 import { Platform, PermissionsAndroid } from 'react-native';
 
 /**
@@ -37,7 +39,6 @@ export interface UseWebRTCOptions {
     roomId: string;
     isVideoEnabled?: boolean;
     isAudioEnabled?: boolean;
-    signalingServerUrl?: string;
 }
 
 export interface UseWebRTCReturn {
@@ -71,7 +72,6 @@ export const useWebRTC = ({
     roomId,
     isVideoEnabled = true,
     isAudioEnabled = true,
-    signalingServerUrl,
 }: UseWebRTCOptions): UseWebRTCReturn => {
     const [localStream, setLocalStream] = useState<MediaStream | null>(null);
     const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
@@ -172,10 +172,11 @@ export const useWebRTC = ({
             // Handle ICE candidates
             pc.onicecandidate = (event) => {
                 if (event.candidate && remoteUserId.current) {
+                    // sendIceCandidate is now async, but we don't need to await it
                     SignalingService.sendIceCandidate(
                         event.candidate.toJSON(),
                         remoteUserId.current
-                    );
+                    ).catch(err => console.error('Error sending ICE candidate:', err));
                 }
             };
 
@@ -221,7 +222,7 @@ export const useWebRTC = ({
      */
     const setupSignalingCallbacks = useCallback((): SignalingCallbacks => {
         return {
-            onOffer: async (offer) => {
+            onOffer: async (offer, from) => {
                 try {
                     if (!peerConnection.current) {
                         createPeerConnection();
@@ -230,12 +231,17 @@ export const useWebRTC = ({
                     const pc = peerConnection.current;
                     if (!pc) return;
 
+                    // Store remote user ID
+                    if (from) {
+                        remoteUserId.current = from;
+                    }
+
                     await pc.setRemoteDescription(new RTCSessionDescription(offer));
                     const answer = await pc.createAnswer();
                     await pc.setLocalDescription(answer);
 
                     if (remoteUserId.current) {
-                        SignalingService.sendAnswer(answer.toJSON(), remoteUserId.current);
+                        await SignalingService.sendAnswer(answer.toJSON(), remoteUserId.current);
                     }
                 } catch (err) {
                     console.error('Error handling offer:', err);
@@ -243,10 +249,15 @@ export const useWebRTC = ({
                 }
             },
 
-            onAnswer: async (answer) => {
+            onAnswer: async (answer, from) => {
                 try {
                     const pc = peerConnection.current;
                     if (!pc) return;
+
+                    // Store remote user ID
+                    if (from) {
+                        remoteUserId.current = from;
+                    }
 
                     await pc.setRemoteDescription(new RTCSessionDescription(answer));
                 } catch (err) {
@@ -255,10 +266,15 @@ export const useWebRTC = ({
                 }
             },
 
-            onIceCandidate: async (candidate) => {
+            onIceCandidate: async (candidate, from) => {
                 try {
                     const pc = peerConnection.current;
                     if (!pc) return;
+
+                    // Store remote user ID
+                    if (from) {
+                        remoteUserId.current = from;
+                    }
 
                     await pc.addIceCandidate(new RTCIceCandidate(candidate));
                 } catch (err) {
@@ -266,9 +282,15 @@ export const useWebRTC = ({
                 }
             },
 
-            onUserJoined: (userId) => {
+            onUserJoined: async (userId) => {
                 console.log('User joined:', userId);
                 remoteUserId.current = userId;
+                
+                // If we have a local description (offer), send it to the remote user
+                const pc = peerConnection.current;
+                if (pc && pc.localDescription && pc.localDescription.type === 'offer') {
+                    await SignalingService.sendOffer(pc.localDescription.toJSON(), userId);
+                }
             },
 
             onUserLeft: () => {
@@ -276,8 +298,8 @@ export const useWebRTC = ({
                 endCall();
             },
 
-            onCallEnded: () => {
-                console.log('Call ended');
+            onCallEnded: (endedBy) => {
+                console.log('Call ended by:', endedBy);
                 endCall();
             },
 
@@ -354,6 +376,13 @@ export const useWebRTC = ({
             });
 
             await pc.setLocalDescription(offer);
+            
+            // Send offer when remote user joins (will be triggered by onUserJoined)
+            // If remote user already joined, send offer immediately
+            if (remoteUserId.current) {
+                await SignalingService.sendOffer(offer.toJSON(), remoteUserId.current);
+            }
+            
             console.log('Call started successfully');
         } catch (err) {
             console.error('Error starting call:', err);

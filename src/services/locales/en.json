@@ -436,5 +436,21 @@
   "no_payment_details_found": "No Payment Details Found",
   "no_payment_details_message": "Unable to load payment details for this appointment.",
   "no_messages_yet": "No messages yet",
-  "start_conversation": "Start the conversation by sending a message"
+  "start_conversation": "Start the conversation by sending a message",
+  "failed_to_book_consultation": "Failed to book consultation",
+  "consultation_booked_successfully": "Consultation booked successfully",
+  "failed_to_load_notifications": "Failed to load notifications",
+  "failed_to_delete_notification": "Failed to delete notification",
+  "failed_to_clear_notifications": "Failed to clear notifications",
+  "notification_deleted": "Notification deleted",
+  "all_notifications_cleared": "All notifications cleared",
+  "clear_all_notifications": "Clear All Notifications",
+  "are_you_sure_clear_all": "Are you sure you want to clear all notifications?",
+  "clear_all": "Clear All",
+  "payment_method_not_available": "Payment Method Not Available",
+  "only_card_payment_available": "Only card payment is currently available. Please select card payment to proceed.",
+  "fill_card_details": "Fill Card Details",
+  "please_fill_all_card_details": "Please fill in all card details to proceed.",
+  "invalid_expiry_date": "Invalid Expiry Date",
+  "please_enter_valid_expiry_date": "Please enter a valid expiry date in MM/YYYY format."
 }

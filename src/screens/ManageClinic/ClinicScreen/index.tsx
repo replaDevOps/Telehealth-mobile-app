@@ -15,6 +15,7 @@ import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
 import { ClinicApiResponse } from '../../../types/clinic.types';
 import { Toast } from 'toastify-react-native';
+import { translateCityToEnglish } from '../../../utils/cityTranslator';
 
 interface FilterParams {
   clinicTypes?: string | null;
@@ -64,7 +65,7 @@ export const ClinicScreen = ({ navigation, route }) => {
   const fetchAllClinics = async (query: string = '', filters: FilterParams | null = null, pageNo: number = 1, recordsPerPage: number = 10) => {
     try {
       setLoading(true);
-      
+        
       // Build params object
       const params: any = {
         name: query || '',
@@ -144,8 +145,8 @@ export const ClinicScreen = ({ navigation, route }) => {
     return apiClinics.map((clinic): Clinic => {
       const clinicName = clinic.name || clinic.clinicName || 'Clinic';
       const location = clinic.details?.address || 
-                      clinic.details?.city || 
-                      clinic.details?.district || 
+                      translateCityToEnglish(clinic.details?.city) || 
+                      translateCityToEnglish(clinic.details?.district) || 
                       'Location not available';
       const specialty = clinic.details?.businessName || 
                        clinic.businessType || 

@@ -422,5 +422,21 @@
   "no_payment_details_found": "لم يتم العثور على تفاصيل الدفع",
   "no_payment_details_message": "تعذر تحميل تفاصيل الدفع لهذا الموعد.",
   "no_messages_yet": "لا توجد رسائل بعد",
-  "start_conversation": "ابدأ المحادثة بإرسال رسالة"
+  "start_conversation": "ابدأ المحادثة بإرسال رسالة",
+  "failed_to_book_consultation": "فشل حجز الاستشارة",
+  "consultation_booked_successfully": "تم حجز الاستشارة بنجاح",
+  "failed_to_load_notifications": "فشل تحميل الإشعارات",
+  "failed_to_delete_notification": "فشل حذف الإشعار",
+  "failed_to_clear_notifications": "فشل مسح جميع الإشعارات",
+  "notification_deleted": "تم حذف الإشعار",
+  "all_notifications_cleared": "تم مسح جميع الإشعارات",
+  "clear_all_notifications": "مسح جميع الإشعارات",
+  "are_you_sure_clear_all": "هل أنت متأكد أنك تريد مسح جميع الإشعارات؟",
+  "clear_all": "مسح الكل",
+  "payment_method_not_available": "طريقة الدفع غير متاحة",
+  "only_card_payment_available": "الدفع بالبطاقة متاح حاليًا فقط. يرجى اختيار الدفع بالبطاقة للمتابعة.",
+  "fill_card_details": "املأ تفاصيل البطاقة",
+  "please_fill_all_card_details": "الرجاء ملء جميع تفاصيل البطاقة للمتابعة.",
+  "invalid_expiry_date": "تاريخ انتهاء الصلاحية غير صالح",
+  "please_enter_valid_expiry_date": "الرجاء إدخال تاريخ انتهاء صالح بتنسيق MM/YYYY."
 }

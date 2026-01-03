@@ -1,5 +1,6 @@
-import React from 'react';
-import { View, Text, Image, TouchableOpacity, Platform, ActionSheetIOS } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, Image, TouchableOpacity, Platform, ActionSheetIOS, ActivityIndicator } from 'react-native';
+import FastImage from '@d11/react-native-fast-image';
 import { Suggestion } from '../Suggestion';
 import { Message as MessageType, Service } from '../../../types/chat.types';
 import { styles } from './style';
@@ -17,6 +18,7 @@ export const Message: React.FC<MessageProps> = ({
   handleServicePress,
   handleDeleteMessage,
 }) => {
+  const [loadingImages, setLoadingImages] = useState<{ [key: number]: boolean }>({});
   const isUser = msg.type === 'user';
   const hasText = msg.text && msg.text.trim().length > 0;
   const hasImages = msg.images && msg.images.length > 0;
@@ -56,9 +58,55 @@ export const Message: React.FC<MessageProps> = ({
             {showAvatar && msg.user && (
               <Text style={styles.senderName}>{msg.user.name}</Text>
             )}
-            {hasText && (
+            {(hasText || hasImages) && (
               <View style={styles.botMessage}>
-                <Text style={styles.botMessageText}>{msg.text}</Text>
+                {hasText && (
+                  <Text style={styles.botMessageText}>{msg.text}</Text>
+                )}
+                {hasImages && (
+                  <View style={styles.botImagesRow}>
+                    {msg.images?.map((img, i) => {
+                      // Ensure image URI is properly formatted
+                      const imageUri = typeof img === 'string' 
+                        ? img 
+                        : (typeof img === 'object' && img?.uri) ? img.uri : String(img);
+                      
+                      const isUploading = typeof img === 'object' && img?.isUploading;
+                      const isLoading = loadingImages[i] || false;
+                      
+                      // If URI doesn't start with http, prepend BASE_URL
+                      const fullImageUri = imageUri && typeof imageUri === 'string' && !imageUri.startsWith('http') && !imageUri.startsWith('file://')
+                        ? `https://telehealth.repla-projects.com/${imageUri}`
+                        : (typeof imageUri === 'string' ? imageUri : '');
+
+                      const handleLoadStart = () => {
+                        setLoadingImages(prev => ({ ...prev, [i]: true }));
+                      };
+
+                      const handleLoadEnd = () => {
+                        setLoadingImages(prev => ({ ...prev, [i]: false }));
+                      };
+
+                      return (
+                        <View key={`img-${i}`} style={styles.imageContainer}>
+                          <FastImage
+                            source={{ uri: fullImageUri }}
+                            style={styles.uploadedImage}
+                            resizeMode={FastImage.resizeMode.cover}
+                            onLoadStart={handleLoadStart}
+                            onLoadEnd={handleLoadEnd}
+                            onError={handleLoadEnd}
+                          />
+                          {(isUploading || isLoading) && (
+                            <View style={styles.uploadingOverlay}>
+                              <ActivityIndicator size="small" color="#fff" />
+                            </View>
+                          )}
+                        </View>
+                      );
+                    })}
+                  </View>
+                )}
               </View>
             )}
             {msg.suggestions && (
@@ -98,19 +146,40 @@ export const Message: React.FC<MessageProps> = ({
                     // Ensure image URI is properly formatted
                     const imageUri = typeof img === 'string' 
                       ? img 
-                      : img?.uri || img;
+                      : (typeof img === 'object' && img?.uri) ? img.uri : String(img);
+                    
+                    const isUploading = typeof img === 'object' && img?.isUploading;
+                    const isLoading = loadingImages[i] || false;
                     
                     // If URI doesn't start with http, prepend BASE_URL
-                    const fullImageUri = imageUri && !imageUri.startsWith('http') && !imageUri.startsWith('file://')
+                    const fullImageUri = imageUri && typeof imageUri === 'string' && !imageUri.startsWith('http') && !imageUri.startsWith('file://')
                       ? `https://telehealth.repla-projects.com/${imageUri}`
-                      : imageUri;
+                      : (typeof imageUri === 'string' ? imageUri : '');
+
+                    const handleLoadStart = () => {
+                      setLoadingImages(prev => ({ ...prev, [i]: true }));
+                    };
+
+                    const handleLoadEnd = () => {
+                      setLoadingImages(prev => ({ ...prev, [i]: false }));
+                    };
 
                     return (
-                      <Image
-                        key={`img-${i}`}
-                        source={{ uri: fullImageUri }}
-                        style={styles.uploadedImage}
-                      />
+                      <View key={`img-${i}`} style={styles.imageContainer}>
+                        <FastImage
+                          source={{ uri: fullImageUri }}
+                          style={styles.uploadedImage}
+                          resizeMode={FastImage.resizeMode.cover}
+                          onLoadStart={handleLoadStart}
+                          onLoadEnd={handleLoadEnd}
+                          onError={handleLoadEnd}
+                        />
+                        {(isUploading || isLoading) && (
+                          <View style={styles.uploadingOverlay}>
+                            <ActivityIndicator size="small" color="#fff" />
+                          </View>
+                        )}
+                      </View>
                     );
                   })}
                 </View>

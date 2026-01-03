@@ -1,8 +1,11 @@
 import { useEffect, useRef } from 'react';
-import { Alert } from 'react-native';
 import { pusherService } from '@services/pusher/PusherService';
 import { useAuthStore } from '@store';
+import { useNotificationStore } from '@store/useNotificationStore';
+import { navigationRef } from '@navigation/root-navigation';
 import { Toast } from 'toastify-react-native';
+import { RecommandImage } from '@assets/images';
+import { translateCityToEnglish } from '../utils/cityTranslator';
 
 /**
  * Hook to set up Pusher listeners for patient notifications and consultations
@@ -49,35 +52,212 @@ export const usePusherNotifications = () => {
     const receiveMessageChannelName = `received-message${patientID}`;
 
     // Handler for notification-send event
-    const handleNotification = (data: any) => {
+    const handleNotification = async (data: any) => {
       console.log('Notification received:', data);
-      Alert.alert("Message received alert:\n" + JSON.stringify(data));
-      // Show toast notification
-      if (data?.message || data?.title) {
-        Toast.info(data.message || data.title);
+      
+      // Refresh notifications from API
+      try {
+        const { refreshNotifications } = useNotificationStore.getState();
+        await refreshNotifications();
+        console.log('✅ Notifications refreshed after Pusher event');
+      } catch (error) {
+        console.error('❌ Error refreshing notifications:', error);
       }
+      
+      // Show toast notification - ensure we extract a string value
+      let notificationMessage = 'New notification received';
+      
+      if (typeof data === 'string') {
+        notificationMessage = data;
+      } else if (data && typeof data === 'object') {
+        // Extract string from various possible fields
+        notificationMessage = 
+          data?.description || 
+          data?.message || 
+          data?.title || 
+          data?.body || 
+          data?.type ||
+          (data?.notification ? (typeof data.notification === 'string' ? data.notification : data.notification?.description || data.notification?.message || data.notification?.title) : null) ||
+          'New notification received';
+      }
+      
+      // Ensure it's a string, not an object
+      if (typeof notificationMessage !== 'string') {
+        notificationMessage = JSON.stringify(notificationMessage);
+      }
+      
+      Toast.info(notificationMessage);
     };
 
-    // Handler for consultation-patient event
+    // Handler for consultation-patient event (when doctor accepts consultation)
     const handleConsultationUpdate = (data: any) => {
       console.log('Consultation update received:', data);
-      Alert.alert("Message received alert:\n" + JSON.stringify(data));
-      // Show toast notification
-      if (data?.message || data?.status) {
-        Toast.info(data.message || `Consultation ${data.status}`);
+      
+      // Extract consultation data - handle multiple formats:
+      // 1. data.consultation (wrapped)
+      // 2. data.message (consultation in message field)
+      // 3. data (direct consultation object)
+      const consultation = data?.consultation || data?.message || data;
+      
+      // Ensure we have a valid consultation object
+      if (!consultation || typeof consultation !== 'object' || !consultation.id) {
+        console.warn('Invalid consultation data received:', data);
+        // Try to show a safe message
+        const safeMessage = typeof data === 'string' ? data : (data?.message || 'Consultation update received');
+        Toast.info(safeMessage);
+        return;
+      }
+      
+      // Check if consultation was accepted or is pending (for Chat type, navigate when pending)
+      const consultationStatus = consultation?.status || data?.status;
+      const isAccepted = consultationStatus === 'Accepted' || consultationStatus === 'accepted';
+      const isPending = consultationStatus === 'Pending' || consultationStatus === 'pending';
+      const consultationType = consultation?.type || data?.type || 'Chat';
+      
+      // For Chat consultations, navigate when pending (doctor has accepted and consultation is ready)
+      // For other types, only navigate when explicitly accepted
+      const shouldNavigate = (consultationType === 'Chat' && isPending) || isAccepted;
+      
+      if (shouldNavigate) {
+        const consultationID = consultation?.id || data?.consultationID || data?.id;
+        const doctorData = consultation?.doctor || data?.doctor;
+        const clinicData = consultation?.clinic || data?.clinic;
+        
+        console.log('Consultation ready! Navigating to ChatScreen...', {
+          consultationID,
+          consultationType,
+          consultationStatus,
+          doctorData,
+          clinicData,
+        });
+        
+        // Show success toast
+        const toastMessage = isAccepted 
+          ? 'Doctor has accepted your consultation request'
+          : 'Your consultation is ready';
+        Toast.success(toastMessage);
+        
+        // Navigate based on consultation type
+        setTimeout(() => {
+          if (navigationRef.isReady()) {
+            try {
+              if (consultationType === 'Chat' || consultationType === 'chat') {
+                // Navigate to ChatScreen for chat consultations
+                (navigationRef as any).navigate('Main', {
+                  screen: 'ChatScreen',
+                  params: {
+                    chatType: 'doctor',
+                    consultationID: consultationID,
+                    recipientID: doctorData?.id || consultation?.doctorID,
+                    doctorInfo: {
+                      id: String(doctorData?.id || consultation?.doctorID || ''),
+                      name: doctorData?.name || 'Doctor',
+                      avatar: doctorData?.image ? { uri: doctorData.image } : 'https://i.pravatar.cc/150?img=12',
+                      specialization: doctorData?.specialization,
+                    },
+                    clinicInfo: {
+                      name: clinicData?.name || clinicData?.clinicName || 'Clinic',
+                      location: clinicData?.location || translateCityToEnglish(clinicData?.city) || '',
+                      image: clinicData?.image ? { uri: clinicData.image } : RecommandImage,
+                    },
+                  },
+                });
+              } else if (consultationType === 'Audio' || consultationType === 'audio') {
+                // Navigate to AudioConsultation for audio consultations
+                const currentPatientID = (auth as any)?.user?.id || (auth as any)?.id;
+                const userId = currentPatientID ? `patient_${currentPatientID}` : `patient_${Date.now()}`;
+                
+                (navigationRef as any).navigate('Main', {
+                  screen: 'AudioConsultation',
+                  params: {
+                    consultationId: `consultation_${consultationID}`,
+                    userId: userId,
+                    isInitiator: true, // Patient initiates the call
+                    doctorInfo: {
+                      id: String(doctorData?.id || consultation?.doctorID || ''),
+                      name: doctorData?.name || 'Doctor',
+                      avatar: doctorData?.image ? { uri: doctorData.image } : 'https://i.pravatar.cc/150?img=12',
+                      specialization: doctorData?.specialization,
+                    },
+                  },
+                });
+              } else if (consultationType === 'Video' || consultationType === 'video') {
+                // Navigate to VideoConsultation for video consultations
+                const currentPatientID = (auth as any)?.user?.id || (auth as any)?.id;
+                const userId = currentPatientID ? `patient_${currentPatientID}` : `patient_${Date.now()}`;
+                
+                (navigationRef as any).navigate('Main', {
+                  screen: 'VideoConsultation',
+                  params: {
+                    consultationId: `consultation_${consultationID}`,
+                    userId: userId,
+                    isInitiator: true, // Patient initiates the call
+                    doctorInfo: {
+                      id: String(doctorData?.id || consultation?.doctorID || ''),
+                      name: doctorData?.name || 'Doctor',
+                      avatar: doctorData?.image ? { uri: doctorData.image } : 'https://i.pravatar.cc/150?img=12',
+                      specialization: doctorData?.specialization,
+                    },
+                  },
+                });
+              }
+            } catch (error) {
+              console.error('Error navigating to consultation screen:', error);
+              // Fallback navigation
+              if (consultationType === 'Chat' || consultationType === 'chat') {
+                (navigationRef as any).navigate('ChatScreen', {
+                  chatType: 'doctor',
+                  consultationID: consultationID,
+                  recipientID: doctorData?.id || consultation?.doctorID,
+                  doctorInfo: {
+                    id: String(doctorData?.id || consultation?.doctorID || ''),
+                    name: doctorData?.name || 'Doctor',
+                    avatar: doctorData?.image ? { uri: doctorData.image } : 'https://i.pravatar.cc/150?img=12',
+                    specialization: doctorData?.specialization,
+                  },
+                  clinicInfo: {
+                    name: clinicData?.name || clinicData?.clinicName || 'Clinic',
+                    location: clinicData?.location || clinicData?.city || '',
+                    image: clinicData?.image ? { uri: clinicData.image } : RecommandImage,
+                  },
+                });
+              }
+            }
+          }
+        }, 1500);
+      } else {
+        // Other consultation updates - ensure we extract a string, not an object
+        let consultationMessage = 'Consultation update received';
+        
+        if (typeof data === 'string') {
+          consultationMessage = data;
+        } else if (data && typeof data === 'object') {
+          // Extract string from various possible fields
+          consultationMessage = 
+            data?.message || 
+            data?.description ||
+            (consultation?.status ? `Consultation ${consultation.status}` : null) || 
+            (data?.status ? `Consultation ${data.status}` : null) ||
+            'Consultation update received';
+        }
+        
+        // Ensure it's a string, not an object
+        if (typeof consultationMessage !== 'string') {
+          consultationMessage = JSON.stringify(consultationMessage);
+        }
+        
+        Toast.info(consultationMessage);
       }
     };
 
     // Handler for message-sent event
     const handleMessageSent = (data: any) => {
       console.log('Message sent alert:', data);
-      Alert.alert("Message sent alert:\n" + JSON.stringify(data));
     };
 
     // Handler for message-received event
     const handleMessageReceived = (data: any) => {
       console.log('Message received alert:', data);
-      Alert.alert("Message received alert:\n" + JSON.stringify(data));
     };
 
     // Bind events

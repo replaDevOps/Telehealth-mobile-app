@@ -8,8 +8,24 @@ import { CartCountProvider } from '@context/CartCountContext';
 import './src/services/i18n';
 import { Provider as PaperProvider } from 'react-native-paper';
 import ToastManager from 'toastify-react-native';
+import { usePusherNotifications } from './src/hooks/usePusherNotifications';
 
 setGlobalFont();
+
+const AppContent = () => {
+  // Setup Pusher notifications
+  usePusherNotifications();
+
+  return (
+    <>
+      <AppNavigator />
+      <ToastManager
+        showProgressBar={false}
+        duration={1500}
+      />
+    </>
+  );
+};
 
 const App = () => {
   return (
@@ -22,14 +38,10 @@ const App = () => {
       <PaperProvider>
         <CartProvider>
           <CartCountProvider>
-          <AppNavigator />
+            <AppContent />
           </CartCountProvider>
         </CartProvider>
       </PaperProvider>
-      <ToastManager
-        showProgressBar={false}
-        duration={1500}
-      />
     </SafeAreaProvider>
   );
 };

@@ -34,6 +34,7 @@ import { API } from '@services/api/api-endpoint';
 import { Toast } from 'toastify-react-native';
 import { BASE_URL } from '@constants';
 import { useAuthStore } from '@store';
+import { pusherService } from '@services/pusher/PusherService';
 
 // ---------- Main Component ----------
 export function ChatScreen({ navigation, route }) {
@@ -66,6 +67,8 @@ export function ChatScreen({ navigation, route }) {
   const [storedClinicInfo, setStoredClinicInfo] = useState(clinicInfo);
 
   const scrollRef = useRef<ScrollView>(null);
+  const auth = useAuthStore(state => state.auth);
+  const patientID = auth?.id;
 
   useEffect(() => {
     console.log('clinicInfo.image type:', typeof clinicInfo.image);
@@ -110,7 +113,7 @@ export function ChatScreen({ navigation, route }) {
       const endpoint = fromHistory
         ? `${API.HISTORY.GET_CONSULTATION_MESSAGES}/${consultationID}`
         : `${API.CONSULTATIONS.GET_CONSULTATION_MESSAGES}/${consultationID}`;
-      
+
       const response = await apiClient.get(endpoint);
 
       console.log('Consultation messages response:', response.data);
@@ -167,38 +170,38 @@ export function ChatScreen({ navigation, route }) {
         const mappedMessages: Message[] = apiMessages.map((msg: any) => {
           // Determine if message is from user (patient) or doctor
           // Compare senderID with patientID and doctorID from consultation data
-          const isUser = msg.senderID === patientData?.id || 
-                        msg.senderType === 'patient' ||
-                        msg.senderRole === 'patient' ||
-                        (msg.patientID && msg.patientID === patientData?.id);
-          
+          const isUser = msg.senderID === patientData?.id ||
+            msg.senderType === 'patient' ||
+            msg.senderRole === 'patient' ||
+            (msg.patientID && msg.patientID === patientData?.id);
+
           return {
             id: String(msg.id || msg.messageID || Date.now()),
             type: isUser ? 'user' : 'bot',
             text: msg.message || msg.text || msg.content || '',
             timestamp: msg.created_at || msg.timestamp || msg.createdAt || getCurrentTimestamp(),
             user: isUser
-              ? { 
-                  name: patientData?.name || 'You', 
-                  avatar: patientData?.image ? { uri: patientData.image } : patient 
-                }
+              ? {
+                name: patientData?.name || 'You',
+                avatar: patientData?.image ? { uri: patientData.image } : patient
+              }
               : showAvatar && doctorData
-              ? { 
-                  name: doctorData.name || doctorInfo.name, 
-                  avatar: doctorData.image ? { uri: doctorData.image } : doctorInfo.avatar 
+                ? {
+                  name: doctorData.name || doctorInfo.name,
+                  avatar: doctorData.image ? { uri: doctorData.image } : doctorInfo.avatar
                 }
-              : showAvatar && doctorInfo
-              ? { name: doctorInfo.name, avatar: doctorInfo.avatar }
-              : undefined,
+                : showAvatar && doctorInfo
+                  ? { name: doctorInfo.name, avatar: doctorInfo.avatar }
+                  : undefined,
             images: (() => {
               const imagePath = msg.file || msg.image || msg.fileUrl;
               if (!imagePath) return undefined;
-              
+
               // If image path doesn't start with http, prepend BASE_URL
               const fullImageUri = imagePath && !imagePath.startsWith('http') && !imagePath.startsWith('file://')
                 ? `https://telehealth.repla-projects.com/${imagePath}`
                 : imagePath;
-              
+
               return [{ uri: fullImageUri }];
             })(),
           };
@@ -245,6 +248,118 @@ export function ChatScreen({ navigation, route }) {
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
     }
   }, [messages.length]);
+
+  // Setup Pusher listeners for real-time messages
+  useEffect(() => {
+    if (!patientID || !consultationID || chatType !== 'doctor') {
+      return;
+    }
+
+    let isMounted = true;
+
+    // Initialize Pusher
+    pusherService.initialize();
+
+    // Subscribe to sender channel (when patient sends a message)
+    const senderChannelName = `send-message${patientID}`;
+    const receiverChannelName = `received-message${patientID}`;
+
+    // Handler for message-sent event (confirmation that message was sent)
+    const handleMessageSent = (data: any) => {
+      console.log('Message sent alert:', data);
+      if (!isMounted) return;
+      // If the message is for this consultation, refresh messages
+      if (data?.consultationID === consultationID || data?.consultation_id === consultationID) {
+        // Optionally refresh messages or update UI
+        fetchConsultationMessages();
+      }
+    };
+
+    // Handler for message-received event (new message received)
+    const handleMessageReceived = (data: any) => {
+      console.log('Message received alert:', data);
+      if (!isMounted) return;
+      // If the message is for this consultation, add it to messages
+      if (data?.consultationID === consultationID || data?.consultation_id === consultationID) {
+        // Map the received message to Message format
+        const doctorData = consultationData?.doctor || doctorInfo;
+        const patientData = consultationData?.patient;
+
+        const isUser = data?.senderID === patientID ||
+          data?.senderType === 'patient' ||
+          data?.senderRole === 'patient';
+
+        const newMessage: Message = {
+          id: String(data?.id || data?.messageID || Date.now()),
+          type: isUser ? 'user' : 'bot',
+          text: data?.message || data?.text || data?.content || '',
+          timestamp: data?.created_at || data?.timestamp || data?.createdAt || getCurrentTimestamp(),
+          user: isUser
+            ? {
+              name: patientData?.name || 'You',
+              avatar: patientData?.image ? { uri: patientData.image } : patient
+            }
+            : showAvatar && doctorData
+              ? {
+                name: doctorData.name || doctorInfo.name,
+                avatar: doctorData.image ? { uri: doctorData.image } : doctorInfo.avatar
+              }
+              : showAvatar && doctorInfo
+                ? { name: doctorInfo.name, avatar: doctorInfo.avatar }
+                : undefined,
+          images: (() => {
+            const imagePath = data?.file || data?.image || data?.fileUrl;
+            if (!imagePath) return undefined;
+
+            const fullImageUri = imagePath && !imagePath.startsWith('http') && !imagePath.startsWith('file://')
+              ? `https://telehealth.repla-projects.com/${imagePath}`
+              : imagePath;
+
+            return [{ uri: fullImageUri }];
+          })(),
+        };
+
+        // Add message to state if it doesn't already exist
+        setMessages(prev => {
+          const exists = prev.some(msg => msg.id === newMessage.id);
+          if (exists) {
+            return prev;
+          }
+          return [...prev, newMessage];
+        });
+      }
+    };
+
+    // Bind events
+    try {
+      pusherService.bind(senderChannelName, 'message-sent', handleMessageSent);
+    } catch (err) {
+      console.error('Error binding to sender channel:', err);
+    }
+
+    try {
+      pusherService.bind(receiverChannelName, 'message-received', handleMessageReceived);
+    } catch (err) {
+      console.error('Error binding to receiver channel:', err);
+    }
+
+    // Cleanup function
+    return () => {
+      isMounted = false;
+      pusherService.unbind(senderChannelName, 'message-sent');
+      pusherService.unbind(receiverChannelName, 'message-received');
+      try {
+        pusherService.unsubscribe(senderChannelName);
+      } catch (err) {
+        console.error('Error unsubscribing from sender channel:', err);
+      }
+      try {
+        pusherService.unsubscribe(receiverChannelName);
+      } catch (err) {
+        console.error('Error unsubscribing from receiver channel:', err);
+      }
+    };
+  }, [patientID, consultationID, chatType, consultationData, doctorInfo, showAvatar, fetchConsultationMessages]);
 
   // ---------- Handlers ----------
   const handleImagePick = useCallback(async () => {
@@ -294,7 +409,7 @@ export function ChatScreen({ navigation, route }) {
             formData.append('recipientID', recipientID);
             formData.append('message', '');
             formData.append('consultationID', consultationID);
-            
+
             // Append file if available
             if (asset.uri) {
               formData.append('file', {
@@ -305,7 +420,7 @@ export function ChatScreen({ navigation, route }) {
             }
 
             // Use fetch instead of apiClient for FormData
-            const token = useAuthStore.getState().auth?.user?.token;
+            const token = useAuthStore.getState().auth?.token;
             const response = await fetch(`${BASE_URL}${API.CONSULTATIONS.SEND_MESSAGE}`, {
               method: 'POST',
               body: formData,
@@ -328,9 +443,9 @@ export function ChatScreen({ navigation, route }) {
                 prev.map(msg =>
                   msg.id === tempId
                     ? {
-                        ...msg,
-                        id: String(data?.data?.id || data?.id),
-                      }
+                      ...msg,
+                      id: String(data?.data?.id || data?.id),
+                    }
                     : msg
                 )
               );
@@ -376,9 +491,9 @@ export function ChatScreen({ navigation, route }) {
         formData.append('message', trimmedMessage);
         formData.append('consultationID', String(consultationID));
         formData.append('file', ''); // Empty file field
-        
+
         // Use fetch instead of apiClient for FormData
-        const token = useAuthStore.getState().auth?.user?.token;
+        const token = useAuthStore.getState().auth?.token;
         const response = await fetch(`${BASE_URL}${API.CONSULTATIONS.SEND_MESSAGE}`, {
           method: 'POST',
           body: formData,
@@ -401,9 +516,9 @@ export function ChatScreen({ navigation, route }) {
             prev.map(msg =>
               msg.id === tempId
                 ? {
-                    ...msg,
-                    id: String(data?.data?.id || data?.id),
-                  }
+                  ...msg,
+                  id: String(data?.data?.id || data?.id),
+                }
                 : msg
             )
           );
@@ -565,7 +680,7 @@ export function ChatScreen({ navigation, route }) {
               // Use clinicID from consultation data if available, otherwise use stored clinic info
               const clinicID = consultationData?.clinicID || consultationData?.clinic?.id || consultationData?.clinic?.clinicID;
               const clinicToNavigate = consultationData?.clinic || storedClinicInfo;
-              
+
               navigation.navigate('ClinicDetail', {
                 clinic: {
                   id: clinicID || clinicToNavigate?.id || clinicToNavigate?.clinicID || storedClinicInfo.id,

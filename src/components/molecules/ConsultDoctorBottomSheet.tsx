@@ -219,6 +219,7 @@ export default function ConsultDoctorBottomSheet({
       const response = await apiClient.get(API.CONSULTATIONS.GET_CONSULTATION_TYPES, {
         params: { clinicID },
       });
+      console.log('Consultation types response:', response.data);
 
       const data = response.data?.data || response.data;
       if (data) {
@@ -345,7 +346,7 @@ export default function ConsultDoctorBottomSheet({
     const consultationTypeMap: Record<string, string> = {
       chat: 'Chat',
       video: 'Video',
-      voice: 'Voice',
+      voice: 'Audio',
     };
     const consultationType = consultationTypeMap[selectedCard.id] || 'Chat';
 

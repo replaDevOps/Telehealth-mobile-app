@@ -25,7 +25,7 @@ class SignalingService {
     private roomId: string | null = null;
     private userId: string | null = null;
 
-    constructor(serverUrl: string = 'https://5b7dbf2df5b6.ngrok-free.app') {
+    constructor(serverUrl: string = 'https://e7c8c6ff87f3.ngrok-free.app') {
         this.serverUrl = serverUrl;
     }
 

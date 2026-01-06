@@ -46,9 +46,11 @@ export function VideoConsultation({ navigation, route }) {
     isMuted,
     isVideoOff,
     isReady,
+    isSpeakerOn,
     error,
     toggleMute,
     toggleVideo,
+    toggleSpeaker,
     switchCamera,
     startCall,
     endCall,
@@ -59,9 +61,6 @@ export function VideoConsultation({ navigation, route }) {
     isVideoEnabled: true,
     isAudioEnabled: true,
   });
-
-  // Keep speaker state locally
-  const [isSpeakerOn, setIsSpeakerOn] = useState(false);
 
   const handleGetPrescription = () => {
     setModalVisible(false);
@@ -162,10 +161,6 @@ export function VideoConsultation({ navigation, route }) {
     return () => clearInterval(timer);
   }, [isConnected, endCall]);
 
-  const toggleSpeaker = () => {
-    setIsSpeakerOn(!isSpeakerOn);
-    // TODO: Implement native speaker toggle
-  };
 
   // Determine call status
   const getCallStatus = () => {

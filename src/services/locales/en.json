@@ -349,6 +349,7 @@
   "no_device_selected": "No device selected",
   "consultation_ended": "Consultation Ended",
   "consultation_ended_description": "The consultation has ended. The doctor has shared your prescription. You can download it now or anytime from your history.",
+  "consultation_ended_no_prescription": "The consultation has ended. No prescription is available yet.",
   "close": "Close",
   "get_prescription": "Get Prescription",
   "filters": "Filters",

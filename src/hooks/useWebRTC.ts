@@ -12,28 +12,101 @@ import PusherSignalingService, { SignalingCallbacks } from '../services/webrtc/P
 const SignalingService = PusherSignalingService;
 import { Platform, PermissionsAndroid } from 'react-native';
 
+// Import react-native-incall-manager for speaker control
+let InCallManager: any = null;
+try {
+    InCallManager = require('react-native-incall-manager').default;
+} catch (e) {
+    console.warn('⚠️ [useWebRTC] react-native-incall-manager not installed. Speaker control will not work.');
+}
+
 /**
  * Configuration for STUN/TURN servers
- * Replace with your own TURN server for production
+ * TURN servers are REQUIRED for cellular networks and strict NATs
+ * 
+ * For production, replace with your own TURN server:
+ * - Use coturn (https://github.com/coturn/coturn)
+ * - Or use a TURN service provider (Twilio, Metered.ca, etc.)
  */
+/**
+ * ICE Server Configuration
+ * TURN servers are CRITICAL for cellular networks
+ */
+// IMPORTANT: Metered.ca Free Tier = 500 MB/month
+// Video calls use 500KB-2MB/s through TURN, so free tier runs out fast!
+// For production video, upgrade to Growth ($99/mo for 150GB) or higher
+// See: https://www.metered.ca/stun-turn
+
 const ICE_SERVERS = {
     iceServers: [
+        // STUN servers for NAT discovery
         {
             urls: [
                 'stun:stun.l.google.com:19302',
                 'stun:stun1.l.google.com:19302',
-                'stun:stun2.l.google.com:19302',
             ],
         },
-        // Add TURN servers for production
+        // Metered.ca STUN (free unlimited)
+        {
+            urls: 'stun:stun.relay.metered.ca:80',
+        },
+        // TURN servers - ORDER MATTERS for cellular!
+        // TCP/TLS TURN servers FIRST (cellular carriers often block UDP)
+        // TURNS (TLS over TCP on 443) - Most reliable for cellular/firewalls
+        {
+            urls: 'turns:global.relay.metered.ca:443?transport=tcp',
+            username: 'e68c6d3d325a577b1a132022',
+            credential: 'bujTAGq+PhdUVI3s',
+        },
+        // TURN TCP on 443 - Bypasses most firewalls
+        {
+            urls: 'turn:global.relay.metered.ca:443?transport=tcp',
+            username: 'e68c6d3d325a577b1a132022',
+            credential: 'bujTAGq+PhdUVI3s',
+        },
+        // TURN TCP on 80 - Fallback
+        {
+            urls: 'turn:global.relay.metered.ca:80?transport=tcp',
+            username: 'e68c6d3d325a577b1a132022',
+            credential: 'bujTAGq+PhdUVI3s',
+        },
+        // TURN UDP (may be blocked on cellular)
+        {
+            urls: 'turn:global.relay.metered.ca:80',
+            username: 'e68c6d3d325a577b1a132022',
+            credential: 'bujTAGq+PhdUVI3s',
+        },
+        {
+            urls: 'turn:global.relay.metered.ca:443',
+            username: 'e68c6d3d325a577b1a132022',
+            credential: 'bujTAGq+PhdUVI3s',
+        },
+        // Production TURN server (uncomment and configure)
         // {
-        //   urls: 'turn:your-turn-server.com:3478',
-        //   username: 'username',
-        //   credential: 'password',
+        //   urls: [
+        //     'turn:your-turn-server.com:3478',
+        //     'turns:your-turn-server.com:5349',
+        //   ],
+        //   username: 'your-username',
+        //   credential: 'your-password',
         // },
     ],
+    iceTransportPolicy: 'all' as any, // Allow all: host, srflx, and relay
+    bundlePolicy: 'max-bundle' as any, // Bundle audio/video together for better NAT traversal
+    rtcpMuxPolicy: 'require' as any, // Reduce number of ports needed
+    iceCandidatePoolSize: 10, // Pre-gather candidates for faster connection (helps video)
     sdpSemantics: 'unified-plan' as any, // Required for modern WebRTC
 };
+
+// Log ICE server configuration for debugging
+console.log('🧊 [useWebRTC] ICE Servers configured:', {
+    stunServers: 3, // 2 Google STUN + 1 Metered.ca STUN (free unlimited)
+    turnServers: 5, // 5 Metered.ca TURN servers (TCP/TLS prioritized for cellular)
+    policy: 'all',
+    bundlePolicy: 'max-bundle',
+    iceCandidatePoolSize: 10,
+    note: 'TCP/TLS TURN servers prioritized for cellular. Free tier = 500MB/mo!',
+});
 
 export interface UseWebRTCOptions {
     userId: string;
@@ -50,9 +123,11 @@ export interface UseWebRTCReturn {
     isMuted: boolean;
     isVideoOff: boolean;
     isReady: boolean; // Add isReady state
+    isSpeakerOn: boolean; // Add speaker state
     error: string | null;
     toggleMute: () => void;
     toggleVideo: () => void;
+    toggleSpeaker: () => void; // Add speaker toggle
     switchCamera: () => void;
     startCall: () => Promise<void>;
     endCall: () => void;
@@ -83,6 +158,7 @@ export const useWebRTC = ({
     const [isMuted, setIsMuted] = useState(!isAudioEnabled);
     const [isVideoOff, setIsVideoOff] = useState(!isVideoEnabled);
     const [isReady, setIsReady] = useState(false); // Track initialization status
+    const [isSpeakerOn, setIsSpeakerOn] = useState(false); // Track speaker state
     const [error, setError] = useState<string | null>(null);
     const [isFrontCamera, setIsFrontCamera] = useState(true);
 
@@ -90,6 +166,8 @@ export const useWebRTC = ({
     const remoteUserId = useRef<string | null>(null);
     const pendingOffer = useRef<RTCSessionDescriptionInit | null>(null);
     const pendingIceCandidates = useRef<RTCIceCandidateInit[]>([]);
+    const connectionFailureTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const hasTurnCandidates = useRef<boolean>(false);
 
     /**
      * Request camera and microphone permissions
@@ -181,32 +259,194 @@ export const useWebRTC = ({
             // Handle ICE candidates
             // @ts-ignore
             pc.onicecandidate = (event) => {
-                if (event.candidate && remoteUserId.current) {
-                    // sendIceCandidate is now async, but we don't need to await it
-                    SignalingService.sendIceCandidate(
-                        event.candidate.toJSON(),
-                        remoteUserId.current
-                    ).catch(err => console.error('Error sending ICE candidate:', err));
+                if (event.candidate) {
+                    const candidate = event.candidate.toJSON();
+                    // Log candidate type for debugging (host = direct, srflx = STUN, relay = TURN)
+                    const candidateStr = candidate.candidate || '';
+                    const isRelay = candidateStr.includes('typ relay');
+                    const isTcp = candidateStr.includes('tcp');
+                    const candidateType = isRelay ? (isTcp ? 'RELAY-TCP (TURN over TCP)' : 'RELAY-UDP (TURN over UDP)') :
+                                         candidateStr.includes('typ srflx') ? 'SRFLX (STUN)' :
+                                         candidateStr.includes('typ host') ? 'HOST (Direct)' : 'UNKNOWN';
+                    console.log(`🧊 [useWebRTC] ICE candidate (${candidateType}):`, candidateStr.substring(0, 120));
+                    
+                    // Track if we have TURN candidates (for longer timeout on failure)
+                    if (isRelay) {
+                        hasTurnCandidates.current = true;
+                        console.log(`✅ [useWebRTC] TURN relay candidate detected (${isTcp ? 'TCP - good for cellular!' : 'UDP'})`);
+                    }
+                    
+                    if (remoteUserId.current) {
+                        // sendIceCandidate is now async, but we don't need to await it
+                        SignalingService.sendIceCandidate(
+                            candidate,
+                            remoteUserId.current
+                        ).catch(err => console.error('❌ [useWebRTC] Error sending ICE candidate:', err));
+                    }
+                } else {
+                    console.log('🧊 [useWebRTC] ICE candidate gathering complete');
+                }
+            };
+
+            // Handle ICE gathering state changes
+            // @ts-ignore
+            pc.onicegatheringstatechange = () => {
+                // @ts-ignore
+                const state = pc.iceGatheringState;
+                console.log(`🧊 [useWebRTC] ICE gathering state: ${state}`);
+                if (state === 'complete') {
+                    console.log('🧊 [useWebRTC] ICE gathering completed - checking for TURN candidates...');
+                    // @ts-ignore
+                    pc.getStats().then((stats: any) => {
+                        let relayCount = 0;
+                        let hostCount = 0;
+                        let srflxCount = 0;
+                        stats.forEach((report: any) => {
+                            if (report.type === 'local-candidate' || report.type === 'remote-candidate') {
+                                if (report.candidateType === 'relay') relayCount++;
+                                else if (report.candidateType === 'host') hostCount++;
+                                else if (report.candidateType === 'srflx') srflxCount++;
+                            }
+                        });
+                        console.log(`🧊 [useWebRTC] Candidate summary - HOST: ${hostCount}, SRFLX: ${srflxCount}, RELAY: ${relayCount}`);
+                        if (relayCount === 0) {
+                            console.warn('⚠️ [useWebRTC] No TURN relay candidates found! Connection may fail on cellular networks.');
+                        }
+                    }).catch((err: any) => {
+                        console.warn('⚠️ [useWebRTC] Could not get stats:', err);
+                    });
+                }
+            };
+
+            // Handle ICE connection state changes (more detailed than connectionState)
+            // @ts-ignore
+            pc.oniceconnectionstatechange = () => {
+                // @ts-ignore
+                const iceState = pc.iceConnectionState;
+                console.log(`🧊 [useWebRTC] ICE connection state: ${iceState}`);
+                
+                // @ts-ignore
+                if (iceState === 'failed' || iceState === 'disconnected') {
+                    // @ts-ignore
+                    console.error(`❌ [useWebRTC] ICE connection ${iceState}. Diagnosing...`);
+                    
+                    // Get detailed stats about candidates and connection
+                    // @ts-ignore
+                    pc.getStats().then((stats: any) => {
+                        let localRelayCount = 0;
+                        let localHostCount = 0;
+                        let localSrflxCount = 0;
+                        let remoteRelayCount = 0;
+                        let remoteHostCount = 0;
+                        let remoteSrflxCount = 0;
+                        let selectedPair: any = null;
+                        let candidatePairs = 0;
+                        
+                        stats.forEach((report: any) => {
+                            if (report.type === 'local-candidate') {
+                                if (report.candidateType === 'relay') localRelayCount++;
+                                else if (report.candidateType === 'host') localHostCount++;
+                                else if (report.candidateType === 'srflx') localSrflxCount++;
+                            } else if (report.type === 'remote-candidate') {
+                                if (report.candidateType === 'relay') remoteRelayCount++;
+                                else if (report.candidateType === 'host') remoteHostCount++;
+                                else if (report.candidateType === 'srflx') remoteSrflxCount++;
+                            } else if (report.type === 'candidate-pair') {
+                                candidatePairs++;
+                                if (report.selected) {
+                                    selectedPair = {
+                                        localCandidateType: report.localCandidateId,
+                                        remoteCandidateType: report.remoteCandidateId,
+                                        state: report.state,
+                                        priority: report.priority,
+                                    };
+                                }
+                            }
+                        });
+                        
+                        console.error('📊 [useWebRTC] Connection failure diagnostics:');
+                        console.error(`   Local candidates - HOST: ${localHostCount}, SRFLX: ${localSrflxCount}, RELAY: ${localRelayCount}`);
+                        console.error(`   Remote candidates - HOST: ${remoteHostCount}, SRFLX: ${remoteSrflxCount}, RELAY: ${remoteRelayCount}`);
+                        console.error(`   Candidate pairs: ${candidatePairs}`);
+                        if (selectedPair) {
+                            console.error(`   Selected pair:`, selectedPair);
+                        } else {
+                            console.error(`   ⚠️ No candidate pair was selected!`);
+                        }
+                        
+                        if (localRelayCount > 0 && remoteRelayCount === 0) {
+                            console.error(`   ⚠️ We have TURN candidates but remote peer doesn't! Check remote peer's TURN configuration.`);
+                        } else if (localRelayCount === 0 && remoteRelayCount > 0) {
+                            console.error(`   ⚠️ Remote peer has TURN candidates but we don't! Check our TURN configuration.`);
+                        } else if (localRelayCount > 0 && remoteRelayCount > 0) {
+                            console.error(`   ⚠️ Both sides have TURN candidates but connection failed. May be network/firewall issue.`);
+                        }
+                    }).catch((err: any) => {
+                        console.warn('⚠️ [useWebRTC] Could not get detailed stats:', err);
+                    });
+                } else if (iceState === 'connected' || iceState === 'checking') {
+                    // @ts-ignore
+                    console.log(`✅ [useWebRTC] ICE connection ${iceState} - connection in progress`);
                 }
             };
 
             // Handle connection state changes
             // @ts-ignore
             pc.onconnectionstatechange = () => {
-                console.log('Connection state:', pc.connectionState);
-                switch (pc.connectionState) {
+                const state = pc.connectionState;
+                console.log(`📡 [useWebRTC] Connection state: ${state}`);
+                switch (state) {
                     case 'connected':
+                        // Clear any pending failure timeout
+                        if (connectionFailureTimeout.current) {
+                            clearTimeout(connectionFailureTimeout.current);
+                            connectionFailureTimeout.current = null;
+                        }
                         setIsConnected(true);
                         setIsConnecting(false);
                         setError(null);
+                        console.log('✅ [useWebRTC] Peer connection established successfully!');
                         break;
                     case 'disconnected':
-                    case 'failed':
+                        console.warn('⚠️ [useWebRTC] Connection disconnected');
                         setIsConnected(false);
-                        setError('Connection failed');
+                        setIsConnecting(false);
+                        setError('Connection disconnected');
+                        break;
+                    case 'failed':
+                        // If we have TURN candidates, wait longer before showing error
+                        // Video calls need more time through TURN (5s for video, 3s for audio)
+                        const waitTime = isVideoEnabled ? 5000 : 3000;
+                        const callType = isVideoEnabled ? 'video' : 'audio';
+                        
+                        if (hasTurnCandidates.current) {
+                            console.warn(`⚠️ [useWebRTC] ${callType} connection failed but TURN candidates available. Waiting ${waitTime/1000}s before final failure...`);
+                            // Clear any existing timeout
+                            if (connectionFailureTimeout.current) {
+                                clearTimeout(connectionFailureTimeout.current);
+                            }
+                            // Wait to see if connection recovers
+                            connectionFailureTimeout.current = setTimeout(() => {
+                                // @ts-ignore
+                                if (pc.connectionState === 'failed') {
+                                    console.error(`❌ [useWebRTC] ${callType} connection failed after waiting - likely due to network/NAT issues`);
+                                    setIsConnected(false);
+                                    setIsConnecting(false);
+                                    setError('Connection failed. Please check your network connection.');
+                                }
+                                connectionFailureTimeout.current = null;
+                            }, waitTime);
+                        } else {
+                            console.error(`❌ [useWebRTC] ${callType} connection failed - likely due to network/NAT issues`);
+                            setIsConnected(false);
+                            setIsConnecting(false);
+                            setError('Connection failed. Please check your network connection.');
+                        }
                         break;
                     case 'closed':
+                        console.log('🔒 [useWebRTC] Connection closed');
                         setIsConnected(false);
+                        setIsConnecting(false);
                         break;
                 }
             };
@@ -579,14 +819,14 @@ export const useWebRTC = ({
                             }
                         }
 
-                        const answer = await pc.createAnswer();
-                        await pc.setLocalDescription(answer);
+                    const answer = await pc.createAnswer();
+                    await pc.setLocalDescription(answer);
 
                         // Safe serialization for answer
                         // @ts-ignore
                         const answerInit = (typeof answer.toJSON === 'function') ? answer.toJSON() : answer;
 
-                        if (remoteUserId.current) {
+                    if (remoteUserId.current) {
                             await SignalingService.sendAnswer(answerInit, remoteUserId.current);
                         }
                     } catch (sdError: any) {
@@ -788,6 +1028,13 @@ export const useWebRTC = ({
                         remoteUserId.current = from;
                     }
 
+                    // Log remote candidate type for debugging
+                    const candidateStr = candidate.candidate || JSON.stringify(candidate);
+                    const candidateType = candidateStr.includes('typ relay') ? 'RELAY (TURN)' :
+                                         candidateStr.includes('typ srflx') ? 'SRFLX (STUN)' :
+                                         candidateStr.includes('typ host') ? 'HOST (Direct)' : 'UNKNOWN';
+                    console.log(`📥 [useWebRTC] Received remote ICE candidate (${candidateType}) from ${from || 'unknown'}`);
+
                     // If remote description is not set yet, queue the candidate
                     if (!pc.remoteDescription) {
                         console.log('📥 [useWebRTC] Remote description not set yet, queueing ICE candidate');
@@ -797,7 +1044,7 @@ export const useWebRTC = ({
 
                     // Remote description is set, add the candidate
                     await pc.addIceCandidate(new RTCIceCandidate(candidate));
-                    console.log('✅ [useWebRTC] ICE candidate added successfully');
+                    console.log(`✅ [useWebRTC] Remote ICE candidate (${candidateType}) added successfully`);
 
                     // Process any queued candidates
                     if (pendingIceCandidates.current.length > 0) {
@@ -943,11 +1190,24 @@ export const useWebRTC = ({
             tracks.forEach(track => {
                 try {
                     console.log('🎥 [useWebRTC] Adding track:', track.kind, track.id);
-                    pc.addTrack(track, localStream);
+                pc.addTrack(track, localStream);
                 } catch (trackError) {
                     console.error('❌ [useWebRTC] Error adding track:', trackError);
                 }
             });
+
+            // Initialize InCallManager for speaker control
+            if (InCallManager) {
+                try {
+                    InCallManager.start({ media: 'audio' });
+                    // Default to speaker off (earpiece)
+                    InCallManager.setSpeakerphoneOn(false);
+                    setIsSpeakerOn(false);
+                    console.log('🔊 [useWebRTC] InCallManager initialized');
+                } catch (incallError) {
+                    console.warn('⚠️ [useWebRTC] Failed to initialize InCallManager:', incallError);
+                }
+            }
 
             // Create offer
             console.log('🤝 [useWebRTC] Creating offer...');
@@ -1067,9 +1327,27 @@ export const useWebRTC = ({
         SignalingService.endCall();
         SignalingService.leaveRoom();
 
+        // Stop InCallManager
+        if (InCallManager) {
+            try {
+                InCallManager.stop();
+                console.log('🔊 [useWebRTC] InCallManager stopped');
+            } catch (incallError) {
+                console.warn('⚠️ [useWebRTC] Failed to stop InCallManager:', incallError);
+            }
+        }
+
+        // Clear any pending timeouts
+        if (connectionFailureTimeout.current) {
+            clearTimeout(connectionFailureTimeout.current);
+            connectionFailureTimeout.current = null;
+        }
+
         // Reset state
         setIsConnected(false);
         setIsConnecting(false);
+        setIsSpeakerOn(false);
+        hasTurnCandidates.current = false;
         remoteUserId.current = null;
         pendingOffer.current = null;
         pendingIceCandidates.current = [];
@@ -1100,6 +1378,25 @@ export const useWebRTC = ({
             }
         }
     }, [localStream]);
+
+    /**
+     * Toggle speaker on/off
+     */
+    const toggleSpeaker = useCallback(() => {
+        if (!InCallManager) {
+            console.warn('⚠️ [useWebRTC] InCallManager not available. Install react-native-incall-manager for speaker control.');
+            return;
+        }
+
+        try {
+            const newSpeakerState = !isSpeakerOn;
+            InCallManager.setSpeakerphoneOn(newSpeakerState);
+            setIsSpeakerOn(newSpeakerState);
+            console.log(`🔊 [useWebRTC] Speaker ${newSpeakerState ? 'ON' : 'OFF'}`);
+        } catch (error) {
+            console.error('❌ [useWebRTC] Error toggling speaker:', error);
+        }
+    }, [isSpeakerOn]);
 
     /**
      * Switch between front and rear camera
@@ -1168,9 +1465,11 @@ export const useWebRTC = ({
         isMuted,
         isVideoOff,
         isReady,
+        isSpeakerOn,
         error,
         toggleMute,
         toggleVideo,
+        toggleSpeaker,
         switchCamera,
         startCall,
         endCall,

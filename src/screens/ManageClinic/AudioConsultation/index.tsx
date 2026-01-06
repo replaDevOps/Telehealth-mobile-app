@@ -41,8 +41,10 @@ export function AudioConsultation({ navigation, route }) {
     isConnecting,
     isMuted,
     isReady,
+    isSpeakerOn,
     error,
     toggleMute,
+    toggleSpeaker,
     startCall,
     endCall,
     joinCall,
@@ -52,9 +54,6 @@ export function AudioConsultation({ navigation, route }) {
     isVideoEnabled: false,
     isAudioEnabled: true,
   });
-
-  // Keep speaker state locally (WebRTC handles audio routing)
-  const [isSpeakerOn, setIsSpeakerOn] = useState(false);
 
   const handleGetPrescription = () => {
     setModalVisible(false);
@@ -157,13 +156,6 @@ export function AudioConsultation({ navigation, route }) {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-  };
-
-  const toggleSpeaker = () => {
-    // Note: Speaker toggle would need native module integration
-    // For now, just toggle the state
-    setIsSpeakerOn(!isSpeakerOn);
-    // TODO: Implement native speaker toggle
   };
 
   // Determine call status

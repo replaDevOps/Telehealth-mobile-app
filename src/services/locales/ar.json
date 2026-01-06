@@ -347,6 +347,7 @@
   "no_device_selected": "لم يتم اختيار جهاز",
   "consultation_ended": "انتهت الاستشارة",
   "consultation_ended_description": "انتهت الاستشارة. لقد شارك الطبيب وصفتك الطبية. يمكنك تنزيلها الآن أو في أي وقت من سجلك.",
+  "consultation_ended_no_prescription": "انتهت الاستشارة. لا توجد وصفة طبية متاحة بعد.",
   "close": "إغلاق",
   "get_prescription": "الحصول على وصفة طبية",
   "apply_filter": "تطبيق الفلتر",

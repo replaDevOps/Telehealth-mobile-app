@@ -8,3 +8,8 @@
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
 # Add any project specific keep options here:
+
+# React Native WebRTC ProGuard rules
+-keep class org.webrtc.** { *; }
+-keep class org.webrtc.audio.** { *; }
+-dontwarn org.webrtc.**

@@ -2,18 +2,21 @@ import { apiClient } from './api-client';
 
 export interface SendOfferRequest {
   consultationID: number;
+  from: string;
   to: string;
   offer: RTCSessionDescriptionInit;
 }
 
 export interface SendAnswerRequest {
   consultationID: number;
+  from: string;
   to: string;
   answer: RTCSessionDescriptionInit;
 }
 
 export interface SendIceCandidateRequest {
   consultationID: number;
+  from: string;
   to: string;
   candidate: RTCIceCandidateInit;
 }
@@ -60,10 +63,11 @@ export const sendWebRTCIceCandidate = async (data: SendIceCandidateRequest) => {
 /**
  * Start WebRTC call
  */
-export const startWebRTCCall = async (consultationID: number, type: 'audio' | 'video') => {
+export const startWebRTCCall = async (consultationID: number, from: string, type: 'audio' | 'video') => {
   try {
-    const response = await apiClient.post('/webrtc/start-call', {
+    const response = await apiClient.post('/webrtc/call-started', {
       consultationID,
+      from,
       type,
     });
     return response.data;
@@ -76,10 +80,11 @@ export const startWebRTCCall = async (consultationID: number, type: 'audio' | 'v
 /**
  * End WebRTC call
  */
-export const endWebRTCCall = async (consultationID: number) => {
+export const endWebRTCCall = async (consultationID: number, from: string) => {
   try {
-    const response = await apiClient.post('/webrtc/end-call', {
+    const response = await apiClient.post('/webrtc/call-ended', {
       consultationID,
+      from,
     });
     return response.data;
   } catch (error: any) {

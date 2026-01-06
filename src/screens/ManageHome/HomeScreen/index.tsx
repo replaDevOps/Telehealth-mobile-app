@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, ScrollView, StyleSheet, StatusBar, ActivityIndicator, Text } from 'react-native';
+import { View, ScrollView, StyleSheet, StatusBar, ActivityIndicator, Text, Platform, PermissionsAndroid } from 'react-native';
 import HomeHeader from '../../../components/molecules/HomeHeadder';
 import { colors } from '../../../styles/colors';
 import { mvs } from '../../../config/metrices';
@@ -35,6 +35,13 @@ export const HomeScreen = ({ navigation }) => {
   const [nearbyClinics, setNearbyClinics] = useState<Clinic[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [hasAudioPermission, setHasAudioPermission] = useState(false);
+  const [hasVideoPermission, setHasVideoPermission] = useState(false);
+
+  // Request permissions on mount
+  useEffect(() => {
+    requestPermissions();
+  }, []);
 
   useEffect(() => {
     fetchClinicsWithLocation();
@@ -50,6 +57,51 @@ export const HomeScreen = ({ navigation }) => {
 
     return () => clearTimeout(timeoutId);
   }, [searchQuery, location]);
+
+  const requestPermissions = async () => {
+    if (Platform.OS === 'android') {
+      try {
+        const cameraGranted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.CAMERA,
+          {
+            title: 'Camera Permission',
+            message: 'This app needs camera access for video consultations',
+            buttonNeutral: 'Ask Me Later',
+            buttonNegative: 'Cancel',
+            buttonPositive: 'OK',
+          }
+        );
+
+        const audioGranted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+          {
+            title: 'Microphone Permission',
+            message: 'This app needs microphone access for audio and video consultations',
+            buttonNeutral: 'Ask Me Later',
+            buttonNegative: 'Cancel',
+            buttonPositive: 'OK',
+          }
+        );
+
+        console.log('📱 [Permissions] Camera:', cameraGranted);
+        console.log('📱 [Permissions] Audio:', audioGranted);
+
+        setHasAudioPermission(audioGranted === PermissionsAndroid.RESULTS.GRANTED);
+        setHasVideoPermission(
+          cameraGranted === PermissionsAndroid.RESULTS.GRANTED &&
+          audioGranted === PermissionsAndroid.RESULTS.GRANTED
+        );
+      } catch (err) {
+        console.warn('📱 [Permissions] Error requesting permissions:', err);
+        setHasAudioPermission(false);
+        setHasVideoPermission(false);
+      }
+    } else {
+      // iOS permissions are handled at runtime by the system
+      setHasAudioPermission(true);
+      setHasVideoPermission(true);
+    }
+  };
 
   const fetchClinicsWithLocation = () => {
     if (location) {

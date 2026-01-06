@@ -80,6 +80,8 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
   const [loadingServiceDetail, setLoadingServiceDetail] = useState(false);
   const [loadingAddToCart, setLoadingAddToCart] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; long: number } | null>(null);
+  const [hasAudioPermission, setHasAudioPermission] = useState(false);
+  const [hasVideoPermission, setHasVideoPermission] = useState(false);
 
   // Get clinic ID from route params
   // Clinic object from ClinicScreen has id as string (clinicID.toString())
@@ -103,6 +105,9 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       // Request location in background and update when available
       requestLocationAndFetchData();
     }
+    
+    // Check permissions on mount
+    checkMediaPermissions();
   }, [clinicID]);
 
   useEffect(() => {
@@ -175,6 +180,33 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       Toast.error(error.message || 'Failed to fetch clinic description');
     } finally {
       setLoadingDescription(false);
+    }
+  };
+
+  const checkMediaPermissions = async () => {
+    if (Platform.OS === 'android') {
+      try {
+        const cameraStatus = await PermissionsAndroid.check(
+          PermissionsAndroid.PERMISSIONS.CAMERA
+        );
+        const audioStatus = await PermissionsAndroid.check(
+          PermissionsAndroid.PERMISSIONS.RECORD_AUDIO
+        );
+
+        console.log('📱 [ClinicDetail] Camera Permission:', cameraStatus);
+        console.log('📱 [ClinicDetail] Audio Permission:', audioStatus);
+
+        setHasAudioPermission(audioStatus);
+        setHasVideoPermission(cameraStatus && audioStatus);
+      } catch (err) {
+        console.warn('📱 [ClinicDetail] Error checking permissions:', err);
+        setHasAudioPermission(false);
+        setHasVideoPermission(false);
+      }
+    } else {
+      // iOS permissions are handled at runtime
+      setHasAudioPermission(true);
+      setHasVideoPermission(true);
     }
   };
 
@@ -1076,6 +1108,8 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
         visible={showBottomSheet}
         onClose={() => setShowBottomSheet(false)}
         clinicID={clinicID || undefined}
+        hasAudioPermission={hasAudioPermission}
+        hasVideoPermission={hasVideoPermission}
       />
     </View>
   );

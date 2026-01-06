@@ -69,15 +69,18 @@ export function ChatScreen({ navigation, route }) {
 
   const scrollRef = useRef<ScrollView>(null);
   const auth = useAuthStore(state => state.auth);
+  const state = useAuthStore(state => state);
   const { profileData } = useProfileStore();
   const patientID = auth?.id;
-  
+  console.log('patientID:', patientID, auth);
+  console.log('state:', state);
+
   // Get profile image from store
   const patientProfileImage = profileData?.image;
-  const patientProfileAvatar = patientProfileImage 
-    ? (patientProfileImage.startsWith('http') 
-        ? { uri: patientProfileImage } 
-        : { uri: `https://telehealth.repla-projects.com/${patientProfileImage}` })
+  const patientProfileAvatar = patientProfileImage
+    ? (patientProfileImage.startsWith('http')
+      ? { uri: patientProfileImage }
+      : { uri: `https://telehealth.repla-projects.com/${patientProfileImage}` })
     : patient;
 
   useEffect(() => {
@@ -155,7 +158,7 @@ export function ChatScreen({ navigation, route }) {
         const mappedMessages: Message[] = apiMessages.map((msg: any) => {
           // Determine if message is from user (patient) or doctor
           // Use sender.type from API response (most reliable)
-          const isUser = msg.sender?.type === 'patient' || 
+          const isUser = msg.sender?.type === 'patient' ||
             String(msg.senderID) === String(patientData?.id) ||
             String(msg.senderID) === String(patientID);
 
@@ -225,15 +228,15 @@ export function ChatScreen({ navigation, route }) {
         // Use history endpoint for both active and history consultations (returns JSON data)
         // DOWNLOAD_PRESCRIPTION returns PDF, so we use GET_PRESCRIPTION which returns JSON
         const endpoint = `${API.HISTORY.GET_PRESCRIPTION}/${consultationID}`;
-        
+
         const response = await apiClient.get(endpoint);
         console.log('Prescription check response:', response.data);
-        
+
         // Check if prescription exists
-        if (response.data?.success !== false && 
-            response.data?.prescriptions && 
-            Array.isArray(response.data.prescriptions) && 
-            response.data.prescriptions.length > 0) {
+        if (response.data?.success !== false &&
+          response.data?.prescriptions &&
+          Array.isArray(response.data.prescriptions) &&
+          response.data.prescriptions.length > 0) {
           setHasPrescription(true);
           console.log('Prescription found, showing Get Prescription button');
         } else {
@@ -247,7 +250,7 @@ export function ChatScreen({ navigation, route }) {
     } else {
       setHasPrescription(false);
     }
-    
+
     setModalVisible(true);
   }, [consultationID]);
 
@@ -313,16 +316,16 @@ export function ChatScreen({ navigation, route }) {
     const handleMessageSent = (data: any) => {
       console.log('Message sent alert:', data);
       if (!isMounted) return;
-      
+
       // Extract message from data.message if it exists (Pusher event structure)
       // Handle both structures: {message: {consultationID: ...}} and {consultationID: ...}
       const messageData = data?.message || data;
-      const messageConsultationID = 
-        messageData?.consultationID || 
-        data?.consultationID || 
+      const messageConsultationID =
+        messageData?.consultationID ||
+        data?.consultationID ||
         data?.consultation_id ||
         (typeof messageData === 'object' && messageData !== null ? messageData.consultationID : null);
-      
+
       // If the message is for this consultation, silently reload all messages
       if (messageConsultationID && (messageConsultationID === consultationID || messageConsultationID === String(consultationID))) {
         // Silently reload messages without showing loader
@@ -334,36 +337,36 @@ export function ChatScreen({ navigation, route }) {
     const handleMessageReceived = (data: any) => {
       console.log('Message received alert:', data);
       if (!isMounted) return;
-      
+
       // Extract message from data.message if it exists (Pusher event structure)
       // Handle structure: {message: {consultationID: 35, ...}}
       const messageData = data?.message || data;
-      
+
       // Extract consultationID - handle nested structure
-      const messageConsultationID = 
-        messageData?.consultationID || 
-        data?.consultationID || 
+      const messageConsultationID =
+        messageData?.consultationID ||
+        data?.consultationID ||
         data?.consultation_id ||
         null;
-      
+
       // Normalize IDs for comparison (convert to string)
       const normalizedMessageConsultationID = messageConsultationID ? String(messageConsultationID) : null;
       const normalizedConsultationID = consultationID ? String(consultationID) : null;
-      
+
       console.log('Message received - consultationID:', normalizedMessageConsultationID, 'Current consultationID:', normalizedConsultationID);
-      
+
       // If the message is for this consultation
       if (normalizedMessageConsultationID && normalizedConsultationID && normalizedMessageConsultationID === normalizedConsultationID) {
         // Transform and append the message directly from Pusher response
         if (messageData && messageData.id) {
           const doctorData = consultationData?.doctor || doctorInfo;
           const patientData = consultationData?.patient;
-          
+
           const isUser = messageData.senderID === patientID ||
             messageData.senderType === 'patient' ||
             messageData.senderRole === 'patient' ||
             messageData.sender?.type === 'patient';
-          
+
           const senderInfo = messageData.sender;
           const newMessage: Message = {
             id: String(messageData.id),
@@ -406,7 +409,7 @@ export function ChatScreen({ navigation, route }) {
             return [...prev, newMessage];
           });
         }
-        
+
         // Also silently reload messages to ensure we have the latest state
         console.log('Calling fetchConsultationMessages(true) to refresh messages...');
         fetchConsultationMessages(true).catch(err => {
@@ -482,10 +485,10 @@ export function ChatScreen({ navigation, route }) {
           text: '',
           timestamp: getCurrentTimestamp(),
           user: showAvatar
-            ? { 
-                name: profileData?.name || 'You', 
-                avatar: patientProfileAvatar 
-              }
+            ? {
+              name: profileData?.name || 'You',
+              avatar: patientProfileAvatar
+            }
             : undefined,
           images: [{ uri: asset.uri, isUploading: true }],
         };
@@ -532,10 +535,10 @@ export function ChatScreen({ navigation, route }) {
               prev.map(msg =>
                 msg.id === tempId
                   ? {
-                      ...msg,
-                      id: String(data?.data?.id || data?.id || tempId),
-                      images: msg.images?.map(img => ({ ...img, isUploading: false })),
-                    }
+                    ...msg,
+                    id: String(data?.data?.id || data?.id || tempId),
+                    images: msg.images?.map(img => ({ ...img, isUploading: false })),
+                  }
                   : msg
               )
             );
@@ -554,9 +557,9 @@ export function ChatScreen({ navigation, route }) {
             prev.map(msg =>
               msg.id === tempId
                 ? {
-                    ...msg,
-                    images: msg.images?.map(img => ({ ...img, isUploading: false })),
-                  }
+                  ...msg,
+                  images: msg.images?.map(img => ({ ...img, isUploading: false })),
+                }
                 : msg
             )
           );
@@ -577,10 +580,10 @@ export function ChatScreen({ navigation, route }) {
       text: trimmedMessage,
       timestamp: getCurrentTimestamp(),
       user: showAvatar
-        ? { 
-            name: profileData?.name || 'You', 
-            avatar: patientProfileAvatar 
-          }
+        ? {
+          name: profileData?.name || 'You',
+          avatar: patientProfileAvatar
+        }
         : undefined,
     };
 
@@ -776,61 +779,61 @@ export function ChatScreen({ navigation, route }) {
       enabled={!flexToggle}
     >
       <SafeAreaView style={styles.container}>
-      <ChatHeader
-        chatType={chatType}
-        doctorInfo={doctorInfo}
-        consultationTime={consultationTime}
-        fromHistory={fromHistory}
-        handleGoBack={handleGoBack}
-        handleEndConsultation={handleEndConsultation}
-        handleCart={handleCartPress}
-        consultationData={consultationData}
-      />
-
-      {/* Messages */}
-      {loadingMessages ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6B46C1" />
-          <Text style={styles.loadingText}>{t('loading_messages') || 'Loading messages...'}</Text>
-        </View>
-      ) : (
-        <MessageList
-          messages={messages}
-          scrollRef={scrollRef}
-          showAvatar={showAvatar}
-          handleServicePress={handleServicePress}
-          handleDeleteMessage={handleDeleteMessage}
+        <ChatHeader
+          chatType={chatType}
+          doctorInfo={doctorInfo}
+          consultationTime={consultationTime}
+          fromHistory={fromHistory}
+          handleGoBack={handleGoBack}
+          handleEndConsultation={handleEndConsultation}
+          handleCart={handleCartPress}
+          consultationData={consultationData}
         />
-      )}
 
-      {/* Input - Only show if not viewing history */}
-      <MessageInput
-        message={message}
-        setMessage={setMessage}
-        handleSend={handleSend}
-        handleImagePick={handleImagePick}
-        canSendMessages={canSendMessages}
-      />
+        {/* Messages */}
+        {loadingMessages ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#6B46C1" />
+            <Text style={styles.loadingText}>{t('loading_messages') || 'Loading messages...'}</Text>
+          </View>
+        ) : (
+          <MessageList
+            messages={messages}
+            scrollRef={scrollRef}
+            showAvatar={showAvatar}
+            handleServicePress={handleServicePress}
+            handleDeleteMessage={handleDeleteMessage}
+          />
+        )}
 
-      {/* Modals */}
-      <ServiceDetailBottomSheet
-        visible={serviceDetailVisible}
-        onClose={() => setServiceDetailVisible(false)}
-        service={selectedService}
-        onAddToCart={handleAddToCart}
-        onCheckout={handleCheckout}
-      />
-      <ConsultationEndedModal
-        visible={modalVisible}
-        onClose={handleCloseModal}
-        onGetPrescription={handleGetPrescription}
-        hasPrescription={hasPrescription}
-      />
-      <ConsultDoctorBottomSheet
-        visible={showBottomSheet}
-        onClose={() => setShowBottomSheet(false)}
-      />
-    </SafeAreaView>
+        {/* Input - Only show if not viewing history */}
+        <MessageInput
+          message={message}
+          setMessage={setMessage}
+          handleSend={handleSend}
+          handleImagePick={handleImagePick}
+          canSendMessages={canSendMessages}
+        />
+
+        {/* Modals */}
+        <ServiceDetailBottomSheet
+          visible={serviceDetailVisible}
+          onClose={() => setServiceDetailVisible(false)}
+          service={selectedService}
+          onAddToCart={handleAddToCart}
+          onCheckout={handleCheckout}
+        />
+        <ConsultationEndedModal
+          visible={modalVisible}
+          onClose={handleCloseModal}
+          onGetPrescription={handleGetPrescription}
+          hasPrescription={hasPrescription}
+        />
+        <ConsultDoctorBottomSheet
+          visible={showBottomSheet}
+          onClose={() => setShowBottomSheet(false)}
+        />
+      </SafeAreaView>
     </KeyboardAvoidingView>
   );
 }

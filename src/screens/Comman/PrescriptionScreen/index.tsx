@@ -26,8 +26,6 @@ import { Toast } from '@components/common/Toast';
 import { EmptyContentSvg } from '@assets/icons';
 import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
-import { BASE_URL } from '@constants';
-import { useAuthStore } from '@store';
 
 // Type definitions
 interface Doctor {
@@ -165,7 +163,7 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
 
       const response = await apiClient.get(endpoint);
       console.log('Prescription response:', response.data);
-      
+
       // Check if API returned success: false with a message (not an error, just no prescription)
       if (response.data?.success === false) {
         const apiMessage = response.data?.message || t('no_prescription_available') || 'No prescription available';
@@ -174,7 +172,7 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
       } else if (response.data?.success !== false) {
         // API response structure: { success: true, prescriptions: [...], clinic: {...}, doctor: {...}, service: {...}, patient: {...} }
         const apiData = response.data;
-        
+
         // Check if prescriptions array exists and has data
         if (!apiData.prescriptions || (Array.isArray(apiData.prescriptions) && apiData.prescriptions.length === 0)) {
           setInfoMessage(t('no_prescription_available') || 'No prescription available');
@@ -222,7 +220,7 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
       // Fetch prescription data as JSON
       const response = await apiClient.get(endpoint);
       const responseData = response.data;
-      
+
       // Check if response contains prescription data to generate PDF
       if (responseData?.success !== false && responseData?.prescriptions && Array.isArray(responseData.prescriptions) && responseData.prescriptions.length > 0) {
         // If the response contains prescription data, generate and save as PDF
@@ -494,7 +492,7 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
       } else {
         // For iOS, save to Documents directory
         downloadDir = RNFS.DocumentDirectoryPath;
-      } 
+      }
       console.log('Download directory:', downloadDir);
 
       // Generate PDF from HTML
@@ -538,25 +536,25 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
     const prescriptions = apiData.prescriptions || [];
     const clinic = apiData.clinic || {};
     const doctor = apiData.doctor || {};
-    
+
     let shareMessage = `Prescription Details\n\n`;
     shareMessage += `Clinic: ${clinic.clinicName || clinic.name || 'N/A'}\n`;
     shareMessage += `Doctor: ${doctor.name || 'N/A'}\n`;
     shareMessage += `Date: ${new Date().toLocaleDateString()}\n\n`;
     shareMessage += `Medications:\n`;
-    
+
     prescriptions.forEach((prescription: any, index: number) => {
       shareMessage += `${index + 1}. ${prescription.name || 'N/A'}\n`;
       shareMessage += `   Description: ${prescription.description || 'N/A'}\n`;
       shareMessage += `   Start Date: ${prescription.startDate || 'N/A'}\n`;
       shareMessage += `   End Date: ${prescription.endDate || 'N/A'}\n\n`;
     });
-    
+
     const result = await Share.share({
       message: shareMessage,
       title: t('prescription') || 'Prescription',
     });
-    
+
     if (result.action === Share.sharedAction) {
       setToast({
         visible: true,
@@ -601,7 +599,7 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
     // Get the first prescription's created_at for appointment date/time
     const firstPrescription = apiData.prescriptions?.[0];
     const appointmentDateStr = firstPrescription?.created_at || apiData.created_at || '';
-    
+
     // Map medications from prescriptions array
     const medications: Medication[] = (apiData.prescriptions || []).map((prescription: any, index: number) => {
       // Calculate duration from startDate to endDate
@@ -630,8 +628,8 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
 
     // Map doctor data
     const doctorData = apiData.doctor || {};
-    const doctorImage = doctorData.image 
-      ? { uri: doctorData.image } 
+    const doctorImage = doctorData.image
+      ? { uri: doctorData.image }
       : doctor;
     const signatureImage = doctorData.signature
       ? { uri: doctorData.signature }
@@ -645,7 +643,7 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
 
     // Map clinic data
     const clinicData = apiData.clinic || {};
-    
+
     // Map service to treatment
     const serviceData = apiData.service || {};
     const treatment = serviceData.name ? {

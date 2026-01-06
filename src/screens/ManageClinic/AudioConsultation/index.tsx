@@ -68,16 +68,20 @@ export function AudioConsultation({ navigation, route }) {
 
   // Start/join call when WebRTC is ready
   useEffect(() => {
+    console.log('🎬 [AudioConsultation] Effect triggered:', { isReady, isInitiator });
     if (isReady) {
       const initCall = async () => {
         try {
+          console.log('🎬 [AudioConsultation] Initializing call, isInitiator:', isInitiator);
           if (isInitiator) {
+            console.log('📞 [AudioConsultation] Patient starting call...');
             await startCall();
           } else {
+            console.log('📞 [AudioConsultation] Doctor joining call...');
             await joinCall();
           }
         } catch (err) {
-          console.error('Error initializing call:', err);
+          console.error('❌ [AudioConsultation] Error initializing call:', err);
           Toast.error('Failed to connect to call');
         }
       };

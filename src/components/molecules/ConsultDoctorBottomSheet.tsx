@@ -72,10 +72,14 @@ export default function ConsultDoctorBottomSheet({
   visible,
   onClose,
   clinicID,
+  hasAudioPermission = false,
+  hasVideoPermission = false,
 }: {
   visible: boolean;
   onClose: () => void;
   clinicID?: number | string;
+  hasAudioPermission?: boolean;
+  hasVideoPermission?: boolean;
 }) {
   const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
@@ -560,6 +564,11 @@ export default function ConsultDoctorBottomSheet({
                   consultationTypeCards.map(card => {
                     const isSelected = selectedConsultation === card.id;
                     const Icon = card.Icon;
+                    
+                    // Disable audio/video options if permissions not granted
+                    const isDisabled = 
+                      (card.id === 'voice' && !hasAudioPermission) ||
+                      (card.id === 'video' && !hasVideoPermission);
 
                   return (
                     <TouchableOpacity
@@ -567,28 +576,40 @@ export default function ConsultDoctorBottomSheet({
                       style={[
                         styles.consultationCard,
                         isSelected && styles.consultationCardSelected,
+                        isDisabled && styles.consultationCardDisabled,
                       ]}
-                        onPress={() => setSelectedConsultation(card.id)}
+                      onPress={() => {
+                        if (isDisabled) {
+                          Toast.error(
+                            card.id === 'voice'
+                              ? t('microphone_permission_required') || 'Microphone permission required for audio consultation'
+                              : t('camera_microphone_permission_required') || 'Camera and microphone permissions required for video consultation'
+                          );
+                        } else {
+                          setSelectedConsultation(card.id);
+                        }
+                      }}
+                      disabled={isDisabled}
                     >
                       <View style={styles.consultationLeft}>
-                        <View style={[styles.iconContainer]}>
+                        <View style={[styles.iconContainer, isDisabled && styles.iconContainerDisabled]}>
                           <Icon width={24} height={24} />
                         </View>
 
                         <View style={styles.consultationInfo}>
-                          <Text style={[styles.consultationTitle]}>
+                          <Text style={[styles.consultationTitle, isDisabled && styles.consultationTitleDisabled]}>
                               {card.name}
                           </Text>
                           <View style={styles.durationContainer}>
-                            <Ionicons name="time-outline" size={20} />
-                              <Text style={styles.duration}>
+                            <Ionicons name="time-outline" size={20} color={isDisabled ? '#ccc' : colors.text} />
+                              <Text style={[styles.duration, isDisabled && styles.durationDisabled]}>
                                 30 min
                               </Text>
                           </View>
                         </View>
                       </View>
 
-                      <Text style={[styles.consultationPrice]}>
+                      <Text style={[styles.consultationPrice, isDisabled && styles.consultationPriceDisabled]}>
                           {card.price}
                       </Text>
                     </TouchableOpacity>
@@ -712,6 +733,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: colors.text,
+  },
+  // Disabled styles
+  consultationCardDisabled: {
+    opacity: 0.5,
+    backgroundColor: '#f5f5f5',
+  },
+  iconContainerDisabled: {
+    opacity: 0.5,
+  },
+  consultationTitleDisabled: {
+    color: '#999',
+  },
+  durationDisabled: {
+    color: '#ccc',
+  },
+  consultationPriceDisabled: {
+    color: '#999',
   },
   bottomSpacing: { height: 20 },
   loadingOverlay: {

@@ -400,5 +400,18 @@
   "payment_type": "نوع الدفع",
   "redemption": "الخلاص",
   "no_of_service": "عدد الخدمات",
-  "payInInstallments": "الدفع بالتقسيط"
+  "payInInstallments": "الدفع بالتقسيط",
+  "howItWork": "كيف يعمل",
+  "loyalty_program_policy": "سياسة برنامج الولاء",
+  "loyalty_policy_content_1_title": "1. المعلومات التي نجمعها",
+  "loyalty_policy_content_1_desc": "نحن نجمع معلومات أساسية مثل الاسم، رقم الهاتف، البريد الإلكتروني، ونشاطك داخل التطبيق.",
+  "loyalty_policy_content_2_title": "2. كيفية استخدام معلوماتك",
+  "loyalty_policy_content_2_desc": "معلوماتك تستخدم ل:",
+  "loyalty_policy_bullet_1": "إنشاء وتعديل حسابك",
+  "loyalty_policy_bullet_2": "اتصالك بالوكلاء",
+  "loyalty_policy_bullet_3": "تحسين أداء التطبيق",
+  "refund_policy_content_1_title": "1. الموافقة على الشروط",
+  "refund_policy_content_1_desc": "باستخدام هذا التطبيق، أنت موافق على اتباع هذه الشروط والبنود. إذا كنت لا تتفق، يرجى إيقاف استخدام التطبيق.",
+  "refund_policy_content_2_title": "2. حساب المستخدم",
+  "refund_policy_content_2_desc": "أنت مسؤول عن الحفاظ على معلومات حسابك آمنة. لا تشارك تفاصيل تسجيل الدخول مع الآخرين."
 }

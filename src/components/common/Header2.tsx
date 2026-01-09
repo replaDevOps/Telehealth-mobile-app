@@ -32,13 +32,14 @@ interface Header2Props {
   cartCount?: number;
   handleNotification?: () => void;
   HandleCart?: () => void;
-
   handleDownload?: () => void;
   handleSave?: () => void;
   saveDisabled?: boolean;
   logo?: boolean;
   handleBackPress?: () => void;
   loading?: boolean;
+  howItWork?: boolean;
+  handleHowItWork?: () => void;
 }
 
 const Header2: React.FC<Header2Props> = ({
@@ -53,14 +54,16 @@ const Header2: React.FC<Header2Props> = ({
   showLanguage = false,
   showCart = false,
   cartCount = 0,
-  handleNotification = () => {},
-  HandleCart = () => {},
+  handleNotification = () => { },
+  HandleCart = () => { },
   handleSave,
   saveDisabled = false,
   handleBackPress,
   handleSkip,
   logo = false,
   loading = false,
+  howItWork = false,
+  handleHowItWork,
 }) => {
   const navigation = useNavigation<NavigationProp>();
   const { t, i18n } = useTranslation();
@@ -106,7 +109,21 @@ const Header2: React.FC<Header2Props> = ({
         )}
       </View>
 
-      {useSave ? (
+      {howItWork ? (
+        <TouchableOpacity
+          style={styles.howItWorkButton}
+          onPress={handleHowItWork}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator size="small" color={colors.primary} />
+          ) : (
+            <Text style={styles.howItWorkText}>
+              {t('howItWork')}
+            </Text>
+          )}
+        </TouchableOpacity>
+      ) : useSave ? (
         <TouchableOpacity
           style={[styles.icon, saveDisabled && { opacity: 0.5 }]}
           onPress={() => handleSave?.()}
@@ -218,6 +235,17 @@ const styles = StyleSheet.create({
     fontSize: mvs(16),
     color: colors.primary,
     fontWeight: 'bold',
+  },
+  howItWorkButton: {
+    paddingHorizontal: mvs(8),
+    paddingVertical: mvs(4),
+  },
+  howItWorkText: {
+    fontSize: mvs(13),
+    color: colors.primary,
+    fontWeight: '600',
+    borderBottomColor: colors.primary,
+    borderBottomWidth: 1
   },
   cartContainer: {
     position: 'relative',

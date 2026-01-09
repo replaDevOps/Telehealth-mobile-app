@@ -33,6 +33,7 @@ import {
   RefundRequest,
   PrescriptionScreen,
   CartScreen,
+  Policy,
 } from '@screens/Comman';
 
 export type MainStackParamList = {
@@ -41,6 +42,7 @@ export type MainStackParamList = {
   History: undefined;
   Setting: undefined;
   CustomTabBar: undefined;
+  Policy: { policyType: 'loyalty' | 'refund' };
 };
 
 export type ClinicStackParamList = {
@@ -84,6 +86,7 @@ export const MainNavigator = () => {
         name="ConsultationPayment"
         component={ConsultationPayment}
       />
+      <Stack.Screen name="Policy" component={Policy} />
     </Stack.Navigator>
   );
 };

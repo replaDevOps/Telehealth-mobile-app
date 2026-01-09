@@ -414,5 +414,18 @@
   "select_clinic_type_first": "Select a clinic type first",
   "select_service_group_first": "Select service groups first",
   "select_service_type_first": "Select service type first",
-  "no_consultation_types_found": "No consultation types available"
+  "no_consultation_types_found": "No consultation types available",
+  "howItWork": "How it works",
+  "loyalty_program_policy": "Loyalty Program Policy",
+  "loyalty_policy_content_1_title": "1. Information We Collect",
+  "loyalty_policy_content_1_desc": "We collect basic information such as name, phone number, email, and activity within the app.",
+  "loyalty_policy_content_2_title": "2. How We Use Your Information",
+  "loyalty_policy_content_2_desc": "Your information is used to:",
+  "loyalty_policy_bullet_1": "Create and manage your account",
+  "loyalty_policy_bullet_2": "Connect you with agents",
+  "loyalty_policy_bullet_3": "Improve app performance",
+  "refund_policy_content_1_title": "1. Acceptance of Terms",
+  "refund_policy_content_1_desc": "By using this app, you agree to follow these terms and conditions. If you do not agree, please stop using the app.",
+  "refund_policy_content_2_title": "2. User Account",
+  "refund_policy_content_2_desc": "You are responsible for keeping your account information secure. Do not share your login details with others."
 }

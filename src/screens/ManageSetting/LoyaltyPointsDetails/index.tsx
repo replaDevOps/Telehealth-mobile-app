@@ -1,7 +1,7 @@
 import { Header2 } from '@components/common/Header2';
 import React, { useState, useMemo } from 'react';
 import { View, Text, FlatList, Image, TouchableOpacity } from 'react-native';
-import { useRoute, RouteProp } from '@react-navigation/native';
+import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
 import { mvs } from '@config/metrices';
 import { coinIcon, RecommandImage } from '@assets/images';
 import { useTranslation } from 'react-i18next';
@@ -19,6 +19,7 @@ type PointsTab = 'earned' | 'used';
 
 export const LoyaltyPointsDetails = () => {
   const { t } = useTranslation();
+  const navigation = useNavigation<any>();
 
   type RouteParams = {
     clinicId?: string;
@@ -87,7 +88,16 @@ export const LoyaltyPointsDetails = () => {
 
   return (
     <View style={styles.container}>
-      <Header2 title={t('history')} />
+      <Header2
+        title={t('history')}
+        howItWork={true}
+        handleHowItWork={() =>
+          navigation.navigate('Main', {
+            screen: 'Policy',
+            params: { policyType: 'loyalty' },
+          })
+        }
+      />
 
       <ClinicCard
         clinicImage={clinicImage}

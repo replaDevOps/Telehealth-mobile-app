@@ -24,7 +24,7 @@ import { useTranslation } from 'react-i18next';
 export function RefundRequest() {
   const { t } = useTranslation();
   const route = useRoute();
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const params = route.params as any;
 
   const [reason, setReason] = useState('');
@@ -213,7 +213,12 @@ export function RefundRequest() {
 
             <Text style={styles.refundInstruction}>
               {t('refund_instruction')}{' '}
-              <Text style={{ color: colors.primary, fontWeight: '600' }}>
+              <Text
+                style={{ color: colors.primary, fontWeight: '600' }}
+                onPress={() =>
+                  navigation.navigate('Policy', { policyType: 'refund' })
+                }
+              >
                 {t('refund_policy')}
               </Text>
             </Text>

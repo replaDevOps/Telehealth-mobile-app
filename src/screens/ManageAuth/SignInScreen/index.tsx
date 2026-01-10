@@ -89,8 +89,12 @@ export function SignInScreen({ navigation }) {
   };
 
   const handleSignIn = async () => {
+    // Validate first (user errors - show under inputs)
+    if (!validate()) {
+      return;
+    }
+
     setMeta({ ...meta, loading: true });
-    if (!validate()) return;
 
     try {
       const payload =
@@ -103,11 +107,21 @@ export function SignInScreen({ navigation }) {
 
       const { data } = await apiClient.post(endpoint, payload);
       setAuth(data?.user);
-      Toast.success(data.message);
-      navigation.replace('Main', { screen: 'Home' });
+      Toast.success(data?.message || 'Login successful');
+      // Delay navigation to allow toast to be visible
+      setTimeout(() => {
+        navigation.replace('Main', { screen: 'Home' });
+      }, 500);
       setMeta({ ...meta, loading: false });
     } catch (error: any) {
-      Toast.error(error.message);
+      // API errors (like unauthorized) - show in toast only, not under input
+      const errorMsg = 
+        error?.response?.data?.data?.message ||
+        error?.response?.data?.message ||
+        error?.message ||
+        'Login failed. Please check your credentials and try again.';
+      
+      Toast.error(errorMsg);
       setMeta({ ...meta, loading: false });
     }
   };

@@ -16,6 +16,7 @@ import {
   VideoConsultation,
   ChatOnboarding,
   ClinicScreen,
+  WaitingForDoctor,
 } from '@screens/ManageClinic';
 import { HistoryScreen } from '@screens/ManageHistory';
 import {
@@ -52,6 +53,10 @@ export type ClinicStackParamList = {
   CheckoutScreen: undefined;
   CartScreen: undefined;
   ConsultationPayment: undefined;
+  WaitingForDoctor: {
+    consultationID: number | string;
+    consultationType?: string;
+  };
   PrescriptionScreen: undefined;
   AudioConsultation: undefined;
   VideoConsultation: undefined;
@@ -84,6 +89,14 @@ export const MainNavigator = () => {
         name="ConsultationPayment"
         component={ConsultationPayment}
       />
+      <Stack.Screen
+        name="WaitingForDoctor"
+        component={WaitingForDoctor}
+        options={{
+          gestureEnabled: false, // Disable swipe gestures (iOS)
+          headerBackVisible: false, // Hide back button
+        }}
+      />
     </Stack.Navigator>
   );
 };
@@ -94,6 +107,7 @@ export const HomeNavigator = () => {
       <Stack.Screen name="HomeScreen" component={HomeScreen} />
       <Stack.Screen name="NearbyClinics" component={NearbyClinics} />
       <Stack.Screen name="SelectLocation" component={SelectLocation} />
+      <Stack.Screen name="ClinicDetail" component={ClinicDetailScreen} />
     </Stack.Navigator>
   );
 };

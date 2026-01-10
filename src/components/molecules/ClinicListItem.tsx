@@ -56,7 +56,15 @@ const ClinicListItem: React.FC<ClinicListItemProps> = ({ item, onPress }) => {
               alignItems: 'center',
             }}
           >
-            <Text style={styles.specialtyText}>{item.specialty}</Text>
+            {/* If specialty is "Both", show Online and Offline chips; otherwise show single chip */}
+            {item.specialty?.toLowerCase() === 'both' ? (
+              <View style={styles.chipsContainer}>
+                <Text style={styles.specialtyText}>Dermatology</Text>
+                <Text style={styles.specialtyText}>Dentistry</Text>
+              </View>
+            ) : (
+              <Text style={styles.specialtyText}>{item.specialty}</Text>
+            )}
 
             <View style={styles.ratingContainer}>
               <Ionicons name="star" size={18} color={colors.yellow} />
@@ -88,7 +96,7 @@ const NearbyClinics = ({ clinics, onClinicPress }: NearbyClinicsProps) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>{t('nearby_clinic')}</Text>
+        <Text style={styles.title}>{t('all_clinic')}</Text>
       </View>
 
       <FlatList
@@ -149,6 +157,10 @@ const styles = StyleSheet.create({
   clinicInfo: {
     flex: 1,
     marginLeft: 12,
+  },
+  chipsContainer: {
+    flexDirection: 'row',
+    gap: 6,
   },
   specialtyText: {
     fontSize: 14,

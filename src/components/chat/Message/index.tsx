@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, Image, TouchableOpacity, Platform, ActionSheetIOS, ActivityIndicator } from 'react-native';
+import { View, Text, Image, TouchableOpacity, Platform, ActionSheetIOS, ActivityIndicator, Modal, Dimensions, Pressable } from 'react-native';
 import FastImage from '@d11/react-native-fast-image';
 import { Suggestion } from '../Suggestion';
 import { Message as MessageType, Service } from '../../../types/chat.types';
 import { styles } from './style';
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface MessageProps {
   msg: MessageType;
@@ -19,6 +21,7 @@ export const Message: React.FC<MessageProps> = ({
   handleDeleteMessage,
 }) => {
   const [loadingImages, setLoadingImages] = useState<{ [key: number]: boolean }>({});
+  const [fullScreenImage, setFullScreenImage] = useState<string | null>(null);
   const isUser = msg.type === 'user';
   const hasText = msg.text && msg.text.trim().length > 0;
   const hasImages = msg.images && msg.images.length > 0;
@@ -88,7 +91,12 @@ export const Message: React.FC<MessageProps> = ({
                       };
 
                       return (
-                        <View key={`img-${i}`} style={styles.imageContainer}>
+                        <TouchableOpacity 
+                          key={`img-${i}`} 
+                          style={styles.imageContainer}
+                          onPress={() => setFullScreenImage(fullImageUri)}
+                          activeOpacity={0.8}
+                        >
                           <FastImage
                             source={{ uri: fullImageUri }}
                             style={styles.uploadedImage}
@@ -102,7 +110,7 @@ export const Message: React.FC<MessageProps> = ({
                               <ActivityIndicator size="small" color="#fff" />
                             </View>
                           )}
-                        </View>
+                        </TouchableOpacity>
                       );
                     })}
                   </View>
@@ -165,7 +173,12 @@ export const Message: React.FC<MessageProps> = ({
                     };
 
                     return (
-                      <View key={`img-${i}`} style={styles.imageContainer}>
+                      <TouchableOpacity 
+                        key={`img-${i}`} 
+                        style={styles.imageContainer}
+                        onPress={() => setFullScreenImage(fullImageUri)}
+                        activeOpacity={0.8}
+                      >
                         <FastImage
                           source={{ uri: fullImageUri }}
                           style={styles.uploadedImage}
@@ -179,7 +192,7 @@ export const Message: React.FC<MessageProps> = ({
                             <ActivityIndicator size="small" color="#fff" />
                           </View>
                         )}
-                      </View>
+                      </TouchableOpacity>
                     );
                   })}
                 </View>
@@ -188,6 +201,33 @@ export const Message: React.FC<MessageProps> = ({
           )}
         </TouchableOpacity>
       )}
+
+      {/* Full Screen Image Modal */}
+      <Modal
+        visible={!!fullScreenImage}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setFullScreenImage(null)}
+      >
+        <Pressable 
+          style={styles.fullScreenModal}
+          onPress={() => setFullScreenImage(null)}
+        >
+          <TouchableOpacity 
+            style={styles.closeButton}
+            onPress={() => setFullScreenImage(null)}
+          >
+            <Text style={styles.closeButtonText}>✕</Text>
+          </TouchableOpacity>
+          {fullScreenImage && (
+            <FastImage
+              source={{ uri: fullScreenImage }}
+              style={styles.fullScreenImage}
+              resizeMode={FastImage.resizeMode.contain}
+            />
+          )}
+        </Pressable>
+      </Modal>
     </View>
   );
 };

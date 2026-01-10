@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,9 @@ import ConsultationEndedModal from '@components/molecules/EndSectionModal';
 import { useTranslation } from 'react-i18next';
 import { useWebRTC } from '../../../hooks/useWebRTC';
 import { Toast } from 'toastify-react-native';
+import { endConsultation } from '@services/api/webrtcService';
+import { pusherService } from '@services/pusher/PusherService';
+import { useAuthStore } from '@store';
 
 export function AudioConsultation({ navigation, route }) {
   const { t } = useTranslation();
@@ -29,11 +32,17 @@ export function AudioConsultation({ navigation, route }) {
   const consultationId = route?.params?.consultationId || `consultation_${Date.now()}`;
   const userId = route?.params?.userId || `patient_${Date.now()}`;
   const isInitiator = route?.params?.isInitiator ?? true;
+  const recipientID = route?.params?.recipientID; // Doctor ID for patient, Patient ID for doctor
 
   const [callDuration, setCallDuration] = useState(0);
   const [modalVisible, setModalVisible] = useState(false);
-  const CONSULTATION_MAX_DURATION = 30 * 60; // 30 minutes in seconds
+  const CONSULTATION_MAX_DURATION = 30 * 60; // 30 minutes in seconds (1800 seconds)
   const [remainingSeconds, setRemainingSeconds] = useState(CONSULTATION_MAX_DURATION);
+  const consultationStartTimeRef = useRef<number | null>(null);
+  const consultationEndedRef = useRef(false);
+  const timerInitializedRef = useRef(false);
+  const auth = useAuthStore(state => state.auth);
+  const patientID = auth?.id;
 
   // Initialize WebRTC for audio-only call
   const {
@@ -109,6 +118,12 @@ export function AudioConsultation({ navigation, route }) {
   useEffect(() => {
     let interval;
     if (isConnected) {
+      // Track start time
+      if (!consultationStartTimeRef.current) {
+        consultationStartTimeRef.current = Date.now();
+        console.log('📞 [AudioConsultation] Call connected, tracking duration');
+      }
+      
       interval = setInterval(() => {
         setCallDuration(prev => prev + 1);
       }, 1000);
@@ -119,38 +134,155 @@ export function AudioConsultation({ navigation, route }) {
     };
   }, [isConnected]);
 
-  const handleEndCall = () => {
-    endCall();
+  // Extract consultation ID from consultationId (format: "consultation_2" -> 2)
+  const consultationID = useMemo(() => {
+    if (!consultationId) return null;
+    const match = consultationId.toString().match(/consultation_(\d+)/);
+    return match ? Number(match[1]) : Number(consultationId);
+  }, [consultationId]);
+
+  // Listen for consultation-end event from other side
+  useEffect(() => {
+    if (!consultationID || consultationEndedRef.current) return;
+
+    pusherService.initialize();
+    const pusher = pusherService.getInstance();
+    if (!pusher) return;
+
+    const channelName = `webrtc-consultation${consultationID}`;
+    console.log('📞 [AudioConsultation] Listening for consultation-end on channel:', channelName);
+
+    const handleConsultationEnd = (eventPayload: any) => {
+      console.log('📞 [AudioConsultation] Consultation end event received (raw):', JSON.stringify(eventPayload, null, 2));
+      if (consultationEndedRef.current) return;
+
+      // Handle nested data structure: { data: { consultationID: ... } } or direct { consultationID: ... }
+      let data = eventPayload;
+      if (eventPayload?.data && typeof eventPayload.data === 'object') {
+        data = eventPayload.data;
+        console.log('📞 [AudioConsultation] Using nested data structure');
+      }
+
+      const eventConsultationID = data?.consultationID || data?.id || eventPayload?.consultationID || eventPayload?.id;
+      const fromUser = (data?.from || eventPayload?.from || '').toString();
+      
+      // Check if this event is from the other side (doctor), not from ourselves (patient)
+      const isFromPatient = fromUser && fromUser.startsWith('patient_');
+      if (isFromPatient) {
+        console.log('📞 [AudioConsultation] Ignoring own event from:', fromUser);
+        return;
+      }
+      
+      const eventIDStr = eventConsultationID?.toString() || '';
+      const consultationIDStr = consultationID?.toString() || '';
+      
+      if (eventIDStr && consultationIDStr && eventIDStr === consultationIDStr) {
+        console.log('✅ [AudioConsultation] Consultation ended by doctor, showing modal');
+        consultationEndedRef.current = true;
+        // Show modal first, then end call
+        setModalVisible(true);
+        // End the call locally after showing modal
+        setTimeout(() => {
+          endCall();
+        }, 100);
+      }
+    };
+
+    pusherService.bind(channelName, 'consultation-end', handleConsultationEnd);
+
+    return () => {
+      pusherService.unbind(channelName, 'consultation-end');
+      pusherService.unsubscribe(channelName);
+    };
+  }, [consultationID]);
+
+  const handleEndCall = async () => {
+    if (consultationEndedRef.current) return;
+    consultationEndedRef.current = true;
+
+    // Show modal first before ending call to ensure it displays
     setModalVisible(true);
+
+    // Calculate duration and notify the other side
+    if (consultationID && consultationStartTimeRef.current) {
+      try {
+        const durationMs = Date.now() - consultationStartTimeRef.current;
+        const durationMinutes = Math.floor(durationMs / 60000);
+        const duration = `${durationMinutes} min`;
+
+        // Extract IDs - userId format: "patient_62" or "doctor_33"
+        // For patient (isInitiator): from = patient_XX, to = doctor_YY
+        // For doctor (!isInitiator): from = doctor_XX, to = patient_YY
+        const fromUserId = userId || (isInitiator && patientID ? `patient_${patientID}` : `doctor_${recipientID || patientID}`);
+        const toUserId = isInitiator 
+          ? (recipientID ? `doctor_${recipientID}` : userId.replace('patient_', 'doctor_'))
+          : (recipientID ? `patient_${recipientID}` : userId.replace('doctor_', 'patient_'));
+
+        if (fromUserId && toUserId && !toUserId.includes('undefined')) {
+          console.log('📞 [AudioConsultation] Ending consultation and notifying other side:', {
+            consultationID,
+            duration,
+            from: fromUserId,
+            to: toUserId,
+          });
+
+          await endConsultation({
+            consultationID,
+            duration,
+            from: fromUserId,
+            to: toUserId,
+            offer: { type: 'offer', sdp: '...' },
+          });
+
+          console.log('✅ [AudioConsultation] Consultation ended successfully, other side notified');
+        } else {
+          console.warn('⚠️ [AudioConsultation] Missing user IDs, skipping API call:', { fromUserId, toUserId });
+        }
+      } catch (error: any) {
+        console.error('❌ [AudioConsultation] Error ending consultation:', error);
+        Toast.error(error?.response?.data?.message || 'Failed to end consultation');
+      }
+    }
+
+    // End call locally after showing modal and making API call
+    // Use setTimeout to ensure modal renders first before ending call
+    setTimeout(() => {
+      console.log('📞 [AudioConsultation] Calling endCall() after modal is shown');
+      endCall();
+    }, 300);
   };
 
-  // Auto-disconnect after 30 minutes (works for both patient and doctor)
+  // Auto-disconnect after 30 minutes - countdown timer (works for both patient and doctor)
   useEffect(() => {
     if (!isConnected) {
-      // Reset timer when disconnected
+      // Reset flags when disconnected
+      timerInitializedRef.current = false;
       setRemainingSeconds(CONSULTATION_MAX_DURATION);
       return;
     }
 
-    // Reset timer when call connects
-    setRemainingSeconds(CONSULTATION_MAX_DURATION);
+    // Initialize timer once when call connects
+    if (!timerInitializedRef.current) {
+      timerInitializedRef.current = true;
+      setRemainingSeconds(CONSULTATION_MAX_DURATION);
+      console.log('⏰ [AudioConsultation] Starting 30-minute countdown timer');
+    }
 
     const timer = setInterval(() => {
       setRemainingSeconds(prev => {
         if (prev <= 1) {
           clearInterval(timer);
           console.log('⏰ [AudioConsultation] 30 minutes elapsed, auto-ending call');
-          // Auto-end the call and show modal
-          endCall();
-          setModalVisible(true);
+          // Auto-end the call - this will call handleEndCall which shows modal
+          handleEndCall();
           return 0;
         }
-        return prev - 1;
+        return prev - 1; // Count down
       });
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isConnected, endCall]);
+  }, [isConnected, handleEndCall]);
 
   const formatDuration = seconds => {
     const mins = Math.floor(seconds / 60);
@@ -158,11 +290,14 @@ export function AudioConsultation({ navigation, route }) {
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
 
-  // Determine call status
+  // Determine call status - show countdown timer when connected
   const getCallStatus = () => {
     if (error && !isConnected) return t('failed');
     if (isConnecting) return t('connecting');
-    if (isConnected) return formatDuration(callDuration);
+    if (isConnected) {
+      // Show countdown timer (remainingSeconds counts down from 30:00 to 00:00)
+      return formatDuration(remainingSeconds);
+    }
     return t('connecting');
   };
 

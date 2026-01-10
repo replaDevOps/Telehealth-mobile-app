@@ -75,6 +75,8 @@ export const API = {
     DELETE_MESSAGE: '/patient-consultations/deleteMessage', // DELETE /deleteMessage/{messageID}
     DOWNLOAD_PRESCRIPTION: '/patient-consultations/downloadPrescription', // GET /downloadPrescription?consultationID={id}
     DOWNLOAD_INVOICE: '/patient-consultations/download-invoice', // GET /download-invoice?consultationID={id}&lat={lat}&long={long}
+    REFUND_CONSULTATION: '/patient-consultations/refundConsultations', // POST /refundConsultations
+    END_CONSULTATION: '/webrtc/consultation-end', // POST - End any type of consultation (chat/audio/video)
   },
   NOTIFICATIONS: {
     VIEW_ALL: '/patient-notifications/viewAll',

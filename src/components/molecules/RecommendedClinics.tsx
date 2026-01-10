@@ -56,7 +56,15 @@ const ClinicCard = ({ item, onPress }: ClinicCardProps) => {
 
       <View style={styles.cardContent}>
         <View style={styles.specialtyRow}>
-          <Text style={styles.specialtyText}>{item.specialty}</Text>
+          {/* If specialty is "Both", show Online and Offline chips; otherwise show single chip */}
+          {item.specialty?.toLowerCase() === 'both' ? (
+            <View style={styles.chipsContainer}>
+              <Text style={styles.specialtyText}>Dermatology</Text>
+              <Text style={styles.specialtyText}>Dentistry</Text>
+            </View>
+          ) : (
+            <Text style={styles.specialtyText}>{item.specialty}</Text>
+          )}
           <View style={styles.ratingContainer}>
             <Ionicons name="star" size={18} color={colors.yellow} />
             <Text style={styles.ratingText}>{item.rating}</Text>
@@ -163,6 +171,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 8,
+  },
+  chipsContainer: {
+    flexDirection: 'row',
+    gap: 6,
   },
   specialtyText: {
     fontSize: 14,

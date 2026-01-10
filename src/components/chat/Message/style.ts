@@ -19,7 +19,7 @@ export const styles = StyleSheet.create({
         marginRight: 8,
       },
       botMessageContent: {
-        flex: 1,
+        flexShrink: 1, // Allow content to shrink instead of flex: 1 which stretches
       },
       messageHeader: {
         flexDirection: 'row',
@@ -51,6 +51,7 @@ export const styles = StyleSheet.create({
       },
       userMessage: {
         maxWidth: '80%',
+        alignSelf: 'flex-end', // Make width adapt to content
       },
       userMessageText: {
         fontSize: 15,
@@ -99,6 +100,7 @@ export const styles = StyleSheet.create({
       },
       botMessage: {
         maxWidth: '85%',
+        alignSelf: 'flex-start', // Make width adapt to content
       },
       botMessageText: {
         backgroundColor: colors.primary,
@@ -107,5 +109,33 @@ export const styles = StyleSheet.create({
         fontSize: 15,
         color: '#fff',
         lineHeight: 20,
+      },
+      // Full Screen Image Modal Styles
+      fullScreenModal: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.95)',
+        justifyContent: 'center',
+        alignItems: 'center',
+      },
+      fullScreenImage: {
+        width: '100%',
+        height: '80%',
+      },
+      closeButton: {
+        position: 'absolute',
+        top: 50,
+        right: 20,
+        zIndex: 10,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        justifyContent: 'center',
+        alignItems: 'center',
+      },
+      closeButtonText: {
+        color: '#fff',
+        fontSize: 20,
+        fontWeight: 'bold',
       },
 });

@@ -1,6 +1,6 @@
 // SettingScreen.tsx
-import React from 'react';
-import { View, Text, TouchableOpacity, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, Alert, Modal, ActivityIndicator } from 'react-native';
 import UserProfile from '../../../components/common/UserProfile';
 import { Header2 } from '../../../components/common/Header2';
 import AntDesign from 'react-native-vector-icons/AntDesign';
@@ -20,11 +20,13 @@ import { useTranslation } from 'react-i18next';
 import { useAuthStore, useProfileStore } from '@store';
 import { apiClient } from '../../../services/api/api-client';
 import { API } from '../../../services/api/api-endpoint';
+import { colors } from '../../../styles/colors';
 
 export const SettingScreen = ({ navigation }: { navigation: any }) => {
   const { t } = useTranslation();
   const { logout, isAuthenticated } = useAuthStore();
   const { profileData, fetchProfile, refreshProfile } = useProfileStore();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   
   // Extract profile image and loyalty points from store
   const profileImage = profileData?.image || profileData?.profileImage || profileData?.profile_image || '';
@@ -62,18 +64,21 @@ export const SettingScreen = ({ navigation }: { navigation: any }) => {
           text: t('log_out'),
           style: 'destructive',
           onPress: async () => {
+            setIsLoggingOut(true);
             try {
               // Call logout API
               await apiClient.post(API.AUTH.LOGOUT);
             } catch (error: any) {
               // Even if API call fails, proceed with logout
               console.log('Logout API error:', error);
-            } finally {
-              // Clear auth store and profile store, then navigate to login
-              useProfileStore.getState().clearProfile();
-              logout();
-              navigation.replace('Auth', { screen: 'SignIn' });
             }
+            
+            // Clear auth store and profile store, then navigate to login
+            useProfileStore.getState().clearProfile();
+            logout();
+            navigation.replace('Auth', { screen: 'SignIn' });
+            
+            // Note: setIsLoggingOut(false) is not needed as component unmounts on navigation
           },
         },
       ],
@@ -153,6 +158,19 @@ export const SettingScreen = ({ navigation }: { navigation: any }) => {
         {/* Menu Items */}
         {menuData.map(renderMenuItem)}
       </View>
+
+      {/* Loading Modal for Logout */}
+      <Modal
+        visible={isLoggingOut}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+      >
+        <View style={style.loadingOverlay}>
+          <ActivityIndicator size="large" color={colors.white} />
+          <Text style={style.loadingText}>{t('logging_out') || 'Logging Out...'}</Text>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };

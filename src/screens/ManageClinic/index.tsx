@@ -6,3 +6,4 @@ export * from './ClinicScreen';
 export * from './ConsulationPayment';
 export * from './FilterScreen';
 export * from './VedioConsultation';
+export * from './WaitingForDoctor';

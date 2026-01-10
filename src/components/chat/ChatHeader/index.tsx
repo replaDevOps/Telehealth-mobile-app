@@ -15,6 +15,7 @@ interface ChatHeaderProps {
   handleGoBack: () => void;
   handleEndConsultation: () => void;
   handleCart: () => void;
+  isConsultationActive?: boolean; // Add flag to show timer when active
   consultationData?: {
     doctor?: {
       name?: string;
@@ -37,6 +38,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   handleGoBack,
   handleEndConsultation,
   handleCart,
+  isConsultationActive = false,
   consultationData,
 }) => {
   const { cartCount } = useCartCount();
@@ -48,8 +50,14 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   const consultationCode = consultationData?.code || '';
   const serviceDuration = consultationData?.service?.duration;
   
-  // Build subtitle: "Code | Service Name | Type | Duration"
+  // Build subtitle: Show countdown timer when consultation is active, otherwise show service info
   const buildSubtitle = () => {
+    // When consultation is active, always show the countdown timer
+    if (isConsultationActive && !fromHistory) {
+      return consultationTime; // This is the formatted countdown timer (MM:SS)
+    }
+    
+    // When viewing history, show service info
     if (!consultationData) {
       return doctorInfo.serviceName || consultationTime;
     }

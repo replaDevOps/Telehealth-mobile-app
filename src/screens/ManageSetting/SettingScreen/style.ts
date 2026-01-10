@@ -97,4 +97,17 @@ export default StyleSheet.create({
   logoutMenuTitle: {
     color: colors.white,
   },
+  loadingOverlay: {
+    flex: 1,
+    backgroundColor: '#15002E80',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.white,
+    textAlign: 'center',
+  },
 });

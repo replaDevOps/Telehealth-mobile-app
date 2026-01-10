@@ -22,10 +22,22 @@ export const ClinicInfo: React.FC<ClinicInfoProps> = ({
   onConsultPress,
 }) => {
   const { t } = useTranslation();
+  
+  // Check if category is "Both" to show multiple chips
+  const isBoth = category?.toLowerCase() === 'both';
+  
   return (
     <View style={styles.infoContainer}>
       <View style={styles.nameRow}>
-        <Text style={styles.category}>{category}</Text>
+        {/* If category is "Both", show Online and Offline chips; otherwise show single chip */}
+        {isBoth ? (
+          <View style={styles.chipsContainer}>
+            <Text style={styles.category}>Dermatology</Text>
+            <Text style={styles.category}>Dentistry</Text>
+          </View>
+        ) : (
+          <Text style={styles.category}>{category}</Text>
+        )}
         <TouchableOpacity style={styles.consultButton} onPress={onConsultPress}>
           <Text style={styles.consultText}>{t('consult_now')}</Text>
         </TouchableOpacity>
@@ -52,6 +64,10 @@ const styles = StyleSheet.create({
   infoContainer: {
     padding: 16,
     backgroundColor: colors.white,
+  },
+  chipsContainer: {
+    flexDirection: 'row',
+    gap: 8,
   },
   category: {
     fontSize: 14,

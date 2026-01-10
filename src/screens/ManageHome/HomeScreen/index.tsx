@@ -147,14 +147,18 @@ export const HomeScreen = ({ navigation }) => {
 
   const transformClinicsData = (apiClinics: ClinicApiResponse[]): Clinic[] => {
     return apiClinics.map((clinic): Clinic => {
-      const clinicName = clinic.name || clinic.clinicName || 'Clinic';
+      // Use clinicName (not name) for the card title
+      const clinicName = clinic.clinicName || clinic.name || 'Clinic';
       const location = clinic.details?.address || 
                       clinic.details?.city || 
                       clinic.details?.district || 
                       'Location not available';
-      const specialty = clinic.details?.businessName || 
-                       clinic.businessType || 
-                       'General';
+      // Use businessType for the chip (specialty field)
+      // Format businessType to ensure "Both" is displayed properly (case-insensitive)
+      const businessType = clinic.businessType || null;
+      const specialty = businessType && businessType.toString().toLowerCase() === 'both' 
+        ? 'Both' 
+        : (businessType || 'General');
       const rating = parseFloat(clinic.avgRating) || 0;
       
       // Use cover image, logo, or default image
@@ -167,8 +171,8 @@ export const HomeScreen = ({ navigation }) => {
 
       return {
         id: clinic.clinicID.toString(),
-        name: clinicName,
-        specialty: specialty,
+        name: clinicName, // This is displayed as the clinic name in the card
+        specialty: specialty, // This is displayed in the chip
         rating: rating,
         location: location,
         image: image,

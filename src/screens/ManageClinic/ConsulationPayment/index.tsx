@@ -159,10 +159,12 @@ export function ConsultationPayment({ navigation, route }) {
       console.log('Consultation booked successfully. ID:', consultationID);
       console.log('Waiting for doctor to accept consultation...');
 
-      // Navigate to home instead of directly to ChatScreen
-      // The Pusher event will handle navigation to ChatScreen when doctor accepts
+      // Navigate to waiting screen - will handle Pusher events and timeout
       setTimeout(() => {
-        navigation.navigate('EntryPoint');
+        navigation.navigate('WaitingForDoctor', {
+          consultationID: consultationID,
+          consultationType: consultationData.consultationTypeId || 'chat',
+        });
       }, 1000);
     } catch (error: any) {
       console.error('Error booking consultation:', error);

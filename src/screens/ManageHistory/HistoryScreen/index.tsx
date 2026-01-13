@@ -80,6 +80,7 @@ export function HistoryScreen({ navigation }) {
       } else if (Array.isArray(responseData?.data)) {
         apiConsultations = responseData.data;
       }
+      console.log('apiConsultations', apiConsultations);
 
       // Check if there's more data using nextPageUrl from backend
       const hasMoreData = !!(responseData?.nextPageUrl);
@@ -105,9 +106,7 @@ export function HistoryScreen({ navigation }) {
             id: String(consultation.id),
             date: consultation.date || consultation.created_at || '',
             serviceName: serviceData.name || consultation.serviceName || '',
-            duration: serviceData.duration 
-              ? `${serviceData.duration} min`
-              : consultation.duration || '',
+            duration:  consultation.duration || '',
             type: consultationType.type,
             icon: consultationType.icon,
             doctorName: doctorData.name || consultation.doctorName || '',

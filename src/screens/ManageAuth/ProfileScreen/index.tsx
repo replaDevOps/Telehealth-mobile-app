@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { RouteProp } from '@react-navigation/native';
 import { Asset } from 'react-native-image-picker';
 import { KeyboardAvoidScrollview } from '../../../components/common/keyboard-avoid-scrollview';
 
@@ -13,55 +14,108 @@ import CustomText from '../../../components/common/CustomText';
 import { styles } from './style';
 import PhoneNumberInput from '../../../components/common/PhoneTextInput';
 import { colors } from '../../../styles/colors';
+import { mvs } from '../../../config/metrices';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { API } from '@services/api/api-endpoint';
 import { Toast } from 'toastify-react-native';
 import { BASE_URL } from '@constants';
 import { useAuthStore } from '@store';
+import { AuthStackParamList } from '../../../navigation/AuthNavigator';
+import parsePhoneNumberFromString, { CountryCode } from 'libphonenumber-js';
 
-type RootStackParamList = {
-  SetupProfile: undefined;
-  SignIn: undefined; // Replace with actual next screen
-};
-
-type NavProps = StackNavigationProp<RootStackParamList, 'SetupProfile'>;
+type NavProps = StackNavigationProp<AuthStackParamList, 'Profile'>;
+type RouteProps = RouteProp<AuthStackParamList, 'Profile'>;
 
 interface Props {
   navigation: NavProps;
+  route: RouteProps;
 }
 
-export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
+export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   const { t } = useTranslation();
+  
+  // Get email/phone from route params
+  const routeEmail = route.params?.email;
+  const routePhone = route.params?.phone;
+  const routeCountryCode = route.params?.countryCode || 'SA';
+  
   const [fullName, setFullName] = useState('');
   const [gender, setGender] = useState('');
   const [age, setAge] = useState('');
   const [profileImage, setProfileImage] = useState('');
   const [profileImageAsset, setProfileImageAsset] = useState<Asset | null>(null);
   const [phone, setPhone] = useState('');
-  const [countryCode, setCountryCode] = useState('PK');
+  const [countryCode, setCountryCode] = useState(routeCountryCode);
   const [phoneError, setPhoneError] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isPhoneValid, setIsPhoneValid] = useState(false);
   const [nationality, setNationality] = useState('');
   const [IdCardNumber, setIdCardNumber] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(routeEmail || '');
+  
+  // Auto-fill email and phone from route params
+  useEffect(() => {
+    if (routeEmail) {
+      setEmail(routeEmail);
+    }
+    
+    if (routePhone && routeCountryCode) {
+      // Check if phone already includes country code (starts with +)
+      if (routePhone.startsWith('+')) {
+        // Phone is in international format, parse it
+        try {
+          const phoneNumber = parsePhoneNumberFromString(routePhone);
+          if (phoneNumber) {
+            setPhone(phoneNumber.nationalNumber);
+            setCountryCode(phoneNumber.country || routeCountryCode);
+          } else {
+            // If parsing fails, try with country code
+            const phoneNumberWithCountry = parsePhoneNumberFromString(
+              routePhone,
+              routeCountryCode as CountryCode
+            );
+            if (phoneNumberWithCountry) {
+              setPhone(phoneNumberWithCountry.nationalNumber);
+              setCountryCode(routeCountryCode);
+            } else {
+              // Last resort: use as-is
+              setPhone(routePhone.replace(/^\+?\d{1,3}/, '')); // Remove country code prefix
+              setCountryCode(routeCountryCode);
+            }
+          }
+        } catch (error) {
+          // If parsing fails, remove country code prefix if present
+          const nationalNumber = routePhone.replace(/^\+?\d{1,3}/, '');
+          setPhone(nationalNumber);
+          setCountryCode(routeCountryCode);
+        }
+      } else {
+        // Phone is already in national format
+        setPhone(routePhone);
+        setCountryCode(routeCountryCode);
+      }
+    }
+  }, [routeEmail, routePhone, routeCountryCode]);
   const [emailError, setEmailError] = useState('');
   const [nameError, setNameError] = useState('');
   const [ageError, setAgeError] = useState('');
   const [idError, setIdError] = useState('');
   const [nationalityError, setNationalityError] = useState('');
   const [genderError, setGenderError] = useState('');
+  const [profileImageError, setProfileImageError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleImageSelected = (uri: string) => {
     setProfileImage(uri);
+    setProfileImageError(''); // Clear error when image is selected
   };
 
   const handleImageAssetSelected = (asset: Asset) => {
     if (asset.uri) {
       setProfileImage(asset.uri);
       setProfileImageAsset(asset);
+      setProfileImageError(''); // Clear error when image is selected
     }
   };
 
@@ -77,6 +131,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
     setAgeError('');
     setNationalityError('');
     setGenderError('');
+    setProfileImageError('');
 
     if (!fullName.trim()) {
       setNameError(t('name_required'));
@@ -107,7 +162,8 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
       valid = false;
     }
     if (!profileImage) {
-      /* show image error if needed */ valid = false;
+      setProfileImageError(t('profile_image_required'));
+      valid = false;
     }
     
     if (valid) {
@@ -184,6 +240,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const nationalityOptions = [
+    { label: t('saudi_arabian'), value: 'sau' },
     { label: t('pakistani'), value: 'pak' },
     { label: t('afghani'), value: 'afg' },
     { label: t('indian'), value: 'ind' },
@@ -198,10 +255,12 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
   ];
 
   return (
-    <KeyboardAvoidScrollview>
-      <SafeAreaView style={{ flex: 1 }}>
-        <Header2 title="" showLanguage={true} />
-
+    <SafeAreaView style={{ flex: 1 }}>
+      <Header2 title="" showLanguage={true} />
+      <KeyboardAvoidScrollview
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ paddingBottom: mvs(30) }}
+      >
         <View style={styles.container}>
           <UserProfile
             profileImage={profileImage}
@@ -209,6 +268,9 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
             autoUpload={false}
             onImageAssetSelected={handleImageAssetSelected}
           />
+          {profileImageError ? (
+            <Text style={styles.errorText}>{profileImageError}</Text>
+          ) : null}
 
           <View style={styles.content}>
             <CustomText text={t('setup_profile')} />
@@ -250,7 +312,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
             placeholder={t('select_nationality')}
             value={nationality}
             onValueChange={setNationality}
-            errorMessage={nationalityError} // Add
+            errorMessage={nationalityError}
             options={nationalityOptions}
           />
 
@@ -280,28 +342,29 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
             keyboardType="numeric"
             errorMessage={ageError}
           />
+
+          <View style={styles.buttonContainer}>
+            <CustomButton
+              title={t('skip')}
+              onPress={handleSkip}
+              style={{
+                width: '48%',
+                backgroundColor: colors.white,
+                borderWidth: 1,
+                borderColor: colors.border,
+              }}
+              textStyle={{ color: colors.text }}
+            />
+            <CustomButton
+              title={t('confirm')}
+              onPress={handleConfirm}
+              style={{ width: '48%' }}
+              loading={loading}
+              disabled={loading}
+            />
+          </View>
         </View>
-        <View style={styles.buttonContainer}>
-          <CustomButton
-            title={t('skip')}
-            onPress={handleSkip}
-            style={{
-              width: '48%',
-              backgroundColor: colors.white,
-              borderWidth: 1,
-              borderColor: colors.border,
-            }}
-            textStyle={{ color: colors.text }}
-          />
-          <CustomButton
-            title={t('confirm')}
-            onPress={handleConfirm}
-            style={{ width: '48%' }}
-            loading={loading}
-            disabled={loading}
-          />
-        </View>
-      </SafeAreaView>
-    </KeyboardAvoidScrollview>
+      </KeyboardAvoidScrollview>
+    </SafeAreaView>
   );
 };

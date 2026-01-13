@@ -165,13 +165,6 @@ export const ServiceDetailBottomSheet: React.FC<
               <Text style={styles.addToCartText}>{t('add_to_cart')}</Text>
                   )}
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.checkoutButton}
-              onPress={handleCheckout}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.checkoutText}>{t('checkout')}</Text>
-            </TouchableOpacity>
           </View>
             </>
           ) : (

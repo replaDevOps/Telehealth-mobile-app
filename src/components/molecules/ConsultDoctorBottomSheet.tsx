@@ -683,7 +683,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   dropdownContainer: {
-    marginBottom: 20,
+    marginBottom: 5,
   },
   loadingIndicator: {
     marginVertical: 10,

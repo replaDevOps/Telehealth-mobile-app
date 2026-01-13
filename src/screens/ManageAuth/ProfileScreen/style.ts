@@ -67,18 +67,25 @@ export const styles = StyleSheet.create({
       marginBottom: mvs(20),
     },
     buttonContainer:{
-      flex:1,
       width:"100%",
       flexDirection:"row",
       gap:mvs(10),
       alignItems:"center",
-
+      marginTop: mvs(20),
+      paddingBottom: mvs(10),
     },
 
     buttonText: {
       color: colors.white,
       fontSize: mvs(16),
       fontWeight: '600',
+    },
+    errorText: {
+      color: 'red',
+      fontSize: mvs(12),
+      marginTop: mvs(5),
+      marginBottom: mvs(10),
+      textAlign: 'center',
     },
   });
   

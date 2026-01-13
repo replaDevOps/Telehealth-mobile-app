@@ -56,8 +56,8 @@ export const ConsultationCard: React.FC<ConsultationCardProps> = ({
         <View style={styles.serviceHeader}>
           <Text style={styles.serviceName}>{item.serviceName}</Text>
           <View style={styles.serviceDetails}>
-            <Ionicons name="time-outline" size={14} color={colors.white} />
-            <Text style={styles.durationText}>{item.duration}</Text>
+            {item.duration && <><Ionicons name="time-outline" size={14} color={colors.white} />
+            <Text style={styles.durationText}>{item.duration}</Text></>}
             <Ionicons name={item.icon as any} size={14} color={colors.white} />
             <Text style={styles.typeText}>{t(item.type)}</Text>
           </View>
@@ -86,9 +86,12 @@ export const ConsultationCard: React.FC<ConsultationCardProps> = ({
               {t('get_prescription')}
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.viewChatButton} onPress={onChatPress}>
-            <Text style={styles.viewChatButtonText}>{t('view_chat')}</Text>
-          </TouchableOpacity>
+          {/* Only show View Chat button for Chat consultations, not Audio or Video */}
+          {item.type === 'Chat' && (
+            <TouchableOpacity style={styles.viewChatButton} onPress={onChatPress}>
+              <Text style={styles.viewChatButtonText}>{t('view_chat')}</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     </View>

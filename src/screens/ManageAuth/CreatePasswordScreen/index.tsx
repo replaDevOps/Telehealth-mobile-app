@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text } from 'react-native';
-import { StackNavigationProp } from '@react-navigation/stack';
+import { StackNavigationProp, RouteProp } from '@react-navigation/stack';
 import { KeyboardAvoidScrollview } from '../../../components/common/keyboard-avoid-scrollview';
 import { LogoSvg } from '../../../assets/icons';
 import { Header2 } from '../../../components/common/Header2';
@@ -17,12 +17,14 @@ import { tryCatch } from '@utils';
 import { Toast } from 'toastify-react-native';
 
 type NavProps = StackNavigationProp<AuthStackParamList, 'CreatePassword'>;
+type RouteProps = RouteProp<AuthStackParamList, 'CreatePassword'>;
 
 interface Props {
   navigation: NavProps;
+  route: RouteProps;
 }
 
-export const CreatePassword: React.FC<Props> = ({ navigation }) => {
+export const CreatePassword: React.FC<Props> = ({ navigation, route }) => {
   const { t } = useTranslation();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -65,7 +67,12 @@ export const CreatePassword: React.FC<Props> = ({ navigation }) => {
     }
     Toast.success(data.data.message);
     setLoading(false);
-    navigation.navigate('Profile');
+    // Pass email/phone data to Profile screen
+    navigation.navigate('Profile', {
+      email: route.params?.email,
+      phone: route.params?.phone,
+      countryCode: route.params?.countryCode,
+    });
   };
 
   return (

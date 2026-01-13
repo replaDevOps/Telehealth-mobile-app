@@ -7,7 +7,6 @@ import {
   Image,
   StatusBar,
   ActivityIndicator,
-  Alert,
   Modal,
   ImageSourcePropType,
   Share,
@@ -190,12 +189,10 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
         setPrescription(null);
       }
     } catch (err: any) {
-      // Only set error for actual exceptions/network errors
-      const errorMessage =
-        err instanceof Error ? err.message : err?.response?.data?.message || 'An unknown error occurred';
-      setError(errorMessage);
-      setInfoMessage(null);
-      Alert.alert(t('error') || 'Error', errorMessage);
+      // For any error, show "No Prescription found" message instead of alert
+      setError(null);
+      setInfoMessage(t('no_prescription_available') || 'No Prescription found');
+      setPrescription(null);
     } finally {
       setLoading(false);
     }
@@ -203,10 +200,8 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handleDownload = async (): Promise<void> => {
     if (!consultationID) {
-      Alert.alert(
-        t('error') || 'Error',
-        t('consultation_id_required') || 'Consultation ID is required to download prescription'
-      );
+      // Show message instead of alert
+      setInfoMessage(t('no_prescription_available') || 'No Prescription found');
       return;
     }
 
@@ -350,11 +345,24 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>Prescription #${consultationID}</title>
           <style>
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+            }
             body {
               font-family: Arial, sans-serif;
-              padding: 20px;
+              padding: 0;
+              margin: 0;
               color: #333;
               line-height: 1.6;
+              background-color: #fff;
+            }
+            .container {
+              max-width: 100%;
+              margin: 0 auto;
+              padding: 40px 50px;
+              background-color: #fff;
             }
             .header {
               text-align: center;
@@ -397,12 +405,24 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
               border-top: 1px solid #e0e0e0;
             }
             @media print {
-              body { padding: 0; }
+              body { 
+                padding: 0;
+                margin: 0;
+              }
+              .container {
+                padding: 40px 50px;
+                margin: 0;
+              }
+            }
+            @page {
+              margin: 0;
+              padding: 0;
             }
           </style>
         </head>
         <body>
-          <div class="header">
+          <div class="container">
+            <div class="header">
             <h1>Prescription #${prescriptionConsultationID}</h1>
             <p>${appointmentDate} | ${appointmentTime}</p>
           </div>
@@ -466,6 +486,7 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
             <p><strong>Doctor's Signature</strong></p>
             ${doctor.signature ? `<img src="${doctor.signature}" alt="Doctor Signature" style="max-width: 200px; height: auto;" />` : '<p>_________________</p>'}
           </div>
+          </div>
         </body>
       </html>
     `;
@@ -503,6 +524,10 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
         base64: false,
         width: 595, // A4 width in points
         height: 842, // A4 height in points
+        paddingLeft: 50, // Left margin in points
+        paddingRight: 50, // Right margin in points
+        paddingTop: 40, // Top margin in points
+        paddingBottom: 40, // Bottom margin in points
       };
 
       const file = await RNHTMLtoPDF.convert(options);
@@ -733,22 +758,20 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
     );
   }
 
-  // Error State - only show when there's an actual error (network, exception, etc.)
+  // Error State - show "No Prescription found" message instead of error
   if (error && !infoMessage) {
     return (
       <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor={colors.white} />
         <Header2 title={t('prescription')} />
-        <View style={styles.centerContainer}>
-          <Text style={styles.errorText}>
-            {error}
+        <View style={styles.noPrescriptionContainer}>
+          <EmptyContentSvg width={180} height={180} />
+          <Text style={styles.noPrescriptionTitle}>
+            {t('no_prescription_available') || 'No Prescription found'}
           </Text>
-          <TouchableOpacity
-            style={styles.retryButton}
-            onPress={fetchPrescriptionData}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.retryButtonText}>{t('retry')}</Text>
-          </TouchableOpacity>
+          <Text style={styles.noPrescriptionSubtitle}>
+            {t('prescription_will_appear_here')}
+          </Text>
         </View>
       </SafeAreaView>
     );

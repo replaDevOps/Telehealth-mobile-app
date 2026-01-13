@@ -17,8 +17,16 @@ export type AuthStackParamList = {
   SignUp: undefined;
   LanguageSelection: undefined;
   Onboarding: undefined;
-  CreatePassword: undefined;
-  Profile: undefined;
+  CreatePassword: {
+    email?: string;
+    phone?: string;
+    countryCode?: string;
+  };
+  Profile: {
+    email?: string;
+    phone?: string;
+    countryCode?: string;
+  };
   ForgetPassword: undefined;
   SetPassword: {
     token?: string;

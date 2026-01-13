@@ -37,7 +37,6 @@ interface RecommendedClinicsProps {
 
 const ClinicCard = ({ item, onPress }: ClinicCardProps) => {
   const { t } = useTranslation();
-  console.log('item: ', JSON.stringify(item, null, 4));
   return (
     <TouchableOpacity style={styles.card} onPress={() => onPress(item)}>
       <View style={styles.imageContainer}>

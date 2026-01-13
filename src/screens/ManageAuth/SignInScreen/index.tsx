@@ -48,7 +48,7 @@ export function SignInScreen({ navigation }) {
   const [meta, setMeta] = useState({
     remember: false,
     rememberError: false,
-    countryCode: 'PK' as CountryCode,
+    countryCode: 'SA' as CountryCode,
     isPhoneValid: false,
     loading: false,
   });
@@ -59,10 +59,10 @@ export function SignInScreen({ navigation }) {
     }
 
     const parsed = parsePhoneNumberFromString(form.phone, meta.countryCode);
-
+    console.log('parsed', parsed);
     if (!parsed) return '';
 
-    return `+${parsed.countryCallingCode}${parsed.nationalNumber}`;
+    return `${parsed.nationalNumber}`;
   }, [form.phone, meta.countryCode]);
 
   const validate = (): boolean => {
@@ -93,19 +93,19 @@ export function SignInScreen({ navigation }) {
     if (!validate()) {
       return;
     }
-
     setMeta({ ...meta, loading: true });
 
     try {
       const payload =
         tab === 'email'
           ? { email: form.email, password: form.password }
-          : { phone: formattedPhone, password: form.password };
-
+          : { phoneNo: formattedPhone, password: form.password };
+      console.log('payload', payload);
       const endpoint =
         tab === 'email' ? API.AUTH.LOGIN_EMAIL : API.AUTH.LOGIN_PHONE;
-
+      console.log('endpoint', endpoint);
       const { data } = await apiClient.post(endpoint, payload);
+      console.log('data', data);
       setAuth(data?.user);
       Toast.success(data?.message || 'Login successful');
       // Delay navigation to allow toast to be visible

@@ -31,7 +31,7 @@ export function SignUpScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [isChecked, setIsChecked] = useState(false);
-  const [countryCode, setCountryCode] = useState('PK');
+  const [countryCode, setCountryCode] = useState('SA');
   const [phoneError, setPhoneError] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isPhoneValid, setIsPhoneValid] = useState(false);
@@ -94,6 +94,7 @@ export function SignUpScreen({ navigation }) {
           countryCode: selectedTab === 'phone' ? countryCode : undefined,
         });
       } catch (error: any) {
+        console.log('error', error);
         Toast.error(error.message);
       } finally {
         setLoading(false);

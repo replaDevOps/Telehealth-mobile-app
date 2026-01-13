@@ -99,7 +99,12 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
           token: token,
         });
       } else {
-        navigation.navigate('CreatePassword');
+        // Pass email/phone data to CreatePassword screen
+        navigation.navigate('CreatePassword', {
+          email,
+          phone,
+          countryCode,
+        });
       }
     } catch (error: any) {
       console.error('OTP verification error:', error);

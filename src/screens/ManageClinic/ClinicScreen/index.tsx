@@ -6,7 +6,7 @@ import { mvs } from '@config/metrices';
 import { RecommandImage } from '@assets/images';
 import { colors } from '../../../styles/colors';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { StyleSheet, ScrollView, ActivityIndicator, View, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -41,7 +41,17 @@ export const ClinicScreen = ({ navigation, route }) => {
   const [recommendedClinics, setRecommendedClinics] = useState<Clinic[]>([]);
   const [nearbyClinics, setNearbyClinics] = useState<Clinic[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const [filterParams, setFilterParams] = useState<FilterParams | null>(null);
+  const isInitialMountRef = useRef(true);
+  const isLoadingMoreRef = useRef(false);
+  const recordsPerPage = 10;
+  // Refs to track current filter params and search query to avoid stale closures
+  const currentFilterParamsRef = useRef<FilterParams | null>(null);
+  const currentSearchQueryRef = useRef<string>('');
+  const lastRequestIdRef = useRef<number>(0);
 
   // Listen for filter params from FilterScreen
   useFocusEffect(
@@ -51,21 +61,45 @@ export const ClinicScreen = ({ navigation, route }) => {
       if (filters === null) {
         // Clear filters when reset
         setFilterParams(null);
+        currentFilterParamsRef.current = null;
       } else if (filters) {
         // Set filters when applied
         setFilterParams(filters);
+        currentFilterParamsRef.current = filters;
       }
     }, [route.params?.filters])
   );
 
+  // Initial fetch on mount
   useEffect(() => {
-    fetchAllClinics(searchQuery, filterParams);
-  }, [filterParams]);
+    if (isInitialMountRef.current) {
+      // Initialize refs
+      currentFilterParamsRef.current = filterParams;
+      currentSearchQueryRef.current = searchQuery;
+      fetchAllClinics(searchQuery, filterParams, 1, false);
+      isInitialMountRef.current = false;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount
 
-  const fetchAllClinics = async (query: string = '', filters: FilterParams | null = null, pageNo: number = 1, recordsPerPage: number = 10) => {
+  const fetchAllClinics = useCallback(async (
+    query: string = '',
+    filters: FilterParams | null = null,
+    pageNo: number = 1,
+    append: boolean = false
+  ) => {
+    const requestId = ++lastRequestIdRef.current;
+
     try {
-      setLoading(true);
-        
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+        setLoadingMore(false); // Ensure loadingMore is reset if we are doing a fresh load
+        setCurrentPage(1);
+        setHasMore(true);
+      }
+
       // Build params object
       const params: any = {
         name: query || '',
@@ -118,45 +152,100 @@ export const ClinicScreen = ({ navigation, route }) => {
         }
       }
 
+      console.log(`[ClinicScreen] Fetching clinics (ReqID: ${requestId}) - Page: ${pageNo}, Filters:`, filters ? 'Yes' : 'No');
+
       const response = await apiClient.get(API.CLINIC.GET_CLINICS, {
         params: params,
       });
-      console.log('response', response.data.data);
+      // console.log('response', response.data);
+      console.log('response', response.data);
+      // Check if this request is still the latest one
+      if (requestId !== lastRequestIdRef.current) {
+        console.log(`[ClinicScreen] Ignoring stale response (ReqID: ${requestId}, Last: ${lastRequestIdRef.current})`);
+        return;
+      }
+
       if (response.data.success && response.data.data) {
         const clinics = transformClinicsData(response.data.data);
-        
-        // Recommended clinics are those with is_featured === true
-        const featured = clinics.filter(clinic => clinic.isFeatured === true);
-        // Nearby clinics are all other clinics
-        const nearby = clinics.filter(clinic => clinic.isFeatured !== true);
 
-        setRecommendedClinics(featured);
-        setNearbyClinics(nearby);
+        // Check if there's more data using nextPageUrl from backend
+        // Also check if the current page returned fewer items than perPage, which implies end of list
+        const returnedCount = response.data.data.length;
+        const hasNextPageUrl = !!(response.data.nextPageUrl);
+        // If we got 0 items, definitely no more data. 
+        // If we got items but less than perPage, usually means end of list too.
+        const hasMoreData = hasNextPageUrl && returnedCount > 0;
+
+        setHasMore(hasMoreData);
+
+        if (append) {
+          // Append to existing clinics
+          setRecommendedClinics(prev => {
+            const newFeatured = clinics.filter(clinic => clinic.isFeatured === true);
+            // Avoid duplicates by checking IDs
+            const existingIds = new Set(prev.map(c => c.id));
+            const uniqueNew = newFeatured.filter(c => !existingIds.has(c.id));
+            return [...prev, ...uniqueNew];
+          });
+          setNearbyClinics(prev => {
+            const newNearby = clinics.filter(clinic => clinic.isFeatured !== true);
+            // Avoid duplicates
+            const existingIds = new Set(prev.map(c => c.id));
+            const uniqueNew = newNearby.filter(c => !existingIds.has(c.id));
+            return [...prev, ...uniqueNew];
+          });
+        } else {
+          // Replace existing clinics
+          const featured = clinics.filter(clinic => clinic.isFeatured === true);
+          const nearby = clinics.filter(clinic => clinic.isFeatured !== true);
+          setRecommendedClinics(featured);
+          setNearbyClinics(nearby);
+        }
+
+        // Update current page
+        if (response.data.currentPage) {
+          setCurrentPage(response.data.currentPage);
+        } else {
+          setCurrentPage(pageNo);
+        }
       }
     } catch (error: any) {
+      // Check if this request is still the latest one
+      if (requestId !== lastRequestIdRef.current) {
+        return;
+      }
       console.error('Error fetching clinics:', error);
       Toast.error(error.message || 'Failed to fetch clinics');
+      if (!append) {
+        setRecommendedClinics([]);
+        setNearbyClinics([]);
+      }
     } finally {
-      setLoading(false);
+      // Only turn off loading if this was the latest request
+      if (requestId === lastRequestIdRef.current) {
+        setLoading(false);
+        setLoadingMore(false);
+        isLoadingMoreRef.current = false;
+      }
     }
-  };
+  }, [recordsPerPage]);
 
   const transformClinicsData = (apiClinics: ClinicApiResponse[]): Clinic[] => {
     return apiClinics.map((clinic): Clinic => {
       // Use clinicName (not name) for the card title
       const clinicName = clinic.clinicName || clinic.name || 'Clinic';
-      const location = clinic.details?.address || 
-                      translateCityToEnglish(clinic.details?.city) || 
-                      translateCityToEnglish(clinic.details?.district) || 
-                      'Location not available';
+      const location = clinic.details?.address ||
+        translateCityToEnglish(clinic.details?.city) ||
+        translateCityToEnglish(clinic.details?.district) ||
+        'Location not available';
       // Use businessType for the chip (specialty field)
       // Format businessType to ensure "Both" is displayed properly (case-insensitive)
       const businessType = clinic.businessType || null;
-      const specialty = businessType && businessType.toString().toLowerCase() === 'both' 
-        ? 'Both' 
+      const specialty = businessType && businessType.toString().toLowerCase() === 'both'
+        ? 'Both'
         : (businessType || 'General');
       const rating = parseFloat(clinic.avgRating) || 0;
-      
+
       // Use cover image, logo, or default image
       let image: { uri: string } | number = RecommandImage;
       if (clinic.details?.coverImage) {
@@ -177,14 +266,72 @@ export const ClinicScreen = ({ navigation, route }) => {
     });
   };
 
-  // Refetch when search query changes
+  // Refetch when filter params or search query changes
   useEffect(() => {
+    // Skip on initial mount (handled by initial fetch useEffect)
+    if (isInitialMountRef.current) {
+      return;
+    }
+
+    // Cancel any ongoing load more operations
+    isLoadingMoreRef.current = false;
+
+    // Update refs with latest values BEFORE any async operations
+    currentFilterParamsRef.current = filterParams;
+    currentSearchQueryRef.current = searchQuery;
+
+    // Clear data immediately to prevent flickering
+    setRecommendedClinics([]);
+    setNearbyClinics([]);
+    setLoading(true);
+    // Reset pagination
+    setCurrentPage(1);
+    setHasMore(true);
+
+    // Use a short debounce to batch rapid changes
     const timeoutId = setTimeout(() => {
-      fetchAllClinics(searchQuery, filterParams);
-    }, 500); // Debounce search
+      fetchAllClinics(searchQuery, filterParams, 1, false);
+    }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [searchQuery, filterParams]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterParams, searchQuery, fetchAllClinics]);
+
+  // Load more clinics when scrolling to end
+  const loadMoreClinics = useCallback(() => {
+    // Prevent duplicate calls
+    if (isLoadingMoreRef.current || loading || loadingMore || !hasMore) {
+      return;
+    }
+
+    // Use refs to get the latest filter params and search query to avoid stale closures
+    const latestFilterParams = currentFilterParamsRef.current;
+    const latestSearchQuery = currentSearchQueryRef.current;
+
+    isLoadingMoreRef.current = true;
+    const nextPage = currentPage + 1;
+    fetchAllClinics(latestSearchQuery, latestFilterParams, nextPage, true);
+  }, [loading, loadingMore, hasMore, currentPage, fetchAllClinics]);
+
+  // Handle scroll to detect end
+  const handleScroll = useCallback((event: any) => {
+    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+
+    // Validate that we have valid dimensions
+    if (!contentSize.height || !layoutMeasurement.height) {
+      return;
+    }
+
+    // Calculate distance from bottom
+    const paddingToBottom = 200; // Increased threshold for better detection
+    const distanceFromBottom = contentSize.height - (layoutMeasurement.height + contentOffset.y);
+    const isCloseToBottom = distanceFromBottom <= paddingToBottom;
+
+    // Only trigger if we're close to bottom, have more data, and not already loading
+    if (isCloseToBottom && hasMore && !loadingMore && !loading && !isLoadingMoreRef.current) {
+      loadMoreClinics();
+    }
+  }, [hasMore, loadingMore, loading, loadMoreClinics]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -196,9 +343,9 @@ export const ClinicScreen = ({ navigation, route }) => {
         onFilterPress={() => navigation.navigate('FilterScreen', { currentFilters: filterParams })}
       />
       {loading ? (
-        <ActivityIndicator 
-          size="large" 
-          color="#7625D7" 
+        <ActivityIndicator
+          size="large"
+          color="#7625D7"
           style={styles.loadingContainer}
         />
       ) : recommendedClinics.length === 0 && nearbyClinics.length === 0 ? (
@@ -207,26 +354,38 @@ export const ClinicScreen = ({ navigation, route }) => {
           <Text style={styles.emptyMessage}>{t('no_clinics_message')}</Text>
         </View>
       ) : (
-      <ScrollView style={styles.content}>
+        <ScrollView
+          style={styles.content}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          onMomentumScrollEnd={handleScroll}
+        >
           {recommendedClinics.length > 0 && (
-        <RecommendedClinics
+            <RecommendedClinics
               clinics={recommendedClinics}
-          onClinicPress={clinic =>
+              onClinicPress={clinic =>
                 navigation.navigate('ClinicDetail', { clinic, clinicID: parseInt(clinic.id) })
-          }
-        />
+              }
+            />
           )}
 
           {nearbyClinics.length > 0 && (
-        <NearbyClinics
+            <NearbyClinics
               clinics={nearbyClinics}
-          onClinicPress={clinic =>
+              onClinicPress={clinic =>
                 navigation.navigate('ClinicDetail', { clinic, clinicID: parseInt(clinic.id) })
-          }
-          onSeeAllPress={() => console.log('button is pressed')}
-        />
+              }
+              onSeeAllPress={() => console.log('button is pressed')}
+            />
           )}
-      </ScrollView>
+
+          {/* Loading indicator for pagination */}
+          {loadingMore && (
+            <View style={styles.loadingMoreContainer}>
+              <ActivityIndicator size="small" color="#7625D7" />
+            </View>
+          )}
+        </ScrollView>
       )}
     </SafeAreaView>
   );
@@ -267,5 +426,10 @@ const styles = StyleSheet.create({
     color: colors.secondaryText,
     textAlign: 'center',
     lineHeight: 24,
+  },
+  loadingMoreContainer: {
+    paddingVertical: mvs(20),
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

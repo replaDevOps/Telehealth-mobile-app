@@ -41,7 +41,7 @@ const PhoneNumberInput: React.FC<PhoneNumberInputProps> = ({
   const [value, setValue] = useState<string>(initialValue || '');
   const [isValid, setIsValid] = useState<boolean>(false);
   const [hasBeenTouched, setHasBeenTouched] = useState<boolean>(false);
-  const [selectedCountryCode, setSelectedCountryCode] = useState<string>('PK');
+  const [selectedCountryCode, setSelectedCountryCode] = useState<string>('SA');
   const [componentKey, setComponentKey] = useState<number>(0);
 
   const phoneInput = useRef<PhoneInput | null>(null);
@@ -67,6 +67,7 @@ const PhoneNumberInput: React.FC<PhoneNumberInputProps> = ({
   useEffect(() => {
     if (value && phoneInput.current) {
       const valid = phoneInput.current.isValidNumber(value);
+      console.log('valid', valid);
       setIsValid(valid === true);
       onValidationChange?.(valid && value.trim() !== '');
     }
@@ -79,6 +80,7 @@ const PhoneNumberInput: React.FC<PhoneNumberInputProps> = ({
 
     if (phoneInput.current) {
       const valid = phoneInput.current.isValidNumber(text);
+      console.log('valid', valid);
       setIsValid(valid === true);
     }
   };
@@ -95,6 +97,7 @@ const PhoneNumberInput: React.FC<PhoneNumberInputProps> = ({
 
     if (formattedText && phoneInput.current) {
       const valid = phoneInput.current.isValidNumber(formattedText);
+      console.log('valid', valid);
       setIsValid(valid === true);
     }
   };

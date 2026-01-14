@@ -24,17 +24,23 @@ export const SplashScreen: React.FC<Props> = ({ navigation }) => {
     const checkAndNavigate = async () => {
       try {
         const selectedLanguage = await AsyncStorage.getItem('selectedLanguage');
-        
-        // Fetch location if permission is available (non-blocking)
-        fetchLocation().catch(err => {
-          console.warn('Location fetch failed:', err);
-        });
-        
+
+        // Fetch location and wait for it to complete
+        // This ensures location is ready when we navigate to Home
+        try {
+          await fetchLocation();
+          console.log('✅ Location fetched successfully in Splash Screen');
+        } catch (err) {
+          console.warn('⚠️ Location fetch failed in Splash Screen:', err);
+          // Continue navigation even if location fetch fails
+        }
+
         // If user is authenticated, fetch profile data once on app start
         if (isAuthenticated) {
           fetchProfile();
         }
-        
+
+        // Navigate after minimum splash duration (2 seconds for animation)
         setTimeout(() => {
           if (!selectedLanguage) {
             navigation.replace('Auth', { screen: 'LanguageSelection' });
@@ -43,7 +49,7 @@ export const SplashScreen: React.FC<Props> = ({ navigation }) => {
           } else {
             navigation.replace('Auth', { screen: 'SignIn' });
           }
-        }, 3000);
+        }, 2000); // Reduced from 3000 to 2000 since we're waiting for location
       } catch (error) {
         console.error('Error during navigation check:', error);
         navigation.replace('Auth', { screen: 'LanguageSelection' });

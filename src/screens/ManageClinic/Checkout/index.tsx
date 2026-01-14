@@ -186,6 +186,7 @@ export function CheckoutScreen({ route, navigation }) {
           // Even if logout API call fails, proceed with logout
           console.log('Logout API error:', logoutError);
         } finally {
+          console.log('Logout API call failed');
           // Clear auth store and navigate to login
           useAuthStore.getState().logout();
           navigation.replace('Auth', { screen: 'SignIn' });

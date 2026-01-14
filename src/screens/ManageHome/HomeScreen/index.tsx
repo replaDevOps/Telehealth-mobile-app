@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { View, ScrollView, StyleSheet, StatusBar, ActivityIndicator, Text, Platform, PermissionsAndroid } from 'react-native';
 import HomeHeader from '../../../components/molecules/HomeHeadder';
 import { colors } from '../../../styles/colors';
@@ -11,7 +11,6 @@ import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
 import { ClinicApiResponse } from '../../../types/clinic.types';
 import { Toast } from 'toastify-react-native';
-import { translateCityToEnglish } from '../../../utils/cityTranslator';
 import { useCartCount } from '../../../hooks/useCartCount';
 import { useNotificationCount } from '../../../hooks/useNotificationCount';
 import { useLocationStore } from '@store';
@@ -34,29 +33,206 @@ export const HomeScreen = ({ navigation }) => {
   const [recommendedClinics, setRecommendedClinics] = useState<Clinic[]>([]);
   const [nearbyClinics, setNearbyClinics] = useState<Clinic[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [hasAudioPermission, setHasAudioPermission] = useState(false);
   const [hasVideoPermission, setHasVideoPermission] = useState(false);
+  
+  // Refs for pagination and preventing stale closures
+  const isInitialMountRef = useRef(true);
+  const isLoadingMoreRef = useRef(false);
+  const currentSearchQueryRef = useRef('');
+  const currentLocationRef = useRef<{ lat: number; long: number } | null>(null);
+  const recordsPerPage = 10;
+
+  // Transform API response to Clinic format
+  const transformClinicsData = (apiClinics: ClinicApiResponse[]): Clinic[] => {
+    return apiClinics.map((clinic): Clinic => {
+      // Use clinicName (not name) for the card title
+      const clinicName = clinic.clinicName || clinic.name || 'Clinic';
+      const location = clinic.details?.address ||
+        clinic.details?.city ||
+        clinic.details?.district ||
+        'Location not available';
+      // Use businessType for the chip (specialty field)
+      // Format businessType to ensure "Both" is displayed properly (case-insensitive)
+      const businessType = clinic.businessType || null;
+      const specialty = businessType && businessType.toString().toLowerCase() === 'both'
+        ? 'Both'
+        : (businessType || 'General');
+      const rating = parseFloat(clinic.avgRating) || 0;
+
+      // Use cover image, logo, or default image
+      let image: { uri: string } | number = RecommandImage;
+      if (clinic.details?.coverImage) {
+        image = { uri: clinic.details.coverImage };
+      } else if (clinic.details?.logo) {
+        image = { uri: clinic.details.logo };
+      }
+
+      return {
+        id: clinic.clinicID.toString(),
+        name: clinicName, // This is displayed as the clinic name in the card
+        specialty: specialty, // This is displayed in the chip
+        rating: rating,
+        location: location,
+        image: image,
+        isFeatured: clinic.is_featured === true,
+      };
+    });
+  };
+
+  // Fetch clinics function
+  const fetchClinics = useCallback(async (
+    lat?: number, 
+    long?: number, 
+    pageNo: number = 1, 
+    recordsPerPage: number = 10, 
+    searchName: string = '', 
+    append: boolean = false
+  ) => {
+    try {
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+        setLoadingMore(false);
+        setCurrentPage(1);
+        setHasMore(true);
+      }
+
+      const params: any = {
+        name: searchName || '',
+        pageNo: pageNo,
+        recordsPerPage: recordsPerPage,
+      };
+      
+      // Only include lat and long if they are provided
+      if (lat !== undefined && long !== undefined) {
+        params.lat = lat.toString();
+        params.long = long.toString();
+      }
+      
+      const response = await apiClient.get(API.CLINIC.GET_CLINICS, {
+        params: params,
+      });
+      console.log('response', response.data);
+      
+      if (response.data.success && response.data.data) {
+        const clinics = transformClinicsData(response.data.data);
+
+        // Check if there's more data using nextPageUrl from backend
+        const returnedCount = response.data.data.length;
+        const hasNextPageUrl = !!(response.data.nextPageUrl);
+        const hasMoreData = hasNextPageUrl && returnedCount > 0;
+        setHasMore(hasMoreData);
+
+        if (append) {
+          // Append to existing clinics
+          setRecommendedClinics(prev => {
+            const newFeatured = clinics.filter(clinic => clinic.isFeatured === true);
+            // Avoid duplicates by checking IDs
+            const existingIds = new Set(prev.map(c => c.id));
+            const uniqueNew = newFeatured.filter(c => !existingIds.has(c.id));
+            return [...prev, ...uniqueNew];
+          });
+          setNearbyClinics(prev => {
+            const newNearby = clinics.filter(clinic => clinic.isFeatured !== true);
+            // Avoid duplicates
+            const existingIds = new Set(prev.map(c => c.id));
+            const uniqueNew = newNearby.filter(c => !existingIds.has(c.id));
+            return [...prev, ...uniqueNew];
+          });
+        } else {
+          // Replace existing clinics
+          const featured = clinics.filter(clinic => clinic.isFeatured === true);
+          const nearby = clinics.filter(clinic => clinic.isFeatured !== true);
+          setRecommendedClinics(featured);
+          setNearbyClinics(nearby);
+        }
+
+        // Update current page
+        if (response.data.currentPage) {
+          setCurrentPage(response.data.currentPage);
+        } else {
+          setCurrentPage(pageNo);
+        }
+      }
+    } catch (error: any) {
+      console.error('Error fetching clinics:', error);
+      Toast.error(error.message || 'Failed to fetch clinics');
+      if (!append) {
+        setRecommendedClinics([]);
+        setNearbyClinics([]);
+      }
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+      isLoadingMoreRef.current = false;
+    }
+  }, [recordsPerPage]);
 
   // Request permissions on mount
   useEffect(() => {
     requestPermissions();
   }, []);
 
+  // Fetch clinics when component mounts if location is available
   useEffect(() => {
-    fetchClinicsWithLocation();
-  }, [location]);
+    console.log('Location:', location);
+    if (isInitialMountRef.current) {
+      // Initialize refs
+      currentSearchQueryRef.current = searchQuery;
+      if (location) {
+        currentLocationRef.current = { lat: location.lat, long: location.long };
+        fetchClinics(location.lat, location.long, 1, recordsPerPage, searchQuery, false);
+      } else {
+        currentLocationRef.current = null;
+        fetchClinics(undefined, undefined, 1, recordsPerPage, searchQuery, false);
+      }
+      isInitialMountRef.current = false;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount
 
-  // Refetch when search query changes (with debounce)
+  // Refetch when search query or location changes (with debounce)
   useEffect(() => {
-    if (!location) return;
-    
+    // Skip on initial mount (handled by initial fetch useEffect)
+    if (isInitialMountRef.current) {
+      return;
+    }
+
+    // Cancel any ongoing load more operations
+    isLoadingMoreRef.current = false;
+
+    // Update refs with latest values
+    currentSearchQueryRef.current = searchQuery;
+    if (location) {
+      currentLocationRef.current = { lat: location.lat, long: location.long };
+    } else {
+      currentLocationRef.current = null;
+    }
+
+    // Clear data immediately to prevent flickering
+    setRecommendedClinics([]);
+    setNearbyClinics([]);
+    setLoading(true);
+    setCurrentPage(1);
+    setHasMore(true);
+
     const timeoutId = setTimeout(() => {
-      fetchClinics(location.lat, location.long, 1, 10, searchQuery);
+      if (location) {
+        fetchClinics(location.lat, location.long, 1, recordsPerPage, searchQuery, false);
+      } else {
+        fetchClinics(undefined, undefined, 1, recordsPerPage, searchQuery, false);
+      }
     }, 500); // Debounce search
 
     return () => clearTimeout(timeoutId);
-  }, [searchQuery, location]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, location, fetchClinics]);
 
   const requestPermissions = async () => {
     if (Platform.OS === 'android') {
@@ -103,84 +279,6 @@ export const HomeScreen = ({ navigation }) => {
     }
   };
 
-  const fetchClinicsWithLocation = () => {
-    if (location) {
-      // Use stored location
-      fetchClinics(location.lat, location.long);
-    } else {
-      // No location available - don't fetch clinics or use dummy location
-      setLoading(false);
-    }
-  };
-
-  const fetchClinics = async (lat: number, long: number, pageNo: number = 1, recordsPerPage: number = 10, searchName: string = '') => {
-    try {
-      setLoading(true);
-      const response = await apiClient.get(API.CLINIC.GET_CLINICS, {
-        params: {
-          name: searchName || '',
-          lat: lat.toString(),
-          long: long.toString(),
-          pageNo: pageNo,
-          recordsPerPage: recordsPerPage,
-        },
-      });
-      console.log('response', response.data.data);
-      if (response.data.success && response.data.data) {
-        const clinics = transformClinicsData(response.data.data);
-        
-        // Recommended clinics are those with is_featured === true
-        const featured = clinics.filter(clinic => clinic.isFeatured === true);
-        // Nearby clinics are all other clinics
-        const nearby = clinics.filter(clinic => clinic.isFeatured !== true);
-
-        setRecommendedClinics(featured);
-        setNearbyClinics(nearby);
-      }
-    } catch (error: any) {
-      console.error('Error fetching clinics:', error);
-      Toast.error(error.message || 'Failed to fetch clinics');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const transformClinicsData = (apiClinics: ClinicApiResponse[]): Clinic[] => {
-    return apiClinics.map((clinic): Clinic => {
-      // Use clinicName (not name) for the card title
-      const clinicName = clinic.clinicName || clinic.name || 'Clinic';
-      const location = clinic.details?.address || 
-                      clinic.details?.city || 
-                      clinic.details?.district || 
-                      'Location not available';
-      // Use businessType for the chip (specialty field)
-      // Format businessType to ensure "Both" is displayed properly (case-insensitive)
-      const businessType = clinic.businessType || null;
-      const specialty = businessType && businessType.toString().toLowerCase() === 'both' 
-        ? 'Both' 
-        : (businessType || 'General');
-      const rating = parseFloat(clinic.avgRating) || 0;
-      
-      // Use cover image, logo, or default image
-      let image: { uri: string } | number = RecommandImage;
-      if (clinic.details?.coverImage) {
-        image = { uri: clinic.details.coverImage };
-      } else if (clinic.details?.logo) {
-        image = { uri: clinic.details.logo };
-      }
-
-      return {
-        id: clinic.clinicID.toString(),
-        name: clinicName, // This is displayed as the clinic name in the card
-        specialty: specialty, // This is displayed in the chip
-        rating: rating,
-        location: location,
-        image: image,
-        isFeatured: clinic.is_featured === true,
-      };
-    });
-  };
-
   const handleLocationPress = () => {
     console.log('Location pressed');
     navigation.navigate('NearbyClinics');
@@ -206,6 +304,47 @@ export const HomeScreen = ({ navigation }) => {
   const handleSLPress = () => {
     navigation.navigate('SelectLocation');
   };
+
+  // Load more clinics when scrolling to end
+  const loadMoreClinics = useCallback(() => {
+    // Prevent duplicate calls
+    if (isLoadingMoreRef.current || loading || loadingMore || !hasMore) {
+      return;
+    }
+
+    // Use refs to get the latest search query and location to avoid stale closures
+    const latestSearchQuery = currentSearchQueryRef.current;
+    const latestLocation = currentLocationRef.current;
+
+    isLoadingMoreRef.current = true;
+    const nextPage = currentPage + 1;
+    
+    if (latestLocation) {
+      fetchClinics(latestLocation.lat, latestLocation.long, nextPage, recordsPerPage, latestSearchQuery, true);
+    } else {
+      fetchClinics(undefined, undefined, nextPage, recordsPerPage, latestSearchQuery, true);
+    }
+  }, [loading, loadingMore, hasMore, currentPage, fetchClinics, recordsPerPage]);
+
+  // Handle scroll to detect end
+  const handleScroll = useCallback((event: any) => {
+    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+
+    // Validate that we have valid dimensions
+    if (!contentSize.height || !layoutMeasurement.height) {
+      return;
+    }
+
+    // Calculate distance from bottom
+    const paddingToBottom = 200; // Threshold for detecting when user is close to bottom
+    const distanceFromBottom = contentSize.height - (layoutMeasurement.height + contentOffset.y);
+    const isCloseToBottom = distanceFromBottom <= paddingToBottom;
+
+    // Only trigger if we're close to bottom, have more data, and not already loading
+    if (isCloseToBottom && hasMore && !loadingMore && !loading && !isLoadingMoreRef.current) {
+      loadMoreClinics();
+    }
+  }, [hasMore, loadingMore, loading, loadMoreClinics]);
 
   return (
     <View style={styles.container}>
@@ -233,25 +372,37 @@ export const HomeScreen = ({ navigation }) => {
           <Text style={styles.emptyMessage}>{t('no_clinics_message')}</Text>
         </View>
       ) : (
-      <ScrollView style={styles.content}>
+        <ScrollView 
+          style={styles.content}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          onMomentumScrollEnd={handleScroll}
+        >
           {recommendedClinics.length > 0 && (
-        <RecommendedClinics
+            <RecommendedClinics
               clinics={recommendedClinics}
-          onClinicPress={clinic =>
+              onClinicPress={clinic =>
                 navigation.navigate('ClinicDetail', { clinic, clinicID: parseInt(clinic.id) })
-          }
-        />
+              }
+            />
           )}
 
           {nearbyClinics.length > 0 && (
-        <NearbyClinics
+            <NearbyClinics
               clinics={nearbyClinics}
-          onClinicPress={clinic =>
+              onClinicPress={clinic =>
                 navigation.navigate('ClinicDetail', { clinic, clinicID: parseInt(clinic.id) })
-          }
-        />
+              }
+            />
           )}
-      </ScrollView>
+
+          {/* Loading indicator for pagination */}
+          {loadingMore && (
+            <View style={styles.loadingMoreContainer}>
+              <ActivityIndicator size="small" color="#7625D7" />
+            </View>
+          )}
+        </ScrollView>
       )}
     </View>
   );
@@ -294,6 +445,11 @@ const styles = StyleSheet.create({
     color: colors.secondaryText,
     textAlign: 'center',
     lineHeight: 24,
+  },
+  loadingMoreContainer: {
+    paddingVertical: mvs(20),
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

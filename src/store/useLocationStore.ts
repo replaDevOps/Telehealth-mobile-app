@@ -31,7 +31,7 @@ const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
       }
     );
     const data = await response.json();
-    
+
     if (data.address) {
       const city = data.address.city || data.address.town || data.address.village || data.address.county || '';
       const country = data.address.country || '';
@@ -102,7 +102,7 @@ const useLocationStore = create<LocationStore>((set, get) => ({
       });
 
       const { latitude, longitude } = position.coords;
-      
+
       // Reverse geocode to get location text
       const locationText = await reverseGeocode(latitude, longitude);
 

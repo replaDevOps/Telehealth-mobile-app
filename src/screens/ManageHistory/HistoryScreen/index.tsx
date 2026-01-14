@@ -109,7 +109,7 @@ export function HistoryScreen({ navigation }) {
             duration:  consultation.duration || '',
             type: consultationType.type,
             icon: consultationType.icon,
-            doctorName: doctorData.name || consultation.doctorName || '',
+            doctorName: doctorData.name || consultation.doctorName || 'Refunded',
             doctorAvatar: doctorData.image || consultation.doctorAvatar || '',
             clinicName: consultation.clinicName || clinicData.clinicName || clinicData.name || '',
             price: consultation.price || '0',

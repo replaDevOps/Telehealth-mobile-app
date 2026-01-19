@@ -37,12 +37,28 @@ export const useCartCount = () => {
         if (cacheAge < LOCATION_CACHE_DURATION) {
           // Use cached location
           const { lat, long } = cachedLocationRef.current;
+          const requestStartTime = Date.now();
+          const requestId = `CART_COUNT_CACHED_${requestStartTime}`;
+          
+          console.log(`📊 [${requestId}] START fetchCartCount (CACHED LOCATION) API Call`);
+          console.log(`📊 [${requestId}] Endpoint: ${API.CART.VIEW_CART_DETAILS}`);
+          console.log(`📊 [${requestId}] Params: lat=${lat}, long=${long} (cached, age: ${(cacheAge / 1000).toFixed(0)}s)`);
+          console.log(`📊 [${requestId}] Timestamp: ${new Date().toISOString()}`);
+          
           const response = await apiClient.get(API.CART.VIEW_CART_DETAILS, {
             params: {
               lat: lat.toString(),
               long: long.toString(),
             },
           });
+          
+          const requestEndTime = Date.now();
+          const requestDuration = requestEndTime - requestStartTime;
+          
+          console.log(`📊 [${requestId}] ✅ SUCCESS - fetchCartCount (CACHED LOCATION)`);
+          console.log(`📊 [${requestId}] Duration: ${requestDuration}ms (${(requestDuration / 1000).toFixed(2)}s)`);
+          console.log(`📊 [${requestId}] Response Status: ${response.status}`);
+          console.log(`📊 [${requestId}] Cart Count: ${response.data?.data ? 'calculated' : 0}`);
           
           if (response.data?.success && response.data?.data) {
             const cartData = response.data.data;
@@ -130,10 +146,24 @@ export const useCartCount = () => {
         }
       };
 
+      const locationStartTime = Date.now();
       const { lat, long } = await getLocation();
+      const locationEndTime = Date.now();
+      const locationDuration = locationEndTime - locationStartTime;
+      
+      console.log(`📍 Location fetch took: ${locationDuration}ms (${(locationDuration / 1000).toFixed(2)}s)`);
       
       // Cache the location (whether it's real or default)
       cachedLocationRef.current = { lat, long, timestamp: Date.now() };
+
+      const requestStartTime = Date.now();
+      const requestId = `CART_COUNT_${requestStartTime}`;
+      
+      console.log(`📊 [${requestId}] START fetchCartCount API Call`);
+      console.log(`📊 [${requestId}] Endpoint: ${API.CART.VIEW_CART_DETAILS}`);
+      console.log(`📊 [${requestId}] Params: lat=${lat}, long=${long}`);
+      console.log(`📊 [${requestId}] Timestamp: ${new Date().toISOString()}`);
+      console.log(`📊 [${requestId}] Location fetch duration: ${locationDuration}ms`);
 
       const response = await apiClient.get(API.CART.VIEW_CART_DETAILS, {
         params: {
@@ -141,6 +171,15 @@ export const useCartCount = () => {
           long: long.toString(),
         },
       });
+      
+      const requestEndTime = Date.now();
+      const requestDuration = requestEndTime - requestStartTime;
+      
+      console.log(`📊 [${requestId}] ✅ SUCCESS - fetchCartCount`);
+      console.log(`📊 [${requestId}] Duration: ${requestDuration}ms (${(requestDuration / 1000).toFixed(2)}s)`);
+      console.log(`📊 [${requestId}] Total time (location + API): ${(requestEndTime - locationStartTime)}ms`);
+      console.log(`📊 [${requestId}] Response Status: ${response.status}`);
+      console.log(`📊 [${requestId}] Response Data Size: ~${JSON.stringify(response.data).length} bytes`);
 
       if (response.data?.success && response.data?.data) {
         // Calculate total count of items across all clinic groups
@@ -160,11 +199,22 @@ export const useCartCount = () => {
         setContextCount(0);
       }
     } catch (error: any) {
-      console.error('Error fetching cart count:', error);
+      const totalEndTime = Date.now();
+      const totalDuration = totalEndTime - now;
+      
+      console.error(`📊 [CART_COUNT] ❌ ERROR - fetchCartCount`);
+      console.error(`📊 [CART_COUNT] Total Duration: ${totalDuration}ms (${(totalDuration / 1000).toFixed(2)}s)`);
+      console.error(`📊 [CART_COUNT] Error:`, error);
+      console.error(`📊 [CART_COUNT] Error Message:`, error?.message);
+      console.error(`📊 [CART_COUNT] Error Response:`, error?.response?.data);
+      console.error(`📊 [CART_COUNT] Error Status:`, error?.response?.status);
+      
       setContextCount(0);
     } finally {
       setLoading(false);
       isFetchingRef.current = false;
+      const totalDuration = Date.now() - now;
+      console.log(`📊 [CART_COUNT] 🏁 COMPLETE - Total time: ${totalDuration}ms`);
     }
   }, [setContextCount]);
 

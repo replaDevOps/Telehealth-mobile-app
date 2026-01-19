@@ -37,6 +37,11 @@ interface RecommendedClinicsProps {
 
 const ClinicCard = ({ item, onPress }: ClinicCardProps) => {
   const { t } = useTranslation();
+  
+  // Check if rating is greater than 0 (handle both string and number types)
+  const rating = typeof item.rating === 'string' ? parseFloat(item.rating) : item.rating;
+  const showRating = rating > 0;
+  
   return (
     <TouchableOpacity style={styles.card} onPress={() => onPress(item)}>
       <View style={styles.imageContainer}>
@@ -64,10 +69,12 @@ const ClinicCard = ({ item, onPress }: ClinicCardProps) => {
           ) : (
             <Text style={styles.specialtyText}>{item.specialty}</Text>
           )}
-          <View style={styles.ratingContainer}>
-            <Ionicons name="star" size={18} color={colors.yellow} />
-            <Text style={styles.ratingText}>{item.rating}</Text>
-          </View>
+          {showRating && (
+            <View style={styles.ratingContainer}>
+              <Ionicons name="star" size={18} color={colors.yellow} />
+              <Text style={styles.ratingText}>{item.rating}</Text>
+            </View>
+          )}
         </View>
 
         <Text style={styles.clinicName} numberOfLines={1}>

@@ -6,6 +6,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Keyboard,
 } from 'react-native';
 import { colors } from '../../../styles/colors';
 import { mvs } from '../../../config/metrices';
@@ -48,6 +49,9 @@ export function SignUpScreen({ navigation }) {
     : `+${phone}`;
 
   const handleSignUp = async () => {
+    // Dismiss keyboard when Sign Up button is pressed
+    Keyboard.dismiss();
+    
     let valid = true;
 
     if (selectedTab === 'email') {
@@ -170,7 +174,10 @@ export function SignUpScreen({ navigation }) {
                 label={t('email_address')}
                 placeholder={t('enter_email')}
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  if (emailError) setEmailError('');
+                }}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 errorMessage={emailError}
@@ -180,7 +187,11 @@ export function SignUpScreen({ navigation }) {
                 <Text style={styles.label}>{t('phone_number')}</Text>
                 <PhoneNumberInput
                   phone={phone}
-                  setPhone={setPhone}
+                  setPhone={(text) => {
+                    setPhone(text);
+                    if (phoneError) setPhoneError('');
+                    if (errorMessage) setErrorMessage('');
+                  }}
                   countryCode={countryCode}
                   setCountryCode={setCountryCode}
                   phoneError={phoneError}

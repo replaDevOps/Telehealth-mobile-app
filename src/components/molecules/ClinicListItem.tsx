@@ -39,6 +39,12 @@ interface NearbyClinicsProps {
 
 // ClinicListItem Component
 const ClinicListItem: React.FC<ClinicListItemProps> = ({ item, onPress }) => {
+  // Calculate rating value (handle both string and number types)
+  const ratingValue = typeof item.rating === 'string' 
+    ? parseFloat(item.rating) 
+    : item.rating;
+  const shouldShowRating = ratingValue > 0;
+
   return (
     <View>
       <TouchableOpacity style={styles.listItem} onPress={() => onPress(item)}>
@@ -66,10 +72,12 @@ const ClinicListItem: React.FC<ClinicListItemProps> = ({ item, onPress }) => {
               <Text style={styles.specialtyText}>{item.specialty}</Text>
             )}
 
-            <View style={styles.ratingContainer}>
-              <Ionicons name="star" size={18} color={colors.yellow} />
-              <Text style={styles.ratingText}>{item.rating}</Text>
-            </View>
+            {shouldShowRating && (
+              <View style={styles.ratingContainer}>
+                <Ionicons name="star" size={18} color={colors.yellow} />
+                <Text style={styles.ratingText}>{item.rating}</Text>
+              </View>
+            )}
           </View>
           <Text style={styles.clinicName} numberOfLines={1}>
             {item.name}

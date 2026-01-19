@@ -190,12 +190,14 @@ export const FilterScreen = ({ navigation, route }) => {
 
     try {
       setLoadingGroups(true);
+      console.log('clinicType', clinicType);
       const response = await apiClient.get(API.CLINIC.GET_GROUPS, {
         params: {
           clinicType: clinicType,
         },
       });
       if (response.data.success && response.data.data) {
+        console.log('response', response.data.data);
         const data = response.data.data;
         // Cache the data
         groupsCache[clinicType] = data;

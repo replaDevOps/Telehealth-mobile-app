@@ -3,14 +3,12 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 type Auth = {
-  user: {
-    id: string;
-    token: string;
-    refreshToken: string;
-    name: string;
-    email: string;
-    type: string;
-  };
+  id: string;
+  token: string;
+  refreshToken: string;
+  name: string;
+  email: string;
+  type: string;
 };
 
 type AuthStore = {

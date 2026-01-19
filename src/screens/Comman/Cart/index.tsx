@@ -1,6 +1,6 @@
 import { RecommandImage } from '@assets/images';
 import { Header2 } from '@components/common/Header2';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -38,17 +38,30 @@ export function CartScreen({ navigation }) {
   const [grandTotalPrice, setGrandTotalPrice] = useState<number>(0);
   const [grandTotalLoyaltyPoints, setGrandTotalLoyaltyPoints] = useState<number>(0);
 
+  // Refs for request deduplication and cancellation
+  const isFetchingRef = useRef(false);
+  const abortControllerRef = useRef<any>(null);
+  const lastFetchParamsRef = useRef<{ lat: number; long: number } | null>(null);
+  const lastFetchTimeRef = useRef<number>(0);
+  const FETCH_CACHE_DURATION = 5000; // Cache fetch results for 5 seconds
+
   useEffect(() => {
     requestLocationAndFetchCart();
   }, []);
 
-  // Refresh cart when screen comes into focus
+  // Refresh cart when screen comes into focus (with deduplication and debouncing)
   useFocusEffect(
     React.useCallback(() => {
-      if (userLocation) {
-        fetchCartDetails(userLocation.lat, userLocation.long);
+      // Debounce focus events - only fetch if location exists and not recently fetched
+      const now = Date.now();
+      if (userLocation && now - lastFetchTimeRef.current > FETCH_CACHE_DURATION) {
+        // Small delay to prevent race condition with initial mount
+        const timer = setTimeout(() => {
+          fetchCartDetails(userLocation.lat, userLocation.long, false);
+        }, 300);
+        return () => clearTimeout(timer);
       }
-    }, [userLocation])
+    }, [userLocation, fetchCartDetails])
   );
 
   const requestLocationAndFetchCart = async () => {
@@ -74,31 +87,114 @@ export function CartScreen({ navigation }) {
   };
 
   const getCurrentLocationAndFetch = () => {
+    // Use cached location if available (within 10 seconds)
+    const cachedLocation = lastFetchParamsRef.current;
+    const now = Date.now();
+    if (cachedLocation && now - lastFetchTimeRef.current < 10000) {
+      console.log('📍 Using cached location for faster load');
+      setUserLocation({ lat: cachedLocation.lat, long: cachedLocation.long });
+      fetchCartDetails(cachedLocation.lat, cachedLocation.long, true);
+      return;
+    }
+
     Geolocation.getCurrentPosition(
       position => {
         const { latitude, longitude } = position.coords;
-        setUserLocation({ lat: latitude, long: longitude });
-        fetchCartDetails(latitude, longitude);
+        // Only update location if it's different (avoid triggering useFocusEffect unnecessarily)
+        setUserLocation(prev => {
+          if (prev && prev.lat === latitude && prev.long === longitude) {
+            return prev; // Same location, don't update
+          }
+          return { lat: latitude, long: longitude };
+        });
+        fetchCartDetails(latitude, longitude, true);
       },
       error => {
         console.warn('Error getting location:', error);
         // Use default location (Riyadh, Saudi Arabia)
-        fetchCartDetails(24.7136, 46.6753);
+        const defaultLocation = { lat: 24.7136, long: 46.6753 };
+        setUserLocation(defaultLocation);
+        fetchCartDetails(defaultLocation.lat, defaultLocation.long, true);
       },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+      { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 } // 5s timeout, 5min cache
     );
   };
 
-  const fetchCartDetails = async (lat: number, long: number) => {
+  const fetchCartDetails = useCallback(async (lat: number, long: number, isInitialLoad: boolean = true) => {
+    // Request deduplication - prevent multiple simultaneous calls
+    if (isFetchingRef.current) {
+      console.log('⚠️ fetchCartDetails already in progress, skipping duplicate call');
+      return;
+    }
+
+    // Check if we're calling with the same params and recently fetched
+    const now = Date.now();
+    const lastParams = lastFetchParamsRef.current;
+    if (lastParams && lastParams.lat === lat && lastParams.long === long) {
+      const timeSinceLastFetch = now - lastFetchTimeRef.current;
+      if (timeSinceLastFetch < FETCH_CACHE_DURATION) {
+        console.log(`⚠️ Recent fetch with same params (${timeSinceLastFetch}ms ago), skipping duplicate call`);
+        return;
+      }
+    }
+
+    // Cancel any previous request if AbortController is available
+    if (typeof AbortController !== 'undefined' && abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Create new abort controller for this request if available
+    let abortController: AbortController | null = null;
+    if (typeof AbortController !== 'undefined') {
+      abortController = new AbortController();
+      abortControllerRef.current = abortController;
+    }
+
+    isFetchingRef.current = true;
+    lastFetchParamsRef.current = { lat, long };
+
+    const startTime = Date.now();
+    const requestId = `CART_${startTime}`;
+    
+    console.log(`🛒 [${requestId}] START fetchCartDetails API Call`);
+    console.log(`🛒 [${requestId}] Endpoint: ${API.CART.VIEW_CART_DETAILS}`);
+    console.log(`🛒 [${requestId}] Params: lat=${lat}, long=${long}`);
+    console.log(`🛒 [${requestId}] Initial Load: ${isInitialLoad}`);
+    console.log(`🛒 [${requestId}] Timestamp: ${new Date().toISOString()}`);
+    
     try {
-      setLoading(true);
-      const response = await apiClient.get(API.CART.VIEW_CART_DETAILS, {
+      if (isInitialLoad) {
+        setLoading(true);
+      }
+      
+      const requestConfig: any = {
         params: {
           lat: lat.toString(),
           long: long.toString(),
         },
-      });
-      console.log("🚀 ~ fetchCartDetails ~ response:", response);
+      };
+
+      // Add signal only if AbortController is available
+      if (abortController) {
+        requestConfig.signal = abortController.signal;
+      }
+
+      const response = await apiClient.get(API.CART.VIEW_CART_DETAILS, requestConfig);
+      
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+      
+      console.log(`🛒 [${requestId}] ✅ SUCCESS - fetchCartDetails`);
+      console.log(`🛒 [${requestId}] Duration: ${duration}ms (${(duration / 1000).toFixed(2)}s)`);
+      console.log(`🛒 [${requestId}] Response Status: ${response.status}`);
+      console.log(`🛒 [${requestId}] Response Data:`, JSON.stringify(response.data).substring(0, 500));
+      console.log(`🛒 [${requestId}] Response Size: ~${JSON.stringify(response.data).length} bytes`);
+
+      // Check if request was aborted
+      if (abortController && abortController.signal.aborted) {
+        console.log(`🛒 [${requestId}] ⚠️ Request aborted`);
+        return;
+      }
 
       if (response.data.success && response.data.data) {
         // Transform API response to match UI structure
@@ -112,16 +208,38 @@ export function CartScreen({ navigation }) {
         setGrandTotalPrice(0);
         setGrandTotalLoyaltyPoints(0);
       }
+
+      // Update last fetch time
+      lastFetchTimeRef.current = Date.now();
     } catch (error: any) {
-      console.error('Error fetching cart details:', error);
+      // Ignore abort errors
+      if (error.name === 'AbortError' || (abortController && abortController.signal.aborted)) {
+        console.log(`🛒 [${requestId}] ⚠️ Request aborted`);
+        return;
+      }
+
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+      
+      console.error(`🛒 [${requestId}] ❌ ERROR - fetchCartDetails`);
+      console.error(`🛒 [${requestId}] Duration: ${duration}ms (${(duration / 1000).toFixed(2)}s)`);
+      console.error(`🛒 [${requestId}] Error:`, error);
+      console.error(`🛒 [${requestId}] Error Message:`, error?.message);
+      console.error(`🛒 [${requestId}] Error Response:`, error?.response?.data);
+      console.error(`🛒 [${requestId}] Error Status:`, error?.response?.status);
+      
       Toast.error(error.message || 'Failed to fetch cart details');
       setCartData([]);
     } finally {
+      isFetchingRef.current = false;
+      abortControllerRef.current = null;
       setLoading(false);
+      const totalDuration = Date.now() - startTime;
+      console.log(`🛒 [${requestId}] 🏁 COMPLETE - Total time: ${totalDuration}ms`);
     }
-  };
+  }, [transformCartData]);
 
-  const transformCartData = (apiData: any): any[] => {
+  const transformCartData = useCallback((apiData: any): any[] => {
     // Transform API response structure to match UI
     // API response: { data: [{ clinicID, clinicName, distance_km, totalPrice, totalLoyaltyPoints, items: [...], suggestedServices: [...] }] }
     if (Array.isArray(apiData)) {
@@ -167,7 +285,7 @@ export function CartScreen({ navigation }) {
     }
     
     return [];
-  };
+  }, [t]);
 
   // Get suggested services from API response for a specific clinic
   const getSuggestedServices = (clinicId: string) => {
@@ -207,9 +325,27 @@ export function CartScreen({ navigation }) {
     const cartID = service.cartID;
     setRemovingCartId(cartID);
 
+    const startTime = Date.now();
+    const requestId = `REMOVE_${startTime}`;
+    const endpoint = `${API.CART.REMOVE_FROM_CART}/${cartID}`;
+    
+    console.log(`🗑️ [${requestId}] START removeFromCart API Call`);
+    console.log(`🗑️ [${requestId}] Endpoint: ${endpoint}`);
+    console.log(`🗑️ [${requestId}] CartID: ${cartID}`);
+    console.log(`🗑️ [${requestId}] Method: DELETE`);
+    console.log(`🗑️ [${requestId}] Timestamp: ${new Date().toISOString()}`);
+
     try {
       // Call DELETE API to remove item from cart
-      const response = await apiClient.delete(`${API.CART.REMOVE_FROM_CART}/${cartID}`);
+      const response = await apiClient.delete(endpoint);
+      
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+      
+      console.log(`🗑️ [${requestId}] ✅ SUCCESS - removeFromCart`);
+      console.log(`🗑️ [${requestId}] Duration: ${duration}ms (${(duration / 1000).toFixed(2)}s)`);
+      console.log(`🗑️ [${requestId}] Response Status: ${response.status}`);
+      console.log(`🗑️ [${requestId}] Response Data:`, response.data);
 
       if (response.data?.success === false) {
         const errorMessage = response.data?.message || 'Failed to remove item from cart';
@@ -233,16 +369,27 @@ export function CartScreen({ navigation }) {
       // Trigger cart count refresh to sync with API
       triggerRefresh();
 
-      // Refresh cart from API
+      // Refresh cart from API (with flag to prevent showing loading spinner on refresh)
       if (userLocation) {
-        await fetchCartDetails(userLocation.lat, userLocation.long);
+        await fetchCartDetails(userLocation.lat, userLocation.long, false);
       }
     } catch (error: any) {
-      console.error('Error removing item from cart:', error);
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+      
+      console.error(`🗑️ [${requestId}] ❌ ERROR - removeFromCart`);
+      console.error(`🗑️ [${requestId}] Duration: ${duration}ms (${(duration / 1000).toFixed(2)}s)`);
+      console.error(`🗑️ [${requestId}] Error:`, error);
+      console.error(`🗑️ [${requestId}] Error Message:`, error?.message);
+      console.error(`🗑️ [${requestId}] Error Response:`, error?.response?.data);
+      console.error(`🗑️ [${requestId}] Error Status:`, error?.response?.status);
+      
       const errorMessage = error?.response?.data?.message || error?.message || 'Failed to remove item from cart';
       Toast.error(errorMessage);
     } finally {
       setRemovingCartId(null);
+      const totalDuration = Date.now() - startTime;
+      console.log(`🗑️ [${requestId}] 🏁 COMPLETE - Total time: ${totalDuration}ms`);
     }
   };
 

@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View,
   Text,
@@ -65,20 +66,76 @@ export function SignInScreen({ navigation }) {
     return `${parsed.nationalNumber}`;
   }, [form.phone, meta.countryCode]);
 
+  // Load saved credentials on mount if remember me was checked
+  useEffect(() => {
+    const loadSavedCredentials = async () => {
+      try {
+        console.log('🔍 Loading saved credentials...');
+        const savedTab = await AsyncStorage.getItem('rememberMeTab');
+        const savedEmail = await AsyncStorage.getItem('rememberMeEmail');
+        const savedPhone = await AsyncStorage.getItem('rememberMePhone');
+        const savedCountryCode = await AsyncStorage.getItem('rememberMeCountryCode');
+        
+        console.log('📦 Saved credentials:', {
+          tab: savedTab,
+          email: savedEmail ? '***' : null,
+          phone: savedPhone ? '***' : null,
+          countryCode: savedCountryCode,
+        });
+        
+        if (savedTab && (savedEmail || savedPhone)) {
+          console.log('✅ Found saved credentials, loading...');
+          setTab(savedTab as TabType);
+          
+          if (savedEmail) {
+            setForm(prev => ({ ...prev, email: savedEmail }));
+            console.log('✅ Email loaded:', savedEmail);
+          }
+          
+          if (savedPhone && savedCountryCode) {
+            setForm(prev => ({ ...prev, phone: savedPhone }));
+            setMeta(prev => ({ ...prev, countryCode: savedCountryCode as CountryCode }));
+            console.log('✅ Phone loaded:', savedPhone, 'Country:', savedCountryCode);
+          }
+          
+          setMeta(prev => ({ ...prev, remember: true }));
+          console.log('✅ Remember me checkbox set to checked');
+        } else {
+          console.log('ℹ️ No saved credentials found');
+        }
+      } catch (error) {
+        console.error('❌ Error loading saved credentials:', error);
+      }
+    };
+
+    loadSavedCredentials();
+  }, []);
+
   const validate = (): boolean => {
+    // Clear all errors first - explicitly clear inactive tab errors
     const nextErrors = { email: '', phone: '', password: '' };
     let valid = true;
 
-    if (tab === 'email' && (!form.email || !form.email.includes('@'))) {
-      nextErrors.email = t('invalid_email');
-      valid = false;
+    // Only validate email if on email tab
+    if (tab === 'email') {
+      if (!form.email || !form.email.includes('@')) {
+        nextErrors.email = t('invalid_email');
+        valid = false;
+      }
+      // Clear phone error when on email tab
+      nextErrors.phone = '';
+    } 
+    // Only validate phone if on phone tab
+    else if (tab === 'phone') {
+      // Clear email error when on phone tab
+      nextErrors.email = '';
+      if (!form.phone || !meta.isPhoneValid) {
+        nextErrors.phone = t('invalid_phone');
+        valid = false;
+      }
     }
 
-    if (tab === 'phone' && (!form.phone || !meta.isPhoneValid)) {
-      nextErrors.phone = t('invalid_phone');
-      valid = false;
-    }
-
+    // Always validate password
     if (!form.password) {
       nextErrors.password = t('password_required');
       valid = false;
@@ -107,6 +164,49 @@ export function SignInScreen({ navigation }) {
       const { data } = await apiClient.post(endpoint, payload);
       console.log('data', data);
       setAuth(data?.user);
+      
+      // Save credentials if remember me is checked
+      if (meta.remember) {
+        try {
+          console.log('💾 Saving credentials (Remember me checked):', {
+            tab,
+            email: tab === 'email' ? form.email : 'N/A',
+            phone: tab === 'phone' ? form.phone : 'N/A',
+            countryCode: tab === 'phone' ? meta.countryCode : 'N/A',
+          });
+          
+          await AsyncStorage.setItem('rememberMeTab', tab);
+          if (tab === 'email') {
+            await AsyncStorage.setItem('rememberMeEmail', form.email);
+            await AsyncStorage.removeItem('rememberMePhone');
+            await AsyncStorage.removeItem('rememberMeCountryCode');
+            console.log('✅ Saved email:', form.email);
+          } else {
+            await AsyncStorage.setItem('rememberMePhone', form.phone);
+            await AsyncStorage.setItem('rememberMeCountryCode', meta.countryCode);
+            await AsyncStorage.removeItem('rememberMeEmail');
+            console.log('✅ Saved phone:', form.phone, 'Country:', meta.countryCode);
+          }
+          console.log('✅ Credentials saved successfully');
+        } catch (error) {
+          console.error('❌ Error saving credentials:', error);
+        }
+      } else {
+        // Clear saved credentials if remember me is unchecked
+        try {
+          console.log('🗑️ Clearing saved credentials (Remember me unchecked)');
+          await AsyncStorage.multiRemove([
+            'rememberMeTab',
+            'rememberMeEmail',
+            'rememberMePhone',
+            'rememberMeCountryCode',
+          ]);
+          console.log('✅ Credentials cleared successfully');
+        } catch (error) {
+          console.error('❌ Error clearing credentials:', error);
+        }
+      }
+      
       Toast.success(data?.message || 'Login successful');
       // Delay navigation to allow toast to be visible
       setTimeout(() => {
@@ -173,7 +273,10 @@ export function SignInScreen({ navigation }) {
                 label={t('email_address')}
                 placeholder={t('enter_email')}
                 value={form.email}
-                onChangeText={text => setForm({ ...form, email: text })}
+                onChangeText={text => {
+                  setForm({ ...form, email: text });
+                  if (errors.email) setErrors({ ...errors, email: '' });
+                }}
                 errorMessage={errors.email}
               />
             ) : (
@@ -181,7 +284,10 @@ export function SignInScreen({ navigation }) {
                 <Text style={styles.label}>{t('phone_number')}</Text>
                 <PhoneNumberInput
                   phone={form.phone}
-                  setPhone={text => setForm({ ...form, phone: text })}
+                  setPhone={text => {
+                    setForm({ ...form, phone: text });
+                    if (errors.phone) setErrors({ ...errors, phone: '' });
+                  }}
                   countryCode={meta.countryCode}
                   setCountryCode={code =>
                     setMeta({ ...meta, countryCode: code as CountryCode })
@@ -200,7 +306,10 @@ export function SignInScreen({ navigation }) {
             label={t('password')}
             placeholder={t('enter_password')}
             value={form.password}
-            onChangeText={text => setForm({ ...form, password: text })}
+            onChangeText={text => {
+              setForm({ ...form, password: text });
+              if (errors.password) setErrors({ ...errors, password: '' });
+            }}
             secureTextEntry={true}
             errorMessage={errors.password}
           />
@@ -209,8 +318,13 @@ export function SignInScreen({ navigation }) {
             <View style={styles.CheckBox}>
               <TouchableOpacity
                 onPress={() => {
-                  setMeta({ ...meta, remember: !meta.remember });
-                  setMeta({ ...meta, rememberError: false });
+                  const newRememberValue = !meta.remember;
+                  console.log('🔄 Remember me checkbox toggled:', newRememberValue);
+                  setMeta(prev => ({ 
+                    ...prev, 
+                    remember: newRememberValue,
+                    rememberError: false 
+                  }));
                 }}
                 accessibilityRole="checkbox"
                 accessibilityState={{ checked: meta.remember }}

@@ -6,7 +6,6 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
 } from 'react-native';
 import { colors } from '../../../styles/colors';
 import { mvs } from '../../../config/metrices';
@@ -135,7 +134,7 @@ export function ForgetPasswordScreen({
           </View>
 
           <CustomButton
-            title={loading ? t('processing') || 'Processing...' : t('next')}
+            title={t('next')}
             onPress={async () => {
               let valid = true;
 
@@ -173,6 +172,7 @@ export function ForgetPasswordScreen({
                     email: email.trim(),
                   });
                 } else {
+                  console.log('phone', phone);
                   // Call forgot password by phone API
                   response = await apiClient.post(API.AUTH.FORGOT_PASSWORD_PHONE, {
                     phoneNO: phone.trim(),
@@ -219,6 +219,7 @@ export function ForgetPasswordScreen({
                 setLoading(false);
               }
             }}
+            loading={loading}
             disabled={loading}
           />
 

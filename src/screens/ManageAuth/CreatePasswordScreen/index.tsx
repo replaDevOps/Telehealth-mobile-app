@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text } from 'react-native';
-import { StackNavigationProp, RouteProp } from '@react-navigation/stack';
+import { RouteProp } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import { KeyboardAvoidScrollview } from '../../../components/common/keyboard-avoid-scrollview';
 import { LogoSvg } from '../../../assets/icons';
 import { Header2 } from '../../../components/common/Header2';
@@ -30,6 +31,32 @@ export const CreatePassword: React.FC<Props> = ({ navigation, route }) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Handle back button - navigate to SignUp instead of OTP
+  // This ensures user needs to verify OTP again if they go back
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      // Only handle if it's a back action (not programmatic navigation)
+      if (e.data.action.type !== 'GO_BACK') {
+        return;
+      }
+
+      // Prevent default behavior of going back to OTP screen
+      e.preventDefault();
+
+      // Reset navigation stack to SignUp screen
+      // This clears the OTP screen from history so user must verify again
+      // Use setTimeout to avoid infinite loop
+      setTimeout(() => {
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'SignUp' }],
+        });
+      }, 0);
+    });
+
+    return unsubscribe;
+  }, [navigation]);
 
   const validatePassword = (value: string) => {
     const passwordRegex =

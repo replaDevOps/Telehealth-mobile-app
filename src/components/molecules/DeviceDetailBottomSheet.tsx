@@ -35,7 +35,7 @@ export const DeviceDetailBottomSheet: React.FC<
   const { t } = useTranslation();
   // Always render the component, even if device is null
   const services = device ? Object.values(device.badge) : [];
-
+  console.log('services', device);
   return (
     <Modal
       visible={visible}

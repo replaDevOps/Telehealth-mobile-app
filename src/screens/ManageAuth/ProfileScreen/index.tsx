@@ -239,13 +239,13 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     navigation.navigate('SignIn');
   };
 
+  // Determine signup method based on route params
+  const isEmailSignup = !!routeEmail;
+  const isPhoneSignup = !!routePhone;
+
   const nationalityOptions = [
     { label: t('saudi_arabian'), value: 'sau' },
-    { label: t('pakistani'), value: 'pak' },
-    { label: t('afghani'), value: 'afg' },
-    { label: t('indian'), value: 'ind' },
-    { label: t('chines'), value: 'ch' },
-    { label: t('american'), value: 'usa' },
+    { label: t('non_saudi'), value: 'non_saudi' },
   ];
 
   const genderOptions = [
@@ -281,7 +281,10 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
             label={t('full_name')}
             placeholder={t('enter_full_name')}
             value={fullName}
-            onChangeText={setFullName}
+            onChangeText={(text) => {
+              setFullName(text);
+              if (nameError) setNameError('');
+            }}
             errorMessage={nameError}
           />
 
@@ -289,29 +292,47 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
             label={t('email_address')}
             placeholder={t('enter_email')}
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(text) => {
+              setEmail(text);
+              if (emailError) setEmailError('');
+            }}
             keyboardType="email-address"
             autoCapitalize="none"
             errorMessage={emailError}
+            editable={!isEmailSignup}
           />
 
           <Text style={styles.label}>{t('phone_number')}</Text>
           <PhoneNumberInput
             phone={phone}
-            setPhone={setPhone}
+            setPhone={(text) => {
+              if (!isPhoneSignup) {
+                setPhone(text);
+                if (phoneError) setPhoneError('');
+                if (errorMessage) setErrorMessage('');
+              }
+            }}
             countryCode={countryCode}
-            setCountryCode={setCountryCode}
+            setCountryCode={(code) => {
+              if (!isPhoneSignup) {
+                setCountryCode(code);
+              }
+            }}
             phoneError={phoneError}
             errorMessage={errorMessage}
             onValidationChange={setIsPhoneValid}
             CustomStyle={{ backgroundColor: colors.white }}
+            editable={!isPhoneSignup}
           />
 
           <CustomDropdown
             label={t('nationality')}
             placeholder={t('select_nationality')}
             value={nationality}
-            onValueChange={setNationality}
+            onValueChange={(value) => {
+              setNationality(value);
+              if (nationalityError) setNationalityError('');
+            }}
             errorMessage={nationalityError}
             options={nationalityOptions}
           />
@@ -320,8 +341,14 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
             label={t('national_id')}
             placeholder={t('national_id_placeholder')}
             value={IdCardNumber}
-            onChangeText={setIdCardNumber}
+            onChangeText={(text) => {
+              // Only allow numeric values and limit to 10 characters
+              const numericText = text.replace(/[^0-9]/g, '').slice(0, 10);
+              setIdCardNumber(numericText);
+              if (idError) setIdError('');
+            }}
             keyboardType="numeric"
+            maxLength={10}
             errorMessage={idError}
           />
 
@@ -329,7 +356,10 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
             label={t('gender')}
             placeholder={t('select_gender')}
             value={gender}
-            onValueChange={setGender}
+            onValueChange={(value) => {
+              setGender(value);
+              if (genderError) setGenderError('');
+            }}
             options={genderOptions}
             errorMessage={genderError}
           />
@@ -338,7 +368,10 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
             label={t('age')}
             placeholder={t('enter_age')}
             value={age}
-            onChangeText={setAge}
+            onChangeText={(text) => {
+              setAge(text);
+              if (ageError) setAgeError('');
+            }}
             keyboardType="numeric"
             errorMessage={ageError}
           />

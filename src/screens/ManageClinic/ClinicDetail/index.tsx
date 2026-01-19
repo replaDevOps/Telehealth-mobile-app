@@ -689,6 +689,9 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     }
 
     setLoadingAddToCart(true);
+    
+    const startTime = Date.now();
+    const requestId = `ADD_TO_CART_${startTime}`;
 
     try {
       // Extract service ID - it might be a string, convert to number
@@ -699,11 +702,25 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
         setLoadingAddToCart(false);
         return;
       }
+      
+      console.log(`➕ [${requestId}] START addToCart API Call`);
+      console.log(`➕ [${requestId}] Endpoint: ${API.CART.ADD_TO_CART}`);
+      console.log(`➕ [${requestId}] Method: POST`);
+      console.log(`➕ [${requestId}] Payload: { serviceID: ${serviceID} }`);
+      console.log(`➕ [${requestId}] Timestamp: ${new Date().toISOString()}`);
 
       // Call API to add service to cart
       const response = await apiClient.post(API.CART.ADD_TO_CART, {
         serviceID: serviceID,
       });
+      
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+      
+      console.log(`➕ [${requestId}] ✅ SUCCESS - addToCart`);
+      console.log(`➕ [${requestId}] Duration: ${duration}ms (${(duration / 1000).toFixed(2)}s)`);
+      console.log(`➕ [${requestId}] Response Status: ${response.status}`);
+      console.log(`➕ [${requestId}] Response Data:`, response.data);
 
       // Check if API returned success: false (even with 200 status)
       if (response.data?.success === false) {
@@ -741,11 +758,22 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       setServiceDetailVisible(false);
       navigation.navigate('CartScreen');
     } catch (error: any) {
-      console.error('Error adding service to cart:', error);
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+      
+      console.error(`➕ [${requestId}] ❌ ERROR - addToCart`);
+      console.error(`➕ [${requestId}] Duration: ${duration}ms (${(duration / 1000).toFixed(2)}s)`);
+      console.error(`➕ [${requestId}] Error:`, error);
+      console.error(`➕ [${requestId}] Error Message:`, error?.message);
+      console.error(`➕ [${requestId}] Error Response:`, error?.response?.data);
+      console.error(`➕ [${requestId}] Error Status:`, error?.response?.status);
+      
       const errorMessage = error?.message || error?.response?.data?.message || 'Failed to add service to cart';
       Toast.error(errorMessage);
     } finally {
       setLoadingAddToCart(false);
+      const totalDuration = Date.now() - startTime;
+      console.log(`➕ [${requestId}] 🏁 COMPLETE - Total time: ${totalDuration}ms`);
     }
   };
 

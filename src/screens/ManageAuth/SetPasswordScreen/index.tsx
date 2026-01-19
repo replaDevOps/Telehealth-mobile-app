@@ -29,38 +29,41 @@ export const SetPassword: React.FC<Props> = ({ navigation, route }) => {
   const token = route.params?.token;
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [confirmPasswordError, setConfirmPasswordError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const validatePassword = (password: string) => {
-    // Example: Password must be at least 8 characters, include a number and a special character
-    const passwordRegex =
-      /^(?=.*[0-9])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]{8,}$/;
-    return passwordRegex.test(password);
-  };
-
   const handleNext = async () => {
-    setError('');
+    // Reset all errors
+    setPasswordError('');
+    setConfirmPasswordError('');
 
-    if (!password || !confirmPassword) {
-      setError(t('fields_required'));
+    let valid = true;
+
+    // Validate password field
+    if (!password.trim()) {
+      setPasswordError(t('password_required'));
+      valid = false;
+    }
+
+    // Validate confirm password field
+    if (!confirmPassword.trim()) {
+      setConfirmPasswordError(t('confirm_password_required'));
+      valid = false;
+    }
+
+    // If either field is empty, don't proceed
+    if (!valid) {
       return;
     }
 
-    // if (!validatePassword(password)) {
-    //   setError(
-    //     'Password must be at least 8 characters long and include a number and a special character.',
-    //   );
-    //   return;
-    // }
-
+    // Check if passwords match
     if (password !== confirmPassword) {
-      setError(t('passwords_not_match'));
+      setConfirmPasswordError(t('passwords_not_match'));
       return;
     }
 
     if (!token) {
-      setError('Invalid token. Please try again.');
       Toast.error('Invalid token. Please try again.');
       return;
     }
@@ -81,7 +84,6 @@ export const SetPassword: React.FC<Props> = ({ navigation, route }) => {
       // Check for success: false in response
       if (response.data?.success === false) {
         const errorMessage = response.data?.message || 'Failed to reset password';
-        setError(errorMessage);
         Toast.error(errorMessage);
         setLoading(false);
         return;
@@ -100,7 +102,6 @@ export const SetPassword: React.FC<Props> = ({ navigation, route }) => {
         error?.data?.message ||
         error?.message || 
         'Failed to reset password. Please try again.';
-      setError(errorMessage);
       Toast.error(errorMessage);
       setLoading(false);
     }
@@ -131,17 +132,23 @@ export const SetPassword: React.FC<Props> = ({ navigation, route }) => {
               label={t('password')}
               placeholder={t('enter_password')}
               value={password}
-              onChangeText={setPassword}
+              onChangeText={(text) => {
+                setPassword(text);
+                if (passwordError) setPasswordError('');
+              }}
               secureTextEntry={true}
-              errorMessage={error}
+              errorMessage={passwordError}
             />
             <CustomTextInput
               label={t('confirm_password')}
               placeholder={t('confirm_your_password')}
               secureTextEntry
               value={confirmPassword}
-              onChangeText={text => setConfirmPassword(text)}
-              errorMessage={error}
+              onChangeText={(text) => {
+                setConfirmPassword(text);
+                if (confirmPasswordError) setConfirmPasswordError('');
+              }}
+              errorMessage={confirmPasswordError}
             />
           </View>
 

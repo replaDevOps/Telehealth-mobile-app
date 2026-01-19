@@ -114,24 +114,27 @@ export type ClinicReview = {
 };
 
 export type ClinicDevice = {
-  id: number;
-  clinicID: number;
-  addedBy: number;
-  groupID: number;
-  serviceIDs: string[];
-  image: string;
-  serviceType: string;
-  name: string;
-  purpose: string;
-  notes: string | null;
-  status: string;
-  created_at: string;
-  updated_at: string;
-  service_details: Array<{
+  id: number | string;
+  clinicID?: number;
+  addedBy?: number;
+  groupID?: number;
+  serviceIDs?: string[];
+  image: string | { uri: string };
+  serviceType?: string;
+  name?: string;
+  title?: string;
+  purpose?: string;
+  notes?: string | null;
+  note?: string;
+  status?: string;
+  created_at?: string;
+  updated_at?: string;
+  service_details?: Array<{
     id: number;
     name: string;
   }>;
-  group: ServiceGroup;
+  group?: ServiceGroup;
+  badge?: { [key: string]: string };
 };
 
 export type ClinicDescriptionResponse = {
@@ -139,57 +142,7 @@ export type ClinicDescriptionResponse = {
   devices: ClinicDevice[];
 };
 
-export type ServiceFilterOption = {
-  id: number;
-  name: string;
-};
-
-export type ClinicDevice = {
-  id: number;
-  clinicID: number;
-  addedBy: number;
-  groupID: number;
-  serviceIDs: string[];
-  image: string;
-  serviceType: string;
-  name: string;
-  purpose: string;
-  notes: string | null;
-  status: string;
-  created_at: string;
-  updated_at: string;
-  service_details: Array<{
-    id: number;
-    name: string;
-  }>;
-  group: ServiceGroup;
-};
-
-export type ClinicDescriptionResponse = {
-  data: ClinicDetails;
-  devices: ClinicDevice[];
-};
-
-export type DeviceDetailResponse = {
-  id: number;
-  clinicID: number | null;
-  addedBy: number | null;
-  groupID: number;
-  serviceIDs: string[];
-  image: string;
-  serviceType: string;
-  name: string;
-  purpose: string;
-  notes: string | null;
-  status: string;
-  created_at: string;
-  updated_at: string;
-  service_details: Array<{
-    id: number;
-    name: string;
-  }>;
-  group: ServiceGroup;
-};
+export type DeviceDetailResponse = ClinicDevice;
 
 export type ServiceFilterOption = {
   id: number;

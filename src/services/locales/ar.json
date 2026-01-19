@@ -172,7 +172,8 @@
   "tabby": "تابي",
   "tamara": "تمارا",
   "invalid_coupon_code": "رمز قسيمة غير صالح",
-  "fill_card_details": "الرجاء تعبئة جميع تفاصيل البطاقة",
+  "fill_card_details": "املأ تفاصيل البطاقة",
+  "please_fill_all_card_details": "الرجاء ملء جميع تفاصيل البطاقة للمتابعة.",
   "pay_in_installments": "الدفع على أقساط",
   "coupon_code": "رمز الكوبون",
   "enter_coupon_code": "أدخل رمز القسيمة",
@@ -387,7 +388,9 @@
   "injectable_material_text": "مادة قابلة للحقن تستخدم لتحسين مظهر الخطوط الدقيقة والتجاعيد. مادة قابلة للحقن تستخدم لتحسين مظهر الخطوط الدقيقة والتجاعيد. مادة قابلة للحقن تستخدم لتحسين مظهر الخطوط الدقيقة والتجاعيد.",
   "procedure": "الإجراء",
   "injected_under_skin_text": "يتم الحقن تحت الجلد باستخدام إبرة رفيعة.",
+  "earn_points": "اكسب {{points}} نقطة ولاء",
   "add_to_cart": "أضف إلى السلة",
+  "added_to_cart": "تمت الإضافة إلى السلة",
   "devices": "الأجهزة",
   "cardholder_name": "اسم حامل البطاقة",
   "enter_cardholder_name": "أدخل اسم حامل البطاقة",
@@ -455,8 +458,6 @@
   "clear_all": "مسح الكل",
   "payment_method_not_available": "طريقة الدفع غير متاحة",
   "only_card_payment_available": "الدفع بالبطاقة متاح حاليًا فقط. يرجى اختيار الدفع بالبطاقة للمتابعة.",
-  "fill_card_details": "املأ تفاصيل البطاقة",
-  "please_fill_all_card_details": "الرجاء ملء جميع تفاصيل البطاقة للمتابعة.",
   "invalid_expiry_date": "تاريخ انتهاء الصلاحية غير صالح",
   "please_enter_valid_expiry_date": "الرجاء إدخال تاريخ انتهاء صالح بتنسيق MM/YYYY."
 }

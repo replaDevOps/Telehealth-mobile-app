@@ -174,7 +174,8 @@
   "tabby": "Tabby",
   "tamara": "Tamara",
   "invalid_coupon_code": "Invalid coupon code",
-  "fill_card_details": "Please fill all card details",
+  "fill_card_details": "Fill Card Details",
+  "please_fill_all_card_details": "Please fill in all card details to proceed.",
   "pay_in_installments": "PAY IN INSTALLMENTS",
   "coupon_code": "Coupon Code",
   "enter_coupon_code": "Enter Coupon Code",
@@ -390,7 +391,9 @@
   "injectable_material_text": "Injectable material used to improve the appearance of fine lines and wrinkles. Injectable material used to improve the appearance of fine lines and wrinkles Injectable material used to improve the appearance of fine lines and wrinkles.",
   "procedure": "Procedure",
   "injected_under_skin_text": "Injected under the skin using a fine needle.",
+  "earn_points": "Earn {{points}} loyalty points",
   "add_to_cart": "Add to Cart",
+  "added_to_cart": "Added to Cart",
   "checkout": "Checkout",
   "devices": "Devices",
   "payment_method": "Payment Method",
@@ -469,8 +472,6 @@
   "clear_all": "Clear All",
   "payment_method_not_available": "Payment Method Not Available",
   "only_card_payment_available": "Only card payment is currently available. Please select card payment to proceed.",
-  "fill_card_details": "Fill Card Details",
-  "please_fill_all_card_details": "Please fill in all card details to proceed.",
   "invalid_expiry_date": "Invalid Expiry Date",
   "please_enter_valid_expiry_date": "Please enter a valid expiry date in MM/YYYY format."
 }

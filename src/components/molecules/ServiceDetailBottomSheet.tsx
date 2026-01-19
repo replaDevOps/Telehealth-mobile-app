@@ -13,8 +13,8 @@ import { colors } from '../../styles/colors';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
 import { coinIcon } from '@assets/images';
-import { TagSvg } from '@assets/icons';
 import { ActivityIndicator } from 'react-native-paper';
+import { useCart } from '../../context/CartContext';
 
 interface Service {
   id: string;
@@ -26,6 +26,10 @@ interface Service {
   duration: string;
   description?: string;
   procedure?: string;
+  loyality?: boolean;
+  bonusLoyalityPoints?: string;
+  devices?: any[];
+  tags?: string[];
 }
 
 interface ServiceDetailBottomSheetProps {
@@ -35,25 +39,42 @@ interface ServiceDetailBottomSheetProps {
   onAddToCart: (service: Service) => void;
   onCheckout: (service: Service) => void;
   loading?: boolean;
-  addingToCart?: boolean;
+  loadingState?: 'none' | 'adding_to_cart' | 'checking_out';
 }
 
-export const ServiceDetailBottomSheet: React.FC<
-  ServiceDetailBottomSheetProps
-> = ({ visible, onClose, service, onAddToCart, onCheckout, loading = false, addingToCart = false }) => {
+export const ServiceDetailBottomSheet: React.FC<ServiceDetailBottomSheetProps> = ({
+  visible,
+  onClose,
+  service,
+  onAddToCart,
+  onCheckout,
+  loading = false,
+  loadingState = 'none',
+}) => {
   const { t } = useTranslation();
-  
+  const { cartItems } = useCart();
+  console.log(service);
   if (!visible) return null;
 
   const handleAddToCart = () => {
-    if (addingToCart || !service) return;
+    if (loadingState !== 'none' || !service || isInCart) return;
     onAddToCart(service);
   };
 
   const handleCheckout = () => {
-    onCheckout(service);
-    onClose();
+    if (loadingState !== 'none' || !service) return;
+    if (isInCart) {
+      // If already in cart, just navigate
+      onCheckout(service);
+    } else {
+      onCheckout(service);
+    }
   };
+
+  const isInCart = service ? cartItems.some(item => item.service.id === service.id) : false;
+  const isAddingToCart = loadingState === 'adding_to_cart';
+  const isCheckingOut = loadingState === 'checking_out';
+  const isActionDisabled = loadingState !== 'none';
 
   return (
     <Modal
@@ -84,88 +105,109 @@ export const ServiceDetailBottomSheet: React.FC<
             </View>
           ) : service ? (
             <>
-          <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={styles.content}
-            showsVerticalScrollIndicator={false}
-          >
-            {/* Service Image */}
-            <Image source={service.image} style={styles.serviceImage} />
+              <ScrollView
+                style={styles.scrollView}
+                contentContainerStyle={styles.content}
+                showsVerticalScrollIndicator={false}
+              >
+                {/* Service Image */}
+                <Image source={service.image} style={styles.serviceImage} />
 
-            {/* Service Tags */}
-            <View style={styles.serviceInfoContainter}>
-              <View style={styles.serviceInfo}>
-                <View style={styles.serviceTags}>
-                  <View style={styles.tag}>
-                    <Text style={styles.TypetagText}>{service.type}</Text>
+                {/* Service Tags */}
+                <View style={styles.serviceInfoContainter}>
+                  <View style={styles.serviceInfo}>
+                    <View style={styles.serviceTags}>
+                      <View style={styles.tag}>
+                        <Text style={styles.TypetagText}>{service.type}</Text>
+                      </View>
+                      <View style={styles.tag}>
+                        <Text style={styles.SGtagText}>{service.serviceGroup}</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.price}>{service.price}</Text>
                   </View>
-                  <View style={styles.tag}>
-                    <Text style={styles.SGtagText}>{service.serviceGroup}</Text>
+
+                  <View style={styles.serviceFooter}>
+                    <Text style={styles.serviceName}>{service.serviceName}</Text>
+                    <View style={styles.durationContainer}>
+                      <Ionicons
+                        name="time-outline"
+                        size={14}
+                        color={colors.secondaryText}
+                      />
+                      <Text style={styles.duration}>{service.duration}</Text>
+                    </View>
                   </View>
                 </View>
-                <Text style={styles.price}>{service.price}</Text>
-              </View>
 
-              <View style={styles.serviceFooter}>
-                <Text style={styles.serviceName}>{service.serviceName}</Text>
-                <View style={styles.durationContainer}>
-                  <Ionicons
-                    name="time-outline"
-                    size={14}
-                    color={colors.secondaryText}
-                  />
-                  <Text style={styles.duration}>{service.duration}</Text>
+                <View style={{ flexDirection: 'row', gap: 20 }}>
+                  {service.loyality && service.bonusLoyalityPoints && (
+                    <View style={styles.pointTag}>
+                      <Image source={coinIcon} style={{ width: 20, height: 20 }} />
+                      <Text style={styles.pointTagText}>
+                        {t('earn_points', { points: service.bonusLoyalityPoints }) || `Earn ${service.bonusLoyalityPoints} loyalty points`}
+                      </Text>
+                    </View>
+                  )}
                 </View>
-              </View>
-            </View>
 
-            <View style={{ flexDirection: 'row', gap: 20 }}>
-              <View style={styles.pointTag}>
-                <Image source={coinIcon} style={{ width: 20, height: 20 }} />
-                <Text style={styles.pointTagText}>Earn 10 loyalty points </Text>
-              </View>
-              <View style={styles.pointTag}>
-                <TagSvg />
-                <Text style={styles.pointTagText}>40% off SAR.80</Text>
-              </View>
-            </View>
+                {/* Description Section */}
+                {service.description && (
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>{t('description')}</Text>
+                    <Text style={styles.sectionText}>
+                      {service.description || t('injectable_material_text')}
+                    </Text>
+                  </View>
+                )}
 
-            {/* Description Section */}
-            {service.description && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>{t('description')}</Text>
-                <Text style={styles.sectionText}>
-                  {service.description || t('injectable_material_text')}
-                </Text>
-              </View>
-            )}
+                {/* Procedure Section */}
+                {service.procedure && (
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>{t('procedure')}</Text>
+                    <Text style={styles.sectionText}>
+                      {service.procedure || t('injected_under_skin_text')}
+                    </Text>
+                  </View>
+                )}
+              </ScrollView>
 
-            {/* Procedure Section */}
-            {service.procedure && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>{t('procedure')}</Text>
-                <Text style={styles.sectionText}>
-                  {service.procedure || t('injected_under_skin_text')}
-                </Text>
-              </View>
-            )}
-          </ScrollView>
-
-          {/* Footer Buttons */}
-          <View style={styles.footer}>
-            <TouchableOpacity
-                  style={[styles.addToCartButton, addingToCart && styles.addToCartButtonDisabled]}
-              onPress={handleAddToCart}
-              activeOpacity={0.7}
-                  disabled={addingToCart}
-            >
-                  {addingToCart ? (
+              {/* Footer Buttons */}
+              <View style={styles.footer}>
+                <TouchableOpacity
+                  style={[
+                    styles.addToCartButton,
+                    (isActionDisabled || isInCart) && styles.addToCartButtonDisabled
+                  ]}
+                  onPress={handleAddToCart}
+                  activeOpacity={0.7}
+                  disabled={isActionDisabled || isInCart}
+                >
+                  {isAddingToCart ? (
                     <ActivityIndicator size="small" color={colors.black} />
                   ) : (
-              <Text style={styles.addToCartText}>{t('add_to_cart')}</Text>
+                    <Text style={styles.addToCartText}>
+                      {isInCart ? t('added_to_cart') || 'Added to Cart' : t('add_to_cart')}
+                    </Text>
                   )}
-            </TouchableOpacity>
-          </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.checkoutButton,
+                    isActionDisabled && styles.addToCartButtonDisabled
+                  ]}
+                  onPress={handleCheckout}
+                  activeOpacity={0.7}
+                  disabled={isActionDisabled}
+                >
+                  {isCheckingOut ? (
+                    <ActivityIndicator size="small" color={colors.white} />
+                  ) : (
+                    <Text style={styles.checkoutText}>{t('checkout') || 'Checkout'}</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
             </>
           ) : (
             <View style={styles.emptyState}>

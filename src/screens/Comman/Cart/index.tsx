@@ -19,7 +19,7 @@ import { CustomButton } from '@components/common/CustomButton';
 import { useCart } from '@context/CartContext';
 import { useCartCountContext } from '@context/CartCountContext';
 import { styles } from './style';
-import { EmptyContentSvg, ShopingCartSvg } from '@assets/icons';
+import { EmptyContentSvg } from '@assets/icons';
 import { useTranslation } from 'react-i18next';
 import Geolocation from '@react-native-community/geolocation';
 import { apiClient } from '@services/api/api-client';
@@ -30,10 +30,11 @@ import { useFocusEffect } from '@react-navigation/native';
 export function CartScreen({ navigation }) {
   const { t } = useTranslation();
   const { removeFromCart, addToCart } = useCart();
-  const { triggerRefresh, decrementCartCount } = useCartCountContext();
+  const { triggerRefresh, decrementCartCount, incrementCartCount } = useCartCountContext();
   const [cartData, setCartData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [removingCartId, setRemovingCartId] = useState<number | null>(null);
+  const [addingServiceId, setAddingServiceId] = useState<number | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; long: number } | null>(null);
   const [grandTotalPrice, setGrandTotalPrice] = useState<number>(0);
   const [grandTotalLoyaltyPoints, setGrandTotalLoyaltyPoints] = useState<number>(0);
@@ -120,125 +121,6 @@ export function CartScreen({ navigation }) {
     );
   };
 
-  const fetchCartDetails = useCallback(async (lat: number, long: number, isInitialLoad: boolean = true) => {
-    // Request deduplication - prevent multiple simultaneous calls
-    if (isFetchingRef.current) {
-      console.log('⚠️ fetchCartDetails already in progress, skipping duplicate call');
-      return;
-    }
-
-    // Check if we're calling with the same params and recently fetched
-    const now = Date.now();
-    const lastParams = lastFetchParamsRef.current;
-    if (lastParams && lastParams.lat === lat && lastParams.long === long) {
-      const timeSinceLastFetch = now - lastFetchTimeRef.current;
-      if (timeSinceLastFetch < FETCH_CACHE_DURATION) {
-        console.log(`⚠️ Recent fetch with same params (${timeSinceLastFetch}ms ago), skipping duplicate call`);
-        return;
-      }
-    }
-
-    // Cancel any previous request if AbortController is available
-    if (typeof AbortController !== 'undefined' && abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
-    // Create new abort controller for this request if available
-    let abortController: AbortController | null = null;
-    if (typeof AbortController !== 'undefined') {
-      abortController = new AbortController();
-      abortControllerRef.current = abortController;
-    }
-
-    isFetchingRef.current = true;
-    lastFetchParamsRef.current = { lat, long };
-
-    const startTime = Date.now();
-    const requestId = `CART_${startTime}`;
-    
-    console.log(`🛒 [${requestId}] START fetchCartDetails API Call`);
-    console.log(`🛒 [${requestId}] Endpoint: ${API.CART.VIEW_CART_DETAILS}`);
-    console.log(`🛒 [${requestId}] Params: lat=${lat}, long=${long}`);
-    console.log(`🛒 [${requestId}] Initial Load: ${isInitialLoad}`);
-    console.log(`🛒 [${requestId}] Timestamp: ${new Date().toISOString()}`);
-    
-    try {
-      if (isInitialLoad) {
-        setLoading(true);
-      }
-      
-      const requestConfig: any = {
-        params: {
-          lat: lat.toString(),
-          long: long.toString(),
-        },
-      };
-
-      // Add signal only if AbortController is available
-      if (abortController) {
-        requestConfig.signal = abortController.signal;
-      }
-
-      const response = await apiClient.get(API.CART.VIEW_CART_DETAILS, requestConfig);
-      
-      const endTime = Date.now();
-      const duration = endTime - startTime;
-      
-      console.log(`🛒 [${requestId}] ✅ SUCCESS - fetchCartDetails`);
-      console.log(`🛒 [${requestId}] Duration: ${duration}ms (${(duration / 1000).toFixed(2)}s)`);
-      console.log(`🛒 [${requestId}] Response Status: ${response.status}`);
-      console.log(`🛒 [${requestId}] Response Data:`, JSON.stringify(response.data).substring(0, 500));
-      console.log(`🛒 [${requestId}] Response Size: ~${JSON.stringify(response.data).length} bytes`);
-
-      // Check if request was aborted
-      if (abortController && abortController.signal.aborted) {
-        console.log(`🛒 [${requestId}] ⚠️ Request aborted`);
-        return;
-      }
-
-      if (response.data.success && response.data.data) {
-        // Transform API response to match UI structure
-        const transformedData = transformCartData(response.data.data);
-        setCartData(transformedData);
-        // Store grand totals from API response
-        setGrandTotalPrice(response.data.grandTotalPrice || 0);
-        setGrandTotalLoyaltyPoints(response.data.grandTotalLoyaltyPoints || 0);
-      } else {
-        setCartData([]);
-        setGrandTotalPrice(0);
-        setGrandTotalLoyaltyPoints(0);
-      }
-
-      // Update last fetch time
-      lastFetchTimeRef.current = Date.now();
-    } catch (error: any) {
-      // Ignore abort errors
-      if (error.name === 'AbortError' || (abortController && abortController.signal.aborted)) {
-        console.log(`🛒 [${requestId}] ⚠️ Request aborted`);
-        return;
-      }
-
-      const endTime = Date.now();
-      const duration = endTime - startTime;
-      
-      console.error(`🛒 [${requestId}] ❌ ERROR - fetchCartDetails`);
-      console.error(`🛒 [${requestId}] Duration: ${duration}ms (${(duration / 1000).toFixed(2)}s)`);
-      console.error(`🛒 [${requestId}] Error:`, error);
-      console.error(`🛒 [${requestId}] Error Message:`, error?.message);
-      console.error(`🛒 [${requestId}] Error Response:`, error?.response?.data);
-      console.error(`🛒 [${requestId}] Error Status:`, error?.response?.status);
-      
-      Toast.error(error.message || 'Failed to fetch cart details');
-      setCartData([]);
-    } finally {
-      isFetchingRef.current = false;
-      abortControllerRef.current = null;
-      setLoading(false);
-      const totalDuration = Date.now() - startTime;
-      console.log(`🛒 [${requestId}] 🏁 COMPLETE - Total time: ${totalDuration}ms`);
-    }
-  }, [transformCartData]);
-
   const transformCartData = useCallback((apiData: any): any[] => {
     // Transform API response structure to match UI
     // API response: { data: [{ clinicID, clinicName, distance_km, totalPrice, totalLoyaltyPoints, items: [...], suggestedServices: [...] }] }
@@ -249,8 +131,8 @@ export function CartScreen({ navigation }) {
           name: clinicGroup.clinicName,
           location: '', // Not provided in API response
           image: RecommandImage, // Not provided in API response
-          distance: clinicGroup.distance_km 
-            ? `${parseFloat(clinicGroup.distance_km.toString()).toFixed(1)}km` 
+          distance: clinicGroup.distance_km
+            ? `${parseFloat(clinicGroup.distance_km.toString()).toFixed(1)}km`
             : null,
         },
         totalPrice: clinicGroup.totalPrice,
@@ -283,9 +165,129 @@ export function CartScreen({ navigation }) {
         })),
       }));
     }
-    
+
     return [];
   }, [t]);
+
+  const fetchCartDetails = useCallback(async (lat: number, long: number, isInitialLoad: boolean = true, forceRefresh: boolean = false) => {
+    // Request deduplication - prevent multiple simultaneous calls
+    if (isFetchingRef.current) {
+      console.log('⚠️ fetchCartDetails already in progress, skipping duplicate call');
+      return;
+    }
+
+    // Check if we're calling with the same params and recently fetched
+    const now = Date.now();
+    const lastParams = lastFetchParamsRef.current;
+    if (!forceRefresh && lastParams && lastParams.lat === lat && lastParams.long === long) {
+      const timeSinceLastFetch = now - lastFetchTimeRef.current;
+      if (timeSinceLastFetch < FETCH_CACHE_DURATION) {
+        console.log(`⚠️ Recent fetch with same params (${timeSinceLastFetch}ms ago), skipping duplicate call`);
+        return;
+      }
+    }
+
+    // Cancel any previous request if AbortController is available
+    if (typeof AbortController !== 'undefined' && abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Create new abort controller for this request if available
+    let abortController: AbortController | null = null;
+    if (typeof AbortController !== 'undefined') {
+      abortController = new AbortController();
+      abortControllerRef.current = abortController;
+    }
+
+    isFetchingRef.current = true;
+    lastFetchParamsRef.current = { lat, long };
+
+    const startTime = Date.now();
+    const requestId = `CART_${startTime}`;
+
+    console.log(`🛒 [${requestId}] START fetchCartDetails API Call`);
+    console.log(`🛒 [${requestId}] Endpoint: ${API.CART.VIEW_CART_DETAILS}`);
+    console.log(`🛒 [${requestId}] Params: lat=${lat}, long=${long}`);
+    console.log(`🛒 [${requestId}] Initial Load: ${isInitialLoad}`);
+    console.log(`🛒 [${requestId}] Timestamp: ${new Date().toISOString()}`);
+
+    try {
+      if (isInitialLoad) {
+        setLoading(true);
+      }
+
+      const requestConfig: any = {
+        params: {
+          lat: lat.toString(),
+          long: long.toString(),
+        },
+      };
+
+      // Add signal only if AbortController is available
+      if (abortController) {
+        requestConfig.signal = abortController.signal;
+      }
+
+      const response = await apiClient.get(API.CART.VIEW_CART_DETAILS, requestConfig);
+
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+
+      console.log(`🛒 [${requestId}] ✅ SUCCESS - fetchCartDetails`);
+      console.log(`🛒 [${requestId}] Duration: ${duration}ms (${(duration / 1000).toFixed(2)}s)`);
+      console.log(`🛒 [${requestId}] Response Status: ${response.status}`);
+      console.log(`🛒 [${requestId}] Response Data:`, JSON.stringify(response.data).substring(0, 500));
+      console.log(`🛒 [${requestId}] Response Size: ~${JSON.stringify(response.data).length} bytes`);
+
+      // Check if request was aborted
+      if (abortController && abortController.signal.aborted) {
+        console.log(`🛒 [${requestId}] ⚠️ Request aborted`);
+        return;
+      }
+
+      if (response.data.success && response.data.data) {
+        console.log(`🛒 [${requestId}] Response Data:`, response.data.data);
+        // Transform API response to match UI structure
+        const transformedData = transformCartData(response.data.data);
+        setCartData(transformedData);
+        // Store grand totals from API response
+        setGrandTotalPrice(response.data.grandTotalPrice || 0);
+        setGrandTotalLoyaltyPoints(response.data.grandTotalLoyaltyPoints || 0);
+      } else {
+        setCartData([]);
+        setGrandTotalPrice(0);
+        setGrandTotalLoyaltyPoints(0);
+      }
+
+      // Update last fetch time
+      lastFetchTimeRef.current = Date.now();
+    } catch (error: any) {
+      // Ignore abort errors
+      if (error.name === 'AbortError' || (abortController && abortController.signal.aborted)) {
+        console.log(`🛒 [${requestId}] ⚠️ Request aborted`);
+        return;
+      }
+
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+
+      console.error(`🛒 [${requestId}] ❌ ERROR - fetchCartDetails`);
+      console.error(`🛒 [${requestId}] Duration: ${duration}ms (${(duration / 1000).toFixed(2)}s)`);
+      console.error(`🛒 [${requestId}] Error:`, error);
+      console.error(`🛒 [${requestId}] Error Message:`, error?.message);
+      console.error(`🛒 [${requestId}] Error Response:`, error?.response?.data);
+      console.error(`🛒 [${requestId}] Error Status:`, error?.response?.status);
+
+      Toast.error(error.message || 'Failed to fetch cart details');
+      setCartData([]);
+    } finally {
+      isFetchingRef.current = false;
+      abortControllerRef.current = null;
+      setLoading(false);
+      const totalDuration = Date.now() - startTime;
+      console.log(`🛒 [${requestId}] 🏁 COMPLETE - Total time: ${totalDuration}ms`);
+    }
+  }, [transformCartData]);
 
   // Get suggested services from API response for a specific clinic
   const getSuggestedServices = (clinicId: string) => {
@@ -295,6 +297,13 @@ export function CartScreen({ navigation }) {
     }
     return [];
   };
+
+  // Check if a service is already in the cart
+  const isServiceInCart = useCallback((serviceID: number) => {
+    return cartData.some(clinicGroup =>
+      clinicGroup.services.some((service: any) => service.id === serviceID)
+    );
+  }, [cartData]);
 
   // Group cart items by clinic (already grouped from API)
   const groupedByClinic = cartData.reduce((acc, group) => {
@@ -328,7 +337,7 @@ export function CartScreen({ navigation }) {
     const startTime = Date.now();
     const requestId = `REMOVE_${startTime}`;
     const endpoint = `${API.CART.REMOVE_FROM_CART}/${cartID}`;
-    
+
     console.log(`🗑️ [${requestId}] START removeFromCart API Call`);
     console.log(`🗑️ [${requestId}] Endpoint: ${endpoint}`);
     console.log(`🗑️ [${requestId}] CartID: ${cartID}`);
@@ -338,10 +347,10 @@ export function CartScreen({ navigation }) {
     try {
       // Call DELETE API to remove item from cart
       const response = await apiClient.delete(endpoint);
-      
+
       const endTime = Date.now();
       const duration = endTime - startTime;
-      
+
       console.log(`🗑️ [${requestId}] ✅ SUCCESS - removeFromCart`);
       console.log(`🗑️ [${requestId}] Duration: ${duration}ms (${(duration / 1000).toFixed(2)}s)`);
       console.log(`🗑️ [${requestId}] Response Status: ${response.status}`);
@@ -365,25 +374,25 @@ export function CartScreen({ navigation }) {
 
       // Optimistically decrement cart count for immediate UI update
       decrementCartCount();
-      
+
       // Trigger cart count refresh to sync with API
       triggerRefresh();
 
       // Refresh cart from API (with flag to prevent showing loading spinner on refresh)
       if (userLocation) {
-        await fetchCartDetails(userLocation.lat, userLocation.long, false);
+        await fetchCartDetails(userLocation.lat, userLocation.long, false, true);
       }
     } catch (error: any) {
       const endTime = Date.now();
       const duration = endTime - startTime;
-      
+
       console.error(`🗑️ [${requestId}] ❌ ERROR - removeFromCart`);
       console.error(`🗑️ [${requestId}] Duration: ${duration}ms (${(duration / 1000).toFixed(2)}s)`);
       console.error(`🗑️ [${requestId}] Error:`, error);
       console.error(`🗑️ [${requestId}] Error Message:`, error?.message);
       console.error(`🗑️ [${requestId}] Error Response:`, error?.response?.data);
       console.error(`🗑️ [${requestId}] Error Status:`, error?.response?.status);
-      
+
       const errorMessage = error?.response?.data?.message || error?.message || 'Failed to remove item from cart';
       Toast.error(errorMessage);
     } finally {
@@ -406,12 +415,84 @@ export function CartScreen({ navigation }) {
     });
   };
 
-  const handleAddSuggestedService = (service, clinic) => {
-    // Add suggested service directly to cart
-    addToCart({
-      service: service,
-      clinic: clinic,
-    });
+  const handleAddSuggestedService = async (service: any, clinic: any) => {
+    if (!service || !service.serviceID) {
+      Toast.error('Invalid service');
+      return;
+    }
+
+    const serviceID = service.serviceID;
+    setAddingServiceId(serviceID);
+
+    const startTime = Date.now();
+    const requestId = `ADD_SUGGESTED_${startTime}`;
+
+    console.log(`➕ [${requestId}] START addSuggestedToCart API Call`);
+    console.log(`➕ [${requestId}] Endpoint: ${API.CART.ADD_TO_CART}`);
+    console.log(`➕ [${requestId}] Method: POST`);
+    console.log(`➕ [${requestId}] Payload: { serviceID: ${serviceID} }`);
+    console.log(`➕ [${requestId}] Timestamp: ${new Date().toISOString()}`);
+
+    try {
+      // Call API to add service to cart
+      const response = await apiClient.post(API.CART.ADD_TO_CART, {
+        serviceID: serviceID,
+      });
+
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+
+      console.log(`➕ [${requestId}] ✅ SUCCESS - addSuggestedToCart`);
+      console.log(`➕ [${requestId}] Duration: ${duration}ms (${(duration / 1000).toFixed(2)}s)`);
+      console.log(`➕ [${requestId}] Response Status: ${response.status}`);
+      console.log(`➕ [${requestId}] Response Data:`, response.data);
+
+      if (response.data?.success === false) {
+        const errorMessage = response.data?.message || 'Failed to add service to cart';
+        Toast.error(errorMessage);
+        return;
+      }
+
+      // Add to local cart context for immediate UI update
+      addToCart({
+        service: service,
+        clinic: clinic,
+      });
+
+      // Show success message
+      const successMessage = response.data?.message || response.data?.data?.message || 'Service added to cart successfully';
+      Toast.success(successMessage);
+
+      // Optimistically increment cart count for immediate UI update
+      incrementCartCount();
+
+      // Trigger cart count refresh to sync with API
+      triggerRefresh();
+
+      // Refresh cart from API to update suggested services and totals
+      if (userLocation) {
+        await fetchCartDetails(userLocation.lat, userLocation.long, false, true);
+      } else {
+        // Fallback to default location
+        await fetchCartDetails(24.7136, 46.6753, false, true);
+      }
+    } catch (error: any) {
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+
+      console.error(`➕ [${requestId}] ❌ ERROR - addSuggestedToCart`);
+      console.error(`➕ [${requestId}] Duration: ${duration}ms (${(duration / 1000).toFixed(2)}s)`);
+      console.error(`➕ [${requestId}] Error:`, error);
+      console.error(`➕ [${requestId}] Error Message:`, error?.message);
+      console.error(`➕ [${requestId}] Error Response:`, error?.response?.data);
+
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to add service to cart';
+      Toast.error(errorMessage);
+    } finally {
+      setAddingServiceId(null);
+      const totalDuration = Date.now() - startTime;
+      console.log(`➕ [${requestId}] 🏁 COMPLETE - Total time: ${totalDuration}ms`);
+    }
   };
 
   // Loading state
@@ -477,7 +558,7 @@ export function CartScreen({ navigation }) {
 
             {/* Services in Cart */}
             {clinicGroup.services.map(service => (
-              <View key={service.id} style={styles.serviceCard}>
+              <View key={service.cartID} style={styles.serviceCard}>
                 <Image source={service.image} style={styles.serviceImage} />
                 <View style={styles.serviceContent}>
                   <View style={styles.serviceHeader}>
@@ -503,7 +584,7 @@ export function CartScreen({ navigation }) {
                         {removingCartId === service.cartID ? (
                           <ActivityIndicator size="small" color={colors.white} />
                         ) : (
-                        <Text style={styles.removeIcon}>×</Text>
+                          <Text style={styles.removeIcon}>×</Text>
                         )}
                       </View>
                     </TouchableOpacity>
@@ -570,22 +651,22 @@ export function CartScreen({ navigation }) {
                       onPress={() =>
                         handleAddSuggestedService(service, clinicGroup.clinic)
                       }
-                      style={styles.addSuggestedButton}
+                      style={[
+                        styles.addSuggestedButton,
+                        isServiceInCart(service.serviceID) && styles.addSuggestedButtonDisabled
+                      ]}
+                      disabled={addingServiceId === service.serviceID || isServiceInCart(service.serviceID)}
+                      activeOpacity={0.7}
                     >
-                      <View
-                        style={{
-                          position: 'absolute',
-                          right: -6,
-                          top: -6,
-                        }}
-                      >
-                        <Ionicons
-                          name="add-circle"
-                          size={18}
-                          color={colors.primary}
-                        />
-                      </View>
-                      <ShopingCartSvg width={20} height={20} />
+                      {addingServiceId === service.serviceID ? (
+                        <ActivityIndicator size="small" color={colors.primary} />
+                      ) : isServiceInCart(service.serviceID) ? (
+                        <Ionicons name="checkmark-circle" size={20} color={colors.white} />
+                      ) : (
+                        <Text style={styles.addSuggestedButtonText}>
+                          {t('add') || 'Add'}
+                        </Text>
+                      )}
                     </TouchableOpacity>
                   </View>
                 ))}
@@ -610,7 +691,7 @@ export function CartScreen({ navigation }) {
         ))}
 
         <View style={styles.bottomSpacing} />
-      </ScrollView>
-    </SafeAreaView>
+      </ScrollView >
+    </SafeAreaView >
   );
 }

@@ -11,9 +11,9 @@ import {
 import { ClinicInfo } from '@components/molecules/ClinicInfo';
 import { colors } from '../../../styles/colors';
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, TouchableOpacity, Text, ActivityIndicator, Platform, PermissionsAndroid } from 'react-native';
+import { View, ScrollView, TouchableOpacity, Text, ActivityIndicator, Platform, PermissionsAndroid, RefreshControl } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { ClinicProfile, RecommandImage } from '@assets/images';
+import { RecommandImage } from '@assets/images';
 import AboutClinic from '@components/molecules/AboutCard';
 import ConsultDoctorBottomSheet from '@components/molecules/ConsultDoctorBottomSheet';
 import { styles } from './style';
@@ -79,9 +79,11 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
   const [loadingDeviceDetail, setLoadingDeviceDetail] = useState(false);
   const [loadingServiceDetail, setLoadingServiceDetail] = useState(false);
   const [loadingAddToCart, setLoadingAddToCart] = useState(false);
+  const [loadingCheckout, setLoadingCheckout] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; long: number } | null>(null);
   const [hasAudioPermission, setHasAudioPermission] = useState(false);
   const [hasVideoPermission, setHasVideoPermission] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Get clinic ID from route params
   // Clinic object from ClinicScreen has id as string (clinicID.toString())
@@ -101,11 +103,11 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       // Location will be updated when real location is available
       const defaultLocation = { lat: 24.7136, long: 46.6753 };
       fetchClinicDetails(defaultLocation.lat, defaultLocation.long);
-      
+
       // Request location in background and update when available
       requestLocationAndFetchData();
     }
-    
+
     // Check permissions on mount
     checkMediaPermissions();
   }, [clinicID]);
@@ -158,7 +160,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       //   data: {...}
       // }
       const responseData = response.data;
-      
+
       // Extract data - description might be an object, not array
       const descriptionData = responseData?.data || responseData;
 
@@ -263,7 +265,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       if (!isLocationUpdate) {
         setLoading(true);
       }
-      
+
       // Make API calls in parallel for better performance
       const [detailsResponse, descriptionResponse] = await Promise.all([
         apiClient.get(API.CLINIC.GET_CLINIC_DETAILS, {
@@ -318,8 +320,24 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       if (!isLocationUpdate) {
         setLoading(false);
       }
+      setRefreshing(false);
     }
   };
+
+  const onRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    const location = userLocation || { lat: 24.7136, long: 46.6753 };
+
+    // Refresh all data
+    await Promise.all([
+      fetchClinicDetails(location.lat, location.long, true),
+      activeTab === t('services') ? fetchClinicServices() : Promise.resolve(),
+      activeTab === t('reviews') ? fetchClinicReviews() : Promise.resolve(),
+      fetchClinicDescription(),
+    ]);
+
+    setRefreshing(false);
+  }, [clinicID, userLocation, activeTab, t]);
 
   const fetchServiceFilters = async (groupIDs?: number[]) => {
     // If groupIDs is provided, both clinicID and groupIDs (with at least one element) must be present
@@ -402,7 +420,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       //   data: [...]
       // }
       const responseData = response.data;
-      
+
       // Extract data array
       let reviewsList: any[] = [];
       if (Array.isArray(responseData)) {
@@ -585,7 +603,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       //   data: [...]
       // }
       const responseData = response.data;
-      
+
       // Extract data array
       let servicesList: any[] = [];
       if (Array.isArray(responseData)) {
@@ -682,14 +700,18 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     navigation.navigate('ChatOnboarding');
   };
 
-  const handleAddToCart = async (service: any) => {
+  const handleAddToCart = async (service: any, shouldNavigate: boolean = false) => {
     if (!service || !service.id) {
       Toast.error('Invalid service');
       return;
     }
 
-    setLoadingAddToCart(true);
-    
+    if (shouldNavigate) {
+      setLoadingCheckout(true);
+    } else {
+      setLoadingAddToCart(true);
+    }
+
     const startTime = Date.now();
     const requestId = `ADD_TO_CART_${startTime}`;
 
@@ -702,7 +724,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
         setLoadingAddToCart(false);
         return;
       }
-      
+
       console.log(`➕ [${requestId}] START addToCart API Call`);
       console.log(`➕ [${requestId}] Endpoint: ${API.CART.ADD_TO_CART}`);
       console.log(`➕ [${requestId}] Method: POST`);
@@ -713,10 +735,10 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       const response = await apiClient.post(API.CART.ADD_TO_CART, {
         serviceID: serviceID,
       });
-      
+
       const endTime = Date.now();
       const duration = endTime - startTime;
-      
+
       console.log(`➕ [${requestId}] ✅ SUCCESS - addToCart`);
       console.log(`➕ [${requestId}] Duration: ${duration}ms (${(duration / 1000).toFixed(2)}s)`);
       console.log(`➕ [${requestId}] Response Status: ${response.status}`);
@@ -756,45 +778,32 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       triggerRefresh();
 
       setServiceDetailVisible(false);
-      navigation.navigate('CartScreen');
+      if (shouldNavigate) {
+        navigation.navigate('CartScreen');
+      }
     } catch (error: any) {
       const endTime = Date.now();
       const duration = endTime - startTime;
-      
+
       console.error(`➕ [${requestId}] ❌ ERROR - addToCart`);
       console.error(`➕ [${requestId}] Duration: ${duration}ms (${(duration / 1000).toFixed(2)}s)`);
       console.error(`➕ [${requestId}] Error:`, error);
       console.error(`➕ [${requestId}] Error Message:`, error?.message);
       console.error(`➕ [${requestId}] Error Response:`, error?.response?.data);
       console.error(`➕ [${requestId}] Error Status:`, error?.response?.status);
-      
+
       const errorMessage = error?.message || error?.response?.data?.message || 'Failed to add service to cart';
       Toast.error(errorMessage);
     } finally {
       setLoadingAddToCart(false);
+      setLoadingCheckout(false);
       const totalDuration = Date.now() - startTime;
       console.log(`➕ [${requestId}] 🏁 COMPLETE - Total time: ${totalDuration}ms`);
     }
   };
 
   const handleCheckout = (service: any) => {
-    // Navigate to checkout with single service
-    navigation.navigate('CheckoutScreen', {
-      services: [
-        {
-          service: service,
-          clinic: {
-            id: clinic.id,
-            name: clinic.name,
-            location: clinic.location,
-            image: clinic.image,
-            specialty: clinic.specialty,
-            rating: clinic.rating,
-          },
-        },
-      ],
-      fromCart: false,
-    });
+    handleAddToCart(service, true);
   };
 
   const handleDevicePress = async (device: any) => {
@@ -828,20 +837,25 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
         const deviceDetail = response.data.data;
 
         // Transform API device to component format
-        const badge: { [key: number]: string } = {};
-        if (deviceDetail.service_details && deviceDetail.service_details.length > 0) {
-          deviceDetail.service_details.forEach((service: any, index: number) => {
-            badge[index + 1] = service.name;
-          });
-        } else {
-          badge[1] = deviceDetail.name;
+        // Use pre-formatted badge if available, or build from service_details
+        let badge = deviceDetail.badge || {};
+        if (Object.keys(badge).length === 0) {
+          if (deviceDetail.service_details && deviceDetail.service_details.length > 0) {
+            deviceDetail.service_details.forEach((service: any, index: number) => {
+              badge[index + 1] = service.name;
+            });
+          } else {
+            badge[1] = deviceDetail.name || deviceDetail.title || 'Device';
+          }
         }
 
         const transformedDevice = {
-          id: deviceDetail.id.toString(),
-          image: deviceDetail.image ? { uri: deviceDetail.image } : RecommandImage,
-          title: deviceDetail.name || 'Device',
-          note: deviceDetail.notes || deviceDetail.purpose || 'Available for use in treatments.',
+          id: deviceDetail.id?.toString() || deviceId.toString(),
+          image: (typeof deviceDetail.image === 'object' && deviceDetail.image && 'uri' in deviceDetail.image)
+            ? deviceDetail.image
+            : (deviceDetail.image ? { uri: deviceDetail.image } : RecommandImage),
+          title: deviceDetail.title || deviceDetail.name || 'Device',
+          note: deviceDetail.note || deviceDetail.notes || deviceDetail.purpose || 'Available for use in treatments.',
           badge: badge,
           purpose: deviceDetail.purpose || '',
         };
@@ -905,13 +919,13 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       ? { uri: clinicDetail.details.coverImage }
       : clinicDetail?.details?.logo
         ? { uri: clinicDetail.details.logo }
-        : clinic?.image || RecommandImage;
+        : (typeof clinic?.image === 'string' && clinic.image ? { uri: clinic.image } : (clinic?.image || RecommandImage));
 
   const clinicLogo = clinicDescriptionData?.logo
     ? { uri: clinicDescriptionData.logo }
     : clinicDetail?.details?.logo
       ? { uri: clinicDetail.details.logo }
-      : ClinicProfile;
+      : null;
 
   // Transform services for display
   const transformedServices = transformServices(services);
@@ -929,18 +943,26 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     return apiDevices
       .filter(device => device.status === 'active')
       .map(device => {
-        // Create badge from service_details
-        const badge: { [key: number]: string } = {};
-        device.service_details?.forEach((service, index) => {
-          badge[index + 1] = service.name;
-        });
+        // Create badge from service_details or use pre-formatted badge
+        const badge = (device as any).badge || {};
+        if (Object.keys(badge).length === 0) {
+          if (device.service_details && device.service_details.length > 0) {
+            device.service_details.forEach((service, index) => {
+              badge[index + 1] = service.name;
+            });
+          } else {
+            badge[1] = device.name || (device as any).title || 'Device';
+          }
+        }
 
         return {
           id: device.id.toString(),
-          image: device.image ? { uri: device.image } : RecommandImage,
-          title: device.name || 'Device',
-          note: device.notes || device.purpose || 'Available for use in treatments.',
-          badge: Object.keys(badge).length > 0 ? badge : { 1: device.name || 'Device' },
+          image: (typeof device.image === 'object' && device.image && 'uri' in device.image)
+            ? device.image
+            : (device.image ? { uri: device.image as string } : RecommandImage),
+          title: (device as any).title || device.name || 'Device',
+          note: (device as any).note || device.notes || device.purpose || 'Available for use in treatments.',
+          badge: badge,
           // Store original device data for detail view
           originalDevice: device,
         };
@@ -960,6 +982,13 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#7625D7']} // primary color
+          />
+        }
       >
         {/* Header with background image and logo */}
         <ClinicHeader
@@ -970,6 +999,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
           onNotificationPress={handleNotificationPress}
           notificationCount={notificationCount}
           cartCount={cartCount}
+          clinicName={clinicName}
         />
 
         {/* Clinic Information */}
@@ -1122,7 +1152,10 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
         onAddToCart={handleAddToCart}
         onCheckout={handleCheckout}
         loading={loadingServiceDetail}
-        addingToCart={loadingAddToCart}
+        loadingState={
+          loadingAddToCart ? 'adding_to_cart' :
+            loadingCheckout ? 'checking_out' : 'none'
+        }
       />
 
       <DeviceDetailBottomSheet

@@ -12,6 +12,7 @@ import { colors } from '../../styles/colors';
 import { mvs } from '../../config/metrices';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
+import ClinicAvatar from '../common/ClinicAvatar';
 
 interface Clinic {
   id: string;
@@ -37,19 +38,24 @@ interface RecommendedClinicsProps {
 
 const ClinicCard = ({ item, onPress }: ClinicCardProps) => {
   const { t } = useTranslation();
-  
+
   // Check if rating is greater than 0 (handle both string and number types)
   const rating = typeof item.rating === 'string' ? parseFloat(item.rating) : item.rating;
   const showRating = rating > 0;
-  
+  const hasImage = item.image && (typeof item.image === 'number' || (typeof item.image === 'object' && item.image.uri));
+
   return (
     <TouchableOpacity style={styles.card} onPress={() => onPress(item)}>
       <View style={styles.imageContainer}>
-        <Image
-          source={item?.image}
-          style={styles.clinicImage}
-          resizeMode="cover"
-        />
+        {hasImage ? (
+          <Image
+            source={item?.image as any}
+            style={styles.clinicImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <ClinicAvatar name={item.name} size={140} style={styles.clinicImage} />
+        )}
         {item.isFeatured && (
           <View style={styles.featuredBadge}>
             <Text style={styles.featuredIcon}>👑</Text>

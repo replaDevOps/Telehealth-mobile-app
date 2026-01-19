@@ -32,7 +32,7 @@ export const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  
+
   // Empty State Styles
   emptyContainer: {
     flex: 1,
@@ -49,7 +49,7 @@ export const styles = StyleSheet.create({
   browseButton: {
     minWidth: 200,
   },
-  
+
   // Clinic Section
   clinicSection: {
     backgroundColor: colors.gray,
@@ -91,7 +91,7 @@ export const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.secondaryText,
   },
-  
+
   // Service Card Styles
   serviceCard: {
     flexDirection: 'row',
@@ -188,7 +188,7 @@ export const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#000',
   },
-  
+
   // Suggested Services Styles
   suggestedSection: {
     marginTop: 16,
@@ -216,18 +216,28 @@ export const styles = StyleSheet.create({
     gap: 8,
   },
   addSuggestedButton: {
-    padding: 5,
-    borderRadius: "50%",
-    borderColor: colors.border,
+    backgroundColor: colors.white,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderColor: colors.primary,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'absolute',
     right: 12,
-    top: '10%',
-  
+    top: 12,
   },
-  
+  addSuggestedButtonDisabled: {
+    backgroundColor: '#2ECC71', // Green for "added" state
+    borderColor: '#2ECC71',
+  },
+  addSuggestedButtonText: {
+    fontSize: 12,
+    color: colors.primary,
+    fontWeight: '600',
+  },
+
   // Subtotal and Checkout
   subtotalContainer: {
     flexDirection: 'row',

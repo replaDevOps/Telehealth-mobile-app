@@ -12,6 +12,7 @@ import { colors } from '../../styles/colors';
 import { mvs } from '../../config/metrices';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
+import ClinicAvatar from '../common/ClinicAvatar';
 
 // Define the Clinic interface (reuse from previous components)
 interface Clinic {
@@ -40,19 +41,24 @@ interface NearbyClinicsProps {
 // ClinicListItem Component
 const ClinicListItem: React.FC<ClinicListItemProps> = ({ item, onPress }) => {
   // Calculate rating value (handle both string and number types)
-  const ratingValue = typeof item.rating === 'string' 
-    ? parseFloat(item.rating) 
+  const ratingValue = typeof item.rating === 'string'
+    ? parseFloat(item.rating)
     : item.rating;
   const shouldShowRating = ratingValue > 0;
+  const hasImage = item.image && (typeof item.image === 'number' || (typeof item.image === 'object' && item.image.uri));
 
   return (
     <View>
       <TouchableOpacity style={styles.listItem} onPress={() => onPress(item)}>
-        <Image
-          source={item?.image}
-          style={styles.clinicImage}
-          resizeMode="cover"
-        />
+        {hasImage ? (
+          <Image
+            source={item?.image as any}
+            style={styles.clinicImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <ClinicAvatar name={item.name} size={80} style={styles.clinicImage} />
+        )}
 
         <View style={styles.clinicInfo}>
           <View

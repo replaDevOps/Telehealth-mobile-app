@@ -11,6 +11,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { colors } from '../../styles/colors';
 import { BackSvg, ShopingCartSvg } from '@assets/icons';
+import ClinicAvatar from '../common/ClinicAvatar';
 
 interface ClinicHeaderProps {
   backgroundImage: any;
@@ -20,6 +21,7 @@ interface ClinicHeaderProps {
   onNotificationPress?: () => void;
   notificationCount?: number;
   cartCount?: number;
+  clinicName?: string;
 }
 
 export const ClinicHeader: React.FC<ClinicHeaderProps> = ({
@@ -30,7 +32,10 @@ export const ClinicHeader: React.FC<ClinicHeaderProps> = ({
   onNotificationPress,
   notificationCount = 0,
   cartCount = 0,
+  clinicName = '',
 }) => {
+  const hasLogo = logo && (typeof logo === 'number' || (typeof logo === 'object' && logo.uri));
+
   return (
     <ImageBackground source={backgroundImage} style={styles.headerBackground}>
       <View style={styles.headerOverlay}>
@@ -70,7 +75,11 @@ export const ClinicHeader: React.FC<ClinicHeaderProps> = ({
         </View>
 
         <View style={styles.logoContainer}>
-          <Image source={logo} style={styles.logo} />
+          {hasLogo ? (
+            <Image source={logo} style={styles.logo} />
+          ) : (
+            <ClinicAvatar name={clinicName} size={100} style={styles.logo} textStyle={styles.initialsText} />
+          )}
         </View>
       </View>
     </ImageBackground>
@@ -133,5 +142,8 @@ const styles = StyleSheet.create({
     borderWidth: 4,
     borderColor: colors.white,
     zIndex: 9999,
+  },
+  initialsText: {
+    fontSize: 28,
   },
 });

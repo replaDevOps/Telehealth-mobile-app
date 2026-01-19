@@ -16,10 +16,11 @@ import { ActivityIndicator } from 'react-native-paper';
 
 interface Device {
   id: string;
-  image: any;
+  image: { uri: string };
   title: string;
   note?: string;
   badge: { [key: string]: string };
+  purpose?: string;
 }
 
 interface DeviceDetailBottomSheetProps {
@@ -76,12 +77,12 @@ export const DeviceDetailBottomSheet: React.FC<
               <Text style={styles.deviceName}>{device.title}</Text>
 
               {/* Purpose Section */}
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>{t('purpose')}</Text>
-                <Text style={styles.sectionText}>
-                  {t('skin_resurfacing_text')}
-                </Text>
-              </View>
+              {device.purpose && (
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>{t('purpose')}</Text>
+                  <Text style={styles.sectionText}>{device.purpose}</Text>
+                </View>
+              )}
 
               {/* Notes Section */}
               {device.note && (

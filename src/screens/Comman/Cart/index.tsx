@@ -236,7 +236,7 @@ export function CartScreen({ navigation }) {
       console.log(`🛒 [${requestId}] ✅ SUCCESS - fetchCartDetails`);
       console.log(`🛒 [${requestId}] Duration: ${duration}ms (${(duration / 1000).toFixed(2)}s)`);
       console.log(`🛒 [${requestId}] Response Status: ${response.status}`);
-      console.log(`🛒 [${requestId}] Response Data:`, JSON.stringify(response.data).substring(0, 500));
+      console.log(`🛒 [${requestId}] Response Data:`, response.data);
       console.log(`🛒 [${requestId}] Response Size: ~${JSON.stringify(response.data).length} bytes`);
 
       // Check if request was aborted
@@ -412,6 +412,7 @@ export function CartScreen({ navigation }) {
     navigation.navigate('CheckoutScreen', {
       services: checkoutServices,
       fromCart: true,
+      totalLoyaltyPoints: clinicGroup.totalLoyaltyPoints,
     });
   };
 

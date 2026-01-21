@@ -79,7 +79,7 @@ export const styles = StyleSheet.create({
     marginHorizontal: 16,
     backgroundColor: colors.white,
     borderRadius: 12,
-    marginBottom:10
+    marginBottom: 10
   },
   serviceLeft: {
     flexDirection: 'row',
@@ -98,7 +98,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 6,
     marginBottom: 6,
-    maxWidth:"50%"
+    maxWidth: "50%"
   },
   categoryBadge: {
     backgroundColor: "#310A60",
@@ -145,17 +145,17 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 4,
     gap: 4,
-    backgroundColor:"#EBAD0033",
-    borderWidth:1,
-    borderColor:colors.yellow,
-    marginHorizontal:12,
-    paddingHorizontal:15,
-    paddingVertical:8,
-    borderRadius:8
+    backgroundColor: "#EBAD0033",
+    borderWidth: 1,
+    borderColor: colors.yellow,
+    marginHorizontal: 12,
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 8
   },
-  bonusInstruction:{
-    color:colors.yellow,
-    textAlign:"center"
+  bonusInstruction: {
+    color: colors.yellow,
+    textAlign: "center"
   },
   servicePrice: {
     fontSize: 15,
@@ -190,8 +190,9 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.gray,
     marginBottom: mvs(8),
   },
-  paymentOptionSelected:{
-    backgroundColor: colors.lightGray},
+  paymentOptionSelected: {
+    backgroundColor: colors.lightGray
+  },
   radioContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -299,24 +300,83 @@ export const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#111827',
   },
-  bottomSpacing: {
-    height: 100,
+  bottomPadding: {
+    height: mvs(120),
   },
   bottomContainer: {
-    padding: 16,
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    padding: 20,
+    backgroundColor: colors.white,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: -10,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 20,
+  },
+  bottomInfoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: 15,
+  },
+  totalAmountText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#374151',
+  },
+  inclTaxText: {
+    fontSize: 12,
+    fontWeight: '400',
+    color: '#9CA3AF',
+  },
+  totalAmountValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  summaryTriggerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  summaryTriggerText: {
+    fontSize: 14,
+    color: '#6B7280',
+    textDecorationLine: 'underline',
+  },
+  originalSubtotal: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    textDecorationLine: 'line-through',
   },
   proceedButton: {
     backgroundColor: colors.primary,
-    borderRadius: 12,
-    paddingVertical: 16,
+    borderRadius: 14,
+    paddingVertical: 18,
     alignItems: 'center',
   },
   proceedButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 16,
     fontWeight: '600',
+  },
+  redemptionValue: {
+    color: '#EF4444',
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 9999,
   },
 });

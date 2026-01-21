@@ -21,6 +21,9 @@ export const API = {
     FORGOT_PASSWORD_EMAIL: '/patient-auth/forgotPasswordByEmail',
     // FORGOT PASSWORD BY PHONE
     FORGOT_PASSWORD_PHONE: '/patient-auth/forgotPasswordByPhone',
+    // RESEND FORGOT PASSWORD OTP
+    RESEND_FORGOT_PASSWORD_EMAIL: '/patient-auth/resendForgotPasswordByEmail',
+    RESEND_FORGOT_PASSWORD_PHONE: '/patient-auth/resendForgotPasswordByPhone',
     // VERIFY OTP PASSWORD
     VERIFY_OTP_PASSWORD: '/patient-auth/verifyOtpPassword',
     // RESET PASSWORD

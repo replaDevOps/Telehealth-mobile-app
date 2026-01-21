@@ -165,7 +165,7 @@ export function ForgetPasswordScreen({
 
               try {
                 let response;
-                
+
                 if (selectedTab === 'email') {
                   // Call forgot password by email API
                   response = await apiClient.post(API.AUTH.FORGOT_PASSWORD_EMAIL, {
@@ -175,7 +175,7 @@ export function ForgetPasswordScreen({
                   console.log('phone', phone);
                   // Call forgot password by phone API
                   response = await apiClient.post(API.AUTH.FORGOT_PASSWORD_PHONE, {
-                    phoneNO: phone.trim(),
+                    phoneNo: phone.trim(),
                   });
                 }
 
@@ -190,7 +190,7 @@ export function ForgetPasswordScreen({
                 // Success - show success message and navigate to OTP screen
                 const successMessage = response.data?.message || 'OTP sent successfully';
                 Toast.success(successMessage);
-                
+
                 navigation.navigate('OTPScreen', {
                   source: 'forgotPassword',
                   method: selectedTab, // 'email' or 'phone'
@@ -201,14 +201,14 @@ export function ForgetPasswordScreen({
                 });
               } catch (error: any) {
                 console.error('Forgot password error:', error);
-                const errorMsg = 
-                  error?.response?.data?.message || 
+                const errorMsg =
+                  error?.response?.data?.message ||
                   error?.data?.message ||
-                  error?.message || 
+                  error?.message ||
                   'Failed to send OTP. Please try again.';
-                
+
                 Toast.error(errorMsg);
-                
+
                 // Set field-specific error
                 if (selectedTab === 'email') {
                   setEmailError(errorMsg);

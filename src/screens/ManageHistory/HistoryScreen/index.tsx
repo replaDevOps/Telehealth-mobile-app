@@ -18,8 +18,7 @@ import type {
   ConsultationItem,
   DropdownOption,
 } from '../types/history.types';
-import { SearchBar } from 'react-native-screens';
-import { ConsultationCard, PaymentCard, HistoryTabs } from '../components';
+import { ConsultationCard, PaymentCard, HistoryTabs, SearchBar } from '../components';
 import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
 import Toast from 'toastify-react-native';
@@ -47,6 +46,8 @@ export function HistoryScreen({ navigation }) {
   const [loadingMorePayments, setLoadingMorePayments] = useState(false);
   const [paymentsPage, setPaymentsPage] = useState(1);
   const [hasMorePayments, setHasMorePayments] = useState(true);
+  const [refreshingConsultations, setRefreshingConsultations] = useState(false);
+  const [refreshingPayments, setRefreshingPayments] = useState(false);
   const recordsPerPage = 10;
 
   // Fetch consultations from API
@@ -72,7 +73,7 @@ export function HistoryScreen({ navigation }) {
       console.log('Consultations response:', response.data);
 
       const responseData = response.data;
-      
+
       // Extract data array
       let apiConsultations: any[] = [];
       if (Array.isArray(responseData)) {
@@ -101,12 +102,12 @@ export function HistoryScreen({ navigation }) {
           const clinicData = consultation.clinic || {};
           const doctorData = consultation.doctor || {};
           const serviceData = consultation.service || {};
-          
+
           return {
             id: String(consultation.id),
             date: consultation.date || consultation.created_at || '',
             serviceName: serviceData.name || consultation.serviceName || '',
-            duration:  consultation.duration || '',
+            duration: consultation.duration || '',
             type: consultationType.type,
             icon: consultationType.icon,
             doctorName: doctorData.name || consultation.doctorName || 'Refunded',
@@ -120,8 +121,8 @@ export function HistoryScreen({ navigation }) {
             clinicInfo: consultation.clinic,
             doctorInfo: consultation.doctor,
             serviceInfo: consultation.service,
-          } as ConsultationItem & { 
-            consultationID: number; 
+          } as ConsultationItem & {
+            consultationID: number;
             doctorID?: number;
             clinicID?: number;
             clinicInfo?: any;
@@ -132,13 +133,13 @@ export function HistoryScreen({ navigation }) {
 
         // Check if there's more data
         setHasMoreConsultations(mappedConsultations.length === recordsPerPage);
-        
+
         if (append) {
           setConsultations(prev => [...prev, ...mappedConsultations]);
         } else {
           setConsultations(mappedConsultations);
         }
-        
+
         if (mappedConsultations.length > 0) {
           setConsultationsPage(pageNo);
         }
@@ -157,6 +158,7 @@ export function HistoryScreen({ navigation }) {
     } finally {
       setLoadingConsultations(false);
       setLoadingMoreConsultations(false);
+      setRefreshingConsultations(false);
     }
   }, [activeTab, searchQuery, t]);
 
@@ -183,7 +185,7 @@ export function HistoryScreen({ navigation }) {
         ? API.HISTORY.GET_APPOINTMENT_PAYMENTS
         : API.HISTORY.GET_CONSULTATION_PAYMENTS;
       console.log('endpoint', endpoint);
-     
+
       const response = await apiClient.get(endpoint, {
         params: {
           name: searchQuery || '',
@@ -195,7 +197,7 @@ export function HistoryScreen({ navigation }) {
       console.log('Payments response:', response.data);
 
       const responseData = response.data;
-      
+
       // Extract data array
       let apiPayments: any[] = [];
       if (Array.isArray(responseData)) {
@@ -216,7 +218,7 @@ export function HistoryScreen({ navigation }) {
             const clinicData = payment.clinic || {};
             const doctorData = payment.doctor || {};
             const serviceData = payment.service || {};
-            
+
             return {
               id: String(payment.id || payment.paymentId || Date.now()),
               kind: 'consultation' as const,
@@ -232,17 +234,17 @@ export function HistoryScreen({ navigation }) {
               clinicLocation: payment.clinicLocation || clinicData.location || '',
               price: payment.price || payment.amount || '0',
               status: payment.status || 'Completed',
-              statusColor: payment.status === 'Completed' || payment.status === 'Success' 
-                ? colors.green 
-                : payment.status === 'Pending' 
-                ? colors.yellow 
-                : colors.red,
+              statusColor: payment.status === 'Completed' || payment.status === 'Success'
+                ? colors.green
+                : payment.status === 'Pending'
+                  ? colors.yellow
+                  : colors.red,
             } as PaymentConsultationItem;
           } else {
             // Map appointment payment
             const clinicData = payment.clinic || {};
             const services = payment.services || [];
-            
+
             return {
               id: String(payment.id || payment.paymentId || Date.now()),
               kind: 'appointment' as const,
@@ -254,21 +256,21 @@ export function HistoryScreen({ navigation }) {
               numberOfService: String(services.length || payment.numberOfServices || 0),
               price: payment.price || payment.amount || '0',
               status: payment.status || 'Completed',
-              statusColor: payment.status === 'Completed' || payment.status === 'Success' 
-                ? colors.green 
-                : payment.status === 'Pending' 
-                ? colors.yellow 
-                : colors.red,
+              statusColor: payment.status === 'Completed' || payment.status === 'Success'
+                ? colors.green
+                : payment.status === 'Pending'
+                  ? colors.yellow
+                  : colors.red,
               services: services.map((service: any, index: number) => {
                 const serviceGroup = service.group || {};
                 return {
-                id: service.id || index,
-                name: service.name || service.serviceName || '',
-                duration: service.duration || '',
-                price: service.price || '0',
+                  id: service.id || index,
+                  name: service.name || service.serviceName || '',
+                  duration: service.duration || '',
+                  price: service.price || '0',
                   category: service.category || serviceGroup.name || '',
                   categoryBadge: service.category || serviceGroup.name || '',
-                image: service.image ? { uri: service.image } : RecommandImage,
+                  image: service.image ? { uri: service.image } : RecommandImage,
                 };
               }) || [],
             } as PaymentAppointmentItem;
@@ -302,6 +304,7 @@ export function HistoryScreen({ navigation }) {
     } finally {
       setLoadingPayments(false);
       setLoadingMorePayments(false);
+      setRefreshingPayments(false);
     }
   }, [activeTab, selectedType, searchQuery, t]);
 
@@ -434,8 +437,11 @@ export function HistoryScreen({ navigation }) {
           keyExtractor={(item) => item.id}
           onEndReached={loadMoreConsultations}
           onEndReachedThreshold={0.5}
-          refreshing={loadingConsultations && consultations.length === 0}
-          onRefresh={() => fetchConsultations(1, false)}
+          refreshing={refreshingConsultations}
+          onRefresh={() => {
+            setRefreshingConsultations(true);
+            fetchConsultations(1, false);
+          }}
           ListEmptyComponent={
             loadingConsultations ? (
               <View style={styles.loadingContainer}>
@@ -456,7 +462,7 @@ export function HistoryScreen({ navigation }) {
             ) : null
           }
           style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: 16 }}
+          contentContainerStyle={{ paddingBottom: 16, flexGrow: 1 }}
           showsVerticalScrollIndicator={false}
         />
       ) : (
@@ -476,12 +482,16 @@ export function HistoryScreen({ navigation }) {
 
               <FlatList
                 data={payments}
+                style={{ flex: 1 }}
                 renderItem={({ item }) => renderPaymentCard(item)}
                 keyExtractor={(item) => item.id}
                 onEndReached={loadMorePayments}
                 onEndReachedThreshold={0.5}
-                refreshing={loadingPayments && payments.length === 0}
-                onRefresh={() => fetchPayments(1, false)}
+                refreshing={refreshingPayments}
+                onRefresh={() => {
+                  setRefreshingPayments(true);
+                  fetchPayments(1, false);
+                }}
                 ListEmptyComponent={
                   loadingPayments ? (
                     <View style={styles.loadingContainer}>
@@ -501,7 +511,7 @@ export function HistoryScreen({ navigation }) {
                     </View>
                   ) : null
                 }
-                contentContainerStyle={styles.scrollView}
+                contentContainerStyle={[styles.scrollView, { flexGrow: 1 }]}
                 showsVerticalScrollIndicator={false}
               />
             </View>

@@ -104,18 +104,18 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
       return;
     }
     const otp = inputValues.join('');
-    
+
     // Prevent duplicate submissions - check multiple conditions
     if (isSubmittingRef.current || loading) {
       console.log('Submission already in progress, skipping...');
       return;
     }
-    
+
     if (lastSubmittedOtp.current === otp) {
       console.log('Same OTP already submitted, skipping...');
       return;
     }
-    
+
     try {
       isSubmittingRef.current = true;
       setLoading(true);
@@ -123,8 +123,8 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
       console.log('OTP submitted:', otp);
 
       // Use different endpoint based on source
-      const endpoint = source === 'forgotPassword' 
-        ? API.AUTH.VERIFY_OTP_PASSWORD 
+      const endpoint = source === 'forgotPassword'
+        ? API.AUTH.VERIFY_OTP_PASSWORD
         : API.AUTH.VERIFY_OTP;
 
       const response = await apiClient.post(endpoint, {
@@ -152,7 +152,7 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
 
       const successMessage = response.data?.message || 'OTP verified successfully';
       Toast.success(successMessage);
-      
+
       if (source === 'forgotPassword') {
         // Extract token from response for password reset
         const token = response.data?.data?.token || response.data?.token;
@@ -170,10 +170,10 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
       isSubmittingRef.current = false;
     } catch (error: any) {
       console.error('OTP verification error:', error);
-      const errorMessage = 
-        error?.response?.data?.message || 
+      const errorMessage =
+        error?.response?.data?.message ||
         error?.data?.message ||
-        error?.message || 
+        error?.message ||
         'Failed to verify OTP';
       Toast.error(errorMessage);
       // Clear all inputs on error
@@ -216,7 +216,7 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
     // Handle backspace key
     if (event.nativeEvent.key === 'Backspace') {
       const newValues = [...inputValues];
-      
+
       // If current field has a value, clear it
       if (newValues[index]) {
         newValues[index] = '';
@@ -238,7 +238,7 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
   useEffect(() => {
     const filled = inputValues.every(v => v.length === 1);
     const otp = inputValues.join('');
-    
+
     // Only auto-submit if:
     // 1. All fields are filled
     // 2. Not currently loading
@@ -246,9 +246,9 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
     // 4. OTP hasn't been submitted before
     // 5. All fields have exactly 1 digit
     if (
-      filled && 
-      !loading && 
-      !isSubmittingRef.current && 
+      filled &&
+      !loading &&
+      !isSubmittingRef.current &&
       lastSubmittedOtp.current !== otp &&
       otp.length === 5
     ) {
@@ -263,8 +263,17 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
     }
 
     setResendLoading(true);
-    const endPoint = method === 'email' ? API.AUTH.RESEND_OTP_EMAIL : API.AUTH.RESEND_OTP_PHONE;
-    
+    let endPoint;
+    if (source === 'forgotPassword') {
+      endPoint =
+        method === 'email'
+          ? API.AUTH.RESEND_FORGOT_PASSWORD_EMAIL
+          : API.AUTH.RESEND_FORGOT_PASSWORD_PHONE;
+    } else {
+      endPoint =
+        method === 'email' ? API.AUTH.RESEND_OTP_EMAIL : API.AUTH.RESEND_OTP_PHONE;
+    }
+
     let payload;
     if (method === 'email') {
       console.log('email', email);
@@ -272,14 +281,17 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
       payload = { email: email };
     } else {
       // Format phone number properly with country code
-      if (phone && countryCode) {
-        const phoneNumber = parsePhoneNumberFromString(
-          phone,
-          countryCode as CountryCode,
-        );
-        const formattedPhone = phoneNumber
-          ? `+${phoneNumber.countryCallingCode}${phoneNumber.nationalNumber}`
-          : phone;
+      if (phone) {
+        let formattedPhone = phone;
+        if (countryCode) {
+          const phoneNumber = parsePhoneNumberFromString(
+            phone,
+            countryCode as CountryCode,
+          );
+          formattedPhone = phoneNumber
+            ? `${phoneNumber.nationalNumber}`
+            : phone;
+        }
         payload = { phoneNo: formattedPhone };
       } else {
         Toast.error('Phone number is required');
@@ -287,10 +299,10 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
         return;
       }
     }
-    
-    const [,err]= await tryCatch(apiClient.post(endPoint, payload));
+
+    const [, err] = await tryCatch(apiClient.post(endPoint, payload));
     if (err) {
-      const errorMessage = 
+      const errorMessage =
         (err as any)?.response?.data?.message ||
         (err as any)?.response?.data?.data?.message ||
         (err as Error).message ||
@@ -299,19 +311,19 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
       setResendLoading(false);
       return;
     }
-    
+
     // Show success message
     Toast.success('New code sent successfully');
-    
+
     // Reset timer to 60 seconds
     setTimer(60);
-    
+
     // Clear inputs to allow entering new OTP
     setInputValues(Array(5).fill(''));
     lastSubmittedOtp.current = '';
-    
+
     setResendLoading(false);
-    
+
     // Focus back to first input
     setTimeout(() => {
       const firstRef = inputRefs.current[0];
@@ -339,9 +351,8 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
           countryCode as CountryCode,
         );
         if (phoneNumber) {
-          const maskedPhone = `+${
-            phoneNumber.countryCallingCode
-          }${phoneNumber.nationalNumber.substring(0, 2)}**********`;
+          const maskedPhone = `+${phoneNumber.countryCallingCode
+            }${phoneNumber.nationalNumber.substring(0, 2)}**********`;
           return maskedPhone;
         }
       }
@@ -397,7 +408,7 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
 
           <View style={styles.signinRow}>
             <Text style={styles.TextContent}>{t('didnt_receive_code')}</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={handleResendOTP}
               disabled={timer > 0 || resendLoading}
             >

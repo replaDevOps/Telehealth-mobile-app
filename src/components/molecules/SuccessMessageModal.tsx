@@ -20,7 +20,7 @@ export const SuccessMessageModal = ({
   title,
   description,
   buttonTitle = '',
-  buttonPress = () => {},
+  buttonPress = () => { },
 }) => {
   return (
     <Modal

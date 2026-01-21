@@ -28,7 +28,7 @@ import { useAuthStore } from '@store';
 
 export function CheckoutScreen({ route, navigation }) {
   const { t } = useTranslation();
-  const { services = [] } = route.params || {};
+  const { services = [], totalLoyaltyPoints = 0 } = route.params || {};
   const [couponCode, setCouponCode] = useState('');
   const [discount, setDiscount] = useState(0);
   const [selectedPayment, setSelectedPayment] = useState('credit');
@@ -77,7 +77,8 @@ export function CheckoutScreen({ route, navigation }) {
   const subtotal = calculateSubtotal();
   const tax = subtotal * 0.15; // 15% tax
   const discountAmount = subtotal * (discount / 100);
-  const total = subtotal + tax - discountAmount;
+  const redemptionAmount = parseFloat(redeemPoints) || 0;
+  const total = subtotal + tax - discountAmount - redemptionAmount;
 
   const handleApplyCoupon = () => {
     // Mock coupon validation
@@ -117,7 +118,7 @@ export function CheckoutScreen({ route, navigation }) {
     // Check authentication
     const authState = useAuthStore.getState();
     const token = authState.auth?.token;
-    
+
     if (!token) {
       Toast.error('Please login to proceed with checkout');
       // Optionally navigate to login screen
@@ -126,8 +127,8 @@ export function CheckoutScreen({ route, navigation }) {
     }
 
     // Validate payment details
-      const { cardholderName, cardNumber, expiryDate, cvv } = cardDetails;
-      if (!cardholderName || !cardNumber || !expiryDate || !cvv) {
+    const { cardholderName, cardNumber, expiryDate, cvv } = cardDetails;
+    if (!cardholderName || !cardNumber || !expiryDate || !cvv) {
       Toast.error(t('fill_card_details') || 'Please fill all card details');
       return;
     }
@@ -174,11 +175,11 @@ export function CheckoutScreen({ route, navigation }) {
       setLoading(false);
     } catch (error: any) {
       console.error('Checkout error:', error);
-      
+
       // Handle 401 Unauthenticated error
       if (error?.status === 401 || error?.response?.status === 401) {
         Toast.error('Session expired. Please login again.');
-        
+
         try {
           // Call logout API
           await apiClient.post(API.AUTH.LOGOUT);
@@ -191,17 +192,17 @@ export function CheckoutScreen({ route, navigation }) {
           useAuthStore.getState().logout();
           navigation.replace('Auth', { screen: 'SignIn' });
         }
-        
+
         setLoading(false);
         return;
       }
 
-      const errorMessage = 
-        error?.response?.data?.message || 
+      const errorMessage =
+        error?.response?.data?.message ||
         error?.data?.message ||
-        error?.message || 
+        error?.message ||
         'Failed to process payment';
-      Toast.error(errorMessage);
+      // Toast.error(errorMessage);
       setShowErrorModal(true);
       setLoading(false);
     }
@@ -305,7 +306,9 @@ export function CheckoutScreen({ route, navigation }) {
             <View style={styles.pointsContainer}>
               <Image source={coinIcon} style={{ width: 16, height: 16 }} />
               <Text style={styles.bonusInstruction}>
-                {t('you_will_earn_10_coins_for_this_appointment')}
+                {t('you_will_earn_coins_for_this_appointment', {
+                  count: totalLoyaltyPoints,
+                })}
               </Text>
             </View>
           </View>
@@ -343,60 +346,10 @@ export function CheckoutScreen({ route, navigation }) {
           pointsToRedeem={redeemPoints}
           onPointsToRedeemChange={setRedeemPoints}
           onApplyCoupon={code => console.log('Apply', code)}
-          showCouponCode
         />
 
-        {/* Pay in Installments - Disabled for now */}
-        {/* {installmentPaymentMethods.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionSubtitle}>
-              {t('pay_in_installments')}
-            </Text>
 
-            {installmentPaymentMethods.map(option => (
-              <TouchableOpacity
-                key={option.id}
-                style={[
-                  styles.paymentOption,
-                  selectedPayment === option.id && styles.paymentOptionSelected,
-                ]}
-                onPress={() => setSelectedPayment(option.id)}
-              >
-                <View style={styles.radioContainer}>
-                  <View style={styles.radioOuter}>
-                    {selectedPayment === option.id && (
-                      <View style={styles.radioInner} />
-                    )}
-                  </View>
-                  <Text style={styles.paymentLabel}>{option.label}</Text>
-                </View>
-                {option.logo}
-              </TouchableOpacity>
-            ))}
-          </View>
-        )} */}
 
-        {/* Coupon Code Section */}
-        <View style={styles.couponSection}>
-          <CustomTextInput
-            label={t('coupon_code')}
-            placeholder={t('enter_coupon_code')}
-            value={couponCode}
-            onChangeText={setCouponCode}
-            containerStyle={styles.couponInput}
-          />
-          <CustomButton
-            title={t('apply_code')}
-            onPress={handleApplyCoupon}
-            style={{ backgroundColor: colors.black, marginHorizontal: mvs(15) }}
-            textStyle={{ color: colors.white }}
-          />
-          {discount > 0 && (
-            <Text style={styles.discountAppliedText}>
-              ✓ {discount}% {t('discount_applied')}!
-            </Text>
-          )}
-        </View>
 
         {/* Appointment Summary */}
         <View style={styles.summarySection}>
@@ -413,7 +366,7 @@ export function CheckoutScreen({ route, navigation }) {
           </View>
 
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>{t('tax')} (15%)</Text>
+            <Text style={styles.summaryLabel}>{t('tax')}</Text>
             <Text style={styles.summaryValue}>{tax.toFixed(2)} SAR</Text>
           </View>
 
@@ -427,32 +380,52 @@ export function CheckoutScreen({ route, navigation }) {
               </Text>
             </View>
           )}
+          {redemptionAmount > 0 && (
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>{t('redemption')}</Text>
+              <Text style={[styles.summaryValue, styles.redemptionValue]}>
+                -{redemptionAmount.toFixed(2)} SAR
+              </Text>
+            </View>
+          )}
 
-          <View style={styles.divider} />
 
-          <View style={styles.summaryRow}>
-            <Text style={styles.totalLabel}>{t('total')}</Text>
-            <Text style={styles.totalValue}>{total.toFixed(2)} SAR</Text>
-          </View>
         </View>
 
-        <View style={styles.bottomSpacing} />
+
+
+        <View style={styles.bottomPadding} />
       </ScrollView>
 
       {/* Bottom Button */}
       <View style={styles.bottomContainer}>
+        <View style={styles.bottomInfoRow}>
+          <Text style={styles.totalAmountText}>
+            {t('total_amount') || 'Total Amount'}{' '}
+            <Text style={styles.inclTaxText}>({t('incl_tax') || 'incl tax'})</Text>
+          </Text>
+          <Text style={styles.totalAmountValue}>{total.toFixed(2)} SAR</Text>
+        </View>
+
+        {(discountAmount > 0 || redemptionAmount > 0) && (
+          <View style={styles.summaryTriggerRow}>
+            <TouchableOpacity>
+              <Text style={styles.summaryTriggerText}>
+                {t('appointment_summary') || 'Appointment Summary'}
+              </Text>
+            </TouchableOpacity>
+            <Text style={styles.originalSubtotal}>{(subtotal + tax).toFixed(2)} SAR</Text>
+          </View>
+        )}
+
         <TouchableOpacity
           style={[styles.proceedButton, loading && { opacity: 0.7 }]}
           onPress={handleProceedToPayment}
           disabled={loading}
         >
-          {loading ? (
-            <ActivityIndicator size="small" color={colors.white} />
-          ) : (
           <Text style={styles.proceedButtonText}>
             {t('proceed_to_payment')}
           </Text>
-          )}
         </TouchableOpacity>
       </View>
 
@@ -472,13 +445,16 @@ export function CheckoutScreen({ route, navigation }) {
         visible={showErrorModal}
         onClose={() => {
           setShowErrorModal(false);
-          navigation.goBack();
         }}
         title={t('payment_failed')}
         description={t('payment_failed_Description')}
-        buttonTitle={t('okay')}
-        buttonPress={HandleRequest}
       />
+
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      )}
     </SafeAreaView>
   );
 }

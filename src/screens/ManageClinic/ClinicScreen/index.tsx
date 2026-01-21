@@ -153,7 +153,7 @@ export const ClinicScreen = ({ navigation, route }) => {
       }
 
       console.log(`[ClinicScreen] Fetching clinics (ReqID: ${requestId}) - Page: ${pageNo}, Filters:`, filters ? 'Yes' : 'No');
-
+      console.log(params)
       const response = await apiClient.get(API.CLINIC.GET_CLINICS, {
         params: params,
       });
@@ -167,7 +167,7 @@ export const ClinicScreen = ({ navigation, route }) => {
 
       if (response.data.success && response.data.data) {
         const clinics = transformClinicsData(response.data.data);
-
+        console.log('clinics', clinics);
         // Check if there's more data using nextPageUrl from backend
         // Also check if the current page returned fewer items than perPage, which implies end of list
         const returnedCount = response.data.data.length;

@@ -13,7 +13,7 @@ export const PaymentDoctorSection: React.FC<PaymentDoctorSectionProps> = ({
   item,
 }) => {
   // Consultation with doctor status (no doctor assigned)
-  if (item.kind === 'consultation' && item.doctorStatus) {
+  if (item.kind === 'consultation' && !item.doctorName) {
     return (
       <View style={styles.noDoctorSection}>
         <View style={styles.noDoctorIcon}>

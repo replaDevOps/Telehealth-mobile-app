@@ -87,7 +87,7 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
 
         <View style={styles.paymentDoctorRow}>
           <PaymentDoctorSection item={item} />
-          <Text style={styles.paymentPrice}>{item.price}</Text>
+          <Text style={styles.paymentPrice}>{"Sar " + item.price}</Text>
         </View>
 
         <ServiceStatusRow item={item} />

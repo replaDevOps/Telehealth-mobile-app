@@ -47,6 +47,11 @@ type CardDetailsRouteParams = {
   doctorName?: string;
   doctorAvatar?: string;
   serviceName?: string;
+  servicePrice?: string;
+  serviceType?: string;
+  serviceGroup?: string;
+  paymentMethod?: string;
+  total?: string;
 
   services?: Array<{
     id: number;
@@ -80,9 +85,28 @@ export function CardDetails({ navigation }: { navigation: any }) {
   const [paymentDetails, setPaymentDetails] = useState<any>(null);
   const [clinicID, setClinicID] = useState<number | null>(null);
   const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
-  
+
   // State for displaying data
-  const [displayData, setDisplayData] = useState({
+  const [displayData, setDisplayData] = useState<{
+    clinicName: string;
+    clinicLocation: string;
+    status: string;
+    statusColor: string;
+    dateTime: string;
+    price: string;
+    image: any;
+    consultationType: 'Chat' | 'Video' | 'Audio' | undefined;
+    duration: string | undefined;
+    doctorName: string | undefined;
+    doctorAvatar: string | undefined;
+    serviceName: string | undefined;
+    servicePrice?: string;
+    serviceType?: string;
+    serviceGroup?: string;
+    paymentMethod?: string;
+    total?: string;
+    services: any[];
+  }>({
     clinicName: params.clinicName || '',
     clinicLocation: params.clinicLocation || '',
     status: params.status || '',
@@ -95,6 +119,11 @@ export function CardDetails({ navigation }: { navigation: any }) {
     doctorName: params.doctorName,
     doctorAvatar: params.doctorAvatar,
     serviceName: params.serviceName,
+    servicePrice: undefined,
+    serviceType: undefined,
+    serviceGroup: undefined,
+    paymentMethod: undefined,
+    total: params.price || '',
     services: params.services || [],
   });
 
@@ -172,7 +201,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
 
     try {
       setLoading(true);
-      
+
       // Determine which API to call
       let endpoint = '';
       if (params.isRefundRequest && isAppointment) {
@@ -187,7 +216,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
       console.log('endpoint', endpoint);
 
       const response = await apiClient.get(endpoint);
-      console.log('Payment details response:', endpoint, response.data);
+      console.log('Payment details response:', endpoint, response);
 
       // API response structure for appointment details:
       // {
@@ -203,12 +232,12 @@ export function CardDetails({ navigation }: { navigation: any }) {
       //   data: {...} // nested structure
       // }
       const responseData = response.data;
-      
+
       if (responseData?.success !== false) {
         // Extract data - for appointments, data is at root level
         // For consultations, data might be nested in responseData.data
         let data = responseData.data || responseData;
-        
+
         // If data is an array, extract the first item (legacy format)
         if (Array.isArray(data)) {
           if (data.length === 0) {
@@ -226,6 +255,11 @@ export function CardDetails({ navigation }: { navigation: any }) {
               doctorName: undefined,
               doctorAvatar: undefined,
               serviceName: undefined,
+              servicePrice: undefined,
+              serviceType: undefined,
+              serviceGroup: undefined,
+              paymentMethod: undefined,
+              total: '',
               services: [],
             });
             setLoading(false);
@@ -249,7 +283,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
           const appointmentData = finalData.appointment || {};
           const appointmentServices = finalData.appointment_services || [];
           const transactionData = finalData.transactions || {};
-          
+
           // Extract clinicID for rating
           const extractedClinicID = clinicData.clinicID || clinicData.id || appointmentData.clinicID || null;
           setClinicID(extractedClinicID);
@@ -281,7 +315,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
           const mappedServices = appointmentServices.map((appointmentService: any, index: number) => {
             const serviceData = appointmentService.service || {};
             const groupData = serviceData.group || {};
-            
+
             return {
               id: serviceData.id || appointmentService.serviceID || index,
               appointmentServiceID: appointmentService.id, // This is the ID needed for refund API
@@ -296,11 +330,11 @@ export function CardDetails({ navigation }: { navigation: any }) {
 
           // Determine status from appointment or transaction
           const status = transactionData.status || appointmentData.status || '';
-          const statusColor = status === 'Paid' || status === 'Completed' || status === 'Success' 
-            ? colors.green 
+          const statusColor = status === 'Paid' || status === 'Completed' || status === 'Success'
+            ? colors.green
             : status === 'Pending' || status === 'Request'
-            ? colors.yellow 
-            : colors.red;
+              ? colors.yellow
+              : colors.red;
 
           setDisplayData({
             clinicName: clinicData.clinicName || clinicDetails.businessName || clinicData.name || '',
@@ -313,15 +347,20 @@ export function CardDetails({ navigation }: { navigation: any }) {
             statusColor: statusColor,
             dateTime: formattedDateTime,
             price: formattedPrice,
-            image: clinicData.image || clinicDetails.coverImage || clinicDetails.logo 
-              ? { uri: clinicData.image || clinicDetails.coverImage || clinicDetails.logo } 
+            image: clinicData.image || clinicDetails.coverImage || clinicDetails.logo
+              ? { uri: clinicData.image || clinicDetails.coverImage || clinicDetails.logo }
               : RecommandImage,
-            services: mappedServices,
             consultationType: undefined,
             duration: undefined,
             doctorName: undefined,
             doctorAvatar: undefined,
             serviceName: undefined,
+            servicePrice: undefined,
+            serviceType: undefined,
+            serviceGroup: undefined,
+            paymentMethod: undefined,
+            total: formattedPrice,
+            services: mappedServices,
           });
         } else {
           // Consultation payment details - map according to the API response structure
@@ -329,7 +368,10 @@ export function CardDetails({ navigation }: { navigation: any }) {
           const clinicData = consultationData.clinic || {};
           const doctorData = consultationData.doctor || {};
           const serviceData = consultationData.service || {};
-          
+
+          // Extract clinicID for rating
+          setClinicID(clinicData.id || consultationData.clinicID || null);
+
           // Format date and time from date or created_at
           const dateTimeStr = consultationData.date || consultationData.created_at || '';
           let formattedDateTime = '';
@@ -348,11 +390,11 @@ export function CardDetails({ navigation }: { navigation: any }) {
               formattedDateTime = dateTimeStr;
             }
           }
-          
+
           // Format price with currency
           const priceValue = consultationData.price || consultationData.amount || '0';
           const formattedPrice = priceValue ? `SAR ${parseFloat(priceValue).toFixed(2)}` : 'SAR 0.00';
-          
+
           // Format duration from service duration (in minutes)
           let formattedDuration = '';
           if (serviceData.duration) {
@@ -365,24 +407,33 @@ export function CardDetails({ navigation }: { navigation: any }) {
               formattedDuration = `${durationMinutes}m`;
             }
           }
-          
+
+          // Format service price
+          const servicePriceValue = serviceData.price || '0';
+          const formattedServicePrice = servicePriceValue ? `SAR ${parseFloat(servicePriceValue).toFixed(2)}` : 'SAR 0.00';
+
           setDisplayData({
             clinicName: clinicData.clinicName || clinicData.name || '',
             clinicLocation: clinicData.location || '',
             status: consultationData.status || '',
-            statusColor: consultationData.status === 'Completed' || consultationData.status === 'Success' 
-              ? colors.green 
-              : consultationData.status === 'Pending' 
-              ? colors.yellow 
-              : colors.red,
+            statusColor: consultationData.status === 'Completed' || consultationData.status === 'Success'
+              ? colors.green
+              : consultationData.status === 'Pending'
+                ? colors.yellow
+                : colors.red,
             dateTime: formattedDateTime,
             price: formattedPrice,
             image: clinicData.image ? { uri: clinicData.image } : RecommandImage,
             consultationType: consultationData.type || consultationData.consultationType,
-            duration: formattedDuration || serviceData.duration?.toString() || '',
+            duration: consultationData.duration || '',
             doctorName: doctorData.name || '',
             doctorAvatar: doctorData.image || undefined,
-            serviceName: serviceData.name || '',
+            serviceName: (serviceData.name || '').toUpperCase(),
+            servicePrice: formattedServicePrice,
+            serviceType: (serviceData.serviceType || '').toUpperCase(),
+            serviceGroup: (serviceData.group?.name || '').toUpperCase(),
+            paymentMethod: (consultationData.transaction?.paymentMethod || 'CreditCard').toUpperCase(),
+            total: formattedPrice,
             services: [],
           });
         }
@@ -402,6 +453,11 @@ export function CardDetails({ navigation }: { navigation: any }) {
           doctorName: undefined,
           doctorAvatar: undefined,
           serviceName: undefined,
+          servicePrice: undefined,
+          serviceType: undefined,
+          serviceGroup: undefined,
+          paymentMethod: undefined,
+          total: '',
           services: [],
         });
       }
@@ -423,6 +479,11 @@ export function CardDetails({ navigation }: { navigation: any }) {
         doctorName: undefined,
         doctorAvatar: undefined,
         serviceName: undefined,
+        servicePrice: undefined,
+        serviceType: undefined,
+        serviceGroup: undefined,
+        paymentMethod: undefined,
+        total: '',
         services: [],
       });
     } finally {
@@ -431,22 +492,26 @@ export function CardDetails({ navigation }: { navigation: any }) {
   };
 
   const handleGiveReview_Vist = () => {
-    isAppointment
-      ? navigation.navigate('ClinicDetail', {
-          clinic: {
-            id: `clinic_${Date.now()}`,
-            name: 'AI Health Clinic',
-            location: 'None',
-            image: RecommandImage,
-            specialty: 'General',
-            rating: 3,
-          },
-        })
-      : handleGiveReview();
+    if (isAppointment && paymentDetails) {
+      const clinicData = paymentDetails.clinic || {};
+      const clinicDetails = clinicData.details || {};
+      navigation.navigate('ClinicDetail', {
+        clinic: {
+          id: clinicData.id || clinicData.clinicID,
+          name: displayData.clinicName,
+          location: displayData.clinicLocation,
+          image: displayData.image,
+          specialty: clinicDetails.specialization || 'General',
+          rating: clinicData.rating || 0,
+        },
+      });
+    } else {
+      handleGiveReview();
+    }
   };
 
   const handleGiveReview = () => setShowRating(true);
-  
+
   const handleRatingSubmit = async (rating: number, feedback: string) => {
     if (!clinicID) {
       Toastify.error(t('clinic_id_required') || 'Clinic ID is required');
@@ -483,7 +548,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
     }
 
     const filePath = `${downloadDir}/${fileName}`;
-    
+
     // Use RNFS.downloadFile to download the PDF
     const downloadResult = await RNFS.downloadFile({
       fromUrl: invoiceUrl,
@@ -497,7 +562,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
     if (downloadResult.statusCode === 200) {
       console.log('Invoice saved at:', filePath);
       Toastify.success(
-        t('invoice_saved_successfully') || 
+        t('invoice_saved_successfully') ||
         `Invoice saved as PDF successfully\nLocation: ${Platform.OS === 'android' ? 'Downloads' : 'Documents'}`
       );
     } else {
@@ -515,7 +580,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
     try {
       // Get user location
       const location = await getLocation();
-      
+
       // Get auth token
       const token = (useAuthStore.getState().auth as any)?.token;
       if (!token) {
@@ -527,15 +592,15 @@ export function CardDetails({ navigation }: { navigation: any }) {
 
       if (isAppointment) {
         // For appointments, use appointmentID from appointment or transaction
-        const appointmentID = paymentDetails.appointment?.id || 
-                             paymentDetails.appointmentID || 
-                             paymentDetails.transactions?.appointmentID ||
-                             paymentDetails.id;
-        
+        const appointmentID = paymentDetails.appointment?.id ||
+          paymentDetails.appointmentID ||
+          paymentDetails.transactions?.appointmentID ||
+          paymentDetails.id;
+
         if (!appointmentID) {
           throw new Error(t('appointment_id_required') || 'Appointment ID is required');
         }
-        
+
         idForFileName = appointmentID.toString();
         // Use appointment invoice endpoint if available, otherwise use consultation endpoint with appointmentID
         endpoint = `${API.CONSULTATIONS.DOWNLOAD_INVOICE}?appointmentID=${appointmentID}&lat=${location.lat}&long=${location.long}`;
@@ -545,7 +610,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
         if (!consultationID) {
           throw new Error(t('consultation_id_required') || 'Consultation ID is required');
         }
-        
+
         idForFileName = consultationID.toString();
         endpoint = `${API.CONSULTATIONS.DOWNLOAD_INVOICE}?consultationID=${consultationID}&lat=${location.lat}&long=${location.long}`;
       }
@@ -570,7 +635,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
 
       // Check content type
       const contentType = response.headers.get('content-type') || '';
-      
+
       // Determine the download directory based on platform
       let downloadDir = '';
       let fileName = `Invoice_${idForFileName || Date.now()}.pdf`;
@@ -587,7 +652,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
       if (contentType.includes('application/pdf') || contentType.includes('application/octet-stream')) {
         // Save the PDF file directly using RNFS
         const filePath = `${downloadDir}/${fileName}`;
-        
+
         // Use RNFS.downloadFile for better handling
         const downloadResult = await RNFS.downloadFile({
           fromUrl: url,
@@ -601,7 +666,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
         if (downloadResult.statusCode === 200) {
           console.log('Invoice saved at:', filePath);
           Toastify.success(
-            t('invoice_saved_successfully') || 
+            t('invoice_saved_successfully') ||
             `Invoice saved as PDF successfully\nLocation: ${Platform.OS === 'android' ? 'Downloads' : 'Documents'}`
           );
         } else {
@@ -611,7 +676,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
         // Try to parse as JSON (might contain a URL or file data)
         try {
           const responseData = await response.json();
-          
+
           if (responseData?.success === true) {
             // Check if response contains a URL
             if (responseData.url || responseData.invoiceUrl || responseData.downloadUrl) {
@@ -630,7 +695,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
                 await RNFS.writeFile(filePath, fileData, 'base64');
                 console.log('Invoice saved at:', filePath);
                 Toastify.success(
-                  t('invoice_saved_successfully') || 
+                  t('invoice_saved_successfully') ||
                   `Invoice saved as PDF successfully\nLocation: ${Platform.OS === 'android' ? 'Downloads' : 'Documents'}`
                 );
               } else {
@@ -667,12 +732,12 @@ export function CardDetails({ navigation }: { navigation: any }) {
       const clinicData = paymentDetails.clinic || {};
       const clinicDetails = clinicData.details || {};
       const appointmentServices = paymentDetails.appointment_services || [];
-      
+
       // Map services with all necessary info including appointmentServiceID
       const servicesForRefund = appointmentServices.map((appointmentService: any) => {
         const serviceData = appointmentService.service || {};
         const groupData = serviceData.group || {};
-        
+
         return {
           id: serviceData.id || appointmentService.serviceID,
           appointmentServiceID: appointmentService.id, // Required for cancellation API
@@ -753,7 +818,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
       <StatusBar barStyle="dark-content" />
-      <Header2 title={params.paymentId} />
+      <Header2 title={"#" + params.paymentId} />
 
       <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
         <View style={styles.clinicInfo}>
@@ -829,98 +894,142 @@ export function CardDetails({ navigation }: { navigation: any }) {
             </View>
           </View>
         )}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('payment_detail')}</Text>
+        {isAppointment ? (
+          <>
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>{t('payment_detail')}</Text>
 
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>{t('payment_type')}</Text>
-            <Text style={styles.detailValue}>{t('payInInstallments')}</Text>
-          </View>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>{t('payment_type')}</Text>
+                <Text style={styles.detailValue}>{t('payInInstallments')}</Text>
+              </View>
 
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>{t('payment_method')}</Text>
-            <Text style={styles.detailValue}>{t('credit_card')}</Text>
-          </View>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>{t('payment_method')}</Text>
+                <Text style={styles.detailValue}>{t('credit_card')}</Text>
+              </View>
 
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>{t('points_earned')}</Text>
-            <Text style={styles.points_earn}>20 SAR</Text>
-          </View>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>{t('points_earned')}</Text>
+                <Text style={styles.points_earn}>20 SAR</Text>
+              </View>
 
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>{t('points_used')}</Text>
-            <Text style={styles.points_use}>20 SAR</Text>
-          </View>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>{t('points_used')}</Text>
+                <Text style={styles.points_use}>20 SAR</Text>
+              </View>
 
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>{t('status')}</Text>
-            <Text style={[styles.detailValue, { color: displayData.statusColor }]}>
-              {displayData.status}
-            </Text>
-          </View>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>{t('status')}</Text>
+                <Text
+                  style={[styles.detailValue, { color: displayData.statusColor }]}
+                >
+                  {displayData.status}
+                </Text>
+              </View>
 
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>{t('date_time')}</Text>
-            <Text style={styles.detailValue}>{displayData.dateTime}</Text>
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            {isAppointment
-              ? t('appointment_summary')
-              : t('consultation_summary')}
-          </Text>
-
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>{t('no_of_service')}</Text>
-            <Text style={styles.detailValue}>3</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>{t('subtotal')}</Text>
-            <Text style={styles.detailValue}>SAR 700</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>{t('discount')}</Text>
-            <Text style={styles.points_use}>- SAR 300</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>{t('redemption')}</Text>
-            <Text style={styles.points_use}>- SAR 300</Text>
-          </View>
-
-          {displayData.consultationType && (
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>{t('consultation_type')}</Text>
-              <Text style={styles.detailValue}>{displayData.consultationType}</Text>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>{t('date_time')}</Text>
+                <Text style={styles.detailValue}>{displayData.dateTime}</Text>
+              </View>
             </View>
-          )}
 
-          {displayData.doctorName && (
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>{t('doctor_name')}</Text>
-              <Text style={styles.detailValue}>{displayData.doctorName}</Text>
-            </View>
-          )}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>{t('appointment_summary')}</Text>
 
-          {displayData.duration && (
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>{t('duration')}</Text>
-              <Text style={styles.detailValue}>{displayData.duration}</Text>
-            </View>
-          )}
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>{t('no_of_service')}</Text>
+                <Text style={styles.detailValue}>
+                  {displayData.services?.length || 0}
+                </Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>{t('subtotal')}</Text>
+                <Text style={styles.detailValue}>{displayData.price}</Text>
+              </View>
 
-          {displayData.serviceName && (
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>{t('service')}</Text>
-              <Text style={styles.detailValue}>{displayData.serviceName}</Text>
+              <View style={styles.totalContainer}>
+                <Text style={styles.totalLabel}>{t('total')}</Text>
+                <Text style={styles.totalAmount}>{displayData.price}</Text>
+              </View>
             </View>
-          )}
-          <View style={styles.totalContainer}>
-            <Text style={styles.totalLabel}>{t('total')}</Text>
-            <Text style={styles.totalAmount}>{displayData.price}</Text>
-          </View>
-        </View>
+          </>
+        ) : (
+          <>
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>{t('payment_detail')}</Text>
+
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>{t('payment_method')}</Text>
+                <Text style={styles.detailValue}>{displayData.paymentMethod}</Text>
+              </View>
+
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>{t('status')}</Text>
+                <Text
+                  style={[styles.detailValue, { color: displayData.statusColor }]}
+                >
+                  {displayData.status}
+                </Text>
+              </View>
+
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>{t('date_time')}</Text>
+                <Text style={styles.detailValue}>{displayData.dateTime}</Text>
+              </View>
+            </View>
+
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>
+                {t('consultation_summary')}
+              </Text>
+
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>{t('consultation_type')}</Text>
+                <Text style={styles.detailValue}>
+                  {displayData.consultationType}
+                </Text>
+              </View>
+
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>{t('doctor_name')}</Text>
+                <Text style={styles.detailValue}>{displayData.doctorName}</Text>
+              </View>
+
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>{t('duration')}</Text>
+                <Text style={styles.detailValue}>{displayData.duration}</Text>
+              </View>
+
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>{t('price')}</Text>
+                <Text style={styles.detailValue}>{displayData.servicePrice}</Text>
+              </View>
+
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>{t('service_type')}</Text>
+                <Text style={styles.detailValue}>{displayData.serviceType}</Text>
+              </View>
+
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>{t('service_group')}</Text>
+                <Text style={styles.detailValue}>{displayData.serviceGroup}</Text>
+              </View>
+
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>{t('service')}</Text>
+                <Text style={styles.detailValue}>{displayData.serviceName}</Text>
+              </View>
+
+              <View style={styles.totalContainer}>
+                <Text style={styles.totalLabel}>
+                  {t('total').toUpperCase()}
+                </Text>
+                <Text style={styles.totalAmount}>{displayData.total}</Text>
+              </View>
+            </View>
+          </>
+        )}
       </ScrollView>
 
       {!reason && (

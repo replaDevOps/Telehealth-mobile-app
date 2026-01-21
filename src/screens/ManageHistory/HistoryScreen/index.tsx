@@ -218,7 +218,7 @@ export function HistoryScreen({ navigation }) {
             const clinicData = payment.clinic || {};
             const doctorData = payment.doctor || {};
             const serviceData = payment.service || {};
-
+            console.log('payment', payment);
             return {
               id: String(payment.id || payment.paymentId || Date.now()),
               kind: 'consultation' as const,

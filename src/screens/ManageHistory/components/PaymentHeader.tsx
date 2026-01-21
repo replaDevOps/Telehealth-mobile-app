@@ -25,7 +25,7 @@ export const PaymentHeader: React.FC<PaymentHeaderProps> = ({ item }) => {
   return (
     <View style={styles.paymentHeader}>
       <Text style={styles.paymentId}>
-        {item.paymentId}
+        {"#" + item.paymentId}
         {isAppointment && item.clinicLocation && (
           <Text style={styles.paymentType}>
             {' . '}

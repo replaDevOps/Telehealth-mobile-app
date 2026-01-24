@@ -43,6 +43,7 @@ export const FAQs = ({ navigation }: { navigation: any }) => {
 
     // Check if API returned success: false (even with 200 status)
     const responseData = res.data?.data || res.data;
+    console.log('FAQ Response Data:', responseData);
     if (res.data?.success === false || responseData?.success === false) {
       const errorMessage = responseData?.message || res.data?.message || 'Failed to fetch FAQs';
       Toast.error(errorMessage);

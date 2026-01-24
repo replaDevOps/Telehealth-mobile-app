@@ -12,15 +12,17 @@ import { pusherService } from '@services/pusher/PusherService';
 import { useAuthStore } from '@store';
 import { useFocusEffect } from '@react-navigation/native';
 import { RecommandImage } from '@assets/images';
+import NoResponseModal from '@components/molecules/NoResponseModal';
 import { translateCityToEnglish } from '../../../utils/cityTranslator';
 
-const TIMER_DURATION = 60; // 60 seconds - same as doctor's modal
+const TIMER_DURATION = 120; // 120 seconds (2 minutes)
 
 export function WaitingForDoctor({ navigation, route }: any) {
   const { t } = useTranslation();
   const { consultationID, consultationType } = route?.params || {};
   const [timeLeft, setTimeLeft] = useState(TIMER_DURATION);
   const [isAccepted, setIsAccepted] = useState(false);
+  const [showNoResponseModal, setShowNoResponseModal] = useState(false);
   const timerRef = useRef<any>(null);
   const refundProcessedRef = useRef(false);
   const pusherChannelRef = useRef<any>(null);
@@ -29,18 +31,28 @@ export function WaitingForDoctor({ navigation, route }: any) {
   const patientID = auth ? ((auth as any).id || (auth as any).user?.id) : undefined;
 
   // Define handleTimeout first (before useEffects that use it)
-  const handleTimeout = useCallback(async () => {
+  // When timer expires we show the modal instead of auto-refunding.
+  const handleTimeout = useCallback(() => {
     if (refundProcessedRef.current || !consultationID || isAccepted) return;
-    
-    refundProcessedRef.current = true; // Mark refund as processed - allows navigation
-    
-    // Clear timer
+
+    // Stop countdown and show modal to user
     if (timerRef.current) {
       clearInterval(timerRef.current);
     }
-    
+
+    setShowNoResponseModal(true);
+  }, [consultationID, isAccepted]);
+
+  // Called when user taps refund button in modal
+  const handleUserInitiatedRefund = useCallback(async () => {
+    if (refundProcessedRef.current || !consultationID) return;
+
+    refundProcessedRef.current = true; // mark processed to allow navigation
+
+    // Close modal
+    setShowNoResponseModal(false);
+
     try {
-      // Call refund API immediately
       const response = await apiClient.post(API.CONSULTATIONS.REFUND_CONSULTATION, {
         consultationID: consultationID,
       });
@@ -48,31 +60,20 @@ export function WaitingForDoctor({ navigation, route }: any) {
       console.log('Refund response:', response.data);
 
       if (response.data?.success !== false) {
-        // Show success message
         Toast.success(response.data?.message || t('refund_initiated') || 'Refund has been initiated');
-        
-        // Navigate to home - user can check refund status from Settings > Refund Requests
-        setTimeout(() => {
-          navigation.replace('EntryPoint');
-        }, 1500);
       } else {
-        // Show error and navigate to home
         Toast.error(response.data?.message || t('refund_failed') || 'Failed to initiate refund');
-        
-        setTimeout(() => {
-          navigation.replace('EntryPoint');
-        }, 1500);
       }
     } catch (error: any) {
       console.error('Error initiating refund:', error);
       Toast.error(error?.response?.data?.message || t('refund_failed') || 'Failed to initiate refund');
-      
-      // Navigate to home even on error
+    } finally {
+      // Navigate to home in all cases after user requested refund
       setTimeout(() => {
         navigation.replace('EntryPoint');
-      }, 1500);
+      }, 800);
     }
-  }, [consultationID, navigation, t, isAccepted]);
+  }, [consultationID, navigation, t]);
 
   // Listen to Pusher events for consultation acceptance
   useEffect(() => {
@@ -98,7 +99,7 @@ export function WaitingForDoctor({ navigation, route }: any) {
       
       const consultation = data?.consultation || data?.message || data;
       const consultationStatus = consultation?.status || data?.status;
-      const isAcceptedStatus = consultationStatus === 'Accepted' || consultationStatus === 'accepted' || consultationStatus === 'Pending' || consultationStatus === 'pending';
+      const isAcceptedStatus = consultationStatus === 'Accepted' || consultationStatus === 'accepted' || consultationStatus === 'Pending' || consultationStatus === 'pending' || consultationStatus === 'Booked' || consultationStatus === 'booked';
       const consultationIdFromEvent = consultation?.id || data?.consultationID || data?.id;
 
       // Check if this is the consultation we're waiting for
@@ -200,7 +201,7 @@ export function WaitingForDoctor({ navigation, route }: any) {
     timerRef.current = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
-          // Timer expired - initiate refund
+          // Timer expired - show modal for user action
           handleTimeout();
           return 0;
         }
@@ -285,6 +286,11 @@ export function WaitingForDoctor({ navigation, route }: any) {
           </Text>
         </View>
       </View>
+      <NoResponseModal
+        visible={showNoResponseModal}
+        onClose={() => setShowNoResponseModal(false)}
+        onGetPrescription={handleUserInitiatedRefund}
+      />
     </SafeAreaView>
   );
 }

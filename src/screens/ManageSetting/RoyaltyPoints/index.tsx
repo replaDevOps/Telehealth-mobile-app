@@ -169,7 +169,7 @@ export const RoyaltyPoints = ({ navigation }) => {
   const renderEmptyComponent = () => {
     if (loading) {
       return (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 100 }}>
+        <View style={{ justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={{ marginTop: 16, color: colors.secondaryText }}>
             {t('loading') || 'Loading...'}
@@ -180,7 +180,7 @@ export const RoyaltyPoints = ({ navigation }) => {
 
     if (error) {
       return (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 100, paddingHorizontal: 20 }}>
+        <View style={{ justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 }}>
           <Text style={{ color: colors.red, textAlign: 'center', marginBottom: 16 }}>
             {error}
           </Text>
@@ -189,7 +189,7 @@ export const RoyaltyPoints = ({ navigation }) => {
     }
 
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 100 }}>
+      <View style={{ justifyContent: 'center', alignItems: 'center' }}>
         <Text style={{ color: colors.secondaryText, textAlign: 'center' }}>
           {t('no_loyalty_points_found') || 'No loyalty points found'}
         </Text>
@@ -221,7 +221,7 @@ export const RoyaltyPoints = ({ navigation }) => {
           keyExtractor={item => item.id}
           contentContainerStyle={[
             styles.listContainer,
-            loyaltyPointsData.length === 0 && { flex: 1 }
+            loyaltyPointsData.length === 0 && { flexGrow: 1, justifyContent: 'center' }
           ]}
           ListEmptyComponent={renderEmptyComponent}
           refreshing={loading && loyaltyPointsData.length === 0}

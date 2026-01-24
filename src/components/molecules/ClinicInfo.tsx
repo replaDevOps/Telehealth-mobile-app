@@ -67,7 +67,8 @@ const styles = StyleSheet.create({
   },
   chipsContainer: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 4,
+    marginTop: 6,
   },
   category: {
     fontSize: 14,

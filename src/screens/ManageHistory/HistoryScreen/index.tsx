@@ -102,23 +102,31 @@ export function HistoryScreen({ navigation }) {
           const clinicData = consultation.clinic || {};
           const doctorData = consultation.doctor || {};
           const serviceData = consultation.service || {};
+          // Normalize clinic info so all consumers get a consistent shape
+          const normalizedClinicInfo = {
+            id: clinicData.id || consultation.clinicID || null,
+            name: clinicData.name || clinicData.clinicName || consultation.clinicName || '',
+            clinicName: clinicData.clinicName || clinicData.name || consultation.clinicName || '',
+            location: clinicData.location || clinicData.details?.address || '',
+            image: clinicData.image || clinicData.logo || clinicData.coverImage || undefined,
+          };
 
           return {
             id: String(consultation.id),
-            date: consultation.date || consultation.created_at || '',
+            date: consultation.created_at || '',
             serviceName: serviceData.name || consultation.serviceName || '',
             duration: consultation.duration || '',
             type: consultationType.type,
             icon: consultationType.icon,
             doctorName: doctorData.name || consultation.doctorName || 'Refunded',
             doctorAvatar: doctorData.image || consultation.doctorAvatar || '',
-            clinicName: consultation.clinicName || clinicData.clinicName || clinicData.name || '',
+            clinicName: normalizedClinicInfo.clinicName || '',
             price: consultation.price || '0',
-            // Store original data for navigation
+            // Store original + normalized data for navigation
             consultationID: consultation.id,
             doctorID: consultation.doctorID || consultation.doctor?.id,
             clinicID: consultation.clinicID || consultation.clinic?.id,
-            clinicInfo: consultation.clinic,
+            clinicInfo: normalizedClinicInfo,
             doctorInfo: consultation.doctor,
             serviceInfo: consultation.service,
           } as ConsultationItem & {
@@ -244,16 +252,17 @@ export function HistoryScreen({ navigation }) {
             // Map appointment payment
             const clinicData = payment.clinic || {};
             const services = payment.services || [];
+            const appointmentServices = payment.appointment_services || [];
 
             return {
               id: String(payment.id || payment.paymentId || Date.now()),
               kind: 'appointment' as const,
-              date: payment.date || payment.created_at || '',
+              date: payment.date || payment.created_at || payment.requestDate || '',
               paymentId: String(payment.paymentId || payment.id || ''),
               clinicImg: !!payment.clinicImage || !!clinicData.image,
               clinicName: payment.clinicName || clinicData.clinicName || clinicData.name || '',
               clinicLocation: payment.clinicLocation || clinicData.location || '',
-              numberOfService: String(services.length || payment.numberOfServices || 0),
+              numberOfService: String(appointmentServices.length || services.length || payment.serviceCount || 0),
               price: payment.price || payment.amount || '0',
               status: payment.status || 'Completed',
               statusColor: payment.status === 'Completed' || payment.status === 'Success'
@@ -345,6 +354,15 @@ export function HistoryScreen({ navigation }) {
   }, [navigation]);
 
   const handleNavigateToChat = useCallback((item: ConsultationItem & { consultationID?: number; doctorID?: number; clinicInfo?: any; doctorInfo?: any }) => {
+    // Normalize image to raw URL string (if possible) so ChatScreen can decide rendering
+    const rawClinicImage = (() => {
+      const img = item.clinicInfo?.image;
+      if (!img) return undefined;
+      if (typeof img === 'string') return img;
+      if (typeof img === 'object' && img.uri) return img.uri;
+      return undefined;
+    })();
+    console.log('Navigating to ChatScreen with clinic image:', item);
     navigation.navigate('ChatScreen', {
       chatType: 'doctor',
       consultationID: item.consultationID,
@@ -356,9 +374,10 @@ export function HistoryScreen({ navigation }) {
         specialization: item.doctorInfo?.specialization,
       },
       clinicInfo: {
-        name: item.clinicName,
+        name: item.clinicName || item.clinicInfo?.name || '',
+        clinicName: item.clinicName || item.clinicInfo?.clinicName || item.clinicInfo?.name || '',
         location: item.clinicInfo?.location || '',
-        image: item.clinicInfo?.image ? { uri: item.clinicInfo.image } : RecommandImage,
+        image: rawClinicImage,
       },
       fromHistory: true,
     });
@@ -421,7 +440,7 @@ export function HistoryScreen({ navigation }) {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" />
 
       <Header2 title={t('history')} />
@@ -511,7 +530,7 @@ export function HistoryScreen({ navigation }) {
                     </View>
                   ) : null
                 }
-                contentContainerStyle={[styles.scrollView, { flexGrow: 1 }]}
+                // contentContainerStyle={[styles.scrollView, { flexGrow: 1 }]}
                 showsVerticalScrollIndicator={false}
               />
             </View>

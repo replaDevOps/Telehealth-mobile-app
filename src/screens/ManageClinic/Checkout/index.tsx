@@ -133,6 +133,12 @@ export function CheckoutScreen({ route, navigation }) {
       return;
     }
 
+    // Enforce maximum formatted card number length (16 digits + 3 spaces = 19)
+    if (cardNumber.length > 19) {
+      Toast.error('Please enter a valid card number');
+      return;
+    }
+
     // Validate expiry date format
     const { month, year } = parseExpiryDate(expiryDate);
     if (!month || !year || month.length !== 2 || year.length !== 4) {
@@ -170,7 +176,7 @@ export function CheckoutScreen({ route, navigation }) {
 
       // Success
       const successMessage = response.data?.message || 'Payment processed successfully';
-      Toast.success(successMessage);
+      // Toast.success(successMessage);
       setShowSuccessModal(true);
       setLoading(false);
     } catch (error: any) {

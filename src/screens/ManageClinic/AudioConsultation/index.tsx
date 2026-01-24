@@ -66,8 +66,10 @@ export function AudioConsultation({ navigation, route }) {
 
   const handleGetPrescription = () => {
     setModalVisible(false);
-    console.log('User wants to get the prescription');
-    navigation.navigate('PrescriptionScreen');
+    console.log('User wants to get the prescription for consultation:', consultationID);
+    navigation.navigate('PrescriptionScreen', {
+      consultationID: consultationID,
+    });
   };
 
   const handleClose = () => {

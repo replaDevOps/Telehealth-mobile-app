@@ -144,6 +144,16 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   }, [prescriptionId, consultationID]);
 
+  // Handler for Header2 back button
+  const handleHeaderBack = () => {
+    if (!fromHistory) {
+      console.log('📜 [PrescriptionScreen] Header back clicked - navigating to EntryPoint');
+      navigation.navigate('EntryPoint' as any);
+    } else {
+      navigation.goBack();
+    }
+  };
+
   const fetchPrescriptionData = async (): Promise<void> => {
     if (!consultationID) {
       setError(t('consultation_id_required') || 'Consultation ID is required');
@@ -709,7 +719,7 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <Header2 title={t('prescription_id')} />
+        <Header2 title={t('prescription_id')} handleBackPress={handleHeaderBack} />
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.loadingText}>{t('loading_prescription')}</Text>
@@ -723,7 +733,7 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
     return (
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="dark-content" backgroundColor={colors.white} />
-        <Header2 title={t('prescription')} />
+        <Header2 title={t('prescription')} handleBackPress={handleHeaderBack} />
 
         <View style={styles.noPrescriptionContainer}>
           <EmptyContentSvg width={180} height={180} />
@@ -743,7 +753,7 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
     return (
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="dark-content" backgroundColor={colors.white} />
-        <Header2 title={t('prescription')} />
+        <Header2 title={t('prescription')} handleBackPress={handleHeaderBack} />
 
         <View style={styles.noPrescriptionContainer}>
           <EmptyContentSvg width={180} height={180} />
@@ -763,7 +773,7 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
     return (
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="dark-content" backgroundColor={colors.white} />
-        <Header2 title={t('prescription')} />
+        <Header2 title={t('prescription')} handleBackPress={handleHeaderBack} />
         <View style={styles.noPrescriptionContainer}>
           <EmptyContentSvg width={180} height={180} />
           <Text style={styles.noPrescriptionTitle}>
@@ -786,7 +796,7 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.white} />
 
-      <Header2 title={prescription.id} />
+      <Header2 title={prescription.id} handleBackPress={handleHeaderBack} />
       <Toast
         message={toast.message}
         type={toast.type}

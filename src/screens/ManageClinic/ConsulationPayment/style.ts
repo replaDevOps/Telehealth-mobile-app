@@ -207,10 +207,15 @@ export const styles = StyleSheet.create({
       backgroundColor: colors.white,
     },
     loadingOverlay: {
-      flex: 1,
-      backgroundColor: '#15002E80',
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(21, 0, 46, 0.5)',
       justifyContent: 'center',
       alignItems: 'center',
+      zIndex: 1000,
     },
     loadingContainer: {
       backgroundColor: colors.white,

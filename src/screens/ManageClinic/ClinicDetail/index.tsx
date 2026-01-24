@@ -11,7 +11,7 @@ import {
 import { ClinicInfo } from '@components/molecules/ClinicInfo';
 import { colors } from '../../../styles/colors';
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, TouchableOpacity, Text, ActivityIndicator, Platform, PermissionsAndroid, RefreshControl } from 'react-native';
+import { View, ScrollView, TouchableOpacity, Text, ActivityIndicator, Platform, PermissionsAndroid, RefreshControl, KeyboardAvoidingView } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { RecommandImage } from '@assets/images';
 import AboutClinic from '@components/molecules/AboutCard';
@@ -285,6 +285,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       ]);
 
       if (detailsResponse.data.success && detailsResponse.data.data) {
+        console.log('Clinic details fetched:', detailsResponse.data.data);
         setClinicDetail(detailsResponse.data.data);
       }
 
@@ -293,6 +294,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       const descriptionData = descResponseData?.data || descResponseData;
 
       if (descResponseData?.success !== false && descriptionData) {
+        console.log('Clinic description fetched:', descriptionData);
         setClinicDescription({
           data: descriptionData,
           devices: descResponseData.devices || [],
@@ -453,7 +455,9 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       return {
         id: service.id.toString(),
         image: service.image ? { uri: service.image } : RecommandImage,
-        type: service.serviceType || 'General',
+        type: service.serviceType && typeof service.serviceType === 'string' && service.serviceType.length
+          ? service.serviceType.charAt(0).toUpperCase() + service.serviceType.slice(1)
+          : 'General',
         serviceGroup: service.group?.name || 'Group',
         serviceName: service.name,
         price: `SAR ${parseFloat(service.price).toFixed(2)}`,
@@ -666,7 +670,9 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
         const transformedService = {
           id: serviceDetail.id.toString(),
           image: serviceDetail.image ? { uri: serviceDetail.image } : RecommandImage,
-          type: serviceDetail.serviceType || 'General',
+          type: serviceDetail.serviceType && typeof serviceDetail.serviceType === 'string' && serviceDetail.serviceType.length
+            ? serviceDetail.serviceType.charAt(0).toUpperCase() + serviceDetail.serviceType.slice(1)
+            : 'General',
           serviceGroup: serviceDetail.group?.name || 'Group',
           serviceName: serviceDetail.name,
           price: `SAR ${parseFloat(serviceDetail.price).toFixed(2)}`,
@@ -908,10 +914,10 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     'Location not available';
   const clinicRating = parseFloat(displayClinic.avgRating) || parseFloat(clinic?.rating) || 0;
   const clinicDistance = (displayClinic as ClinicDetailResponse).distance
-    ? `${((displayClinic as ClinicDetailResponse).distance! / 1000).toFixed(1)}km`
+    ? `${((displayClinic as ClinicDetailResponse).distance!).toFixed(1)}km`
     : clinicDetail?.distance
-      ? `${(clinicDetail.distance / 1000).toFixed(1)}km`
-      : '2.2km';
+      ? `${(clinicDetail.distance).toFixed(1)}km`
+      : '--km';
 
   const clinicImage = clinicDescriptionData?.coverImage
     ? { uri: clinicDescriptionData.coverImage }
@@ -1026,12 +1032,18 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
             <Text style={styles.sectionTitle}>{t('all_services')}</Text>
 
             {/* Search Bar */}
-            <SearchServicesBar
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              onFilterPress={handleFilterPress}
-              placeholder={t('search_services')}
-            />
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+              keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+              style={{ width: '100%' }}
+            >
+              <SearchServicesBar
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                onFilterPress={handleFilterPress}
+                placeholder={t('search_services')}
+              />
+            </KeyboardAvoidingView>
 
             {/* Services List */}
             {loadingServices ? (

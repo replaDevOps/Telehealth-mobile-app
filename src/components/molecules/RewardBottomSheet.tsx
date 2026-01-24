@@ -70,7 +70,7 @@ export const RewardsMilestonesBottomSheet = ({
 
       // API response structure: { data: { success: true, tier_progress: [...], current_tier: "Bronze" } }
       const responseData = response.data?.data || response.data;
-      
+
       if (responseData?.success !== false) {
         // Extract tier_progress array from response
         const tiersList = responseData.tier_progress || responseData.tiers || responseData.data || [];
@@ -83,8 +83,8 @@ export const RewardsMilestonesBottomSheet = ({
         const mappedTiers: Tier[] = tiersList.map((item: any) => {
           // Handle tier name - API returns "Bronze", "Silver", "Gold"
           const tierName = item.tier_name || item.name || item.tierName || '';
-          const tierNameFormatted = tierName.includes('Tier') 
-            ? tierName 
+          const tierNameFormatted = tierName.includes('Tier')
+            ? tierName
             : `${tierName} Tier`;
 
           // Map fields from API response:
@@ -98,15 +98,15 @@ export const RewardsMilestonesBottomSheet = ({
             progress: item.points || item.progress || item.current_points || item.currentPoints || 0,
             total: item.milestone || item.total || item.required_points || item.requiredPoints || 0,
             reward: item.reward || item.rewardPoints || item.reward_points || 0,
-            isClaimable: item.reward_claimed !== undefined 
-              ? item.reward_claimed 
+            isClaimable: item.reward_claimed !== undefined
+              ? item.reward_claimed
               : item.isClaimable !== undefined
-              ? item.isClaimable
-              : item.is_claimable !== undefined
-              ? item.is_claimable
-              : item.claimed !== undefined
-              ? item.claimed
-              : false,
+                ? item.isClaimable
+                : item.is_claimable !== undefined
+                  ? item.is_claimable
+                  : item.claimed !== undefined
+                    ? item.claimed
+                    : false,
             isCurrent: currentTier && tierName.toLowerCase() === currentTier.toLowerCase(),
           };
         });
@@ -137,7 +137,7 @@ export const RewardsMilestonesBottomSheet = ({
 
     try {
       setClaimingTier(tier.name);
-      
+
       // Call claim reward API
       const response = await apiClient.post(API.SETTINGS.CLAIM_REWARD, {
         clinicID: clinicID.toString(),
@@ -155,7 +155,7 @@ export const RewardsMilestonesBottomSheet = ({
         setSelectedTier(tier);
         setSelectedTierIcon(getTierIcon(tier.name));
         setUnlockModalVisible(true);
-        
+
         onClaim?.(tier.name);
       } else {
         throw new Error(response.data?.message || 'Failed to claim reward');
@@ -203,10 +203,10 @@ export const RewardsMilestonesBottomSheet = ({
   // Function to strip HTML tags and decode HTML entities
   const stripHtmlTags = (html: string): string => {
     if (!html) return '';
-    
+
     // Remove HTML tags
     let text = html.replace(/<[^>]*>/g, '');
-    
+
     // Replace common HTML entities
     text = text
       .replace(/&nbsp;/g, ' ')
@@ -218,12 +218,12 @@ export const RewardsMilestonesBottomSheet = ({
       .replace(/<br\s*\/?>/gi, '\n')
       .replace(/<p>/gi, '\n')
       .replace(/<\/p>/gi, '');
-    
+
     // Clean up multiple newlines and spaces
     text = text.replace(/\n\s*\n\s*\n/g, '\n\n');
     text = text.replace(/[ \t]+/g, ' ');
     text = text.trim();
-    
+
     return text;
   };
 
@@ -252,16 +252,17 @@ export const RewardsMilestonesBottomSheet = ({
     try {
       setLoadingDescription(true);
       const response = await apiClient.get(API.SETTINGS.LOYALTY_POINTS_DESCRIPTION);
-      
+
       if (response.data?.success !== false && response.data?.data) {
         // The API might return description in different formats
-        let description = response.data.data.description 
-          || response.data.data.content 
-          || response.data.data.text 
+        let description = response.data.data.description
+          || response.data.data.content
+          || response.data.data.text
           || response.data.data;
-        
+
         if (typeof description === 'string') {
           // Strip HTML tags
+          console.log('description', description);
           description = stripHtmlTags(description);
           setLoyaltyDescription(description);
         } else if (description?.description) {
@@ -319,7 +320,7 @@ export const RewardsMilestonesBottomSheet = ({
                       <Text style={styles.subtitle}>
                         {t('rewardsMileStonesDescription')}
                       </Text>
-                      
+
                       <View style={styles.tiersContainer}>
                         {tiersData.map((tier, index) => {
                           const percentage = progressPercentage(
@@ -361,8 +362,8 @@ export const RewardsMilestonesBottomSheet = ({
                                         {claimingTier === tier.name
                                           ? (t('claiming') || 'Claiming...')
                                           : !tier.isClaimable
-                                          ? t('claimNow')
-                                          : t('completed')}
+                                            ? t('claimNow')
+                                            : t('completed')}
                                       </Text>
                                     </TouchableOpacity>
                                   )}
@@ -402,12 +403,12 @@ export const RewardsMilestonesBottomSheet = ({
                       {tiersData.find(
                         t => t.name.includes('Golden') && t.isClaimable,
                       ) && (
-                        <CustomButton 
-                          title={resettingTiers ? (t('resetting') || 'Resetting...') : t('reset_tiers')} 
-                          onPress={handleResetTiers}
-                          disabled={resettingTiers}
-                        />
-                      )}
+                          <CustomButton
+                            title={resettingTiers ? (t('resetting') || 'Resetting...') : t('reset_tiers')}
+                            onPress={handleResetTiers}
+                            disabled={resettingTiers}
+                          />
+                        )}
                     </>
                   )}
                 </>
@@ -435,7 +436,7 @@ export const RewardsMilestonesBottomSheet = ({
                       <Text style={styles.subtitle}>
                         {t('rewardsMileStonesDescription')}
                       </Text>
-                      
+
                       {loadingTiers ? (
                         <View style={styles.loadingContainer}>
                           <ActivityIndicator size="small" color={colors.primary} />
@@ -483,8 +484,8 @@ export const RewardsMilestonesBottomSheet = ({
                                             {claimingTier === tier.name
                                               ? (t('claiming') || 'Claiming...')
                                               : !tier.isClaimable
-                                              ? t('claimNow')
-                                              : t('completed')}
+                                                ? t('claimNow')
+                                                : t('completed')}
                                           </Text>
                                         </TouchableOpacity>
                                       )}
@@ -524,12 +525,12 @@ export const RewardsMilestonesBottomSheet = ({
                           {tiersData.find(
                             t => t.name.includes('Golden') && t.isClaimable,
                           ) && (
-                            <CustomButton 
-                              title={resettingTiers ? (t('resetting') || 'Resetting...') : t('reset_tiers')} 
-                              onPress={handleResetTiers}
-                              disabled={resettingTiers}
-                            />
-                          )}
+                              <CustomButton
+                                title={resettingTiers ? (t('resetting') || 'Resetting...') : t('reset_tiers')}
+                                onPress={handleResetTiers}
+                                disabled={resettingTiers}
+                              />
+                            )}
                         </>
                       )}
                     </>

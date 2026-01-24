@@ -5,7 +5,7 @@ import React, {
   useMemo,
   useCallback,
 } from 'react';
-import { View, Text, ScrollView, ActivityIndicator, Alert, BackHandler, KeyboardAvoidingView, Keyboard, Platform } from 'react-native';
+import { View, Text, ScrollView, ActivityIndicator, Alert, BackHandler, KeyboardAvoidingView, Keyboard, Platform, Image, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ServiceDetailBottomSheet } from '@components/molecules';
 import { styles } from './style';
@@ -45,7 +45,7 @@ export function ChatScreen({ navigation, route }) {
   const chatType = route?.params?.chatType || 'ai';
   const fromHistory = route?.params?.fromHistory || false;
   const doctorInfo = route?.params?.doctorInfo || DEFAULT_DOCTOR_INFO;
-  const clinicInfo = route?.params?.clinicInfo || DEFAULT_CLINIC_INFO;
+  const [clinicInfoState, setClinicInfoState] = useState<any>(route?.params?.clinicInfo || DEFAULT_CLINIC_INFO);
   // Get consultationID from route params - check both consultationID and id
   const consultationID = route?.params?.consultationID || route?.params?.id;
   const recipientID = route?.params?.recipientID;
@@ -98,9 +98,9 @@ export function ChatScreen({ navigation, route }) {
     : patient;
 
   useEffect(() => {
-    console.log('clinicInfo.image type:', typeof clinicInfo.image);
-    console.log('clinicInfo.image value:', clinicInfo.image);
-  }, []);
+    console.log('clinicInfo.image type:', typeof (clinicInfoState?.image));
+    console.log('clinicInfo.image value:', clinicInfoState?.image);
+  }, [clinicInfoState]);
 
   // ---------- Memoized Values ----------
   const initialMessages = useMemo(
@@ -162,6 +162,19 @@ export function ChatScreen({ navigation, route }) {
         // Store consultation data
         setConsultationData(consultationDataFromAPI);
 
+        // Normalize clinic info from API and update clinic state for display
+        const apiClinic = consultationDataFromAPI?.clinic || consultationDataFromAPI?.clinicInfo || consultationDataFromAPI;
+        if (apiClinic && typeof apiClinic === 'object') {
+          const normalizedApiClinic = {
+            id: apiClinic.id || consultationDataFromAPI?.clinicID || null,
+            name: apiClinic.clinicName || apiClinic.clinicName || consultationDataFromAPI?.clinicName || '',
+            clinicName: apiClinic.clinicName || apiClinic.name || consultationDataFromAPI?.clinicName || '',
+            location: apiClinic.location || apiClinic.details?.address || consultationDataFromAPI?.location || '',
+            image: apiClinic.image || apiClinic.logo || apiClinic.coverImage || undefined,
+          };
+          setClinicInfoState(normalizedApiClinic);
+          console.log('✅ [ChatScreen] Updated clinicInfoState from API:', normalizedApiClinic);
+        }
 
         // Update doctorInfo if available from API
         if (doctorData && chatType === 'doctor') {
@@ -290,42 +303,16 @@ export function ChatScreen({ navigation, route }) {
     }
   }, [consultationID, isConsultationActive, chatType, patientID, recipientID, consultationData, calculateDuration]);
 
-  // Helper function to check prescription and show modal
+  // Helper function to end consultation and show modal (without checking prescription upfront)
   const checkPrescriptionAndShowModal = useCallback(async () => {
     // End consultation and notify the other side first
     await endConsultationAndNotify();
 
-    // Check if prescription exists before showing modal
-    if (consultationID) {
-      try {
-        // Use history endpoint for both active and history consultations (returns JSON data)
-        // DOWNLOAD_PRESCRIPTION returns PDF, so we use GET_PRESCRIPTION which returns JSON
-        const endpoint = `${API.HISTORY.GET_PRESCRIPTION}/${consultationID}`;
-
-        const response = await apiClient.get(endpoint);
-        console.log('Prescription check response:', response.data);
-
-        // Check if prescription exists
-        if (response.data?.success !== false &&
-          response.data?.prescriptions &&
-          Array.isArray(response.data.prescriptions) &&
-          response.data.prescriptions.length > 0) {
-          setHasPrescription(true);
-          console.log('Prescription found, showing Get Prescription button');
-        } else {
-          setHasPrescription(false);
-          console.log('No prescription found');
-        }
-      } catch (error) {
-        console.error('Error checking prescription:', error);
-        setHasPrescription(false);
-      }
-    } else {
-      setHasPrescription(false);
-    }
-
+    // Show modal immediately - prescription will be fetched on button click
+    // Always show button, let user decide when to fetch
+    setHasPrescription(true); // Always assume we should show the button
     setModalVisible(true);
-  }, [consultationID, endConsultationAndNotify]);
+  }, [endConsultationAndNotify]);
 
   // Timer for doctor consultation - Countdown from 30 minutes (1800 seconds)
   useEffect(() => {
@@ -577,27 +564,10 @@ export function ChatScreen({ navigation, route }) {
           consultationEndedRef.current = true;
           setIsConsultationActive(false);
           
-          // Check prescription and show modal (don't call API again - other side already did)
-          (async () => {
-            if (consultationID) {
-              try {
-                const endpoint = `${API.HISTORY.GET_PRESCRIPTION}/${consultationID}`;
-                const response = await apiClient.get(endpoint);
-                if (response.data?.success !== false &&
-                    response.data?.prescriptions &&
-                    Array.isArray(response.data.prescriptions) &&
-                    response.data.prescriptions.length > 0) {
-                  setHasPrescription(true);
-                } else {
-                  setHasPrescription(false);
-                }
-              } catch (error) {
-                console.error('Error checking prescription:', error);
-                setHasPrescription(false);
-              }
-            }
-            setModalVisible(true);
-          })();
+          // Show modal without fetching prescription upfront
+          // Prescription will only be fetched when user clicks the button
+          setHasPrescription(true); // Always show button
+          setModalVisible(true);
         } else {
           console.log('❌ [ChatScreen] Event consultationID mismatch - eventIDStr:', eventIDStr, 'consultationIDStr:', consultationIDStr);
         }
@@ -914,7 +884,29 @@ export function ChatScreen({ navigation, route }) {
     await checkPrescriptionAndShowModal();
   }, [checkPrescriptionAndShowModal]);
 
-  const handleGetPrescription = useCallback(() => {
+  const handleGetPrescription = useCallback(async () => {
+    // Fetch prescription when user clicks the button
+    if (consultationID) {
+      try {
+        console.log('Fetching prescription for consultation:', consultationID);
+        const endpoint = `${API.HISTORY.GET_PRESCRIPTION}/${consultationID}`;
+        const response = await apiClient.get(endpoint);
+        console.log('Prescription fetched:', response.data);
+
+        // Check if prescription exists
+        if (response.data?.success !== false &&
+          response.data?.prescriptions &&
+          Array.isArray(response.data.prescriptions) &&
+          response.data.prescriptions.length > 0) {
+          console.log('Prescription found, navigating to PrescriptionScreen');
+        } else {
+          console.log('No prescription found');
+        }
+      } catch (error) {
+        console.error('Error fetching prescription:', error);
+      }
+    }
+
     setModalVisible(false);
     navigation.navigate('PrescriptionScreen', {
       consultationID: consultationID,
@@ -953,6 +945,27 @@ export function ChatScreen({ navigation, route }) {
     navigation.navigate('CartScreen');
   };
 
+  const handleVisitClinic = useCallback(async () => {
+    if (fromHistory) {
+      // Navigate to clinic detail if viewing from history
+      const clinicID = clinicInfoState?.id || consultationData?.clinicID;
+      navigation.navigate('ClinicDetail', {
+        clinic: {
+          id: clinicID,
+          name: clinicInfoState?.name || clinicInfoState?.clinicName || '',
+          location: clinicInfoState?.location || '',
+          image: clinicInfoState?.image,
+          specialty: 'General',
+          rating: 0,
+        },
+        clinicID: clinicID,
+      });
+    } else {
+      // Show end consultation modal if in active chat
+      await checkPrescriptionAndShowModal();
+    }
+  }, [fromHistory, clinicInfoState, consultationData, navigation, checkPrescriptionAndShowModal]);
+
   // ---------- Main Render ----------
   return (
     <KeyboardAvoidingView
@@ -978,30 +991,59 @@ export function ChatScreen({ navigation, route }) {
           consultationData={consultationData}
         />
 
-        {/* Messages */}
-        {loadingMessages ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#6B46C1" />
-            <Text style={styles.loadingText}>{t('loading_messages') || 'Loading messages...'}</Text>
+        {/* Clinic Info Bar */}
+        {chatType === 'doctor' && clinicInfoState && (
+          <View style={styles.clinicInfo}>
+            <View style={styles.clinicLeft}>
+              <Image
+                source={typeof clinicInfoState.image === 'string' && clinicInfoState.image.startsWith('http')
+                  ? { uri: clinicInfoState.image }
+                  : typeof clinicInfoState.image === 'string'
+                  ? { uri: `https://telehealth.repla-projects.com/${clinicInfoState.image}` }
+                  : clinicInfoState.image}
+                style={styles.clinicImage}
+              />
+              <View>
+                <Text style={styles.clinicName}>{clinicInfoState.name || clinicInfoState.clinicName}</Text>
+                <Text style={styles.clinicLocation}>{clinicInfoState.location || clinicInfoState.address || ''}</Text>
+              </View>
+            </View>
+            <TouchableOpacity style={styles.consultButton} onPress={handleVisitClinic}>
+              <Text style={styles.consultButtonText}>{t('visit') || 'Visit'}</Text>
+            </TouchableOpacity>
           </View>
-        ) : (
-          <MessageList
-            messages={messages}
-            scrollRef={scrollRef}
-            showAvatar={showAvatar}
-            handleServicePress={handleServicePress}
-            handleDeleteMessage={handleDeleteMessage}
-          />
+        )}
+
+        {/* Messages */}
+        {!modalVisible && (
+          <>
+            {loadingMessages ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#6B46C1" />
+                <Text style={styles.loadingText}>{t('loading_messages') || 'Loading messages...'}</Text>
+              </View>
+            ) : (
+              <MessageList
+                messages={messages}
+                scrollRef={scrollRef}
+                showAvatar={showAvatar}
+                handleServicePress={handleServicePress}
+                handleDeleteMessage={handleDeleteMessage}
+              />
+            )}
+          </>
         )}
 
         {/* Input - Only show if not viewing history */}
-        <MessageInput
-          message={message}
-          setMessage={setMessage}
-          handleSend={handleSend}
-          handleImagePick={handleImagePick}
-          canSendMessages={canSendMessages}
-        />
+        {!modalVisible && (
+          <MessageInput
+            message={message}
+            setMessage={setMessage}
+            handleSend={handleSend}
+            handleImagePick={handleImagePick}
+            canSendMessages={canSendMessages}
+          />
+        )}
 
         {/* Modals */}
         <ServiceDetailBottomSheet

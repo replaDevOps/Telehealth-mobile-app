@@ -110,10 +110,10 @@ export const HomeScreen = ({ navigation }) => {
       };
       
       // Only include lat and long if they are provided
-      if (lat !== undefined && long !== undefined) {
-        params.lat = lat.toString();
-        params.long = long.toString();
-      }
+      // if (lat !== undefined && long !== undefined) {
+      //   params.lat = lat.toString();
+      //   params.long = long.toString();
+      // }
       
       const response = await apiClient.get(API.CLINIC.GET_CLINICS, {
         params: params,

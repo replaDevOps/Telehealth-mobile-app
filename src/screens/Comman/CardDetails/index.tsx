@@ -322,8 +322,14 @@ export function CardDetails({ navigation }: { navigation: any }) {
               name: serviceData.name || '',
               duration: serviceData.duration ? `${serviceData.duration} min` : '',
               price: serviceData.price || appointmentService.price || '0',
-              category: groupData.name || serviceData.serviceType || '',
-              categoryBadge: groupData.name || serviceData.serviceType || '',
+              category: serviceData.serviceType && typeof serviceData.serviceType === 'string' && serviceData.serviceType.length
+                ? serviceData.serviceType.charAt(0).toUpperCase() + serviceData.serviceType.slice(1)
+                : '',
+              categoryBadge: groupData.name && typeof groupData.name === 'string' && groupData.name.length
+                ? groupData.name.charAt(0).toUpperCase() + groupData.name.slice(1)
+                : (serviceData.serviceType && typeof serviceData.serviceType === 'string'
+                  ? serviceData.serviceType.charAt(0).toUpperCase() + serviceData.serviceType.slice(1)
+                  : ''),
               image: serviceData.image ? { uri: serviceData.image } : RecommandImage,
             };
           });
@@ -899,25 +905,30 @@ export function CardDetails({ navigation }: { navigation: any }) {
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>{t('payment_detail')}</Text>
 
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>{t('payment_type')}</Text>
-                <Text style={styles.detailValue}>{t('payInInstallments')}</Text>
-              </View>
+             
 
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>{t('payment_method')}</Text>
-                <Text style={styles.detailValue}>{t('credit_card')}</Text>
-              </View>
+              {paymentDetails?.transactions?.paymentMethod && (
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>{t('payment_method')}</Text>
+                  <Text style={styles.detailValue}>
+                    {paymentDetails.transactions.paymentMethod.charAt(0).toUpperCase() + paymentDetails.transactions.paymentMethod.slice(1)}
+                  </Text>
+                </View>
+              )}
 
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>{t('points_earned')}</Text>
-                <Text style={styles.points_earn}>20 SAR</Text>
-              </View>
+              {paymentDetails?.transactions?.loyaltyPointEarn !== null && paymentDetails?.transactions?.loyaltyPointEarn !== undefined && (
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>{t('points_earned')}</Text>
+                  <Text style={styles.points_earn}>{paymentDetails.transactions.loyaltyPointEarn} {t('points') || 'Points'}</Text>
+                </View>
+              )}
 
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>{t('points_used')}</Text>
-                <Text style={styles.points_use}>20 SAR</Text>
-              </View>
+              {paymentDetails?.transactions?.loyaltyPointUsed !== null && paymentDetails?.transactions?.loyaltyPointUsed !== undefined && (
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>{t('points_used')}</Text>
+                  <Text style={styles.points_use}>{paymentDetails.transactions.loyaltyPointUsed} {t('points') || 'Points'}</Text>
+                </View>
+              )}
 
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>{t('status')}</Text>

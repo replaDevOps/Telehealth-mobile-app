@@ -30,7 +30,7 @@ const SearchServicesBar: React.FC<SearchServicesBarProps> = ({
         />
         <TextInput
           style={styles.input}
-          placeholder={t('search_clinics')}
+          placeholder={placeholder}
           placeholderTextColor={colors.secondaryText}
           value={value}
           onChangeText={onChangeText}

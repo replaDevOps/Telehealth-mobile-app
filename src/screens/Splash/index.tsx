@@ -7,6 +7,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { colors } from '../../styles/colors';
 import { useAuthStore, useProfileStore, useLocationStore } from '@store';
+import i18n from '../../services/i18n';
 
 type SplashScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -30,6 +31,15 @@ export const SplashScreen: React.FC<Props> = ({ navigation }) => {
       }
       try {
         const selectedLanguage = await AsyncStorage.getItem('selectedLanguage');
+        
+        // Initialize i18n with the saved language
+        if (selectedLanguage) {
+          await i18n.changeLanguage(selectedLanguage);
+          console.log('🌍 [SplashScreen] Initialized language:', selectedLanguage);
+        } else {
+          await i18n.changeLanguage('en');
+          console.log('🌍 [SplashScreen] Defaulting to English');
+        }
 
         // Create a promise that resolves after minimum splash duration (2 seconds for animation)
         const minSplashDuration = new Promise(resolve => setTimeout(resolve, 2000));

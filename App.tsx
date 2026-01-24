@@ -6,7 +6,7 @@ import { setGlobalFont } from './src/utils/overrideText';
 import { CartProvider } from '@context/CartContext';
 import { CartCountProvider } from '@context/CartCountContext';
 import { NotificationCountProvider } from '@context/NotificationCountContext';
-import './src/services/i18n';
+import i18n from './src/services/i18n';
 import { Provider as PaperProvider } from 'react-native-paper';
 import ToastManager from 'toastify-react-native';
 import { usePusherNotifications } from './src/hooks/usePusherNotifications';

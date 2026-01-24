@@ -23,12 +23,14 @@ import AntDesign from 'react-native-vector-icons/AntDesign';
 import { styles } from './style';
 import { mvs } from '@config/metrices';
 import { useTranslation } from 'react-i18next';
+import i18n from '../../../services/i18n';
 import { tryCatch } from '@utils';
 import { API } from '@services/api/api-endpoint';
 import { apiClient } from '@services/api/api-client';
 import { Toast } from 'toastify-react-native';
 import { useAuthStore, useProfileStore } from '@store';
 import { RouteProp } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { height } = Dimensions.get('window');
 
@@ -77,7 +79,17 @@ const fieldMapping: Record<string, { stateKey: keyof State; transformer?: (value
     }
   },
   notificationStatus: { stateKey: 'notificationEnabled', transformer: (val) => !!val },
-  language: { stateKey: 'language', transformer: (val) => val ?? 'English' },
+  language: { 
+    stateKey: 'language', 
+    transformer: (val) => {
+      if (!val) return 'English';
+      // Convert from API format to dropdown format
+      // API might return 'en' or 'ar' or 'English' or 'Arabic'
+      if (val.toLowerCase() === 'en' || val.toLowerCase() === 'english') return 'English';
+      if (val.toLowerCase() === 'ar' || val.toLowerCase() === 'arabic') return 'Arabic';
+      return val;
+    }
+  },
 };
 
 // Helper function to map API data to state
@@ -99,19 +111,24 @@ const mapProfileDataToState = (data: any): Partial<State> => {
 };
 
 export const ProfileSetting = ({ navigation, route }: { navigation: any; route?: RouteProp<any, 'ProfileSetting'> }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const {isAuthenticated}=useAuthStore()
   const { logout } = useAuthStore();
-  console.log("🚀 ~ ProfileSetting ~ isAuthenticated:", isAuthenticated)
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const [deletingAccount, setDeletingAccount] = useState(false);
+  const [languageChanged, setLanguageChanged] = useState(0); // Track language changes to force re-render
   const [state, dispatch] = useReducer(
     (state: State, action: Partial<State>) => ({ ...state, ...action }),
     initialState,
   );
 
   const slideAnim = useRef(new Animated.Value(height)).current;
+
+  // Re-run when language changes to force re-render
+  useEffect(() => {
+    console.log('🔄 [ProfileSetting] Language changed, re-rendering with new translations');
+  }, [languageChanged]);
 
   useEffect(() => {
     // Check if profile data was passed from SettingScreen
@@ -151,10 +168,9 @@ export const ProfileSetting = ({ navigation, route }: { navigation: any; route?:
   };
 
   const updateProfile = async () => {
-    console.log("🚀 ~ updateProfile ~ validateForm:", validateForm())
+    console.log("🚀 ~ updateProfile ~ Current language state:", state.language)
     setLoading(true);
     if (!validateForm()) {
-      console.log("🚀 ~ updateProfile ~ validateForm:", validateForm())
       setLoading(false);
       return;
     }
@@ -171,6 +187,8 @@ export const ProfileSetting = ({ navigation, route }: { navigation: any; route?:
       language: state.language,
     };
 
+    console.log("🚀 ~ updateProfile ~ payload language:", payload.language);
+
     const [res, err] = await tryCatch(
       apiClient.post(API.SETTINGS.UPDATE_PROFILE, payload),
     );
@@ -184,6 +202,22 @@ export const ProfileSetting = ({ navigation, route }: { navigation: any; route?:
     // Show success message
     const successMessage = res.data?.message || res.data?.data?.message || 'Profile updated successfully';
     Toast.success(successMessage);
+    
+    // Change language in i18n - DO THIS FIRST before any navigation
+    const languageCode = state.language === 'Arabic' ? 'ar' : 'en';
+    console.log('🌍 [ProfileSetting] Setting language to:', languageCode, 'from state:', state.language);
+    
+    try {
+      // Change language synchronously
+      i18n.changeLanguage(languageCode);
+      // Save language preference to AsyncStorage for persistence
+      await AsyncStorage.setItem('selectedLanguage', languageCode);
+      // Trigger re-render to update translations
+      setLanguageChanged(prev => prev + 1);
+      console.log('🌍 [ProfileSetting] Language changed to:', languageCode, 'and saved to storage');
+    } catch (langError) {
+      console.error('🌍 [ProfileSetting] Error changing language:', langError);
+    }
     
     // Refresh profile data in store after successful update
     useProfileStore.getState().refreshProfile();
@@ -376,7 +410,6 @@ export const ProfileSetting = ({ navigation, route }: { navigation: any; route?:
             onValueChange={(text) => dispatch({ language: text })}
             options={[
               { label: t('english'), value: 'English' },
-              { label: t('urdu'), value: 'Urdu' },
               { label: t('arabic'), value: 'Arabic' },
             ]}
           />

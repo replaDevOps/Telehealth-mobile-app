@@ -75,10 +75,10 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
     if (consultationType) {
       parts.push(consultationType);
     }
-    // Add duration if available
-    if (serviceDuration) {
-      parts.push(`${serviceDuration} min`);
-    }
+    // // Add duration if available
+    // if (serviceDuration) {
+    //   parts.push(`${serviceDuration} min`);
+    // }
     
     return parts.length > 0 ? parts.join(' | ') : (doctorInfo.serviceName || consultationTime);
   };

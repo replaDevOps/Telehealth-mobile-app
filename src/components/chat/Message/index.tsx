@@ -26,6 +26,29 @@ export const Message: React.FC<MessageProps> = ({
   const hasText = msg.text && msg.text.trim().length > 0;
   const hasImages = msg.images && msg.images.length > 0;
 
+  const formatTimeOnly = (timestamp: any) => {
+    if (!timestamp) return '';
+    try {
+      let date: Date;
+      if (typeof timestamp === 'number') {
+        date = new Date(timestamp);
+      } else if (/^\d+$/.test(String(timestamp))) {
+        const num = parseInt(String(timestamp), 10);
+        date = num < 1e12 ? new Date(num * 1000) : new Date(num);
+      } else {
+        date = new Date(String(timestamp));
+      }
+
+      if (isNaN(date.getTime())) return String(timestamp);
+
+      const hh = String(date.getHours()).padStart(2, '0');
+      const mm = String(date.getMinutes()).padStart(2, '0');
+      return `${hh}:${mm}`;
+    } catch (e) {
+      return String(timestamp);
+    }
+  };
+
   const handleLongPress = () => {
     if (!isUser || !handleDeleteMessage) return;
 
@@ -137,7 +160,7 @@ export const Message: React.FC<MessageProps> = ({
         >
           {showAvatar && msg.user && (
             <View style={styles.userMessageHeader}>
-              <Text style={styles.timestamp}>{msg.timestamp}</Text>
+              <Text style={styles.timestamp}>{formatTimeOnly(msg.timestamp)}</Text>
               <Text style={styles.senderName}>{msg.user.name}</Text>
               <Image source={msg.user.avatar} style={styles.avatar} />
             </View>

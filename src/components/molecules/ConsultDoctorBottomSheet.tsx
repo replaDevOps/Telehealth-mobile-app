@@ -118,14 +118,7 @@ export default function ConsultDoctorBottomSheet({
       });
     }
 
-    if (data.videoConsultation) {
-      cards.push({
-        id: 'video',
-        name: t('video_consultation'),
-        price: `${data.videoConsultationPrice} SAR`,
-        Icon: VedioSvg,
-      });
-    }
+   
 
     if (data.voiceConsultation) {
       cards.push({
@@ -133,6 +126,15 @@ export default function ConsultDoctorBottomSheet({
         name: t('audio_consultation'),
         price: `${data.voiceConsultationPrice} SAR`,
       Icon: AudioSvg,
+      });
+    }
+    
+     if (data.videoConsultation) {
+      cards.push({
+        id: 'video',
+        name: t('video_consultation'),
+        price: `${data.videoConsultationPrice} SAR`,
+        Icon: VedioSvg,
       });
     }
 

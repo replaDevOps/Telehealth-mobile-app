@@ -27,7 +27,7 @@ import { Toast } from 'toastify-react-native';
 export function RefundRequest() {
   const { t } = useTranslation();
   const route = useRoute();
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const params = route.params as any;
 
   const [reason, setReason] = useState('');
@@ -44,15 +44,19 @@ export function RefundRequest() {
     );
   };
   const handleVisit = () => {
+    const businessInfo = (params && params.businessInfo) || {};
+    const clinicId = businessInfo.clinicID || businessInfo.id || undefined;
+
     navigation.navigate('ClinicDetail', {
       clinic: {
-        id: `clinic_${Date.now()}`,
-        name: 'AI Health Clinic',
-        location: 'None',
-        image: RecommandImage,
-        specialty: 'General',
-        rating: 3,
+        id: clinicId || params.clinicID || params.clinicID || `clinic_${Date.now()}`,
+        name: params.clinicName || businessInfo.businessName || '',
+        location: params.clinicLocation || businessInfo.address || '',
+        image: params.image || RecommandImage,
+        specialty: businessInfo.specialization || 'General',
+        rating: businessInfo.rating || 0,
       },
+      clinicID: clinicId, // also pass clinicID separately when available
     });
   };
 
@@ -129,33 +133,45 @@ export function RefundRequest() {
         <StatusBar barStyle="dark-content" />
         <Header2 title={t('refund_request') + ' ' + params.paymentId} />
 
+        {/* Fixed Clinic Info */}
+        <View style={styles.clinicInfo}>
+          <View style={styles.clinicLeft}>
+            <Image
+              source={params.image || RecommandImage}
+              style={styles.clinicImage}
+              resizeMode="cover"
+            />
+            <View>
+              <Text style={styles.clinicName}>{params.clinicName}</Text>
+              <Text style={styles.clinicLocation}>
+                {params.clinicLocation}
+              </Text>
+            </View>
+          </View>
+          <TouchableOpacity
+            style={{
+              ...styles.consultButton,
+              backgroundColor: (params && (params.appointmentID || params.businessInfo)) ? colors.gray : colors.black,
+            }}
+            onPress={handleVisit}
+          >
+            <Text
+              style={{
+                ...styles.consultButtonText,
+                color: (params && (params.appointmentID || params.businessInfo)) ? colors.text : colors.white,
+              }}
+            >
+              {t('visit')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Scrollable Content */}
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
           style={styles.container}
+          showsVerticalScrollIndicator={false}
         >
-          {/* Clinic Info */}
-          <View style={styles.clinicInfo}>
-            <View style={styles.clinicLeft}>
-              <Image
-                source={params.image || RecommandImage}
-                style={styles.clinicImage}
-                resizeMode="cover"
-              />
-              <View>
-                <Text style={styles.clinicName}>{params.clinicName}</Text>
-                <Text style={styles.clinicLocation}>
-                  {params.clinicLocation}
-                </Text>
-              </View>
-            </View>
-            <TouchableOpacity
-              style={styles.consultButton}
-              onPress={handleVisit}
-            >
-              <Text style={styles.consultButtonText}>{t('visit')}</Text>
-            </TouchableOpacity>
-          </View>
-
           <View style={styles.mainSection}>
             <Text style={{ fontWeight: '600', marginBottom: 12 }}>
               {t('select_services_for_refund')}
@@ -269,6 +285,7 @@ export function RefundRequest() {
           </View>
         </ScrollView>
 
+        {/* Fixed Submit Button */}
         <View style={styles.bottomButtonContainer}>
           <CustomButton
             title={t('submit_request')}

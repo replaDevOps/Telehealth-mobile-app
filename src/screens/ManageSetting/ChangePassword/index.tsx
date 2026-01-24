@@ -18,6 +18,10 @@ export const ChangePassword = ({ navigation }) => {
 
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  // Per-field errors
+  const [oldPasswordError, setOldPasswordError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [confirmPasswordError, setConfirmPasswordError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const validatePassword = (password: string) => {
@@ -28,17 +32,34 @@ export const ChangePassword = ({ navigation }) => {
   };
 
   const handleSave = async () => {
+    // reset errors
     setError('');
+    setOldPasswordError('');
+    setPasswordError('');
+    setConfirmPasswordError('');
 
-    // Validate all fields are filled
-    if (!oldPassword || !password || !confirmPassword) {
-      setError(t('fields_required') || 'All fields are required');
-      return;
+    // Validate each field with specific messages
+    let hasError = false;
+    if (!oldPassword) {
+      setOldPasswordError(t('please_enter_old_password') || 'Current password is required');
+      hasError = true;
     }
+
+    if (!password) {
+      setPasswordError(t('please_enter_password') || 'New password is required');
+      hasError = true;
+    }
+
+    if (!confirmPassword) {
+      setConfirmPasswordError(t('please_confirm_password') || 'Password confirmation is required');
+      hasError = true;
+    }
+
+    if (hasError) return;
 
     // Validate new password format
     if (!validatePassword(password)) {
-      setError(
+      setPasswordError(
         'Password must be at least 8 characters long and include a number and a special character.',
       );
       return;
@@ -46,13 +67,13 @@ export const ChangePassword = ({ navigation }) => {
 
     // Validate passwords match
     if (password !== confirmPassword) {
-      setError(t('passwords_not_match') || 'Passwords do not match');
+      setConfirmPasswordError(t('passwords_not_match') || 'Passwords do not match');
       return;
     }
 
     // Validate old password and new password are different
     if (oldPassword === password) {
-      setError('New password must be different from old password');
+      setPasswordError('New password must be different from old password');
       return;
     }
 
@@ -98,6 +119,9 @@ export const ChangePassword = ({ navigation }) => {
       setPassword('');
       setConfirmPassword('');
       setError('');
+      setOldPasswordError('');
+      setPasswordError('');
+      setConfirmPasswordError('');
       setLoading(false);
       navigation.goBack();
     } catch (error: any) {
@@ -124,25 +148,34 @@ export const ChangePassword = ({ navigation }) => {
               label={t('old_password')}
               placeholder={t('enter_old_password')}
               value={oldPassword}
-              onChangeText={setOldPassword}
+              onChangeText={text => {
+                setOldPassword(text);
+                if (text) setOldPasswordError('');
+              }}
               secureTextEntry={true}
-              errorMessage={error}
+              errorMessage={oldPasswordError}
             />
             <CustomTextInput
               label={t('new_password')}
               placeholder={t('enter_new_password')}
               value={password}
-              onChangeText={setPassword}
+              onChangeText={text => {
+                setPassword(text);
+                if (text) setPasswordError('');
+              }}
               secureTextEntry={true}
-              errorMessage={error}
+              errorMessage={passwordError}
             />
             <CustomTextInput
               label={t('retype_password')}
               placeholder={t('retype_new_password')}
               secureTextEntry
               value={confirmPassword}
-              onChangeText={text => setConfirmPassword(text)}
-              errorMessage={error}
+              onChangeText={text => {
+                setConfirmPassword(text);
+                if (text) setConfirmPasswordError('');
+              }}
+              errorMessage={confirmPasswordError}
             />
           </View>
         </View>

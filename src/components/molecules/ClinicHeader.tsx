@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
   },
   headerOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    // backgroundColor: 'rgba(255, 255, 255, 0.3)',
     paddingHorizontal: 16,
     paddingTop: 50,
   },

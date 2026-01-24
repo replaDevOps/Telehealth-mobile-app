@@ -31,9 +31,9 @@ export const ConsultationCard: React.FC<ConsultationCardProps> = ({
   onChatPress,
 }) => {
   const { t } = useTranslation();
-
   // Format date from ISO string to readable format (YYYY-MM-DD)
   const formatDate = (dateStr: string) => {
+    console.log('Formatting date:', dateStr);
     if (!dateStr) return '';
     try {
       const date = new Date(dateStr);

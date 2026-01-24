@@ -62,12 +62,12 @@ const ClinicListItem: React.FC<ClinicListItemProps> = ({ item, onPress }) => {
 
         <View style={styles.clinicInfo}>
           <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'flex-start',
+                alignItems: 'center',
+              }}
+            >
             {/* If specialty is "Both", show Online and Offline chips; otherwise show single chip */}
             {item.specialty?.toLowerCase() === 'both' ? (
               <View style={styles.chipsContainer}>
@@ -175,6 +175,9 @@ const styles = StyleSheet.create({
   chipsContainer: {
     flexDirection: 'row',
     gap: 6,
+    flex: 1,
+    flexWrap: 'wrap',
+    alignItems: 'center',
   },
   specialtyText: {
     fontSize: 14,
@@ -182,9 +185,10 @@ const styles = StyleSheet.create({
     color: colors.primary,
     marginBottom: 4,
     backgroundColor: colors.gray,
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical: 6,
     borderRadius: 10,
+    marginRight: 6,
   },
   clinicName: {
     fontSize: 16,
@@ -205,6 +209,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     gap: mvs(3),
+    flexShrink: 0,
+    marginLeft: 6,
   },
   ratingText: {
     fontSize: 16,

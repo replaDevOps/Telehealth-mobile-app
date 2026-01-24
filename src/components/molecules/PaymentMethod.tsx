@@ -174,7 +174,31 @@ export function PaymentMethod({
 
   const handleCardNumberChange = useCallback(
     (text: string) => {
-      onCardNumberChange?.(text) ?? setInternalCardNumber(text);
+      // Strip non-digits
+      const digits = text.replace(/\D/g, '');
+
+      // Helper to detect Mastercard BIN ranges: 51-55 or 2221-2720
+      const isMastercard = (() => {
+        if (digits.length >= 2) {
+          const two = parseInt(digits.substring(0, 2), 10);
+          if (two >= 51 && two <= 55) return true;
+        }
+        if (digits.length >= 4) {
+          const four = parseInt(digits.substring(0, 4), 10);
+          if (four >= 2221 && four <= 2720) return true;
+        }
+        return false;
+      })();
+
+      const maxDigits = isMastercard ? 16 : 19; // enforce 16 digits for MasterCard
+
+      const limited = digits.substring(0, maxDigits);
+
+      // Format into groups of 4: '#### #### #### ####'
+      const groups = limited.match(/.{1,4}/g) || [];
+      const formatted = groups.join(' ');
+
+      onCardNumberChange?.(formatted) ?? setInternalCardNumber(formatted);
     },
     [onCardNumberChange],
   );

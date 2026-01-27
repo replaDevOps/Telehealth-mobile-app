@@ -101,7 +101,7 @@ export function RefundRequest() {
 
       // API response structure: { data: { status: true, message: "..." } }
       const responseData = response.data?.data || response.data;
-      
+
       if (responseData?.status === true) {
         // Set success message from API response
         setSuccessMessage(responseData?.message || t('refund_request_sent_successfully') || 'Refund request sent successfully');
@@ -278,7 +278,12 @@ export function RefundRequest() {
 
             <Text style={styles.refundInstruction}>
               {t('refund_instruction')}{' '}
-              <Text style={{ color: colors.primary, fontWeight: '600' }}>
+              <Text
+                style={{ color: colors.primary, fontWeight: '600' }}
+                onPress={() =>
+                  navigation.navigate('RefundPolicy')
+                }
+              >
                 {t('refund_policy')}
               </Text>
             </Text>

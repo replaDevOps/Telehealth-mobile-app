@@ -479,5 +479,9 @@
   "payment_method_not_available": "Payment Method Not Available",
   "only_card_payment_available": "Only card payment is currently available. Please select card payment to proceed.",
   "invalid_expiry_date": "Invalid Expiry Date",
-  "please_enter_valid_expiry_date": "Please enter a valid expiry date in MM/YYYY format."
+  "please_enter_valid_expiry_date": "Please enter a valid expiry date in MM/YYYY format.",
+  "refund_policy_content_1_title": "1. Acceptance of Terms",
+  "refund_policy_content_1_desc": "By using this app, you agree to follow these terms and conditions. If you do not agree, please stop using the app.",
+  "refund_policy_content_2_title": "2. User Account",
+  "refund_policy_content_2_desc": "You are responsible for keeping your account information secure. Do not share your login details with others."
 }

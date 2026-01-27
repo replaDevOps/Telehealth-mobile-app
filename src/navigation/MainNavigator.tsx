@@ -34,14 +34,35 @@ import {
   RefundRequest,
   PrescriptionScreen,
   CartScreen,
+  RefundPolicy,
 } from '@screens/Comman';
 
 export type MainStackParamList = {
-  Home: undefined;
-  Clinic: undefined;
-  History: undefined;
-  Setting: undefined;
-  CustomTabBar: undefined;
+  EntryPoint: undefined;
+  ChatScreen: { chatId: string; name: string };
+  CardDetails: undefined;
+  Refund: { paymentId: string;[key: string]: any };
+  CheckoutScreen: undefined;
+  CartScreen: undefined;
+  PrescriptionScreen: undefined;
+  Notification: undefined;
+  ClinicDetail: { clinic: any };
+  AudioConsultation: undefined;
+  VideoConsultation: undefined;
+  ChatOnboarding: undefined;
+  ConsultationPayment: undefined;
+  RefundPolicy: undefined;
+  HomeScreen: undefined;
+  NearbyClinics: undefined;
+  SelectLocation: undefined;
+  HistoryScreen: undefined;
+  SettingScreen: undefined;
+  ProfileSetting: { navigation: any; route?: any };
+  ChangePassword: undefined;
+  FAQs: undefined;
+  RefundRequest2: undefined;
+  RoyaltyPoints: undefined;
+  LoyaltyPointsDetails: undefined;
 };
 
 export type ClinicStackParamList = {
@@ -62,7 +83,7 @@ export type ClinicStackParamList = {
   VideoConsultation: undefined;
 };
 
-const Stack = createNativeStackNavigator();
+const Stack = createNativeStackNavigator<MainStackParamList>();
 const ClinicStack = createNativeStackNavigator<ClinicStackParamList>();
 
 export const MainNavigator = () => {
@@ -97,6 +118,7 @@ export const MainNavigator = () => {
           headerBackVisible: false, // Hide back button
         }}
       />
+      <Stack.Screen name="RefundPolicy" component={RefundPolicy} />
     </Stack.Navigator>
   );
 };

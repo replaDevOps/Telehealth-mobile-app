@@ -465,5 +465,9 @@
   "payment_method_not_available": "طريقة الدفع غير متاحة",
   "only_card_payment_available": "الدفع بالبطاقة متاح حاليًا فقط. يرجى اختيار الدفع بالبطاقة للمتابعة.",
   "invalid_expiry_date": "تاريخ انتهاء الصلاحية غير صالح",
-  "please_enter_valid_expiry_date": "الرجاء إدخال تاريخ انتهاء صالح بتنسيق MM/YYYY."
+  "please_enter_valid_expiry_date": "الرجاء إدخال تاريخ انتهاء صالح بتنسيق MM/YYYY.",
+  "refund_policy_content_1_title": "1. الموافقة على الشروط",
+  "refund_policy_content_1_desc": "باستخدام هذا التطبيق، أنت موافق على اتباع هذه الشروط والبنود. إذا كنت لا تتفق، يرجى إيقاف استخدام التطبيق.",
+  "refund_policy_content_2_title": "2. حساب المستخدم",
+  "refund_policy_content_2_desc": "أنت مسؤول عن الحفاظ على معلومات حسابك آمنة. لا تشارك تفاصيل تسجيل الدخول مع الآخرين."
 }

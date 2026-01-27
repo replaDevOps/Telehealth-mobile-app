@@ -1,17 +1,17 @@
 import type { NavigatorScreenParams } from '@react-navigation/native';
 import { AuthStackParamList } from './AuthNavigator';
-import { TabParamList } from './bottomTab';
+import { MainStackParamList } from './MainNavigator';
 
 // Root Stack
 export type RootStackParamList = {
-  Splash: undefined; // 👈 Add this line
+  Splash: undefined;
   Auth: NavigatorScreenParams<AuthStackParamList>;
-  Main: NavigatorScreenParams<TabParamList>;
-};
+  Main: NavigatorScreenParams<MainStackParamList>;
+} & MainStackParamList;
 
 // Navigation Props
 declare global {
   namespace ReactNavigation {
-    interface RootParamList extends RootStackParamList {}
+    interface RootParamList extends RootStackParamList { }
   }
 }

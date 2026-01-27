@@ -3,3 +3,4 @@ export * from './ChatScreen';
 export * from './RefundRequest';
 export * from './PrescriptionScreen';
 export * from './Cart';
+export * from './RefundPolicy';

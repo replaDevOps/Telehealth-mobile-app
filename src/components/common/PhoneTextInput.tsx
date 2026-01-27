@@ -33,7 +33,7 @@ const PhoneNumberInput: React.FC<PhoneNumberInputProps> = ({
   phoneError,
   errorMessage,
   editable = true,
-  maxLength = 11,
+  maxLength = 9,
   onValidationChange,
   initialValue = '',
   CustomStyle,

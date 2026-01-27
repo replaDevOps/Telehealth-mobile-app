@@ -33,6 +33,43 @@ export const SetPassword: React.FC<Props> = ({ navigation, route }) => {
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const validatePassword = (value: string) => {
+    const passwordRegex = /^(?=.*[0-9])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]{8,}$/;
+    return passwordRegex.test(value);
+  };
+
+  const handlePasswordChange = (text: string) => {
+    setPassword(text);
+    if (text.length > 0) {
+      if (!validatePassword(text)) {
+        setPasswordError('Password must be at least 8 characters long and include a number and a special character.');
+      } else {
+        setPasswordError('');
+      }
+    } else {
+      setPasswordError('');
+    }
+
+    if (confirmPassword && text !== confirmPassword) {
+      setConfirmPasswordError(t('passwords_not_match'));
+    } else {
+      setConfirmPasswordError('');
+    }
+  };
+
+  const handleConfirmPasswordChange = (text: string) => {
+    setConfirmPassword(text);
+    if (text.length > 0) {
+      if (password && text !== password) {
+        setConfirmPasswordError(t('passwords_not_match'));
+      } else {
+        setConfirmPasswordError('');
+      }
+    } else {
+      setConfirmPasswordError('');
+    }
+  };
+
   const handleNext = async () => {
     // Reset all errors
     setPasswordError('');
@@ -43,6 +80,9 @@ export const SetPassword: React.FC<Props> = ({ navigation, route }) => {
     // Validate password field
     if (!password.trim()) {
       setPasswordError(t('password_required'));
+      valid = false;
+    } else if (!validatePassword(password)) {
+      setPasswordError('Password must be at least 8 characters long and include a number and a special character.');
       valid = false;
     }
 
@@ -132,10 +172,7 @@ export const SetPassword: React.FC<Props> = ({ navigation, route }) => {
               label={t('password')}
               placeholder={t('enter_password')}
               value={password}
-              onChangeText={(text) => {
-                setPassword(text);
-                if (passwordError) setPasswordError('');
-              }}
+              onChangeText={handlePasswordChange}
               secureTextEntry={true}
               errorMessage={passwordError}
             />
@@ -144,10 +181,7 @@ export const SetPassword: React.FC<Props> = ({ navigation, route }) => {
               placeholder={t('confirm_your_password')}
               secureTextEntry
               value={confirmPassword}
-              onChangeText={(text) => {
-                setConfirmPassword(text);
-                if (confirmPasswordError) setConfirmPasswordError('');
-              }}
+              onChangeText={handleConfirmPasswordChange}
               errorMessage={confirmPasswordError}
             />
           </View>

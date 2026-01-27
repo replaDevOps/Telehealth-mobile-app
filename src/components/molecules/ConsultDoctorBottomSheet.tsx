@@ -419,7 +419,7 @@ export default function ConsultDoctorBottomSheet({
       
       // Format total price (from API) - this is the final price to pay
       const totalPrice = apiData?.totalPrice 
-        ? `${apiData.totalPrice} SAR` 
+        ? `${apiData.consultationPrice} SAR` 
         : apiData?.consultationPrice 
         ? `${apiData.consultationPrice} SAR`
         : selectedCard.price;

@@ -5,12 +5,13 @@ import React, {
   useMemo,
   useCallback,
 } from 'react';
-import { View, Text, ScrollView, ActivityIndicator, Alert, BackHandler, KeyboardAvoidingView, Keyboard, Platform, Image, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, ActivityIndicator, Alert, BackHandler, KeyboardAvoidingView, Platform, Image, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ServiceDetailBottomSheet } from '@components/molecules';
 import { styles } from './style';
 import { patient, RecommandImage } from '@assets/images';
 import ConsultationEndedModal from '@components/molecules/EndSectionModal';
+import ConfirmationModal from '@components/molecules/ConfirmationModal';
 import { launchImageLibrary } from 'react-native-image-picker';
 import {
   ChatHeader,
@@ -22,7 +23,6 @@ import {
   DEFAULT_CLINIC_INFO,
   CONSULTATION_DURATION,
   getCurrentTimestamp,
-  formatTime,
   getInitialMessages,
 } from '../../../constants/appData';
 import { Message, Service } from '../../../types/chat.types';
@@ -37,6 +37,7 @@ import { useAuthStore } from '@store';
 import { useProfileStore } from '@store';
 import { pusherService } from '@services/pusher/PusherService';
 import { endConsultation } from '@services/api/webrtcService';
+import { useBackgroundTimer } from '../../../hooks/useBackgroundTimer';
 
 // ---------- Main Component ----------
 export function ChatScreen({ navigation, route }) {
@@ -61,9 +62,6 @@ export function ChatScreen({ navigation, route }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [serviceDetailVisible, setServiceDetailVisible] = useState(false);
-  const [remainingSeconds, setRemainingSeconds] = useState(
-    CONSULTATION_DURATION,
-  );
   const [isConsultationActive, setIsConsultationActive] = useState(
     chatType === 'doctor' && !fromHistory,
   );
@@ -80,10 +78,10 @@ export function ChatScreen({ navigation, route }) {
   const [hasPrescription, setHasPrescription] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [consultationData, setConsultationData] = useState<any>(null);
-  const [flexToggle, setFlexToggle] = useState(false);
+  const [showEndConsultationModal, setShowEndConsultationModal] = useState(false);
   const consultationStartTimeRef = useRef<number | null>(null); // Track when consultation started
   const consultationEndedRef = useRef(false); // Prevent duplicate API calls
-  const chatTimerInitializedRef = useRef(false); // Track if timer was initialized
+  const checkPrescriptionAndShowModalRef = useRef<(() => void) | undefined>(undefined); // Ref for background timer callback
 
   const scrollRef = useRef<ScrollView>(null);
   const auth = useAuthStore(state => state.auth);
@@ -106,11 +104,6 @@ export function ChatScreen({ navigation, route }) {
   const initialMessages = useMemo(
     () => getInitialMessages(chatType, doctorInfo),
     [chatType, doctorInfo],
-  );
-
-  const consultationTime = useMemo(
-    () => formatTime(remainingSeconds),
-    [remainingSeconds],
   );
 
   const showAvatar = chatType === 'doctor';
@@ -314,38 +307,23 @@ export function ChatScreen({ navigation, route }) {
     setModalVisible(true);
   }, [endConsultationAndNotify]);
 
-  // Timer for doctor consultation - Countdown from 30 minutes (1800 seconds)
+  // Keep ref updated for background timer callback
   useEffect(() => {
-    if (chatType !== 'doctor' || !isConsultationActive) {
-      // Reset timer when consultation is not active
-      chatTimerInitializedRef.current = false;
-      setRemainingSeconds(CONSULTATION_DURATION);
-      return;
-    }
+    checkPrescriptionAndShowModalRef.current = checkPrescriptionAndShowModal;
+  }, [checkPrescriptionAndShowModal]);
 
-    // Initialize timer once when consultation becomes active
-    if (!chatTimerInitializedRef.current) {
-      chatTimerInitializedRef.current = true;
-      setRemainingSeconds(CONSULTATION_DURATION);
-      console.log('⏰ [ChatScreen] Starting 30-minute countdown timer');
-    }
+  // Use background-aware timer for 30-minute countdown (works in background)
+  const { formattedTime } = useBackgroundTimer({
+    totalDuration: CONSULTATION_DURATION,
+    isActive: chatType === 'doctor' && isConsultationActive,
+    onTimeUpRef: checkPrescriptionAndShowModalRef,
+  });
 
-    const timer = setInterval(() => {
-      setRemainingSeconds(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          setIsConsultationActive(false);
-          // Auto-end consultation at 30 minutes - check prescription and show modal
-          console.log('⏰ [ChatScreen] 30 minutes elapsed, auto-ending consultation');
-          checkPrescriptionAndShowModal();
-          return 0;
-        }
-        return prev - 1; // Count down from 30:00 to 00:00
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [isConsultationActive, chatType, checkPrescriptionAndShowModal]);
+  // Memoized consultation time display
+  const consultationTime = useMemo(
+    () => formattedTime,
+    [formattedTime],
+  );
 
   // Auto-scroll when new message arrives
   useEffect(() => {
@@ -353,22 +331,6 @@ export function ChatScreen({ navigation, route }) {
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
     }
   }, [messages.length]);
-
-  // Keyboard listeners for Android flex toggle fix
-  useEffect(() => {
-    const keyboardShowListener = Keyboard.addListener("keyboardDidShow", () => {
-      setFlexToggle(false);
-    });
-
-    const keyboardHideListener = Keyboard.addListener("keyboardDidHide", () => {
-      setFlexToggle(true);
-    });
-
-    return () => {
-      keyboardShowListener.remove();
-      keyboardHideListener.remove();
-    };
-  }, []);
 
   // Setup Pusher listeners for real-time messages
   useEffect(() => {
@@ -961,24 +923,41 @@ export function ChatScreen({ navigation, route }) {
         clinicID: clinicID,
       });
     } else {
-      // Show end consultation modal if in active chat
-      await checkPrescriptionAndShowModal();
+      // Show confirmation modal asking user if they want to end consultation
+      setShowEndConsultationModal(true);
     }
-  }, [fromHistory, clinicInfoState, consultationData, navigation, checkPrescriptionAndShowModal]);
+  }, [fromHistory, clinicInfoState, consultationData, navigation]);
+
+  const handleConfirmEndConsultation = useCallback(async () => {
+    setShowEndConsultationModal(false);
+    
+    // End the consultation first
+    await endConsultationAndNotify();
+    
+    // Navigate to clinic detail
+    const clinicID = clinicInfoState?.id || consultationData?.clinicID;
+    navigation.replace('ClinicDetail', {
+      clinic: {
+        id: clinicID,
+        name: clinicInfoState?.name || clinicInfoState?.clinicName || '',
+        location: clinicInfoState?.location || '',
+        image: clinicInfoState?.image,
+        specialty: 'General',
+        rating: 0,
+      },
+      clinicID: clinicID,
+    });
+  }, [clinicInfoState, consultationData, navigation, endConsultationAndNotify]);
 
   // ---------- Main Render ----------
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
-      style={
-        flexToggle
-          ? [{ flexGrow: 1 }, styles.container]
-          : [{ flex: 1 }, styles.container]
-      }
-      enabled={!flexToggle}
-    >
-      <SafeAreaView style={styles.container}>
+    <SafeAreaView style={{ flex: 1 }}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+        style={{ flex: 1 }}
+      >
+        <View style={styles.container}>
         <ChatHeader
           chatType={chatType}
           doctorInfo={doctorInfo}
@@ -1063,7 +1042,18 @@ export function ChatScreen({ navigation, route }) {
           visible={showBottomSheet}
           onClose={() => setShowBottomSheet(false)}
         />
-      </SafeAreaView>
-    </KeyboardAvoidingView>
+        <ConfirmationModal
+          visible={showEndConsultationModal}
+          title={t('End Consultation')}
+          message={t('Do you want to end this consultation and visit the clinic?')}
+          confirmText={t('Yes')}
+          cancelText={t('No')}
+          onConfirm={handleConfirmEndConsultation}
+          onCancel={() => setShowEndConsultationModal(false)}
+          confirmButtonStyle="destructive"
+        />
+      </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }

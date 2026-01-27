@@ -188,6 +188,22 @@ export const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#000',
   },
+  loyaltyBadge: {
+    marginTop: 8,
+    alignSelf: 'flex-start',
+    backgroundColor: '#FFF7E6',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  loyaltyBadgeText: {
+    marginLeft: 8,
+    fontSize: 12,
+    color: '#B06B00',
+    fontWeight: '600',
+  },
 
   // Suggested Services Styles
   suggestedSection: {

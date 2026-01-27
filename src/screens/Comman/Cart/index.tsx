@@ -25,6 +25,7 @@ import Geolocation from '@react-native-community/geolocation';
 import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
 import { Toast } from 'toastify-react-native';
+import { LoyaltyPSvg } from '@assets/icons';
 import { useFocusEffect } from '@react-navigation/native';
 
 export function CartScreen({ navigation }) {
@@ -602,6 +603,15 @@ export function CartScreen({ navigation }) {
                     </View>
                     <Text style={styles.servicePrice}>{service.price}</Text>
                   </View>
+                  {/* Loyalty badge per service */}
+                  {service.loyaltyPoints && Number(service.loyaltyPoints) > 0 && (
+                    <View style={styles.loyaltyBadge}>
+                      <LoyaltyPSvg width={18} height={18} />
+                      <Text style={styles.loyaltyBadgeText}>
+                        {`Earn ${Math.round(Number(service.loyaltyPoints))} loyalty points`}
+                      </Text>
+                    </View>
+                  )}
                 </View>
               </View>
             ))}
@@ -647,6 +657,15 @@ export function CartScreen({ navigation }) {
                           </Text>
                         </View>
                       </View>
+                      {/* Loyalty badge for suggested service */}
+                      {service.loyaltyPoints && Number(service.loyaltyPoints) > 0 && (
+                        <View style={styles.loyaltyBadge}>
+                          <LoyaltyPSvg width={18} height={18} />
+                          <Text style={styles.loyaltyBadgeText}>
+                            {`Earn ${Math.round(Number(service.loyaltyPoints))} loyalty points`}
+                          </Text>
+                        </View>
+                      )}
                     </View>
                     <TouchableOpacity
                       onPress={() =>
@@ -681,6 +700,17 @@ export function CartScreen({ navigation }) {
                 {calculateSubtotal(clinicGroup)}
               </Text>
             </View>
+            {/* Clinic loyalty total */}
+            {/* {clinicGroup.totalLoyaltyPoints !== undefined && Number(clinicGroup.totalLoyaltyPoints) > 0 && (
+              <View style={{ marginTop: 8, marginBottom: 8, marginLeft: 8 }}>
+                <View style={{ backgroundColor: '#FFF7E6', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center' }}>
+                  <LoyaltyPSvg width={18} height={18} />
+                  <Text style={{ marginLeft: 8, color: '#B06B00', fontWeight: '600' }}>
+                    {`Earn ${Math.round(Number(clinicGroup.totalLoyaltyPoints))} loyalty points`}
+                  </Text>
+                </View>
+              </View>
+            )} */}
 
             <CustomButton
               title={t('continue_to_checkout')}

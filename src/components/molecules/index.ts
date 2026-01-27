@@ -19,3 +19,4 @@ export * from './RoyaltyPointBar';
 export * from './GenericTabs';
 export * from './RewardBottomSheet';
 export * from './TierUnlockedModal';
+export { default as ConfirmationModal } from './ConfirmationModal';

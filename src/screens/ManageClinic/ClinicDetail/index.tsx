@@ -47,7 +47,7 @@ interface SortOption {
 export const ClinicDetailScreen = ({ navigation, route }) => {
   const { t } = useTranslation();
   const { clinic } = route.params;
-  const { addToCart } = useCart();
+  const { addToCart, cartItems } = useCart();
   const { triggerRefresh, incrementCartCount } = useCartCountContext();
   const { cartCount } = useCartCount();
   const { notificationCount } = useNotificationCount();
@@ -716,6 +716,19 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       setLoadingCheckout(true);
     } else {
       setLoadingAddToCart(true);
+    }
+
+    // If this is a checkout action and the service is already present in the cart,
+    // skip the API call and navigate directly to the cart/checkout screen.
+    if (shouldNavigate) {
+      const exists = cartItems.find(i => String(i.service.id) === String(service.id));
+      if (exists) {
+        setServiceDetailVisible(false);
+        setLoadingAddToCart(false);
+        setLoadingCheckout(false);
+        navigation.navigate('CartScreen');
+        return;
+      }
     }
 
     const startTime = Date.now();

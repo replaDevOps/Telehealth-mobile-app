@@ -29,7 +29,8 @@ export const CreatePassword: React.FC<Props> = ({ navigation, route }) => {
   const { t } = useTranslation();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [confirmPasswordError, setConfirmPasswordError] = useState('');
   const [loading, setLoading] = useState(false);
 
   // Handle back button - navigate to SignUp instead of OTP
@@ -64,23 +65,69 @@ export const CreatePassword: React.FC<Props> = ({ navigation, route }) => {
     return passwordRegex.test(value);
   };
 
+  const handlePasswordChange = (value: string) => {
+    setPassword(value);
+    
+    // Validate password in real-time if user has started typing
+    if (value.length > 0) {
+      if (!validatePassword(value)) {
+        setPasswordError(
+          'Password must be at least 8 characters long and include a number and a special character.'
+        );
+      } else {
+        setPasswordError('');
+      }
+    } else {
+      setPasswordError('');
+    }
+
+    // Also check confirm password match if it's already filled
+    if (confirmPassword && value !== confirmPassword) {
+      setConfirmPasswordError(t('passwords_not_match'));
+    } else {
+      setConfirmPasswordError('');
+    }
+  };
+
+  const handleConfirmPasswordChange = (value: string) => {
+    setConfirmPassword(value);
+    
+    // Validate confirm password in real-time if user has started typing
+    if (value.length > 0) {
+      if (password && value !== password) {
+        setConfirmPasswordError(t('passwords_not_match'));
+      } else {
+        setConfirmPasswordError('');
+      }
+    } else {
+      setConfirmPasswordError('');
+    }
+  };
+
   const handleNext = async() => {
-    setError('');
+    // Clear previous errors
+    setPasswordError('');
+    setConfirmPasswordError('');
 
     if (!password || !confirmPassword) {
-      setError(t('fields_required'));
+      if (!password) {
+        setPasswordError(t('fields_required'));
+      }
+      if (!confirmPassword) {
+        setConfirmPasswordError(t('fields_required'));
+      }
       return;
     }
 
     if (!validatePassword(password)) {
-      setError(
+      setPasswordError(
         'Password must be at least 8 characters long and include a number and a special character.',
       );
       return;
     }
 
     if (password !== confirmPassword) {
-      setError(t('passwords_not_match'));
+      setConfirmPasswordError(t('passwords_not_match'));
       return;
     }
     setLoading(true);
@@ -127,17 +174,17 @@ export const CreatePassword: React.FC<Props> = ({ navigation, route }) => {
               label={t('password')}
               placeholder={t('enter_password')}
               value={password}
-              onChangeText={setPassword}
+              onChangeText={handlePasswordChange}
               secureTextEntry={true}
-              errorMessage={error}
+              errorMessage={passwordError}
             />
             <CustomTextInput
               label={t('confirm_password')}
               placeholder={t('confirm_your_password')}
               secureTextEntry
               value={confirmPassword}
-              onChangeText={text => setConfirmPassword(text)}
-              errorMessage={error}
+              onChangeText={handleConfirmPasswordChange}
+              errorMessage={confirmPasswordError}
             />
           </View>
 

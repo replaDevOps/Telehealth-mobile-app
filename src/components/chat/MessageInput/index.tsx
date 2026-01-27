@@ -2,8 +2,7 @@ import React from 'react';
 import {
   TextInput,
   TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
+  View,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { colors } from '../../../styles/colors';
@@ -29,11 +28,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   }
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-      style={styles.inputContainer}
-    >
+    <View style={styles.inputContainer}>
       <TouchableOpacity style={styles.cameraButton} onPress={handleImagePick}>
         <Ionicons
           name="camera-outline"
@@ -59,6 +54,6 @@ export const MessageInput: React.FC<MessageInputProps> = ({
       >
         <Ionicons name="send" size={24} color={colors.white} />
       </TouchableOpacity>
-    </KeyboardAvoidingView>
+    </View>
   );
 };

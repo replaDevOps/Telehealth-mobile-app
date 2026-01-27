@@ -19,6 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { API } from '@services/api/api-endpoint';
 import { Toast } from 'toastify-react-native';
+import { apiClient } from '@services/api/api-client';
 import { BASE_URL } from '@constants';
 import { useAuthStore } from '@store';
 import { AuthStackParamList } from '../../../navigation/AuthNavigator';
@@ -105,6 +106,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   const [genderError, setGenderError] = useState('');
   const [profileImageError, setProfileImageError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingSkip, setLoadingSkip] = useState(false);
 
   const handleImageSelected = (uri: string) => {
     setProfileImage(uri);
@@ -235,8 +237,69 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
-  const handleSkip = () => {
-    navigation.navigate('SignIn');
+  const handleSkip = async () => {
+    // Clear previous field errors
+    setPhoneError('');
+    setEmailError('');
+
+    // Ensure required fields are present before calling the skip API
+    if (!phone || !phone.trim()) {
+      setPhoneError(t('phone_required') || 'Phone number is required');
+      return;
+    }
+
+    if (!email || !email.trim() || !email.includes('@')) {
+      setEmailError(t('email_required') || 'Email is required');
+      return;
+    }
+
+    setLoadingSkip(true);
+    try {
+      // Build payload: phoneNo and email are required; include other profile fields if provided
+      const payload: any = {
+        phoneNo: phone.trim(),
+        email: email.trim(),
+      };
+
+      if (fullName && fullName.trim()) payload.fullName = fullName.trim();
+      if (nationality) payload.nationality = nationality;
+      if (IdCardNumber && IdCardNumber.trim()) payload.nationalID = IdCardNumber.trim();
+      if (gender) payload.gender = gender;
+      if (age && age.trim()) payload.age = age.trim();
+
+      const response = await apiClient.post(API.AUTH.SKIP, payload);
+
+      // API may return success:false with message field — prefer showing field errors
+      const serverMsg = response?.data?.message || '';
+      if (response?.data?.success === false) {
+        const lower = String(serverMsg).toLowerCase();
+        if (lower.includes('phone')) {
+          setPhoneError(serverMsg);
+        } else if (lower.includes('email')) {
+          setEmailError(serverMsg);
+        } else {
+          Toast.error(serverMsg || 'Skip failed');
+        }
+        return;
+      }
+
+      if (response.status >= 200 && response.status < 300) {
+        const msg = response.data?.message || 'Skipped successfully';
+        Toast.success(msg);
+        navigation.navigate('SignIn');
+      } else {
+        const errMsg = response.data?.message || 'Skip failed';
+        Toast.error(errMsg);
+      }
+    } catch (err: any) {
+      const errMsg = err?.response?.data?.message || err?.message || 'Skip failed';
+      const lower = String(errMsg).toLowerCase();
+      if (lower.includes('phone')) setPhoneError(errMsg);
+      else if (lower.includes('email')) setEmailError(errMsg);
+      else Toast.error(errMsg);
+    } finally {
+      setLoadingSkip(false);
+    }
   };
 
   // Determine signup method based on route params

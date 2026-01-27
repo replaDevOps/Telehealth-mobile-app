@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   Image,
   StatusBar,
 } from 'react-native';
+import { useBackgroundTimer } from '../../../hooks/useBackgroundTimer';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -39,10 +40,9 @@ export function VideoConsultation({ navigation, route }) {
   const [callDuration, setCallDuration] = useState(0);
   const [modalVisible, setModalVisible] = useState(false);
   const CONSULTATION_MAX_DURATION = 30 * 60; // 30 minutes in seconds (1800 seconds)
-  const [remainingSeconds, setRemainingSeconds] = useState(CONSULTATION_MAX_DURATION);
   const consultationStartTimeRef = useRef<number | null>(null);
   const consultationEndedRef = useRef(false);
-  const timerInitializedRef = useRef(false);
+  const handleEndCallRef = useRef<(() => void) | undefined>(undefined);
   const auth = useAuthStore(state => state.auth);
   const patientID = auth?.id;
 
@@ -201,13 +201,7 @@ export function VideoConsultation({ navigation, route }) {
     };
   }, [consultationID]);
 
-  const formatDuration = seconds => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-  };
-
-  const handleEndCall = async () => {
+  const handleEndCall = useCallback(async () => {
     if (consultationEndedRef.current) return;
     consultationEndedRef.current = true;
 
@@ -261,40 +255,19 @@ export function VideoConsultation({ navigation, route }) {
       console.log('📞 [VideoConsultation] Calling endCall() after modal is shown');
       endCall();
     }, 300);
-  };
+  }, [consultationID, userId, isInitiator, patientID, recipientID, endCall]);
 
-  // Auto-disconnect after 30 minutes - countdown timer (works for both patient and doctor)
+  // Keep handleEndCallRef updated with latest handleEndCall
   useEffect(() => {
-    if (!isConnected) {
-      // Reset flags when disconnected
-      timerInitializedRef.current = false;
-      setRemainingSeconds(CONSULTATION_MAX_DURATION);
-      return;
-    }
+    handleEndCallRef.current = handleEndCall;
+  }, [handleEndCall]);
 
-    // Initialize timer once when call connects
-    if (!timerInitializedRef.current) {
-      timerInitializedRef.current = true;
-      setRemainingSeconds(CONSULTATION_MAX_DURATION);
-      console.log('⏰ [VideoConsultation] Starting 30-minute countdown timer');
-    }
-
-    const timer = setInterval(() => {
-      setRemainingSeconds(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          console.log('⏰ [VideoConsultation] 30 minutes elapsed, auto-ending call');
-          // Auto-end the call - this will call handleEndCall which shows modal
-          handleEndCall();
-          return 0;
-        }
-        return prev - 1; // Count down
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [isConnected, handleEndCall]);
-
+  // Use background-aware timer for 30-minute countdown
+  const { remainingSeconds, formattedTime } = useBackgroundTimer({
+    totalDuration: CONSULTATION_MAX_DURATION,
+    isActive: isConnected,
+    onTimeUpRef: handleEndCallRef,
+  });
 
   // Determine call status - show countdown timer when connected
   const getCallStatus = () => {
@@ -302,7 +275,7 @@ export function VideoConsultation({ navigation, route }) {
     if (isConnecting) return t('connecting');
     if (isConnected) {
       // Show countdown timer (remainingSeconds counts down from 30:00 to 00:00)
-      return formatDuration(remainingSeconds);
+      return formattedTime;
     }
     return t('connecting');
   };

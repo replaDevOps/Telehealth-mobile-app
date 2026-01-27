@@ -28,6 +28,8 @@ export const API = {
     VERIFY_OTP_PASSWORD: '/patient-auth/verifyOtpPassword',
     // RESET PASSWORD
     RESET_PASSWORD: '/patient-auth/resetPassword',
+    // SKIP (complete profile later)
+    SKIP: '/patient-auth/skip',
     LOGOUT: '/patient-auth/logout',
   },
   SETTINGS: {

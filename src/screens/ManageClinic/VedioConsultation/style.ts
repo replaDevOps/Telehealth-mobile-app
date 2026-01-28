@@ -113,5 +113,26 @@ export const styles = StyleSheet.create({
       shadowRadius: 4.65,
       elevation: 8,
     },
+    getPrescriptionButton: {
+      backgroundColor: colors.primary,
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+      borderRadius: 25,
+      marginTop: 20,
+      alignSelf: 'center',
+      shadowColor: '#000',
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.25,
+      shadowRadius: 3.84,
+      elevation: 5,
+    },
+    getPrescriptionButtonText: {
+      color: colors.white,
+      fontSize: 16,
+      fontWeight: '600',
+    },
   });
   

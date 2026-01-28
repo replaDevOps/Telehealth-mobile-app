@@ -67,7 +67,7 @@ export function AudioConsultation({ navigation, route }) {
   const handleGetPrescription = () => {
     setModalVisible(false);
     console.log('User wants to get the prescription for consultation:', consultationID);
-    navigation.navigate('PrescriptionScreen', {
+    navigation.replace('PrescriptionScreen', {
       consultationID: consultationID,
     });
   };
@@ -348,6 +348,7 @@ export function AudioConsultation({ navigation, route }) {
           visible={modalVisible}
           onClose={handleClose}
           onGetPrescription={handleGetPrescription}
+          hasPrescription={true}
         />
       </ImageBackground>
     </View>

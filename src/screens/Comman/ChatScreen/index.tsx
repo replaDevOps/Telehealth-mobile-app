@@ -5,7 +5,7 @@ import React, {
   useMemo,
   useCallback,
 } from 'react';
-import { View, Text, ScrollView, ActivityIndicator, Alert, BackHandler, KeyboardAvoidingView, Platform, Image, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, ActivityIndicator, Alert, BackHandler, KeyboardAvoidingView, Keyboard, Platform, Image, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ServiceDetailBottomSheet } from '@components/molecules';
 import { styles } from './style';
@@ -79,6 +79,7 @@ export function ChatScreen({ navigation, route }) {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [consultationData, setConsultationData] = useState<any>(null);
   const [showEndConsultationModal, setShowEndConsultationModal] = useState(false);
+  const [flexToggle, setFlexToggle] = useState(false);
   const consultationStartTimeRef = useRef<number | null>(null); // Track when consultation started
   const consultationEndedRef = useRef(false); // Prevent duplicate API calls
   const checkPrescriptionAndShowModalRef = useRef<(() => void) | undefined>(undefined); // Ref for background timer callback
@@ -108,6 +109,22 @@ export function ChatScreen({ navigation, route }) {
 
   const showAvatar = chatType === 'doctor';
   const canSendMessages = !fromHistory;
+
+  // Keyboard listeners for Android flex toggle fix
+  useEffect(() => {
+    const keyboardShowListener = Keyboard.addListener("keyboardDidShow", () => {
+      setFlexToggle(false);
+    });
+
+    const keyboardHideListener = Keyboard.addListener("keyboardDidHide", () => {
+      setFlexToggle(true);
+    });
+
+    return () => {
+      keyboardShowListener.remove();
+      keyboardHideListener.remove();
+    };
+  }, []);
 
   // ---------- Lifecycle ----------
   useEffect(() => {
@@ -953,11 +970,15 @@ export function ChatScreen({ navigation, route }) {
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
-        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+        style={
+          flexToggle
+            ? [{ flexGrow: 1 }, styles.container]
+            : [{ flex: 1 }, styles.container]
+        }
+        enabled={!flexToggle}
       >
-        <View style={styles.container}>
         <ChatHeader
           chatType={chatType}
           doctorInfo={doctorInfo}
@@ -1052,7 +1073,6 @@ export function ChatScreen({ navigation, route }) {
           onCancel={() => setShowEndConsultationModal(false)}
           confirmButtonStyle="destructive"
         />
-      </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

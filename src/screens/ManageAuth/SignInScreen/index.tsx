@@ -232,13 +232,14 @@ export function SignInScreen({ navigation }) {
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <Header2 title="" showLanguage={true} />
+        
         <ScrollView
           style={styles.container}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: mvs(30) }}
           keyboardShouldPersistTaps="handled"
         >
+          <Header2 title="" showLanguage={true} inScrollView={true} />
           <View style={styles.logoContainer}>
             <LogoSvg />
           </View>
@@ -370,13 +371,15 @@ export function SignInScreen({ navigation }) {
             <View style={styles.line} />
           </View>
 
-          <TouchableOpacity
-            style={styles.appleButton}
-            onPress={() => console.log('Apple Sign In')}
-          >
-            <AntDesign name="apple1" size={20} color={colors.white} />
-            <Text style={styles.appleText}>{t('sign_in_apple')}</Text>
-          </TouchableOpacity>
+          {Platform.OS === 'ios' && (
+            <TouchableOpacity
+              style={styles.appleButton}
+              onPress={() => console.log('Apple Sign In')}
+            >
+              <AntDesign name="apple1" size={20} color={colors.white} />
+              <Text style={styles.appleText}>{t('sign_in_apple')}</Text>
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity
             style={styles.googleButton}

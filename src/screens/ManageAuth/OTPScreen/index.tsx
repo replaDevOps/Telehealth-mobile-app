@@ -133,7 +133,8 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
 
       // Check for success: false in response
       if (response.data?.success === false) {
-        const errorMessage = response.data?.message || 'Invalid OTP';
+        const defaultError = t('invalid_code_try_again');
+        const errorMessage = response.data?.message || defaultError;
         Toast.error(errorMessage);
         // Clear all inputs on error
         setInputValues(Array(5).fill(''));
@@ -150,7 +151,8 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
         return;
       }
 
-      const successMessage = response.data?.message || 'OTP verified successfully';
+      const defaultSuccess = source === 'forgotPassword' ? t('otp_verified') : t('email_verified_success');
+      const successMessage = response.data?.message || defaultSuccess;
       Toast.success(successMessage);
 
       if (source === 'forgotPassword') {

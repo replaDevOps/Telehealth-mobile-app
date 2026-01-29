@@ -8,9 +8,9 @@ import { styles } from '../style';
 import type { PaymentItem } from './PaymentCard';
 
 const ICON_MAP = {
-  Video: 'videocam',
-  Chat: 'chatbubble',
-  Audio: 'mic',
+  Video: 'videocam-outline',
+  Chat: 'chatbubble-outline',
+  Audio: 'mic-outline',
 } as const;
 
 interface PaymentHeaderProps {

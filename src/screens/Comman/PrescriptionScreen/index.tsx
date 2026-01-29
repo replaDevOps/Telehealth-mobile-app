@@ -110,6 +110,7 @@ interface InfoSectionProps {
 interface SectionProps {
   title: string;
   children: React.ReactNode;
+  style?: object;
 }
 
 interface MedicationCardProps {
@@ -635,8 +636,38 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
     const firstPrescription = apiData.prescriptions?.[0];
     const appointmentDateStr = firstPrescription?.created_at || apiData.created_at || '';
 
-    // Map medications from prescriptions array
-    const medications: Medication[] = (apiData.prescriptions || []).map((prescription: any, index: number) => {
+    // Map medications from prescriptions array (raw data)
+    const rawMedications: Array<{
+      id: number;
+      name: string;
+      description: string;
+      startDate?: string;
+      endDate?: string;
+    }> = (apiData.prescriptions || []).map((prescription: any, index: number) => ({
+      id: prescription.id || index + 1,
+      name: prescription.name || '',
+      description: prescription.description || '',
+      startDate: prescription.startDate,
+      endDate: prescription.endDate,
+    }));
+
+    // Extract diagnosis entry (name === 'diagnosis')
+    const isDiagnosisEntry = (m: any) => typeof m.name === 'string' && m.name.trim().toLowerCase() === 'diagnosis';
+    const diagnosisIndex = rawMedications.findIndex(isDiagnosisEntry);
+    const diagnosisEntry = diagnosisIndex >= 0 ? rawMedications[diagnosisIndex] : undefined;
+    const diagnosisText = diagnosisEntry ? (diagnosisEntry.description || '') : '';
+
+    // Extract treatment entry (the item immediately after diagnosis)
+    let treatmentEntry: any;
+    if (diagnosisIndex >= 0 && rawMedications.length > diagnosisIndex + 1) {
+      treatmentEntry = rawMedications[diagnosisIndex + 1];
+    }
+
+    // Build medications list excluding diagnosis and treatment entries
+    const filteredMedications = rawMedications.filter(m => m !== diagnosisEntry && m !== treatmentEntry);
+
+    // Map filtered medications to final format
+    const medications: Medication[] = filteredMedications.map((prescription: any) => {
       // Calculate duration from startDate to endDate
       let duration = '';
       if (prescription.startDate && prescription.endDate) {
@@ -652,10 +683,10 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
       }
 
       return {
-        id: prescription.id || index + 1,
+        id: prescription.id,
         name: prescription.name || '',
-        genericName: prescription.name || '', // API doesn't provide generic name, use name
-        dosage: prescription.description || '', // Use description as dosage/instructions
+        genericName: prescription.name || '',
+        dosage: prescription.description || '',
         duration: duration,
         instructions: prescription.description || '',
       };
@@ -679,15 +710,31 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
     // Map clinic data
     const clinicData = apiData.clinic || {};
 
-    // Map service to treatment
+    // Map service data
     const serviceData = apiData.service || {};
-    const treatment = serviceData.name ? {
-      name: serviceData.name || '',
-      notes: serviceData.description || serviceData.procedure || '',
-    } : undefined;
 
     // Map patient data
     const patientData = apiData.patient || {};
+
+    // Capitalize words helper
+    const capitalizeWords = (str: any) => {
+      if (!str && str !== 0) return '';
+      return String(str)
+        .split(' ')
+        .map(s => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s))
+        .join(' ');
+    };
+
+    // Build diagnosis object if diagnosis text exists
+    const diagnosis = diagnosisText ? {
+      summary: [diagnosisText]
+    } : undefined;
+
+    // Build treatment object from treatment entry if it exists
+    const treatment = treatmentEntry ? {
+      name: treatmentEntry.name || '',
+      notes: treatmentEntry.description || '',
+    } : undefined;
 
     return {
       id: `#${consultationID || 'N/A'}`,
@@ -702,14 +749,18 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
       clinic: {
         name: clinicData.clinicName || clinicData.name || '',
         location: clinicData.location || clinicData.city || '',
-        specialization: serviceData.name || serviceData.serviceType || '',
+        specialization: serviceData.name
+          ? capitalizeWords(serviceData.name)
+          : serviceData.serviceType
+          ? capitalizeWords(serviceData.serviceType)
+          : '',
       },
       patient: {
         name: patientData.name || '',
         age: parseInt(patientData.age || '0', 10),
-        gender: patientData.gender || '',
+        gender: patientData.gender ? capitalizeWords(patientData.gender) : '',
       },
-      diagnosis: undefined, // API doesn't provide diagnosis
+      diagnosis: diagnosis,
       treatment: treatment,
       medications: medications,
     };
@@ -872,17 +923,18 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
         {/* Medications Section */}
         {prescription.medications && prescription.medications.length > 0 && (
           <Section title={t('medication')}>
-            {prescription.medications.map(medication => (
+            {prescription.medications.map((medication, index) => (
               <MedicationCard
                 key={medication.id}
                 medication={medication}
                 t={t}
+                index={index}
               />
             ))}
           </Section>
         )}
 
-        <Section title={t('doctors_signature')}>
+        <Section title={t('doctors_signature')} style={{borderBottomWidth: 0}}>
           <View style={styles.signatureBox}>
             <Image
               source={prescription.doctor.signatureImage}
@@ -943,33 +995,68 @@ const InfoSection: React.FC<InfoSectionProps> = ({ title, items }) => (
   </View>
 );
 
-const Section: React.FC<SectionProps> = ({ title, children }) => (
-  <View style={styles.section}>
+const Section: React.FC<SectionProps> = ({ title, children, style }) => (
+  <View style={[styles.section, style]}>
     <Text style={styles.sectionTitle}>{title}</Text>
     {children}
   </View>
 );
 
-const MedicationCard: React.FC<MedicationCardProps> = ({ medication, t }) => (
-  <View style={styles.medicationCard}>
-    <Text style={styles.medicationName}>{medication.name}</Text>
-    <Text style={styles.medicationGeneric}>{medication.genericName}</Text>
+const MedicationCard: React.FC<MedicationCardProps & { index?: number }> = ({ medication, t, index }) => {
+  // Parse description string into fields: Dosage, Duration, Instructions
+  const parseDescription = (desc?: string) => {
+    const result = { dosage: '', duration: '', instructions: '' };
+    if (!desc) return result;
+    const parts = desc.split(',').map(p => p.trim()).filter(Boolean);
+    parts.forEach(part => {
+      const [key, ...rest] = part.split(':');
+      if (!key) return;
+      const val = rest.join(':').trim();
+      const k = key.trim().toLowerCase();
+      if (k.includes('dosage')) result.dosage = val;
+      else if (k.includes('duration')) result.duration = val;
+      else if (k.includes('instruction') || k.includes('notes')) result.instructions = val;
+      else {
+        // append unknown parts to instructions
+        result.instructions = result.instructions ? `${result.instructions}, ${part}` : part;
+      }
+    });
+    return result;
+  };
 
-    <View style={styles.medicationDetails}>
-      <View style={styles.medicationRow}>
-        <Text style={styles.medicationLabel}>{t('dosage')}</Text>
-        <Text style={styles.medicationValue}>{medication.dosage}</Text>
+  const parsed = parseDescription(medication.dosage || medication.instructions);
+  const dosage = parsed.dosage || medication.dosage || 'N/A';
+  const duration = parsed.duration || medication.duration || 'N/A';
+  const instructions = parsed.instructions || '';
+
+  return (
+    <View style={styles.medicationCard}>
+      {typeof index === 'number' && (
+        <Text style={styles.medicineIndexLabel}>{`Medicine ${index + 1}:`}</Text>
+      )}
+
+      <TouchableOpacity activeOpacity={0.8}>
+        <Text style={styles.medicineNameLink}>{medication.name}</Text>
+      </TouchableOpacity>
+
+      <View style={styles.medTwoColRow}>
+        <View style={styles.medColumn}>
+          <Text style={styles.medFieldLabel}>{t('dosage')}:</Text>
+          <Text style={styles.medFieldValue}>{dosage}</Text>
+        </View>
+
+        <View style={styles.medColumn}>
+          <Text style={styles.medFieldLabel}>{t('duration')}:</Text>
+          <Text style={styles.medFieldValue}>{duration}</Text>
+        </View>
       </View>
-      <View style={styles.medicationRow}>
-        <Text style={styles.medicationLabel}>{t('duration')}</Text>
-        <Text style={styles.medicationValue}>{medication.duration}</Text>
-      </View>
+
+      {instructions ? (
+        <>
+          <Text style={styles.medTreatmentNotesLabel}>{t('treatment_notes')}:</Text>
+          <Text style={styles.medTreatmentNotesValue}>{instructions}</Text>
+        </>
+      ) : null}
     </View>
-
-    {medication.instructions && (
-      <Text style={styles.medicationInstructions}>
-        {t('instructions')}: {medication.instructions}
-      </Text>
-    )}
-  </View>
-);
+  );
+};

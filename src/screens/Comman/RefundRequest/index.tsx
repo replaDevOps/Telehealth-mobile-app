@@ -103,8 +103,9 @@ export function RefundRequest() {
       const responseData = response.data?.data || response.data;
 
       if (responseData?.status === true) {
+        console.log('Refund request submitted successfully:', responseData);
         // Set success message from API response
-        setSuccessMessage(responseData?.message || t('refund_request_sent_successfully') || 'Refund request sent successfully');
+        setSuccessMessage( t('refund_request_sent_successfully') || 'Refund request sent successfully');
         setShowSuccessModal(true);
       } else {
         throw new Error(responseData?.message || response.data?.message || t('failed_to_submit_refund') || 'Failed to submit refund request');
@@ -168,9 +169,10 @@ export function RefundRequest() {
 
         {/* Scrollable Content */}
         <ScrollView
-          contentInsetAdjustmentBehavior="automatic"
+          // contentInsetAdjustmentBehavior="automatic"
           style={styles.container}
           showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 140 }}
         >
           <View style={styles.mainSection}>
             <Text style={{ fontWeight: '600', marginBottom: 12 }}>
@@ -251,7 +253,7 @@ export function RefundRequest() {
                   padding: 16,
                   backgroundColor: '#f8f8f8',
                   borderRadius: 12,
-                  marginTop: 16,
+                  marginBottom: 16,
                 }}
               >
                 <View

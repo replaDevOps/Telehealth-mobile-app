@@ -121,11 +121,16 @@ export const styles = StyleSheet.create({
       color: colors.text,
       lineHeight: mvs(18),
       fontWeight: '500',
+      textTransform: 'capitalize',
     },
   
     // Section Styles
     section: {
-      marginBottom: mvs(24),
+      marginBottom: mvs(12),
+      paddingHorizontal: mvs(12),
+      paddingBottom: mvs(12),
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
     },
     sectionTitle: {
       fontSize: mvs(16),
@@ -136,10 +141,7 @@ export const styles = StyleSheet.create({
   
     // Diagnosis Styles
     diagnosisBox: {
-      padding: mvs(16),
       borderRadius: mvs(12),
-      borderBottomColor: colors.border,
-      borderBottomWidth: 1,
     },
     diagnosisLabel: {
       fontSize: mvs(11),
@@ -158,10 +160,6 @@ export const styles = StyleSheet.create({
   
     // Treatment Styles
     treatmentBox: {
-      borderBottomWidth: 1,
-      borderColor: colors.border,
-      padding: mvs(16),
-      borderRadius: mvs(12),
     },
     treatmentLabel: {
       fontSize: mvs(11),
@@ -183,63 +181,65 @@ export const styles = StyleSheet.create({
   
     // Medication Card Styles
     medicationCard: {
-      backgroundColor: '#FCFBFC',
-      borderWidth: 1,
-      borderColor: colors.border,
-      padding: mvs(16),
-      borderRadius: mvs(12),
-      marginBottom: mvs(12),
-    },
-    medicationName: {
-      fontSize: mvs(15),
-      fontWeight: '600',
-      color: colors.text,
-      marginBottom: mvs(4),
-    },
-    medicationGeneric: {
-      fontSize: mvs(14),
-      color: colors.primary,
-      marginBottom: mvs(12),
-      fontWeight: '500',
-    },
-    medicationDetails: {
-      paddingHorizontal: mvs(12),
-      borderRadius: mvs(8),
-    },
-    medicationRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginBottom: mvs(8),
-    },
-    medicationLabel: {
-      fontSize: mvs(12),
-      color: colors.secondaryText,
-      fontWeight: '500',
-    },
-    medicationValue: {
-      paddingHorizontal: mvs(12),
-
-      fontSize: mvs(13),
-      color: colors.text,
-      fontWeight: '600',
-    },
-    medicationInstructions: {
-      paddingHorizontal: mvs(12),
-
-      fontSize: mvs(13),
-      color: colors.secondaryText,
-      lineHeight: mvs(18),
-      fontStyle: 'italic',
-    },
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: mvs(16),
+    borderRadius: mvs(12),
+    marginBottom: mvs(12),
   
-    // Signature Styles
-    signatureBox: {
-      alignItems: 'flex-start',
-    },
-    signatureImage: {
-      width: mvs(100),
-      height: mvs(84),
-    },
+  },
+  medicineIndexLabel: {
+    fontSize: mvs(13),
+    color: colors.secondaryText,
+    marginBottom: mvs(6),
+  },
+  medicineNameLink: {
+    fontSize: mvs(16),
+    fontWeight: '600',
+    color: colors.primary,
+    marginBottom: mvs(12),
+  },
+  medTwoColRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: mvs(12),
+  },
+  medColumn: {
+    flex: 1,
+    paddingRight: mvs(8),
+  },
+  medFieldLabel: {
+    fontSize: mvs(12),
+    color: colors.secondaryText,
+    marginBottom: mvs(6),
+  },
+  medFieldValue: {
+    fontSize: mvs(15),
+    color: colors.text,
+    fontWeight: '500',
+    lineHeight: mvs(20),
+  },
+  medTreatmentNotesLabel: {
+    fontSize: mvs(13),
+    color: colors.secondaryText,
+    marginBottom: mvs(6),
+  },
+  medTreatmentNotesValue: {
+    fontSize: mvs(14),
+    color: colors.text,
+    lineHeight: mvs(20),
+  },
+
+  // Signature Styles
+  signatureBox: {
+    alignItems: 'flex-start',
+  },
+  signatureImage: {
+    width: mvs(100),
+    height: mvs(84),
+  },
   
     // Footer & Button Styles
     footer: {
@@ -295,6 +295,4 @@ export const styles = StyleSheet.create({
       textAlign: 'center',
       lineHeight: 22,
     },
-  });
-  
-;
+});

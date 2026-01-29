@@ -319,11 +319,12 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
-      <Header2 title="" showLanguage={true} />
+      
       <KeyboardAvoidScrollview
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: mvs(30) }}
       >
+        <Header2 title="" showLanguage={true} inScrollView={true} />
         <View style={styles.container}>
           <UserProfile
             profileImage={profileImage}

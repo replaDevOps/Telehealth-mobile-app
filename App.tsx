@@ -16,6 +16,7 @@ setGlobalFont();
 const AppContent = () => {
   // Setup Pusher notifications
   usePusherNotifications();
+  
 
   return (
     <>

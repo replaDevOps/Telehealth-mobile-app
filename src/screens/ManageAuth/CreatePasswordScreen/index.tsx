@@ -139,7 +139,8 @@ export const CreatePassword: React.FC<Props> = ({ navigation, route }) => {
       Toast.error((err as Error).message);
       return; 
     }
-    Toast.success(data.data.message);
+    const successMsg = data?.data?.message || t('password_created_success');
+    Toast.success(successMsg);
     setLoading(false);
     // Pass email/phone data to Profile screen
     navigation.navigate('Profile', {

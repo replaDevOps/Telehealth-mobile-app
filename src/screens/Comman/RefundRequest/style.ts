@@ -76,7 +76,7 @@ export const styles = StyleSheet.create({
     marginBottom: 8,
     fontWeight: '500',
   },
-  mainSection:{flex:1,padding:16},
+  mainSection:{padding:16},
   serviceCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',

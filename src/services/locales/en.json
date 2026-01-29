@@ -312,6 +312,7 @@
   "failed_to_load_prescription": "Failed to load prescription data.",
   "retry": "Retry",
   "prescription_downloaded_successfully": "Prescription downloaded successfully!",
+  "prescription_saved_successfully": "Prescription saved as PDF successfully",
   "failed_to_download_prescription": "Failed to download prescription. Please try again.",
   "consultation_id_required": "Consultation ID is required",
   "loading": "Loading...",

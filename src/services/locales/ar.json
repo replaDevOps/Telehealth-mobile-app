@@ -314,6 +314,7 @@
   "failed_to_load_prescription": "فشل تحميل بيانات الوصفة الطبية.",
   "retry": "إعادة المحاولة",
   "prescription_downloaded_successfully": "تم تنزيل الوصفة الطبية بنجاح!",
+  "prescription_saved_successfully": "تم حفظ الوصفة كملف PDF بنجاح",
   "failed_to_download_prescription": "فشل تنزيل الوصفة الطبية. الرجاء المحاولة مرة أخرى.",
   "consultation_id_required": "معرف الاستشارة مطلوب",
   "loading": "جاري التحميل...",

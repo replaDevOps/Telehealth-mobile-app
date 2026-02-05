@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { View, ScrollView, StyleSheet, StatusBar, ActivityIndicator, Text, Platform, PermissionsAndroid } from 'react-native';
+import { View, ScrollView, StyleSheet, StatusBar, ActivityIndicator, Text, Platform, PermissionsAndroid, RefreshControl } from 'react-native';
 import HomeHeader from '../../../components/molecules/HomeHeadder';
 import { colors } from '../../../styles/colors';
 import { mvs } from '../../../config/metrices';
@@ -37,6 +37,7 @@ export const HomeScreen = ({ navigation }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
   const [hasAudioPermission, setHasAudioPermission] = useState(false);
   const [hasVideoPermission, setHasVideoPermission] = useState(false);
   
@@ -301,6 +302,22 @@ export const HomeScreen = ({ navigation }) => {
     setSearchQuery(text);
   };
 
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    setRecommendedClinics([]);
+    setNearbyClinics([]);
+    setCurrentPage(1);
+    setHasMore(true);
+    
+    if (location) {
+      await fetchClinics(location.lat, location.long, 1, recordsPerPage, searchQuery, false);
+    } else {
+      await fetchClinics(undefined, undefined, 1, recordsPerPage, searchQuery, false);
+    }
+    
+    setRefreshing(false);
+  }, [location, searchQuery, fetchClinics, recordsPerPage]);
+
   const handleSLPress = () => {
     navigation.navigate('SelectLocation');
   };
@@ -377,6 +394,14 @@ export const HomeScreen = ({ navigation }) => {
           onScroll={handleScroll}
           scrollEventThrottle={16}
           onMomentumScrollEnd={handleScroll}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={['#7625D7']}
+              tintColor="#7625D7"
+            />
+          }
         >
           {recommendedClinics.length > 0 && (
             <RecommendedClinics

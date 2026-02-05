@@ -204,6 +204,7 @@ export const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
     try {
       setLoadingClinicTypes(true);
       const response = await apiClient.get(API.CLINIC.GET_CLINIC_TYPES);
+      console.log('Clinic types response:', response.data);
       if (response.data.success && response.data.data) {
         setClinicTypes(response.data.data);
         // Initialize filter state with clinic types, preserving existing selections

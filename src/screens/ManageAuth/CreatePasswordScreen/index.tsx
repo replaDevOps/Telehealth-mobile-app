@@ -111,10 +111,10 @@ export const CreatePassword: React.FC<Props> = ({ navigation, route }) => {
 
     if (!password || !confirmPassword) {
       if (!password) {
-        setPasswordError(t('fields_required'));
+        setPasswordError(t('password_required'));
       }
       if (!confirmPassword) {
-        setConfirmPasswordError(t('fields_required'));
+        setConfirmPasswordError(t('confirm_password_required'));
       }
       return;
     }
@@ -139,7 +139,7 @@ export const CreatePassword: React.FC<Props> = ({ navigation, route }) => {
       Toast.error((err as Error).message);
       return; 
     }
-    const successMsg = data?.data?.message || t('password_created_success');
+    const successMsg = t('password_created_success');
     Toast.success(successMsg);
     setLoading(false);
     // Pass email/phone data to Profile screen

@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   category: {
-    fontSize: 14,
+    fontSize: 10,
     color: colors.primary,
     fontWeight: '500',
     marginBottom: 8,

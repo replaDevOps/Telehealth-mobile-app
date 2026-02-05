@@ -7,7 +7,7 @@ import { RecommandImage } from '@assets/images';
 import { colors } from '../../../styles/colors';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { StyleSheet, ScrollView, ActivityIndicator, View, Text } from 'react-native';
+import { StyleSheet, ScrollView, ActivityIndicator, View, Text, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useFocusEffect } from '@react-navigation/native';
@@ -44,6 +44,7 @@ export const ClinicScreen = ({ navigation, route }) => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [filterParams, setFilterParams] = useState<FilterParams | null>(null);
   const isInitialMountRef = useRef(true);
   const isLoadingMoreRef = useRef(false);
@@ -333,6 +334,18 @@ export const ClinicScreen = ({ navigation, route }) => {
     }
   }, [hasMore, loadingMore, loading, loadMoreClinics]);
 
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    setRecommendedClinics([]);
+    setNearbyClinics([]);
+    setCurrentPage(1);
+    setHasMore(true);
+    
+    await fetchAllClinics(searchQuery, filterParams, 1, false);
+    
+    setRefreshing(false);
+  }, [searchQuery, filterParams, fetchAllClinics]);
+
   return (
     <SafeAreaView style={styles.container}>
       <Header2 title={t('clinic')} />
@@ -359,6 +372,14 @@ export const ClinicScreen = ({ navigation, route }) => {
           onScroll={handleScroll}
           scrollEventThrottle={16}
           onMomentumScrollEnd={handleScroll}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={['#7625D7']}
+              tintColor="#7625D7"
+            />
+          }
         >
           {recommendedClinics.length > 0 && (
             <RecommendedClinics

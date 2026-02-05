@@ -30,7 +30,7 @@ export const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     color: colors.secondaryText,
-    width: '90%',
+    // width: '90%',
   },
   subtitle: {
     fontSize: mvs(13),

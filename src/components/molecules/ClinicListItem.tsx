@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   specialtyText: {
-    fontSize: 14,
+    fontSize: 10,
     fontWeight: '500',
     color: colors.primary,
     marginBottom: 4,

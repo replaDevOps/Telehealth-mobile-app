@@ -418,7 +418,7 @@ export const DEFAULT_CLINIC_INFO: ClinicInfo = {
 export const CONSULTATION_DURATION = 30 * 60; // 30 minutes in seconds
 
 export function getCurrentTimestamp(): string {
-  return new Date().toLocaleTimeString('en-US', {
+  return new Date().toLocaleTimeString(undefined, {
     hour: '2-digit',
     minute: '2-digit',
   });

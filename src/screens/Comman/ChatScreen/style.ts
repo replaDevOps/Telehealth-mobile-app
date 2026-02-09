@@ -8,6 +8,20 @@ export const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#fff',
       },
+      keyboardView: {
+        flex: 1,
+        minHeight: 0,
+        backgroundColor: '#fff',
+      },
+      content: {
+        flex: 1,
+        minHeight: 0,
+      },
+      inputWrapper: {
+        backgroundColor: '#fff',
+        borderTopWidth: 1,
+        borderTopColor: '#f0f0f0',
+      },
       clinicInfo: {
         flexDirection: 'row',
         alignItems: 'center',

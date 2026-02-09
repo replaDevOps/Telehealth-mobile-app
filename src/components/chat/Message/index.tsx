@@ -41,9 +41,10 @@ export const Message: React.FC<MessageProps> = ({
 
       if (isNaN(date.getTime())) return String(timestamp);
 
-      const hh = String(date.getHours()).padStart(2, '0');
-      const mm = String(date.getMinutes()).padStart(2, '0');
-      return `${hh}:${mm}`;
+      return date.toLocaleTimeString(undefined, {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
     } catch (e) {
       return String(timestamp);
     }

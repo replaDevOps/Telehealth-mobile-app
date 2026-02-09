@@ -12,6 +12,7 @@ import { ClinicApiResponse } from '../../../types/clinic.types';
 import { Toast } from 'toastify-react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { ClinicProfile } from '@assets/images';
+import { showLocationSettingsAlert, handleLocationError } from '../../../utils/locationUtils';
 
 export const NearbyClinics = ({ navigation }: any) => {
   const { t } = useTranslation();
@@ -103,10 +104,12 @@ export const NearbyClinics = ({ navigation }: any) => {
           getCurrentLocation();
         } else {
           setLocationLoading(false);
-          // Still fetch clinics with default location
           fetchClinics(region.latitude, region.longitude);
           if (granted === PermissionsAndroid.RESULTS.DENIED) {
-            Toast.warn('Location permission denied. Showing default location.');
+            showLocationSettingsAlert({
+              title: 'Location Permission',
+              message: 'Location access is needed to show nearby clinics. Would you like to open settings to enable it?',
+            });
           }
         }
       } catch (err) {
@@ -159,9 +162,12 @@ export const NearbyClinics = ({ navigation }: any) => {
       error => {
         console.warn('Error getting location:', error);
         setLocationLoading(false);
-        // Fetch clinics with default location
         fetchClinics(region.latitude, region.longitude);
-        Toast.error('Failed to get your location');
+        handleLocationError(error, {
+          title: 'Location Not Available',
+          message: 'Please enable location services to see nearby clinics. Would you like to open settings?',
+          openLocationSettings: true,
+        });
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
     );

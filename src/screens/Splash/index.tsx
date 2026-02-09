@@ -44,18 +44,14 @@ export const SplashScreen: React.FC<Props> = ({ navigation }) => {
         // Create a promise that resolves after minimum splash duration (2 seconds for animation)
         const minSplashDuration = new Promise(resolve => setTimeout(resolve, 2000));
 
-        // Fetch location and wait for it to complete
-        // This ensures location is ready when we navigate to Home
-        const locationPromise = fetchLocation().catch(err => {
+        // Start location fetch in background - don't block navigation
+        // Location will load on Home screen with a loader
+        fetchLocation().catch(err => {
           console.warn('⚠️ Location fetch failed in Splash Screen:', err);
-          // Continue navigation even if location fetch fails
         });
 
-        // Wait for both location fetch AND minimum splash duration
-        // This ensures we don't navigate before location is fetched
-        await Promise.all([locationPromise, minSplashDuration]);
-
-        console.log('✅ Location fetched successfully in Splash Screen');
+        // Only wait for minimum splash duration - navigate quickly
+        await minSplashDuration;
 
         // Get current auth state directly from store to avoid stale closure values
         // This is important because Zustand persistence hydrates asynchronously

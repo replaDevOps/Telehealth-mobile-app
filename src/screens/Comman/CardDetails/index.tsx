@@ -14,6 +14,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import Geolocation from '@react-native-community/geolocation';
 import { PermissionsAndroid } from 'react-native';
 import RNFS from 'react-native-fs';
+import ReactNativeBlobUtil from 'react-native-blob-util';
 import { colors } from '../../../styles/colors';
 import { styles } from './style';
 import { Header2 } from '@components/common/Header2';
@@ -28,6 +29,7 @@ import { Toast as Toastify } from 'toastify-react-native';
 import { BASE_URL } from '@constants';
 import { useAuthStore } from '@store';
 import { translateCityToEnglish } from '../../../utils/cityTranslator';
+import { capitalizeWords, formatDateTimeLocal } from '../../ManageHistory/utils/format';
 
 type CardDetailsRouteParams = {
   paymentId: string;
@@ -288,24 +290,9 @@ export function CardDetails({ navigation }: { navigation: any }) {
           const extractedClinicID = clinicData.clinicID || clinicData.id || appointmentData.clinicID || null;
           setClinicID(extractedClinicID);
 
-          // Format date from appointment requestDate or transaction date
+          // Format date and time from appointment requestDate or transaction date
           const dateStr = appointmentData.requestDate || transactionData.date || appointmentData.created_at || '';
-          let formattedDateTime = '';
-          if (dateStr) {
-            try {
-              const date = new Date(dateStr);
-              formattedDateTime = date.toLocaleString('en-GB', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true,
-              });
-            } catch (e) {
-              formattedDateTime = dateStr;
-            }
-          }
+          const formattedDateTime = formatDateTimeLocal(dateStr);
 
           // Format price from transaction amount
           const priceValue = transactionData.amount || '0';
@@ -380,22 +367,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
 
           // Format date and time from date or created_at
           const dateTimeStr = consultationData.date || consultationData.created_at || '';
-          let formattedDateTime = '';
-          if (dateTimeStr) {
-            try {
-              const date = new Date(dateTimeStr);
-              formattedDateTime = date.toLocaleString('en-GB', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true,
-              });
-            } catch (e) {
-              formattedDateTime = dateTimeStr;
-            }
-          }
+          const formattedDateTime = formatDateTimeLocal(dateTimeStr);
 
           // Format price with currency
           const priceValue = consultationData.price || consultationData.amount || '0';
@@ -434,10 +406,10 @@ export function CardDetails({ navigation }: { navigation: any }) {
             duration: consultationData.duration || '',
             doctorName: doctorData.name || '',
             doctorAvatar: doctorData.image || undefined,
-            serviceName: (serviceData.name || '').toUpperCase(),
+            serviceName: capitalizeWords(serviceData.name || ''),
             servicePrice: formattedServicePrice,
-            serviceType: (serviceData.serviceType || '').toUpperCase(),
-            serviceGroup: (serviceData.group?.name || '').toUpperCase(),
+            serviceType: capitalizeWords(serviceData.serviceType || ''),
+            serviceGroup: capitalizeWords(serviceData.group?.name || ''),
             paymentMethod: (consultationData.transaction?.paymentMethod || 'CreditCard').toUpperCase(),
             total: formattedPrice,
             services: [],
@@ -546,31 +518,40 @@ export function CardDetails({ navigation }: { navigation: any }) {
     }
   };
 
-  // Helper function to download invoice from URL
+  const onInvoiceDownloadSuccess = (filePath: string, fileName: string) => {
+    Toastify.success(t('invoice_saved_successfully'));
+    if (Platform.OS === 'android') {
+      RNFS.exists(filePath).then((exists) => {
+        if (exists) {
+          ReactNativeBlobUtil.android.addCompleteDownload({
+            path: filePath,
+            title: fileName,
+            description: t('download_invoice') || 'Invoice',
+            mime: 'application/pdf',
+            showNotification: true,
+          });
+        }
+      });
+    }
+  };
+
+  // Helper function to download invoice from URL using RNFS (PDF saved to Downloads/Documents)
   const downloadInvoiceFromUrl = async (invoiceUrl: string, downloadDir: string, fileName: string): Promise<void> => {
     const token = (useAuthStore.getState().auth as any)?.token;
     if (!token) {
       throw new Error('Authentication token not found');
     }
-
     const filePath = `${downloadDir}/${fileName}`;
-
-    // Use RNFS.downloadFile to download the PDF
     const downloadResult = await RNFS.downloadFile({
       fromUrl: invoiceUrl,
       toFile: filePath,
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/pdf',
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/pdf',
       },
     }).promise;
-
     if (downloadResult.statusCode === 200) {
-      console.log('Invoice saved at:', filePath);
-      Toastify.success(
-        t('invoice_saved_successfully') ||
-        `Invoice saved as PDF successfully\nLocation: ${Platform.OS === 'android' ? 'Downloads' : 'Documents'}`
-      );
+      onInvoiceDownloadSuccess(filePath, fileName);
     } else {
       throw new Error(`Failed to download invoice: ${downloadResult.statusCode}`);
     }
@@ -654,27 +635,19 @@ export function CardDetails({ navigation }: { navigation: any }) {
         downloadDir = RNFS.DocumentDirectoryPath;
       }
 
-      // If it's a PDF file, download and save it
+      // If it's a PDF file, download and save it with RNFS
       if (contentType.includes('application/pdf') || contentType.includes('application/octet-stream')) {
-        // Save the PDF file directly using RNFS
         const filePath = `${downloadDir}/${fileName}`;
-
-        // Use RNFS.downloadFile for better handling
         const downloadResult = await RNFS.downloadFile({
           fromUrl: url,
           toFile: filePath,
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/pdf',
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/pdf',
           },
         }).promise;
-
         if (downloadResult.statusCode === 200) {
-          console.log('Invoice saved at:', filePath);
-          Toastify.success(
-            t('invoice_saved_successfully') ||
-            `Invoice saved as PDF successfully\nLocation: ${Platform.OS === 'android' ? 'Downloads' : 'Documents'}`
-          );
+          onInvoiceDownloadSuccess(filePath, fileName);
         } else {
           throw new Error(`Failed to download invoice: ${downloadResult.statusCode}`);
         }
@@ -696,14 +669,10 @@ export function CardDetails({ navigation }: { navigation: any }) {
                 // Download from URL
                 await downloadInvoiceFromUrl(fileData, downloadDir, fileName);
               } else if (typeof fileData === 'string' && fileData.length > 100) {
-                // Assume it's base64 data
+                // Assume it's base64 data – write PDF and show success + notification
                 const filePath = `${downloadDir}/${fileName}`;
                 await RNFS.writeFile(filePath, fileData, 'base64');
-                console.log('Invoice saved at:', filePath);
-                Toastify.success(
-                  t('invoice_saved_successfully') ||
-                  `Invoice saved as PDF successfully\nLocation: ${Platform.OS === 'android' ? 'Downloads' : 'Documents'}`
-                );
+                onInvoiceDownloadSuccess(filePath, fileName);
               } else {
                 throw new Error(t('invoice_format_not_supported') || 'Invoice format not supported');
               }

@@ -152,7 +152,7 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
       }
 
       const defaultSuccess = source === 'forgotPassword' ? t('otp_verified') : t('email_verified_success');
-      const successMessage = response.data?.message || defaultSuccess;
+      const successMessage = defaultSuccess;
       Toast.success(successMessage);
 
       if (source === 'forgotPassword') {
@@ -173,10 +173,7 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
     } catch (error: any) {
       console.error('OTP verification error:', error);
       const errorMessage =
-        error?.response?.data?.message ||
-        error?.data?.message ||
-        error?.message ||
-        'Failed to verify OTP';
+        t('invalid_code_try_again');
       Toast.error(errorMessage);
       // Clear all inputs on error
       setInputValues(Array(5).fill(''));
@@ -315,7 +312,7 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
     }
 
     // Show success message
-    Toast.success('New code sent successfully');
+    Toast.success(t('new_code_sent_successfully'));
 
     // Reset timer to 60 seconds
     setTimer(60);

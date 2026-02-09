@@ -1,5 +1,5 @@
 import { Header2 } from '@components/common/Header2';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -24,11 +24,26 @@ import { coinIcon } from '@assets/images';
 import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
 import { Toast } from 'toastify-react-native';
-import { useAuthStore } from '@store';
+import { useAuthStore, useProfileStore } from '@store';
+import { useCart } from '@context/CartContext';
+import { useCartCountContext } from '@context/CartCountContext';
 
 export function CheckoutScreen({ route, navigation }) {
   const { t } = useTranslation();
+  const { profileData, fetchProfile, refreshProfile } = useProfileStore();
+  const { clearCart } = useCart();
+  const { triggerRefresh } = useCartCountContext();
   const { services = [], totalLoyaltyPoints = 0 } = route.params || {};
+
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
+
+  const userLoyaltyPoints = profileData?.loyaltyPoints
+    ? typeof profileData.loyaltyPoints === 'string'
+      ? parseInt(profileData.loyaltyPoints, 10) || 0
+      : Number(profileData.loyaltyPoints) || 0
+    : 0;
   const [couponCode, setCouponCode] = useState('');
   const [discount, setDiscount] = useState(0);
   const [selectedPayment, setSelectedPayment] = useState('credit');
@@ -174,9 +189,10 @@ export function CheckoutScreen({ route, navigation }) {
         return;
       }
 
-      // Success
-      const successMessage = response.data?.message || 'Payment processed successfully';
-      // Toast.success(successMessage);
+      // Success - clear in-memory cart and trigger cart count refresh so clinic/service views stay in sync
+      clearCart();
+      triggerRefresh();
+      refreshProfile().catch(() => {});
       setShowSuccessModal(true);
       setLoading(false);
     } catch (error: any) {
@@ -214,9 +230,11 @@ export function CheckoutScreen({ route, navigation }) {
     }
   };
   const HandleRequest = () => {
-    console.log('the okay button is pressed');
     setShowSuccessModal(false);
-    navigation.goBack();
+    navigation.navigate('EntryPoint', {
+      screen: 'Clinic',
+      params: { screen: 'ClinicScreen' },
+    });
   };
 
   // Group services by clinic
@@ -348,7 +366,7 @@ export function CheckoutScreen({ route, navigation }) {
           showTitle={true}
           compact={true}
           showRoyaltyPoints={true}
-          royaltyPoints={300}
+          royaltyPoints={userLoyaltyPoints}
           pointsToRedeem={redeemPoints}
           onPointsToRedeemChange={setRedeemPoints}
           onApplyCoupon={code => console.log('Apply', code)}
@@ -439,7 +457,10 @@ export function CheckoutScreen({ route, navigation }) {
         visible={showSuccessModal}
         onClose={() => {
           setShowSuccessModal(false);
-          navigation.goBack();
+          navigation.navigate('EntryPoint', {
+            screen: 'Clinic',
+            params: { screen: 'ClinicScreen' },
+          });
         }}
         title={t('request_send')}
         description={t('request_sent_description')}

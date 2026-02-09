@@ -5,6 +5,7 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
+  ActivityIndicator,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { colors } from '../../styles/colors';
@@ -14,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 
 interface HomeHeaderProps {
   location?: string | null; // Can be null if no location available
+  isLocationLoading?: boolean;
   country?: string;
   onLocationPress?: () => void;
   onCartPress?: () => void;
@@ -28,6 +30,7 @@ interface HomeHeaderProps {
 
 const HomeHeader = ({
   location,
+  isLocationLoading = false,
   onLocationPress,
   onCartPress,
   onNotificationPress,
@@ -55,7 +58,14 @@ const HomeHeader = ({
               onPress={onLocationPress}
               activeOpacity={0.7}
             >
-              {location ? (
+              {isLocationLoading ? (
+                <>
+                  <ActivityIndicator size="small" color={colors.white} />
+                  <Text style={styles.locationText} numberOfLines={1}>
+                    {t('getting_location')}
+                  </Text>
+                </>
+              ) : location ? (
                 <>
                   <Ionicons name="location" size={18} color={colors.white} />
                   <Text style={styles.locationText} numberOfLines={1}>

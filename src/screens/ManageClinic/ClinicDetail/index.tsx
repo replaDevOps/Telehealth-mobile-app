@@ -28,6 +28,7 @@ import { API } from '@services/api/api-endpoint';
 import { ClinicDetailResponse, ClinicService, ClinicReview, ClinicDescriptionResponse, ClinicDevice, DeviceDetailResponse, ServiceFilterOption } from '../../../types/clinic.types';
 import { Toast } from 'toastify-react-native';
 import { translateCityToEnglish } from '../../../utils/cityTranslator';
+import { showLocationSettingsAlert, handleLocationError } from '../../../utils/locationUtils';
 
 // Define types
 interface Review {
@@ -268,8 +269,11 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
         if (granted === PermissionsAndroid.RESULTS.GRANTED) {
           getCurrentLocationAndFetch();
         } else {
-          // Use default location if permission denied
           fetchClinicDetails(24.7136, 46.6753);
+          showLocationSettingsAlert({
+            title: 'Location Permission',
+            message: 'Location access is needed to show distance to the clinic. Would you like to open settings to enable it?',
+          });
         }
       } else {
         Geolocation.requestAuthorization();
@@ -278,6 +282,10 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     } catch (err) {
       console.warn('Location permission error:', err);
       fetchClinicDetails(24.7136, 46.6753);
+      showLocationSettingsAlert({
+        title: 'Location Permission',
+        message: 'Location access is needed. Would you like to open settings to enable it?',
+      });
     }
   };
 
@@ -292,7 +300,11 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       },
       error => {
         console.warn('Error getting location:', error);
-        // Keep using default location, no need to refetch
+        handleLocationError(error, {
+          title: 'Location Not Available',
+          message: 'Please enable location services to see distance to the clinic. Would you like to open settings?',
+          openLocationSettings: true,
+        });
       },
       { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 } // Reduced timeout and use cached location
     );
@@ -721,13 +733,10 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
         params.groupIDs = selectedGroupIds;
       }
 
-      // Add selected service IDs as serviceNames array
-      // The API expects serviceNames as an array of service IDs
-      const selectedServiceIds = Object.keys(filters.serviceNames || {})
-        .filter(key => filters.serviceNames[Number(key)])
-        .map(key => Number(key));
-      if (selectedServiceIds.length > 0) {
-        params.serviceNames = selectedServiceIds;
+      // API expects serviceNames as an array of service names (strings), not IDs
+      const selectedNames = filters.selectedServiceNames || [];
+      if (selectedNames.length > 0) {
+        params.serviceNames = selectedNames;
       }
 
       // Reset to first page when applying filters

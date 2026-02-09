@@ -11,6 +11,10 @@ import { API } from '@services/api/api-endpoint';
 import { apiClient } from '@services/api/api-client';
 import { Toast } from 'toastify-react-native';
 
+/** Ensures at most one "!" in a row so toasts don't show "!!" (e.g. API returns "Invalid old Password!!"). */
+const normalizeToastMessage = (msg: string): string =>
+  msg ? msg.replace(/!+/g, '!') : msg;
+
 export const ChangePassword = ({ navigation }) => {
   const { t } = useTranslation();
   const [password, setPassword] = useState('');
@@ -24,11 +28,52 @@ export const ChangePassword = ({ navigation }) => {
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const validatePassword = (password: string) => {
-    // Example: Password must be at least 8 characters, include a number and a special character
+  const PASSWORD_RULE_MSG =
+    'Password must be at least 8 characters long and include a number and a special character.';
+
+  const validatePassword = (pwd: string) => {
     const passwordRegex =
       /^(?=.*[0-9])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]{8,}$/;
-    return passwordRegex.test(password);
+    return passwordRegex.test(pwd);
+  };
+
+  const handleNewPasswordChange = (text: string) => {
+    setPassword(text);
+    if (text.length > 0) {
+      if (!validatePassword(text)) {
+        setPasswordError(PASSWORD_RULE_MSG);
+      } else if (oldPassword && text === oldPassword) {
+        setPasswordError('New password must be different from old password');
+      } else {
+        setPasswordError('');
+      }
+      // Re-validate confirm match when new password changes
+      if (confirmPassword && text !== confirmPassword) {
+        setConfirmPasswordError(t('passwords_not_match') || 'Passwords do not match');
+      } else {
+        setConfirmPasswordError('');
+      }
+    } else {
+      setPasswordError('');
+      if (confirmPassword) {
+        setConfirmPasswordError(t('passwords_not_match') || 'Passwords do not match');
+      } else {
+        setConfirmPasswordError('');
+      }
+    }
+  };
+
+  const handleConfirmPasswordChange = (text: string) => {
+    setConfirmPassword(text);
+    if (text.length > 0) {
+      if (password && text !== password) {
+        setConfirmPasswordError(t('passwords_not_match') || 'Passwords do not match');
+      } else {
+        setConfirmPasswordError('');
+      }
+    } else {
+      setConfirmPasswordError('');
+    }
   };
 
   const handleSave = async () => {
@@ -59,9 +104,7 @@ export const ChangePassword = ({ navigation }) => {
 
     // Validate new password format
     if (!validatePassword(password)) {
-      setPasswordError(
-        'Password must be at least 8 characters long and include a number and a special character.',
-      );
+      setPasswordError(PASSWORD_RULE_MSG);
       return;
     }
 
@@ -95,7 +138,7 @@ export const ChangePassword = ({ navigation }) => {
       if (err) {
         const errorMessage = (err as Error).message || 'Failed to change password';
         setError(errorMessage);
-        Toast.error(errorMessage);
+        Toast.error(normalizeToastMessage(errorMessage));
         setLoading(false);
         return;
       }
@@ -105,14 +148,16 @@ export const ChangePassword = ({ navigation }) => {
       if (res.data?.success === false || responseData?.success === false) {
         const errorMessage = responseData?.message || res.data?.message || 'Failed to change password';
         setError(errorMessage);
-        Toast.error(errorMessage);
+        console.log("🚀 ~ handleSave ~ errorMessage:", errorMessage)
+
+        Toast.error(normalizeToastMessage(errorMessage));
         setLoading(false);
         return;
       }
 
       // Show success message
       const successMessage = res.data?.message || responseData?.message || 'Password changed successfully';
-      Toast.success(successMessage);
+      Toast.success(normalizeToastMessage(successMessage));
       
       // Clear form and navigate back
       setOldPassword('');
@@ -127,7 +172,7 @@ export const ChangePassword = ({ navigation }) => {
     } catch (error: any) {
       const errorMessage = error?.message || 'An unexpected error occurred';
       setError(errorMessage);
-      Toast.error(errorMessage);
+      Toast.error(normalizeToastMessage(errorMessage));
       setLoading(false);
     }
   };
@@ -151,6 +196,12 @@ export const ChangePassword = ({ navigation }) => {
               onChangeText={text => {
                 setOldPassword(text);
                 if (text) setOldPasswordError('');
+                // Re-validate "new must be different from old" when old password changes
+                if (password && text === password) {
+                  setPasswordError('New password must be different from old password');
+                } else if (password && validatePassword(password)) {
+                  setPasswordError('');
+                }
               }}
               secureTextEntry={true}
               errorMessage={oldPasswordError}
@@ -159,10 +210,7 @@ export const ChangePassword = ({ navigation }) => {
               label={t('new_password')}
               placeholder={t('enter_new_password')}
               value={password}
-              onChangeText={text => {
-                setPassword(text);
-                if (text) setPasswordError('');
-              }}
+              onChangeText={handleNewPasswordChange}
               secureTextEntry={true}
               errorMessage={passwordError}
             />
@@ -171,10 +219,7 @@ export const ChangePassword = ({ navigation }) => {
               placeholder={t('retype_new_password')}
               secureTextEntry
               value={confirmPassword}
-              onChangeText={text => {
-                setConfirmPassword(text);
-                if (text) setConfirmPasswordError('');
-              }}
+              onChangeText={handleConfirmPasswordChange}
               errorMessage={confirmPasswordError}
             />
           </View>

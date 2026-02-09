@@ -220,11 +220,11 @@ export const RoyaltyPoints = ({ navigation }) => {
           renderItem={renderItem}
           keyExtractor={item => item.id}
           contentContainerStyle={[
-            styles.listContainer,
+            // styles.listContainer,
             loyaltyPointsData.length === 0 && { flexGrow: 1, justifyContent: 'center' }
           ]}
           ListEmptyComponent={renderEmptyComponent}
-          refreshing={loading && loyaltyPointsData.length === 0}
+          refreshing={loading && loyaltyPointsData.length > 0}
           onRefresh={() => fetchLoyaltyPoints(1, false)}
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}

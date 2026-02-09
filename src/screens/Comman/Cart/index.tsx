@@ -683,9 +683,7 @@ export function CartScreen({ navigation }) {
                       ) : isServiceInCart(service.serviceID) ? (
                         <Ionicons name="checkmark-circle" size={20} color={colors.white} />
                       ) : (
-                        <Text style={styles.addSuggestedButtonText}>
-                          {t('add') || 'Add'}
-                        </Text>
+                        <Ionicons name="cart-outline" size={22} color={colors.primary} />
                       )}
                     </TouchableOpacity>
                   </View>

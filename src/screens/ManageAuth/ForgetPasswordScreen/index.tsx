@@ -111,7 +111,10 @@ export function ForgetPasswordScreen({
                 label={t('email_address')}
                 placeholder={t('enter_email')}
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  setEmailError('');
+                }}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 errorMessage={emailError}
@@ -121,9 +124,17 @@ export function ForgetPasswordScreen({
                 <Text style={styles.label}>{t('phone_number')}</Text>
                 <PhoneNumberInput
                   phone={phone}
-                  setPhone={setPhone}
+                  setPhone={(text) => {
+                    setPhone(text);
+                    setPhoneError('');
+                    setErrorMessage('');
+                  }}
                   countryCode={countryCode}
-                  setCountryCode={setCountryCode}
+                  setCountryCode={(code) => {
+                    setCountryCode(code);
+                    setPhoneError('');
+                    setErrorMessage('');
+                  }}
                   phoneError={phoneError}
                   errorMessage={errorMessage}
                   onValidationChange={setIsPhoneValid}

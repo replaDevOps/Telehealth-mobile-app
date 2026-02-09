@@ -2,8 +2,20 @@
 import React from 'react';
 import { View, Text, Image } from 'react-native';
 import Foundation from 'react-native-vector-icons/Foundation';
+import { useTranslation } from 'react-i18next';
 import { styles } from '../style';
 import type { PaymentItem } from './PaymentCard';
+
+/** First and last word initials from clinic name, e.g. "Skin Care Clinic" -> "SC". */
+function getClinicInitials(name: string | undefined): string {
+  if (!name || typeof name !== 'string') return '';
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return '';
+  if (words.length === 1) return words[0].charAt(0).toUpperCase();
+  const first = words[0].charAt(0).toUpperCase();
+  const last = words[words.length - 1].charAt(0).toUpperCase();
+  return first === last ? first : `${first}${last}`;
+}
 
 interface PaymentDoctorSectionProps {
   item: PaymentItem;
@@ -12,7 +24,9 @@ interface PaymentDoctorSectionProps {
 export const PaymentDoctorSection: React.FC<PaymentDoctorSectionProps> = ({
   item,
 }) => {
-  // Consultation with doctor status (no doctor assigned)
+  const { t } = useTranslation();
+
+  // Consultation with no doctor assigned
   if (item.kind === 'consultation' && !item.doctorName) {
     return (
       <View style={styles.noDoctorSection}>
@@ -20,7 +34,9 @@ export const PaymentDoctorSection: React.FC<PaymentDoctorSectionProps> = ({
           <Foundation name="prohibited" size={18} color="#ef4444" />
         </View>
         <View style={styles.noDoctorInfo}>
-          <Text style={styles.noDoctorText}>{item.doctorStatus}</Text>
+          <Text style={styles.noDoctorText}>
+            {t('no_doctor_accepted') || 'No doctor accepted!'}
+          </Text>
           <Text style={styles.clinicName}>{item.clinicName}</Text>
         </View>
       </View>
@@ -43,15 +59,25 @@ export const PaymentDoctorSection: React.FC<PaymentDoctorSectionProps> = ({
     );
   }
 
-  // Appointment
+  // Appointment: clinic image, or initials avatar, or empty box
   if (item.kind === 'appointment') {
+    const hasImage = !!item.clinicImage && typeof item.clinicImage === 'string' && item.clinicImage.trim().length > 0;
+    const initials = getClinicInitials(item.clinicName);
+
     return (
       <View style={styles.paymentDoctorSection}>
         <View style={styles.doctorAvatar}>
-          <Text style={styles.clinicLogo}>Cli. Img</Text>
+          {hasImage ? (
+            <Image
+              source={{ uri: item.clinicImage }}
+              style={styles.clinicAvatarImage}
+            />
+          ) : initials ? (
+            <Text style={styles.clinicLogo}>{initials}</Text>
+          ) : null}
         </View>
         <View style={styles.doctorInfo}>
-          <Text style={styles.doctorName}>{item.clinicName}</Text>
+          <Text style={styles.doctorName}>{item.clinicName || '—'}</Text>
         </View>
       </View>
     );

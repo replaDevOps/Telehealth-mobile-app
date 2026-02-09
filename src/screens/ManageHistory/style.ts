@@ -181,11 +181,18 @@ export const styles = StyleSheet.create({
     backgroundColor: '#DACEFB',
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  clinicAvatarImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
   },
   clinicLogo: {
     textAlign: 'center',
     color: colors.primary,
-    fontSize: 10,
+    fontSize: 14,
+    fontWeight: '600',
   },
   doctorInfo: {
     flex: 1,

@@ -117,15 +117,11 @@ export const FilterScreen = ({ navigation, route }) => {
       return;
     }
 
-    // Only fetch if groups are not already loaded for this clinic type
+    // Always show groups for the current clinic type (cache or fetch)
     const cachedGroups = groupsCache[filters.clinicTypes];
     if (cachedGroups && cachedGroups.length > 0) {
-      // Use cached groups if available
-      if (groups.length === 0) {
-        setGroups(cachedGroups);
-      }
+      setGroups(cachedGroups);
     } else {
-      // Fetch if not cached
       fetchGroups(filters.clinicTypes, false);
     }
   }, [filters.clinicTypes]);
@@ -293,10 +289,15 @@ export const FilterScreen = ({ navigation, route }) => {
   }, [filters]);
 
   const handleClinicTypeToggle = (typeId: string) => {
-    // Only one clinic type can be selected - toggle behavior
+    // Only one clinic type can be selected - toggle or switch to the other
+    const isSelectingDifferent = filters.clinicTypes !== typeId;
     setFilters({
       ...filters,
       clinicTypes: filters.clinicTypes === typeId ? null : typeId,
+      // When switching to a different clinic type, clear groups and services so values update
+      ...(isSelectingDifferent && filters.clinicTypes !== null
+        ? { serviceGroups: {}, serviceNames: {} }
+        : {}),
     });
   };
 

@@ -6,7 +6,7 @@ import React, {
   useCallback,
 } from 'react';
 import { View, Text, ScrollView, ActivityIndicator, Alert, BackHandler, KeyboardAvoidingView, Keyboard, Platform, Image, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ServiceDetailBottomSheet } from '@components/molecules';
 import { styles } from './style';
 import { patient, RecommandImage } from '@assets/images';
@@ -887,10 +887,24 @@ export function ChatScreen({ navigation, route }) {
     }
 
     setModalVisible(false);
+    const clinicID = clinicInfoState?.id || consultationData?.clinicID;
+    const clinic = clinicID
+      ? {
+          id: clinicID,
+          name: clinicInfoState?.name || clinicInfoState?.clinicName || '',
+          location: clinicInfoState?.location || '',
+          image: clinicInfoState?.image,
+          specialty: 'General',
+          rating: 0,
+        }
+      : null;
     navigation.navigate('PrescriptionScreen', {
       consultationID: consultationID,
+      fromChat: true,
+      clinic,
+      clinicID,
     });
-  }, [navigation, consultationID]);
+  }, [navigation, consultationID, clinicInfoState, consultationData]);
 
   const handleCloseModal = useCallback(() => {
     setModalVisible(false);
@@ -926,9 +940,9 @@ export function ChatScreen({ navigation, route }) {
 
   const handleVisitClinic = useCallback(async () => {
     if (fromHistory) {
-      // Navigate to clinic detail if viewing from history
+      // Replace Chat with ClinicDetail so back from clinic goes to previous screen (e.g. History), not Chat
       const clinicID = clinicInfoState?.id || consultationData?.clinicID;
-      navigation.navigate('ClinicDetail', {
+      navigation.replace('ClinicDetail', {
         clinic: {
           id: clinicID,
           name: clinicInfoState?.name || clinicInfoState?.clinicName || '',
@@ -966,19 +980,28 @@ export function ChatScreen({ navigation, route }) {
     });
   }, [clinicInfoState, consultationData, navigation, endConsultationAndNotify]);
 
+  const insets = useSafeAreaInsets();
+  const inputPadding = {
+    paddingBottom: Math.max(insets.bottom, 34),
+    paddingLeft: Math.max(insets.left, 16),
+    paddingRight: Math.max(insets.right, 16),
+  };
+  const screenPadding = {
+    paddingTop: insets.top,
+    paddingLeft: insets.left,
+    paddingRight: insets.right,
+  };
+
   // ---------- Main Render ----------
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <View style={[styles.container, screenPadding]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
-        style={
-          flexToggle
-            ? [{ flexGrow: 1 }, styles.container]
-            : [{ flex: 1 }, styles.container]
-        }
+        style={styles.keyboardView}
         enabled={!flexToggle}
       >
+        <View style={styles.content}>
         <ChatHeader
           chatType={chatType}
           doctorInfo={doctorInfo}
@@ -1033,16 +1056,19 @@ export function ChatScreen({ navigation, route }) {
             )}
           </>
         )}
+        </View>
 
-        {/* Input - Only show if not viewing history */}
+        {/* Input - apply safe area insets manually so bar is never clipped (SafeAreaView unreliable on stack screens) */}
         {!modalVisible && (
-          <MessageInput
-            message={message}
-            setMessage={setMessage}
-            handleSend={handleSend}
-            handleImagePick={handleImagePick}
-            canSendMessages={canSendMessages}
-          />
+          <View style={[styles.inputWrapper, inputPadding]}>
+            <MessageInput
+              message={message}
+              setMessage={setMessage}
+              handleSend={handleSend}
+              handleImagePick={handleImagePick}
+              canSendMessages={canSendMessages}
+            />
+          </View>
         )}
 
         {/* Modals */}
@@ -1074,6 +1100,6 @@ export function ChatScreen({ navigation, route }) {
           confirmButtonStyle="destructive"
         />
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }

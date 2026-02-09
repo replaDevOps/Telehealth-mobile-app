@@ -9,11 +9,13 @@ import {
   ActivityIndicator,
   Modal,
   ImageSourcePropType,
-  Share,
   Platform,
+  BackHandler,
 } from 'react-native';
+import { CommonActions } from '@react-navigation/native';
 import RNHTMLtoPDF from 'react-native-html-to-pdf';
 import RNFS from 'react-native-fs';
+import ReactNativeBlobUtil from 'react-native-blob-util';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { doctor, Signature } from '@assets/images';
 import { Header2 } from '@components/common/Header2';
@@ -138,6 +140,9 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
   const prescriptionId = route?.params?.prescriptionId;
   const consultationID = route?.params?.consultationID;
   const fromHistory = route?.params?.fromHistory || false;
+  const fromChat = route?.params?.fromChat || false;
+  const clinic = route?.params?.clinic;
+  const clinicID = route?.params?.clinicID;
 
   useEffect(() => {
     if (consultationID) {
@@ -145,15 +150,42 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   }, [prescriptionId, consultationID]);
 
+  const navigateToClinicDetail = React.useCallback(() => {
+    if (clinic && clinicID != null) {
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 1,
+          routes: [
+            { name: 'EntryPoint' as never },
+            { name: 'ClinicDetail' as never, params: { clinic, clinicID } as never },
+          ],
+        }),
+      );
+    } else {
+      navigation.navigate('EntryPoint' as any);
+    }
+  }, [navigation, clinic, clinicID]);
+
   // Handler for Header2 back button
   const handleHeaderBack = () => {
-    if (!fromHistory) {
-      console.log('📜 [PrescriptionScreen] Header back clicked - navigating to EntryPoint');
-      navigation.navigate('EntryPoint' as any);
-    } else {
+    if (fromHistory) {
       navigation.goBack();
+    } else if (fromChat && clinic) {
+      navigateToClinicDetail();
+    } else {
+      navigation.navigate('EntryPoint' as any);
     }
   };
+
+  // Hardware/gesture back: when from chat consultation, go to clinic single view instead of chat
+  useEffect(() => {
+    if (!fromChat || !clinic) return;
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      navigateToClinicDetail();
+      return true;
+    });
+    return () => backHandler.remove();
+  }, [fromChat, clinic, navigateToClinicDetail]);
 
   const fetchPrescriptionData = async (): Promise<void> => {
     if (!consultationID) {
@@ -239,17 +271,11 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
           });
         } catch (pdfError: any) {
           console.error('PDF generation error:', pdfError);
-          // Fallback to sharing as text if PDF generation fails
-          try {
-            await sharePrescriptionAsText(responseData);
-          } catch (shareError: any) {
-            console.log('Share error:', shareError);
-            setToast({
-              visible: true,
-              message: t('prescription_available') || 'Prescription is available on screen',
-              type: 'success',
-            });
-          }
+          setToast({
+            visible: true,
+            message: pdfError?.message || t('failed_to_download_prescription') || 'Failed to download prescription. Please try again.',
+            type: 'error',
+          });
         }
       } else {
         // If no prescription data, show error
@@ -505,99 +531,61 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
     return html;
   };
 
-  // Generate and save PDF
+  // Generate and save PDF (download only, no share). On Android, register with Download Manager for notification.
   const generateAndSavePDF = async (apiData: any): Promise<void> => {
     if (!prescription) {
       throw new Error('No prescription data available');
     }
 
     const htmlContent = generatePrescriptionHTML(apiData);
+    const baseName = `Prescription_${String(consultationID ?? Date.now())}`;
+    const fileName = `${baseName}.pdf`;
 
-    try {
-      // Determine the download directory based on platform
-      let downloadDir = '';
-      let fileName = `Prescription_${consultationID || Date.now()}.pdf`;
+    // Use a short relative directory so the library creates a deterministic path (no createTempFile randomness).
+    // Android: "Prescription" -> getExternalFilesDir()/Prescription/baseName.pdf
+    const options: any = {
+      html: htmlContent,
+      fileName: baseName,
+      base64: false,
+      width: 595,
+      height: 842,
+      paddingLeft: 50,
+      paddingRight: 50,
+      paddingTop: 40,
+      paddingBottom: 40,
+    };
 
-      if (Platform.OS === 'android') {
-        // For Android, save to Downloads folder
-        downloadDir = RNFS.DownloadDirectoryPath;
-      } else {
-        // For iOS, save to Documents directory
-        downloadDir = RNFS.DocumentDirectoryPath;
-      }
-      console.log('Download directory:', downloadDir);
-
-      // Generate PDF from HTML
-      const options = {
-        html: htmlContent,
-        fileName: fileName,
-        directory: Platform.OS === 'ios' ? 'Documents' : downloadDir,
-        base64: false,
-        width: 595, // A4 width in points
-        height: 842, // A4 height in points
-        paddingLeft: 50, // Left margin in points
-        paddingRight: 50, // Right margin in points
-        paddingTop: 40, // Top margin in points
-        paddingBottom: 40, // Bottom margin in points
-      };
-
-      const file = await RNHTMLtoPDF.convert(options);
-      console.log('PDF generated at:', file.filePath);
-
-      // For Android, ensure the file is in the Downloads folder
-      if (Platform.OS === 'android' && file.filePath) {
-        const finalPath = `${downloadDir}/${fileName}`;
-        // Move file to Downloads if it's not already there
-        if (file.filePath !== finalPath) {
-          await RNFS.moveFile(file.filePath, finalPath);
-          console.log('PDF moved to Downloads:', finalPath);
-        }
-      }
-
-      // Don't open Share dialog or Linking - just save the file
-      setToast({
-        visible: true,
-        message: t('prescription_saved_successfully') || `Prescription saved as PDF successfully\nLocation: ${Platform.OS === 'android' ? 'Downloads' : 'Documents'}`,
-        type: 'success',
-      });
-    } catch (error: any) {
-      console.error('PDF generation error:', error);
-      // If PDF generation fails, try to share as text
-      throw error;
+    if (Platform.OS === 'ios') {
+      options.directory = 'Documents';
+    } else {
+      options.directory = 'Prescription';
     }
-  };
 
-  // Fallback: Share prescription as text
-  const sharePrescriptionAsText = async (apiData: any): Promise<void> => {
-    const prescriptions = apiData.prescriptions || [];
-    const clinic = apiData.clinic || {};
-    const doctor = apiData.doctor || {};
+    const file = await RNHTMLtoPDF.convert(options);
+    if (!file?.filePath) {
+      throw new Error('PDF generation did not return a file path');
+    }
 
-    let shareMessage = `Prescription Details\n\n`;
-    shareMessage += `Clinic: ${clinic.clinicName || clinic.name || 'N/A'}\n`;
-    shareMessage += `Doctor: ${doctor.name || 'N/A'}\n`;
-    shareMessage += `Date: ${new Date().toLocaleDateString()}\n\n`;
-    shareMessage += `Medications:\n`;
-
-    prescriptions.forEach((prescription: any, index: number) => {
-      shareMessage += `${index + 1}. ${prescription.name || 'N/A'}\n`;
-      shareMessage += `   Description: ${prescription.description || 'N/A'}\n`;
-      shareMessage += `   Start Date: ${prescription.startDate || 'N/A'}\n`;
-      shareMessage += `   End Date: ${prescription.endDate || 'N/A'}\n\n`;
-    });
-
-    const result = await Share.share({
-      message: shareMessage,
-      title: t('prescription') || 'Prescription',
-    });
-
-    if (result.action === Share.sharedAction) {
-      setToast({
-        visible: true,
-        message: t('prescription_shared_successfully') || 'Prescription shared successfully',
-        type: 'success',
+    if (Platform.OS === 'android') {
+      // Ensure file exists before registering (library writes async; wait a tick if needed)
+      const exists = await RNFS.exists(file.filePath);
+      if (!exists) {
+        throw new Error(`PDF file was not created: ${file.filePath}`);
+      }
+      await ReactNativeBlobUtil.android.addCompleteDownload({
+        path: file.filePath,
+        title: fileName,
+        description: t('prescription') || 'Prescription',
+        mime: 'application/pdf',
+        showNotification: true,
       });
     }
+
+    setToast({
+      visible: true,
+      message: t('prescription_saved_successfully') || `Prescription saved as PDF successfully\nLocation: ${Platform.OS === 'android' ? 'Downloads' : 'Documents'}`,
+      type: 'success',
+    });
   };
 
   // Map API response to Prescription format

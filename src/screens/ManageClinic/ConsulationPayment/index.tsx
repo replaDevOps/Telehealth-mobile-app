@@ -484,7 +484,8 @@ export function ConsultationPayment({ navigation, route }) {
           <View style={{ alignItems: 'center' }}>
             <ActivityIndicator size="large" color={colors.primary} />
             <Text style={{ color: "#ffff", marginTop: 20, textAlign: 'center', fontSize: 16, fontWeight: '600' }}>
-              Connecting you with doctor.{"\n"}This may take a moment.
+              {t('finding_doctor')
+              }
             </Text>
             <Text style={{ color: colors.secondaryText, marginTop: 12, fontSize: 14 }}>
               Time Remaining: {Math.floor(timeLeft / 60).toString().padStart(2, '0')}:{(timeLeft % 60).toString().padStart(2, '0')}

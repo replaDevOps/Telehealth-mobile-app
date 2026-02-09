@@ -1,4 +1,4 @@
-import { View, Text, ActivityIndicator, PermissionsAndroid, Platform, Alert, TextInput, TouchableOpacity, FlatList, Modal, Image } from 'react-native';
+import { View, Text, ActivityIndicator, PermissionsAndroid, Platform, TextInput, TouchableOpacity, FlatList, Modal, Image } from 'react-native';
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { Header2 } from '../../../components/common/Header2';
@@ -14,16 +14,22 @@ import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
 import { ClinicApiResponse } from '../../../types/clinic.types';
 import { ClinicProfile } from '@assets/images';
+import { showLocationSettingsAlert, handleLocationError } from '../../../utils/locationUtils';
+import { useLocationStore } from '@store';
+import { useFocusEffect } from '@react-navigation/native';
+
+const DEFAULT_REGION: Region = {
+  latitude: Number(24.7136),
+  longitude: Number(46.6753),
+  latitudeDelta: Number(0.0922),
+  longitudeDelta: Number(0.0421),
+};
 
 export const SelectLocation = ({ navigation }: any) => {
   const { t } = useTranslation();
+  const { location: storeLocation, fetchLocation: fetchStoreLocation } = useLocationStore();
   const mapRef = useRef<MapView>(null);
-  const [region, setRegion] = useState<Region>({
-    latitude: Number(24.7136),
-    longitude: Number(46.6753),
-    latitudeDelta: Number(0.0922),
-    longitudeDelta: Number(0.0421),
-  });
+  const [region, setRegion] = useState<Region>(DEFAULT_REGION);
   const [selectedLocation, setSelectedLocation] = useState<{
     latitude: number;
     longitude: number;
@@ -216,7 +222,11 @@ export const SelectLocation = ({ navigation }: any) => {
       error => {
         console.warn('Error getting location:', error);
         setLocationLoading(false);
-        Toast.error('Failed to get your location');
+        handleLocationError(error, {
+          title: 'Location Not Available',
+          message: 'Please enable location services to get your location. Would you like to open settings?',
+          openLocationSettings: true,
+        });
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
     );
@@ -239,7 +249,10 @@ export const SelectLocation = ({ navigation }: any) => {
           getCurrentLocation();
         } else {
           setLocationLoading(false);
-          Alert.alert('Permission Denied', 'Location permission is recommended to select your location.');
+          showLocationSettingsAlert({
+            title: 'Location Permission',
+            message: 'Location access is needed to help you select a location. Would you like to open settings to enable it?',
+          });
         }
       } catch (err) {
         console.warn(err);
@@ -252,12 +265,43 @@ export const SelectLocation = ({ navigation }: any) => {
     }
   }, [getCurrentLocation]);
 
+  // Apply store location immediately so we don't show Riyadh when we already have user location
+  const applyStoreLocationIfAvailable = useCallback(() => {
+    const loc = useLocationStore.getState().location;
+    if (loc && typeof loc.lat === 'number' && typeof loc.long === 'number' && !isNaN(loc.lat) && !isNaN(loc.long)) {
+      const newRegion: Region = {
+        latitude: loc.lat,
+        longitude: loc.long,
+        latitudeDelta: Number(0.0922),
+        longitudeDelta: Number(0.0421),
+      };
+      setRegion(newRegion);
+      setSelectedLocation({ latitude: loc.lat, longitude: loc.long });
+      setLocationLoading(false);
+      fetchClinics(loc.lat, loc.long);
+      if (mapRef.current) {
+        mapRef.current.animateToRegion(newRegion, 500);
+      }
+      return true;
+    }
+    return false;
+  }, [fetchClinics]);
+
+  // On focus: use store location first, then ensure we have permission and try fresh location
+  useFocusEffect(
+    useCallback(() => {
+      const hadStoreLocation = applyStoreLocationIfAvailable();
+      const timer = setTimeout(() => {
+        requestLocationPermission();
+      }, hadStoreLocation ? 50 : 100);
+      return () => clearTimeout(timer);
+    }, [applyStoreLocationIfAvailable, requestLocationPermission])
+  );
+
+  // Trigger store fetch in background so we have location when user opens map
   useEffect(() => {
-    const timer = setTimeout(() => {
-      requestLocationPermission();
-    }, 100);
-    return () => clearTimeout(timer);
-  }, [requestLocationPermission]);
+    fetchStoreLocation();
+  }, [fetchStoreLocation]);
 
   // Handle region change - keep card anchored while panning/zooming
   const handleRegionChangeComplete = useCallback((newRegion: Region) => {

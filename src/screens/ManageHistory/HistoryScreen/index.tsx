@@ -21,6 +21,7 @@ import type {
 import { ConsultationCard, PaymentCard, HistoryTabs, SearchBar } from '../components';
 import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
+import { capitalizeWords } from '../utils/format';
 import Toast from 'toastify-react-native';
 import { colors } from '../../../styles/colors';
 
@@ -114,7 +115,7 @@ export function HistoryScreen({ navigation }) {
           return {
             id: String(consultation.id),
             date: consultation.created_at || '',
-            serviceName: serviceData.name || consultation.serviceName || '',
+            serviceName: capitalizeWords(serviceData.name || consultation.serviceName || ''),
             duration: consultation.duration || '',
             type: consultationType.type,
             icon: consultationType.icon,
@@ -227,14 +228,20 @@ export function HistoryScreen({ navigation }) {
             const doctorData = payment.doctor || {};
             const serviceData = payment.service || {};
             console.log('payment', payment);
+            const rawType = payment.type || payment.consultationType;
+            const normalized = rawType && typeof rawType === 'string'
+              ? rawType.charAt(0).toUpperCase() + rawType.slice(1).toLowerCase()
+              : '';
+            const validTypes = ['Chat', 'Video', 'Audio'];
+            const normalizedType = validTypes.includes(normalized) ? normalized as 'Chat' | 'Video' | 'Audio' : undefined;
             return {
               id: String(payment.id || payment.paymentId || Date.now()),
               kind: 'consultation' as const,
               date: payment.date || payment.created_at || '',
               paymentId: String(payment.paymentId || payment.id || ''),
-              type: payment.type || payment.consultationType,
+              type: normalizedType,
               duration: payment.duration || serviceData.duration || '',
-              serviceName: payment.serviceName || serviceData.name || '',
+              serviceName: capitalizeWords(payment.serviceName || serviceData.name || ''),
               doctorStatus: payment.doctorStatus || payment.status,
               doctorName: payment.doctorName || doctorData.name || '',
               doctorAvatar: payment.doctorAvatar || doctorData.image || '',
@@ -260,6 +267,7 @@ export function HistoryScreen({ navigation }) {
               date: payment.date || payment.created_at || payment.requestDate || '',
               paymentId: String(payment.paymentId || payment.id || ''),
               clinicImg: !!payment.clinicImage || !!clinicData.image,
+              clinicImage: payment.clinicImage || clinicData.image || clinicData.logo || clinicData.coverImage || '',
               clinicName: payment.clinicName || clinicData.clinicName || clinicData.name || '',
               clinicLocation: payment.clinicLocation || clinicData.location || '',
               numberOfService: String(appointmentServices.length || services.length || payment.serviceCount || 0),
@@ -272,13 +280,15 @@ export function HistoryScreen({ navigation }) {
                   : colors.red,
               services: services.map((service: any, index: number) => {
                 const serviceGroup = service.group || {};
+                const categoryRaw = service.category || serviceGroup.name || '';
+                const nameRaw = service.name || service.serviceName || '';
                 return {
                   id: service.id || index,
-                  name: service.name || service.serviceName || '',
+                  name: capitalizeWords(nameRaw),
                   duration: service.duration || '',
                   price: service.price || '0',
-                  category: service.category || serviceGroup.name || '',
-                  categoryBadge: service.category || serviceGroup.name || '',
+                  category: capitalizeWords(categoryRaw),
+                  categoryBadge: capitalizeWords(categoryRaw),
                   image: service.image ? { uri: service.image } : RecommandImage,
                 };
               }) || [],
@@ -405,9 +415,10 @@ export function HistoryScreen({ navigation }) {
           serviceName: item.serviceName,
         });
       } else {
+        const clinicImageUri = 'clinicImage' in item ? item.clinicImage : undefined;
         navigation.navigate('CardDetails', {
           ...commonParams,
-          image: item.clinicImg ? RecommandImage : undefined,
+          image: clinicImageUri ? { uri: clinicImageUri } : item.clinicImg ? RecommandImage : undefined,
           services: item.services || [],
           isAppointment: true,
         });

@@ -231,9 +231,17 @@ export function PaymentMethod({
 
   const handlePointsToRedeemChange = useCallback(
     (text: string) => {
-      onPointsToRedeemChange?.(text) ?? setInternalPointsToRedeem(text);
+      const digitsOnly = text.replace(/\D/g, '');
+      if (digitsOnly === '') {
+        onPointsToRedeemChange?.('') ?? setInternalPointsToRedeem('');
+        return;
+      }
+      const num = parseInt(digitsOnly, 10) || 0;
+      const capped = Math.min(num, royaltyPoints);
+      const finalValue = String(capped);
+      onPointsToRedeemChange?.(finalValue) ?? setInternalPointsToRedeem(finalValue);
     },
-    [onPointsToRedeemChange],
+    [onPointsToRedeemChange, royaltyPoints],
   );
 
   const handleCouponCodeChange = useCallback(

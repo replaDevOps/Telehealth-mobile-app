@@ -42,7 +42,7 @@ const NoResponseModal: React.FC<NoResponseModalProps> = ({
           </TouchableOpacity>
 
           {/* Title */}
-          <Text style={styles.title}>{t('no_response')}</Text>
+          <Text style={styles.title}>{t('no_answer')}</Text>
 
           {/* Description */}
           <Text style={styles.description}>
@@ -51,9 +51,7 @@ const NoResponseModal: React.FC<NoResponseModalProps> = ({
 
           {/* Buttons */}
           <View style={styles.buttonRow}>
-            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-              <Text style={styles.closeButtonText}>{t('close')}</Text>
-            </TouchableOpacity>
+      
 
             <TouchableOpacity
               style={styles.prescriptionButton}

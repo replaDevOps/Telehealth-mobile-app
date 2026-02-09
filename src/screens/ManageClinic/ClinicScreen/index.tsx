@@ -356,16 +356,36 @@ export const ClinicScreen = ({ navigation, route }) => {
         onFilterPress={() => navigation.navigate('FilterScreen', { currentFilters: filterParams })}
       />
       {loading ? (
-        <ActivityIndicator
-          size="large"
-          color="#7625D7"
-          style={styles.loadingContainer}
-        />
+        <ScrollView
+          style={styles.content}
+          contentContainerStyle={styles.loadingContainer}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={['#7625D7']}
+              tintColor="#7625D7"
+            />
+          }
+        >
+          <ActivityIndicator size="large" color="#7625D7" />
+        </ScrollView>
       ) : recommendedClinics.length === 0 && nearbyClinics.length === 0 ? (
-        <View style={styles.emptyContainer}>
+        <ScrollView
+          style={styles.content}
+          contentContainerStyle={styles.emptyContainer}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={['#7625D7']}
+              tintColor="#7625D7"
+            />
+          }
+        >
           <Text style={styles.emptyTitle}>{t('no_clinics_found')}</Text>
           <Text style={styles.emptyMessage}>{t('no_clinics_message')}</Text>
-        </View>
+        </ScrollView>
       ) : (
         <ScrollView
           style={styles.content}
@@ -423,13 +443,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: mvs(15),
   },
   loadingContainer: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: mvs(50),
   },
   emptyContainer: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: mvs(30),

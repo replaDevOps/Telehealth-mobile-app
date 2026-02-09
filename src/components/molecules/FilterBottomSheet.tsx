@@ -101,6 +101,8 @@ interface FilterState {
   clinicTypes: { [key: string]: boolean }; // Using clinic type IDs as keys
   serviceGroups: { [key: number]: boolean }; // Using group IDs as keys
   serviceNames: { [key: number]: boolean }; // Using service IDs as keys
+  /** Selected service names (strings) for API - send in serviceNames param instead of IDs */
+  selectedServiceNames?: string[];
 }
 
 export const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
@@ -126,7 +128,7 @@ export const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
 
   // Initialize filters with previously applied filters when visible
   useEffect(() => {
-    if (visible && initialFilters) {
+    if (visible && initialFilters && clinicID) {
       setFilters(initialFilters);
       // Fetch service groups if clinic types are selected
       const selectedClinicTypes = Object.keys(initialFilters.clinicTypes || {})
@@ -134,7 +136,6 @@ export const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
         .map(key => key);
       if (selectedClinicTypes.length > 0) {
         // Use a flag to preserve filters when fetching groups
-        // We'll fetch groups but preserve the service names from initialFilters
         fetchServiceGroups(selectedClinicTypes[0], true);
       }
     } else if (visible && !initialFilters) {
@@ -145,7 +146,7 @@ export const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
         serviceNames: {},
       });
     }
-  }, [visible, initialFilters]);
+  }, [visible, initialFilters, clinicID]);
 
   // Fetch clinic types when component mounts or becomes visible
   useEffect(() => {
@@ -156,17 +157,16 @@ export const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
   }, [visible, clinicID]);
 
   // Fetch service groups when clinic type is selected (single select only)
+  // Uses servicesGroups API: GET /patient-common/servicesGroups?clinicID=X&serviceType=Y
   useEffect(() => {
-    // Skip if we're initializing from initialFilters (handled in the other useEffect)
-    if (!visible) return;
-    
+    if (!visible || !clinicID) return;
+
     const selectedClinicTypes = Object.keys(filters.clinicTypes)
       .filter(key => filters.clinicTypes[key])
       .map(key => key);
-    
+
     if (selectedClinicTypes.length > 0) {
-      // Since only one clinic type can be selected, use the first (and only) one
-      // Fetch service groups for the selected clinic type
+      // Since only one clinic type can be selected, use the first (and only) one as serviceType
       fetchServiceGroups(selectedClinicTypes[0], false);
     } else {
       // No clinic type selected, clear service groups and service names
@@ -177,7 +177,7 @@ export const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
         serviceNames: {},
       }));
     }
-  }, [filters.clinicTypes, visible]);
+  }, [filters.clinicTypes, visible, clinicID]);
 
   // Fetch service filters when service groups are selected
   useEffect(() => {
@@ -228,14 +228,16 @@ export const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
     }
   };
 
-  const fetchServiceGroups = async (clinicType: string, preserveFilters: boolean = false) => {
+  const fetchServiceGroups = async (serviceType: string, preserveFilters: boolean = false) => {
+    if (!clinicID) return;
     try {
       setLoadingGroups(true);
-      const response = await apiClient.get(API.CLINIC.GET_GROUPS, {
+      const response = await apiClient.get(API.CLINIC.GET_SERVICES_GROUPS, {
         params: {
-          clinicType: clinicType,
-    },
-  });
+          clinicID: clinicID.toString(),
+          serviceType: serviceType,
+        },
+      });
       if (response.data.success && response.data.data) {
         setServiceGroups(response.data.data);
         // Initialize filter state with service groups, preserving existing selections
@@ -323,19 +325,22 @@ export const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
     // If clicking the same type that's already selected, deselect it
     // Otherwise, clear all and select only this one
     const isCurrentlySelected = filters.clinicTypes[typeId];
-    
+    const previousType = Object.keys(filters.clinicTypes || {}).find(key => filters.clinicTypes[key]);
+    const isSwitchingToDifferent = previousType != null && previousType !== typeId;
+
     if (isCurrentlySelected) {
       // Deselect if already selected
-    setFilters({
-      ...filters,
-      clinicTypes: {
-        ...filters.clinicTypes,
+      setFilters({
+        ...filters,
+        clinicTypes: {
+          ...filters.clinicTypes,
           [typeId]: false,
         },
-        // Clear service groups and service names when deselecting clinic type
         serviceGroups: {},
         serviceNames: {},
       });
+      setServiceGroups([]);
+      setServiceFilters([]);
     } else {
       // Clear all clinic types and select only this one
       const newClinicTypes: { [key: string]: boolean } = {};
@@ -343,14 +348,18 @@ export const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
         newClinicTypes[type.id] = false;
       });
       newClinicTypes[typeId] = true;
-      
+
       setFilters({
         ...filters,
         clinicTypes: newClinicTypes,
-        // Clear service groups and service names when selecting a new clinic type
         serviceGroups: {},
         serviceNames: {},
-    });
+      });
+      // Clear list state immediately when switching type so we don't show previous type's values
+      if (isSwitchingToDifferent) {
+        setServiceGroups([]);
+        setServiceFilters([]);
+      }
     }
   };
 
@@ -388,7 +397,14 @@ export const FilterBottomSheet: React.FC<FilterBottomSheetProps> = ({
   };
 
   const handleApply = () => {
-    onApplyFilters(filters);
+    const selectedIds = Object.keys(filters.serviceNames || {})
+      .filter(key => filters.serviceNames[Number(key)])
+      .map(key => Number(key));
+    const selectedServiceNames = serviceFilters
+      .filter(s => selectedIds.includes(s.id))
+      .map(s => s.name)
+      .filter(Boolean);
+    onApplyFilters({ ...filters, selectedServiceNames });
     onClose();
   };
 

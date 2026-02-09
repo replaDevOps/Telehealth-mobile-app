@@ -57,6 +57,7 @@ export const API = {
     GET_CLINIC_SERVICES: '/patient-common/clinicServices',
     GET_CLINIC_REVIEWS: '/patient-common/clinicReviews',
     GET_DEVICE_DETAILS: '/patient-common/deviceDetails',
+    GET_SERVICES_GROUPS: '/patient-common/servicesGroups',
     GET_SERVICES_FILTER: '/patient-common/servicesFilter',
     GET_SERVICE_DETAILS: '/patient-common/serviceDetails',
   },

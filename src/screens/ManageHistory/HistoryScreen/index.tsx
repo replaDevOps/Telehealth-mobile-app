@@ -15,6 +15,8 @@ import type {
   Tab,
   PaymentKind,
   PaymentItem,
+  PaymentConsultationItem,
+  PaymentAppointmentItem,
   ConsultationItem,
   DropdownOption,
 } from '../types/history.types';
@@ -256,20 +258,31 @@ export function HistoryScreen({ navigation }) {
                   : colors.red,
             } as PaymentConsultationItem;
           } else {
-            // Map appointment payment
+            // Map appointment payment (API: clinic.details.logo, clinic.details.address, city, district)
             const clinicData = payment.clinic || {};
+            const clinicDetails = clinicData.details || {};
             const services = payment.services || [];
             const appointmentServices = payment.appointment_services || [];
+
+            const clinicLogo = clinicDetails.logo || clinicDetails.coverImage || clinicData.logo || clinicData.coverImage || clinicData.image || payment.clinicImage || '';
+            const locationParts = [
+              clinicDetails.address,
+              clinicDetails.city,
+              clinicDetails.district,
+            ].filter(Boolean);
+            const clinicLocationStr = locationParts.length > 0
+              ? locationParts.join(', ')
+              : (payment.clinicLocation || clinicData.location || '');
 
             return {
               id: String(payment.id || payment.paymentId || Date.now()),
               kind: 'appointment' as const,
               date: payment.date || payment.created_at || payment.requestDate || '',
               paymentId: String(payment.paymentId || payment.id || ''),
-              clinicImg: !!payment.clinicImage || !!clinicData.image,
-              clinicImage: payment.clinicImage || clinicData.image || clinicData.logo || clinicData.coverImage || '',
-              clinicName: payment.clinicName || clinicData.clinicName || clinicData.name || '',
-              clinicLocation: payment.clinicLocation || clinicData.location || '',
+              clinicImg: !!clinicLogo || !!clinicData.image,
+              clinicImage: clinicLogo,
+              clinicName: payment.clinicName || clinicData.clinicName || clinicDetails.businessName || clinicData.name || '',
+              clinicLocation: clinicLocationStr,
               numberOfService: String(appointmentServices.length || services.length || payment.serviceCount || 0),
               price: payment.price || payment.amount || '0',
               status: payment.status || 'Completed',
@@ -503,7 +516,11 @@ export function HistoryScreen({ navigation }) {
                 label={t('type')}
                 placeholder={t('select_type_here')}
                 value={selectedType}
-                onValueChange={(value) => setSelectedType(value as PaymentKind | '')}
+                onValueChange={(value) => {
+                  setSelectedType(value as PaymentKind | '');
+                  setLoadingPayments(true);
+                  setPayments([]);
+                }}
                 options={DROPDOWN_OPTIONS.map(option => ({
                   ...option,
                   label: t(option.label.toLowerCase()),

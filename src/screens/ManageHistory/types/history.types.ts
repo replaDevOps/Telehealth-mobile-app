@@ -41,6 +41,7 @@ export interface PaymentAppointmentItem {
   date: string;
   paymentId: string;
   clinicImg?: boolean;
+  clinicImage?: string;
   clinicName: string;
   clinicLocation: string;
   numberOfService: string;

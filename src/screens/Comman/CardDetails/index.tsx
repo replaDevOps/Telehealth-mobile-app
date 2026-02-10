@@ -329,13 +329,18 @@ export function CardDetails({ navigation }: { navigation: any }) {
               ? colors.yellow
               : colors.red;
 
+          const appointmentLocationParts = [
+            clinicDetails.address,
+            translateCityToEnglish(clinicDetails.city),
+            translateCityToEnglish(clinicDetails.district),
+          ].filter(Boolean);
+          const appointmentClinicLocation = appointmentLocationParts.length > 0
+            ? appointmentLocationParts.join(', ')
+            : '';
+
           setDisplayData({
             clinicName: clinicData.clinicName || clinicDetails.businessName || clinicData.name || '',
-            clinicLocation: (() => {
-              const city = translateCityToEnglish(clinicDetails.city);
-              const district = translateCityToEnglish(clinicDetails.district);
-              return clinicDetails.address || `${city || ''}${district ? `, ${district}` : ''}`.trim() || '';
-            })(),
+            clinicLocation: appointmentClinicLocation,
             status: status,
             statusColor: statusColor,
             dateTime: formattedDateTime,
@@ -356,14 +361,25 @@ export function CardDetails({ navigation }: { navigation: any }) {
             services: mappedServices,
           });
         } else {
-          // Consultation payment details - map according to the API response structure
+          // Consultation payment details - map according to the API response structure (includes clinic.details with location)
           const consultationData = finalData;
           const clinicData = consultationData.clinic || {};
+          const clinicDetails = clinicData.details || {};
           const doctorData = consultationData.doctor || {};
           const serviceData = consultationData.service || {};
 
           // Extract clinicID for rating
           setClinicID(clinicData.id || consultationData.clinicID || null);
+
+          // Build location from clinic.details (address, city, district)
+          const locationParts = [
+            clinicDetails.address,
+            translateCityToEnglish(clinicDetails.city),
+            translateCityToEnglish(clinicDetails.district),
+          ].filter(Boolean);
+          const clinicLocationStr = locationParts.length > 0
+            ? locationParts.join(', ')
+            : (clinicData.location || '');
 
           // Format date and time from date or created_at
           const dateTimeStr = consultationData.date || consultationData.created_at || '';
@@ -391,8 +407,8 @@ export function CardDetails({ navigation }: { navigation: any }) {
           const formattedServicePrice = servicePriceValue ? `SAR ${parseFloat(servicePriceValue).toFixed(2)}` : 'SAR 0.00';
 
           setDisplayData({
-            clinicName: clinicData.clinicName || clinicData.name || '',
-            clinicLocation: clinicData.location || '',
+            clinicName: clinicData.clinicName || clinicDetails.businessName || clinicData.name || '',
+            clinicLocation: clinicLocationStr,
             status: consultationData.status || '',
             statusColor: consultationData.status === 'Completed' || consultationData.status === 'Success'
               ? colors.green
@@ -401,7 +417,9 @@ export function CardDetails({ navigation }: { navigation: any }) {
                 : colors.red,
             dateTime: formattedDateTime,
             price: formattedPrice,
-            image: clinicData.image ? { uri: clinicData.image } : RecommandImage,
+            image: (clinicData.image || clinicDetails.logo || clinicDetails.coverImage)
+              ? { uri: clinicData.image || clinicDetails.logo || clinicDetails.coverImage }
+              : RecommandImage,
             consultationType: consultationData.type || consultationData.consultationType,
             duration: consultationData.duration || '',
             doctorName: doctorData.name || '',

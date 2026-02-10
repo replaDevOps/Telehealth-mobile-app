@@ -59,7 +59,7 @@ export const PaymentDoctorSection: React.FC<PaymentDoctorSectionProps> = ({
     );
   }
 
-  // Appointment: clinic image, or initials avatar, or empty box
+  // Appointment: clinic logo, or initials avatar, or empty box; show clinic name and location
   if (item.kind === 'appointment') {
     const hasImage = !!item.clinicImage && typeof item.clinicImage === 'string' && item.clinicImage.trim().length > 0;
     const initials = getClinicInitials(item.clinicName);
@@ -78,6 +78,9 @@ export const PaymentDoctorSection: React.FC<PaymentDoctorSectionProps> = ({
         </View>
         <View style={styles.doctorInfo}>
           <Text style={styles.doctorName}>{item.clinicName || '—'}</Text>
+          {item.clinicLocation ? (
+            <Text style={styles.clinicName} numberOfLines={2}>{item.clinicLocation}</Text>
+          ) : null}
         </View>
       </View>
     );

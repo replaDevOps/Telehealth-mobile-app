@@ -98,6 +98,7 @@ export const API = {
     GET_CONSULTATION_PAYMENT_DETAILS: '/history/consultationPaymentDetails', // GET /consultationPaymentDetails/{id}
     GET_APPOINTMENT_DETAILS: '/history/appointmentDetails', // GET /appointmentDetails/{id}
     RATE_CLINIC: '/history/rateClinic', // POST /rateClinic
+    REFUND_POLICY: '/history/refundPolicy', // GET /refundPolicy
   },
   REFUND: {
     GET_REFUND_APPOINTMENTS: '/patient-setting/refundAppointments', // GET /refundAppointments?name=

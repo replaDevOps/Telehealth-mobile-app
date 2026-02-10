@@ -38,6 +38,9 @@ export const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
+  scrollContent: {
+    paddingBottom: mvs(40),
+  },
   clinicCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -262,6 +265,7 @@ export const styles = StyleSheet.create({
   summarySection: {
     paddingHorizontal: 16,
     marginTop: 24,
+    paddingBottom: 24,
   },
   summaryTitle: {
     fontSize: 16,
@@ -301,7 +305,7 @@ export const styles = StyleSheet.create({
     color: '#111827',
   },
   bottomPadding: {
-    height: mvs(120),
+    height: mvs(200),
   },
   bottomContainer: {
     padding: 20,

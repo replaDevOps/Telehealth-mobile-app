@@ -262,6 +262,7 @@ export function CheckoutScreen({ route, navigation }) {
 
       <ScrollView
         style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {/* Render services grouped by clinic */}

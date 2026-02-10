@@ -72,12 +72,7 @@ export const usePusherNotifications = () => {
       } else if (data && typeof data === 'object') {
         // Extract string from various possible fields
         notificationMessage = 
-          data?.description || 
-          data?.message || 
-          data?.title || 
-          data?.body || 
-          data?.type ||
-          (data?.notification ? (typeof data.notification === 'string' ? data.notification : data.notification?.description || data.notification?.message || data.notification?.title) : null) ||
+         
           'New notification received';
       }
       
@@ -297,7 +292,7 @@ export const usePusherNotifications = () => {
           consultationMessage = JSON.stringify(consultationMessage);
         }
         
-        Toast.info(consultationMessage);
+        // Toast.info(consultationMessage);
       }
     };
 

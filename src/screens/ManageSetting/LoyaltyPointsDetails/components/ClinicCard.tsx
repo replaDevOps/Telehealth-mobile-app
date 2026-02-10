@@ -6,6 +6,7 @@ import { coinIcon } from '@assets/images';
 type ClinicCardProps = {
   clinicImage: any;
   category: string;
+  categories?: string[];
   clinicName: string;
   totalPoints: number;
   handlePress?: () => void;
@@ -13,10 +14,12 @@ type ClinicCardProps = {
 export const ClinicCard = ({
   clinicImage,
   category,
+  categories,
   clinicName,
   totalPoints,
   handlePress,
 }: ClinicCardProps) => {
+  const pills = (categories && categories.length > 0 ? categories : [category]).filter(Boolean);
   return (
     <TouchableOpacity style={styles.card} onPress={handlePress}>
       <Image
@@ -24,8 +27,12 @@ export const ClinicCard = ({
         style={{ width: 50, height: 50, borderRadius: 10 }}
       />
       <View style={styles.leftSection}>
-        <View style={styles.category}>
-          <Text style={styles.categoryText}>{category}</Text>
+        <View style={styles.pillsRow}>
+          {pills.map((label, index) => (
+            <View key={index} style={styles.category}>
+              <Text style={styles.categoryText}>{label}</Text>
+            </View>
+          ))}
         </View>
         <Text style={styles.transactionId}>{clinicName}</Text>
       </View>
@@ -57,6 +64,12 @@ const styles = StyleSheet.create({
   },
   leftSection: {
     flex: 1,
+  },
+  pillsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 3,
+    marginBottom: 8,
   },
   centerName: {
     fontSize: 16,

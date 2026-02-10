@@ -75,7 +75,14 @@ export const RoyaltyPoints = ({ navigation }) => {
       setHasMore(hasMoreData);
       
       if (responseData?.success !== false && clinicsList.length > 0) {
-        
+        const getCategories = (businessType: string | undefined): string[] => {
+          if (!businessType || typeof businessType !== 'string') return ['General'];
+          const trimmed = businessType.trim();
+          if (trimmed.toLowerCase() === 'both') return ['Dentistry', 'Dermatology'];
+          const capitalized = trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
+          return [capitalized];
+        };
+
         // Map API response to expected format
         const mappedData = clinicsList.map((item: any, index: number) => {
           const clinicId = item.clinicID?.toString() || item.clinic?.id?.toString() || index.toString();
@@ -86,9 +93,11 @@ export const RoyaltyPoints = ({ navigation }) => {
             : item.clinicImage 
             ? (typeof item.clinicImage === 'string' ? { uri: item.clinicImage } : item.clinicImage)
             : RecommandImage;
-          const category = item.clinic?.category || item.category || 'General';
+          const businessType = item.clinic?.businessType || item.businessType;
+          const categories = getCategories(businessType);
+          const category = categories[0] ?? 'General';
           
-          console.log(`Mapped item ${index}:`, { clinicId, clinicName, points, category });
+          console.log(`Mapped item ${index}:`, { clinicId, clinicName, points, categories });
           
           return {
             id: clinicId,
@@ -97,6 +106,7 @@ export const RoyaltyPoints = ({ navigation }) => {
             points: points,
             image: image,
             category: category,
+            categories: categories,
           };
         });
 
@@ -152,7 +162,7 @@ export const RoyaltyPoints = ({ navigation }) => {
       clinicName: item.clinicName,
       clinicImage: item.image,
       totalPoints: item.points,
-      category: item.category,
+      category: item.categories?.join(' and ') || item.category,
     });
   };
 
@@ -160,6 +170,7 @@ export const RoyaltyPoints = ({ navigation }) => {
     <ClinicCard
       clinicImage={item.image}
       category={item.category}
+      categories={item.categories}
       clinicName={item.clinicName}
       totalPoints={item.points}
       handlePress={() => handlePointDetails(item)}

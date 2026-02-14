@@ -26,6 +26,12 @@ import { API } from '@services/api/api-endpoint';
 import { apiClient } from '@services/api/api-client';
 import { Toast } from 'toastify-react-native';
 
+const isValidEmailFormat = (value: string): boolean => {
+  if (!value || typeof value !== 'string') return false;
+  const trimmed = value.trim();
+  return trimmed.includes('@') && trimmed.indexOf('@') > 0 && trimmed.includes('.', trimmed.indexOf('@')) && trimmed.length > trimmed.indexOf('@') + 1;
+};
+
 export function SignUpScreen({ navigation }) {
   const { t } = useTranslation();
   const [selectedTab, setSelectedTab] = useState<'email' | 'phone'>('email');
@@ -55,7 +61,7 @@ export function SignUpScreen({ navigation }) {
     let valid = true;
 
     if (selectedTab === 'email') {
-      if (!email.trim() || !email.includes('@')) {
+      if (!isValidEmailFormat(email)) {
         setEmailError(t('invalid_email'));
         valid = false;
       } else {
@@ -177,7 +183,7 @@ export function SignUpScreen({ navigation }) {
                 value={email}
                 onChangeText={(text) => {
                   setEmail(text);
-                  if (emailError) setEmailError('');
+                  if (emailError && isValidEmailFormat(text)) setEmailError('');
                 }}
                 keyboardType="email-address"
                 autoCapitalize="none"

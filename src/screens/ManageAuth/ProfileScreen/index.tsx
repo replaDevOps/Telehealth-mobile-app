@@ -239,10 +239,16 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const handleSkip = async () => {
     // Clear previous field errors
+    setNameError('');
     setPhoneError('');
     setEmailError('');
 
     // Ensure required fields are present before calling the skip API
+    if (!fullName || !fullName.trim()) {
+      setNameError(t('name_required') || 'Full name is required');
+      return;
+    }
+
     if (!phone || !phone.trim()) {
       setPhoneError(t('phone_required') || 'Phone number is required');
       return;
@@ -255,13 +261,12 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
 
     setLoadingSkip(true);
     try {
-      // Build payload: phoneNo and email are required; include other profile fields if provided
+      // Build payload: fullName, phoneNo and email are required; include other profile fields if provided
       const payload: any = {
+        fullName: fullName.trim(),
         phoneNo: phone.trim(),
         email: email.trim(),
       };
-
-      if (fullName && fullName.trim()) payload.fullName = fullName.trim();
       if (nationality) payload.nationality = nationality;
       if (IdCardNumber && IdCardNumber.trim()) payload.nationalID = IdCardNumber.trim();
       if (gender) payload.gender = gender;
@@ -273,7 +278,9 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
       const serverMsg = response?.data?.message || '';
       if (response?.data?.success === false) {
         const lower = String(serverMsg).toLowerCase();
-        if (lower.includes('phone')) {
+        if (lower.includes('name') || lower.includes('full name')) {
+          setNameError(serverMsg);
+        } else if (lower.includes('phone')) {
           setPhoneError(serverMsg);
         } else if (lower.includes('email')) {
           setEmailError(serverMsg);
@@ -294,7 +301,8 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     } catch (err: any) {
       const errMsg = err?.response?.data?.message || err?.message || 'Skip failed';
       const lower = String(errMsg).toLowerCase();
-      if (lower.includes('phone')) setPhoneError(errMsg);
+      if (lower.includes('name') || lower.includes('full name')) setNameError(errMsg);
+      else if (lower.includes('phone')) setPhoneError(errMsg);
       else if (lower.includes('email')) setEmailError(errMsg);
       else Toast.error(errMsg);
     } finally {

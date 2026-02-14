@@ -60,6 +60,8 @@ export const API = {
     GET_SERVICES_GROUPS: '/patient-common/servicesGroups',
     GET_SERVICES_FILTER: '/patient-common/servicesFilter',
     GET_SERVICE_DETAILS: '/patient-common/serviceDetails',
+    PRIVACY_POLICY: '/patient-common/privacy',
+    TERMS_CONDITIONS: '/patient-common/terms',
   },
   CART: {
     ADD_TO_CART: '/cart/add',

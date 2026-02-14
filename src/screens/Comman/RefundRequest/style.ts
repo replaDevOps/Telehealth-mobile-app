@@ -110,11 +110,13 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
+    maxWidth: 120,
   },
   categoryBadgeText: {
     fontSize: 10,
     color: colors.primary,
     fontWeight: '500',
+    textTransform: 'capitalize',
   },
   nameBadge: {
     backgroundColor: colors.white,

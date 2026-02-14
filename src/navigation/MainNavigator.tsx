@@ -35,6 +35,7 @@ import {
   PrescriptionScreen,
   CartScreen,
   RefundPolicy,
+  PolicyScreen,
 } from '@screens/Comman';
 
 export type MainStackParamList = {
@@ -52,6 +53,7 @@ export type MainStackParamList = {
   ChatOnboarding: undefined;
   ConsultationPayment: undefined;
   RefundPolicy: undefined;
+  PolicyScreen: { type: 'privacy' | 'terms' };
   HomeScreen: undefined;
   NearbyClinics: undefined;
   SelectLocation: undefined;
@@ -119,6 +121,7 @@ export const MainNavigator = () => {
         }}
       />
       <Stack.Screen name="RefundPolicy" component={RefundPolicy} />
+      <Stack.Screen name="PolicyScreen" component={PolicyScreen} />
     </Stack.Navigator>
   );
 };

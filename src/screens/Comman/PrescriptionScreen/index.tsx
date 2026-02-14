@@ -436,10 +436,19 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
               color: #333;
             }
             .signature {
-              text-align: right;
+              text-align: left;
               margin-top: 40px;
               padding-top: 20px;
-              border-top: 1px solid #e0e0e0;
+              border-top: none;
+              clear: both;
+              page-break-inside: avoid;
+            }
+            .signature-img {
+              max-width: 200px;
+              height: auto;
+              display: block;
+              float: left;
+              margin-right: 10px;
             }
             @media print {
               body { 
@@ -521,7 +530,7 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
 
           <div class="signature">
             <p><strong>Doctor's Signature</strong></p>
-            ${doctor.signature ? `<img src="${doctor.signature}" alt="Doctor Signature" style="max-width: 200px; height: auto;" />` : '<p>_________________</p>'}
+            ${doctor.signature ? `<img class="signature-img" src="${doctor.signature}" alt="Doctor Signature" />` : '<p>_________________</p>'}
           </div>
           </div>
         </body>

@@ -113,6 +113,7 @@ export const styles = StyleSheet.create({
     fontSize: 10,
     color: colors.white,
     fontWeight: '500',
+    textTransform: 'capitalize',
   },
   nameBadge: {
     backgroundColor: "#DACEFB",
@@ -375,6 +376,13 @@ export const styles = StyleSheet.create({
   },
   redemptionValue: {
     color: '#EF4444',
+  },
+
+  insufficientText: {
+    color: '#EF4444',
+    marginTop: 4,
+    fontSize: 13,
+    marginHorizontal: 4,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,

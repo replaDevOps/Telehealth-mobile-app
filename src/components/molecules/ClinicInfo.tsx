@@ -43,7 +43,7 @@ export const ClinicInfo: React.FC<ClinicInfoProps> = ({
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.clinicName}>{name}</Text>
+      <Text style={styles.clinicName} numberOfLines={1} ellipsizeMode="tail">{name}</Text>
 
       <View style={styles.locationRow}>
         <View style={styles.locationName}>
@@ -91,6 +91,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.text,
     flex: 1,
+    flexShrink: 1,
   },
   consultButton: {
     backgroundColor: colors.black,

@@ -12,6 +12,7 @@ import { ClinicApiResponse } from '../../../types/clinic.types';
 import { Toast } from 'toastify-react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { ClinicProfile } from '@assets/images';
+import ClinicAvatar from '@components/common/ClinicAvatar';
 import { showLocationSettingsAlert, handleLocationError } from '../../../utils/locationUtils';
 
 export const NearbyClinics = ({ navigation }: any) => {
@@ -389,17 +390,13 @@ export const NearbyClinics = ({ navigation }: any) => {
               <View style={styles.cardContent}>
                 {/* Clinic Image with Featured Badge */}
                 <View style={styles.imageContainer}>
-                  <Image
-                    source={
-                      selectedClinic.details?.coverImage 
-                        ? { uri: selectedClinic.details.coverImage }
-                        : selectedClinic.details?.logo
-                        ? { uri: selectedClinic.details.logo }
-                        : ClinicProfile
-                    }
-                    style={styles.clinicImage}
-                    resizeMode="cover"
-                  />
+                  {selectedClinic.details?.coverImage ? (
+                    <Image source={{ uri: selectedClinic.details.coverImage }} style={styles.clinicImage} resizeMode="cover" />
+                  ) : selectedClinic.details?.logo ? (
+                    <Image source={{ uri: selectedClinic.details.logo }} style={styles.clinicImage} resizeMode="cover" />
+                  ) : (
+                    <ClinicAvatar name={selectedClinic.name || selectedClinic.title || ''} size={56} style={styles.clinicImage} />
+                  )}
                   {/* Featured Badge on Image */}
                   {selectedClinic.is_featured && (
                     <View style={styles.featuredBadgeOnImage}>

@@ -135,13 +135,21 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     }
   }, [activeTab, clinicID]);
 
-  // Refetch services when search query changes (debounced)
+  // Refetch services from server when search query changes (debounced)
   useEffect(() => {
-    if (activeTab === t('services') && clinicID && services.length > 0) {
-      // Only filter locally if we already have services loaded
-      // Don't refetch on every keystroke
+    if (activeTab === t('services') && clinicID) {
+      const timeoutId = setTimeout(() => {
+        // Reset pagination and fetch first page from server to support server-side search
+        setServices([]);
+        setServicesPage(1);
+        setServicesTotal(null);
+        fetchClinicServices(1, servicesPerPage);
+      }, 400);
+
+      return () => clearTimeout(timeoutId);
     }
-  }, [searchQuery, activeTab]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, activeTab, clinicID]);
 
   // Remove client-side sorting since we're using API sorting
   // useEffect(() => {
@@ -249,7 +257,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
         setHasAudioPermission(audioStatus);
         setHasVideoPermission(cameraStatus && audioStatus);
       } catch (err) {
-        console.warn('📱 [ClinicDetail] Error checking permissions:', err);
+        // console.warn('📱 [ClinicDetail] Error checking permissions:', err);
         setHasAudioPermission(false);
         setHasVideoPermission(false);
       }
@@ -326,6 +334,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       }
 
       // Make API calls in parallel for better performance
+      console.log('Fetching clinic details with location:', { lat, long });
       const [detailsResponse, descriptionResponse] = await Promise.all([
         apiClient.get(API.CLINIC.GET_CLINIC_DETAILS, {
           params: {
@@ -343,6 +352,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
         }),
       ]);
       if (detailsResponse.data.success && detailsResponse.data.data) {
+        console.log('Clinic details response:', detailsResponse.data);
         setClinicDetail(detailsResponse.data.data);
       }
 
@@ -1078,16 +1088,15 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       ? { uri: clinicDetail.details.logo }
       : null;
 
-  // Transform services for display
+  // Transform services for display (do not apply client-side filtering;
+  // server provides filtered/paginated results)
   const transformedServices = transformServices(services);
-  const filteredServices = transformedServices.filter(service =>
-    service.serviceName.toLowerCase().includes(searchQuery.trim().toLowerCase())
-  );
+  const filteredServices = transformedServices;
 
   const hasMoreServices = servicesTotal !== null ? services.length < servicesTotal : false;
   const hasMoreReviews = reviewsTotal !== null ? reviews.length < reviewsTotal : false;
   const hasMoreDevices = devicesNextPageUrl !== null;
-  console.log('📱 [ClinicDetail] hasMoreDevices:', hasMoreDevices, 'nextPageUrl:', devicesNextPageUrl);
+  // console.log('📱 [ClinicDetail] hasMoreDevices:', hasMoreDevices, 'nextPageUrl:', devicesNextPageUrl);
   // Transform devices from API to match Abou tClinic component format 
   const transformDevices = (apiDevices: ClinicDevice[]) => {
     if (!apiDevices || !Array.isArray(apiDevices)) {
@@ -1133,18 +1142,25 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
   // Don't block UI with full loading screen - show content immediately with route params
   // Individual sections will show their own loading states
   return (
-    <View style={styles.container}>
-      <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={['#7625D7']} // primary color
-          />
-        }
-      >
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+    >
+      <View style={styles.container}>
+        <ScrollView
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={['#7625D7']} // primary color
+            />
+          }
+        >
         {/* Header with background image and logo */}
         <ClinicHeader
           backgroundImage={clinicImage}
@@ -1181,21 +1197,15 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
             <Text style={styles.sectionTitle}>{t('all_services')}</Text>
 
             {/* Search Bar */}
-            <KeyboardAvoidingView
-              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-              keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
-              style={{ width: '100%' }}
-            >
-              <SearchServicesBar
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                onFilterPress={handleFilterPress}
-                placeholder={t('search_services')}
-              />
-            </KeyboardAvoidingView>
+            <SearchServicesBar
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              onFilterPress={handleFilterPress}
+              placeholder={t('search_services')}
+            />
 
             {/* Services List */}
-            {loadingServices ? (
+            {loadingServices && !refreshing ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#7625D7" />
               </View>
@@ -1219,7 +1229,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
                 {/* Load more control for paginated services */}
                 {hasMoreServices && (
                   <View style={{ width: '100%', alignItems: 'center', paddingVertical: 12,height: 150 }}>
-                    {loadingServicesPage ? (
+                    {loadingServicesPage && !refreshing ? (
                       <ActivityIndicator size="small" color="#7625D7" />
                     ) : (
                       <TouchableOpacity
@@ -1266,7 +1276,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
             </View>
 
             {/* Reviews List */}
-            {loadingReviews ? (
+            {loadingReviews && !refreshing ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#7625D7" />
               </View>
@@ -1288,7 +1298,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
                 {/* Load more control for paginated reviews */}
                 {hasMoreReviews && (
                   <View style={{ width: '100%', alignItems: 'center', paddingVertical: 12 }}>
-                    {loadingReviewsPage ? (
+                    {loadingReviewsPage && !refreshing ? (
                       <ActivityIndicator size="small" color="#7625D7" />
                     ) : (
                       <TouchableOpacity
@@ -1324,7 +1334,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
               {t('devices')}
             </Text>
 
-            {loadingDescription ? (
+            {loadingDescription && !refreshing ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#7625D7" />
               </View>
@@ -1373,7 +1383,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
                 {/* Load more control for paginated devices */}
                 {hasMoreDevices && (
                   <View style={{ width: '100%', alignItems: 'center', paddingVertical: 12,height: 150 }}>
-                    {loadingDevicesPage ? (
+                    {loadingDevicesPage && !refreshing ? (
                       <ActivityIndicator size="small" color="#7625D7" />
                     ) : (
                       <TouchableOpacity
@@ -1442,6 +1452,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
         hasAudioPermission={hasAudioPermission}
         hasVideoPermission={hasVideoPermission}
       />
-    </View>
+      </View>
+    </KeyboardAvoidingView>
   );
 };

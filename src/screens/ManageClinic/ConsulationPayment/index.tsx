@@ -1,7 +1,8 @@
 import { Header2 } from '@components/common/Header2';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, ScrollView, Modal, ActivityIndicator, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { mvs } from '@config/metrices';
 import { colors } from '../../../styles/colors';
 import { CustomButton } from '@components/common/CustomButton';
 import { RecommandImage, doctor } from '@assets/images';
@@ -59,6 +60,8 @@ export function ConsultationPayment({ navigation, route }) {
   }, []);
 
   const consultationType = consultationData.consultationTypeId || 'chat';
+
+  const insets = useSafeAreaInsets();
 
   // Handle payment method change - only allow card payment
   const handlePaymentChange = (payment: 'credit' | 'applepay' | 'stc' | 'tabby' | 'tamara') => {
@@ -401,6 +404,7 @@ export function ConsultationPayment({ navigation, route }) {
 
       <ScrollView
         style={styles.scrollView}
+        contentContainerStyle={{ paddingBottom: insets.bottom + mvs(110) }}
         showsVerticalScrollIndicator={false}
         scrollEnabled={!waitingForDoctor}
       >
@@ -475,7 +479,6 @@ export function ConsultationPayment({ navigation, route }) {
           compact={false}
         />
 
-        <View style={styles.bottomSpacing} />
       </ScrollView>
 
       {/* Waiting overlay shown after successful booking instead of navigating */}
@@ -500,7 +503,12 @@ export function ConsultationPayment({ navigation, route }) {
         onGetPrescription={handleUserInitiatedRefund}
       />
 
-      <View style={styles.bottomContainer}>
+      <View
+        style={[
+          styles.bottomContainer,
+          { paddingBottom: insets.bottom ? insets.bottom + mvs(12) : mvs(16), position: 'absolute', left: 0, right: 0, bottom: 0 },
+        ]}
+      >
         <CustomButton
           title={t('connect_with_doctor')}
           onPress={handleConnectWithDoctor}

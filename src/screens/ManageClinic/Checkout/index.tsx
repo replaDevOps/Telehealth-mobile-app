@@ -18,6 +18,7 @@ import MasterCardSvg from '@assets/icons/MastercardSvg';
 import { CustomTextInput } from '@components/common/CustomTextInput';
 import { CustomButton } from '@components/common/CustomButton';
 import { styles } from './style';
+import ClinicAvatar from '@components/common/ClinicAvatar';
 import { PaymentMethod, SuccessMessageModal } from '@components/molecules'; // Verify this path
 import { useTranslation } from 'react-i18next';
 import { coinIcon } from '@assets/images';
@@ -91,9 +92,12 @@ export function CheckoutScreen({ route, navigation }) {
 
   const subtotal = calculateSubtotal();
   const tax = subtotal * 0.15; // 15% tax
-  const discountAmount = subtotal * (discount / 100);
-  const redemptionAmount = parseFloat(redeemPoints) || 0;
-  const total = subtotal + tax - discountAmount - redemptionAmount;
+    const discountAmount = subtotal * (discount / 100);
+    const redemptionAmountInput = parseFloat(redeemPoints) || 0;
+    const maxRedemptionAllowed = Math.max(0, subtotal + tax - discountAmount);
+    const insufficientCoins = redemptionAmountInput > userLoyaltyPoints;
+    const appliedRedemptionAmount = insufficientCoins ? 0 : Math.min(redemptionAmountInput, maxRedemptionAllowed);
+    const total = subtotal + tax - discountAmount - appliedRedemptionAmount;
 
   const handleApplyCoupon = () => {
     // Mock coupon validation
@@ -164,6 +168,13 @@ export function CheckoutScreen({ route, navigation }) {
     setLoading(true);
 
     try {
+      // Prevent proceeding if user tried to redeem more points than they own
+      if (insufficientCoins) {
+        Toast.error(t('insufficient_coins') || 'Insufficient coins');
+        setLoading(false);
+        return;
+      }
+
       // Prepare checkout payload
       const payload = {
         paymentMethod: 'stripe',
@@ -277,11 +288,15 @@ export function CheckoutScreen({ route, navigation }) {
           >
             {/* Clinic Card */}
             <View style={styles.clinicCard}>
-              <Image
-                source={group.clinic.image}
-                resizeMode="cover"
-                style={styles.clinicImage}
-              />
+              {group.clinic.image ? (
+                <Image
+                  source={group.clinic.image}
+                  resizeMode="cover"
+                  style={styles.clinicImage}
+                />
+              ) : (
+                <ClinicAvatar name={group.clinic.name} size={56} style={styles.clinicImage} />
+              )}
               <View style={styles.clinicInfo}>
                 <Text style={styles.clinicName}>{group.clinic.name}</Text>
                 <Text style={styles.clinicLocation}>
@@ -373,6 +388,12 @@ export function CheckoutScreen({ route, navigation }) {
           onApplyCoupon={code => console.log('Apply', code)}
         />
 
+        {insufficientCoins && (
+          <View style={{ marginHorizontal: 20, marginTop: 8 }}>
+            <Text style={styles.insufficientText}>{t('insufficient_coins') || 'Insufficient coins'}</Text>
+          </View>
+        )}
+
 
 
 
@@ -405,11 +426,11 @@ export function CheckoutScreen({ route, navigation }) {
               </Text>
             </View>
           )}
-          {redemptionAmount > 0 && (
+          {appliedRedemptionAmount > 0 && (
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>{t('redemption')}</Text>
               <Text style={[styles.summaryValue, styles.redemptionValue]}>
-                -{redemptionAmount.toFixed(2)} SAR
+                -{appliedRedemptionAmount.toFixed(2)} SAR
               </Text>
             </View>
           )}
@@ -432,7 +453,7 @@ export function CheckoutScreen({ route, navigation }) {
           <Text style={styles.totalAmountValue}>{total.toFixed(2)} SAR</Text>
         </View>
 
-        {(discountAmount > 0 || redemptionAmount > 0) && (
+        {(discountAmount > 0 || appliedRedemptionAmount > 0) && (
           <View style={styles.summaryTriggerRow}>
             <TouchableOpacity>
               <Text style={styles.summaryTriggerText}>

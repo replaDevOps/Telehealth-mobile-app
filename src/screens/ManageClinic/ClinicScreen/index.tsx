@@ -87,7 +87,8 @@ export const ClinicScreen = ({ navigation, route }) => {
     query: string = '',
     filters: FilterParams | null = null,
     pageNo: number = 1,
-    append: boolean = false
+    append: boolean = false,
+    showCenterLoader: boolean = true
   ) => {
     const requestId = ++lastRequestIdRef.current;
 
@@ -95,7 +96,9 @@ export const ClinicScreen = ({ navigation, route }) => {
       if (append) {
         setLoadingMore(true);
       } else {
-        setLoading(true);
+        if (showCenterLoader) {
+          setLoading(true);
+        }
         setLoadingMore(false); // Ensure loadingMore is reset if we are doing a fresh load
         setCurrentPage(1);
         setHasMore(true);
@@ -336,13 +339,11 @@ export const ClinicScreen = ({ navigation, route }) => {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    setRecommendedClinics([]);
-    setNearbyClinics([]);
     setCurrentPage(1);
     setHasMore(true);
-    
-    await fetchAllClinics(searchQuery, filterParams, 1, false);
-    
+
+    await fetchAllClinics(searchQuery, filterParams, 1, false, false);
+
     setRefreshing(false);
   }, [searchQuery, filterParams, fetchAllClinics]);
 

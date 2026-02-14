@@ -53,7 +53,6 @@ export const ServiceDetailBottomSheet: React.FC<ServiceDetailBottomSheetProps> =
 }) => {
   const { t } = useTranslation();
   const { cartItems } = useCart();
-  console.log(service);
   if (!visible) return null;
 
   const handleAddToCart = () => {
@@ -118,17 +117,17 @@ export const ServiceDetailBottomSheet: React.FC<ServiceDetailBottomSheetProps> =
                   <View style={styles.serviceInfo}>
                     <View style={styles.serviceTags}>
                       <View style={styles.tag}>
-                        <Text style={styles.TypetagText}>{service.type}</Text>
+                        <Text style={styles.TypetagText} numberOfLines={1} ellipsizeMode="tail">{service.type}</Text>
                       </View>
                       <View style={styles.tag}>
-                        <Text style={styles.SGtagText}>{service.serviceGroup}</Text>
+                        <Text style={styles.SGtagText} numberOfLines={1} ellipsizeMode="tail">{service.serviceGroup}</Text>
                       </View>
                     </View>
                     <Text style={styles.price}>{service.price}</Text>
                   </View>
 
                   <View style={styles.serviceFooter}>
-                    <Text style={styles.serviceName}>{service.serviceName}</Text>
+                    <Text style={styles.serviceName} numberOfLines={1} ellipsizeMode="tail">{service.serviceName}</Text>
                     <View style={styles.durationContainer}>
                       <Ionicons
                         name="time-outline"
@@ -390,22 +389,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
+    maxWidth: 120,
   },
   TypetagText: {
     fontSize: 11,
     color: colors.primary,
     fontWeight: '500',
+    flexShrink: 1,
   },
   SGtagText: {
     fontSize: 11,
     color: colors.text,
     fontWeight: '500',
+    flexShrink: 1,
   },
   serviceName: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700',
     color: colors.text,
-    marginBottom: 6,
+    marginBottom: 12,
+    flexShrink: 1,
   },
   serviceFooter: {
     flexDirection: 'row',

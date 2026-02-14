@@ -257,7 +257,11 @@ export function SignInScreen({ navigation }) {
               <TouchableOpacity
                 key={type}
                 style={[styles.tabButton, tab === type && styles.activeTab]}
-                onPress={() => setTab(type)}
+                onPress={() => {
+                  setTab(type);
+                  // Clear all field errors when switching tabs
+                  setErrors({ email: '', phone: '', password: '' });
+                }}
               >
                 <Text
                   style={[styles.tabText, tab === type && styles.activeTabText]}

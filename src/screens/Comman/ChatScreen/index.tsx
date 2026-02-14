@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ServiceDetailBottomSheet } from '@components/molecules';
 import { styles } from './style';
 import { patient, RecommandImage } from '@assets/images';
+import ClinicAvatar from '@components/common/ClinicAvatar';
 import ConsultationEndedModal from '@components/molecules/EndSectionModal';
 import ConfirmationModal from '@components/molecules/ConfirmationModal';
 import { launchImageLibrary } from 'react-native-image-picker';
@@ -80,6 +81,8 @@ export function ChatScreen({ navigation, route }) {
   const [consultationData, setConsultationData] = useState<any>(null);
   const [showEndConsultationModal, setShowEndConsultationModal] = useState(false);
   const [flexToggle, setFlexToggle] = useState(false);
+  const [consultationDuration, setConsultationDuration] = useState<string | null>(null);
+  const [consultationEndedState, setConsultationEndedState] = useState<boolean>(false);
   const consultationStartTimeRef = useRef<number | null>(null); // Track when consultation started
   const consultationEndedRef = useRef(false); // Prevent duplicate API calls
   const checkPrescriptionAndShowModalRef = useRef<(() => void) | undefined>(undefined); // Ref for background timer callback
@@ -274,10 +277,12 @@ export function ChatScreen({ navigation, route }) {
     }
 
     consultationEndedRef.current = true;
+    const duration = calculateDuration();
+    setConsultationDuration(duration);
+    setConsultationEndedState(true);
     setIsConsultationActive(false);
 
     try {
-      const duration = calculateDuration();
       // In patient app: the user is always a patient, chatType='doctor' means chatting with doctor
       // So from = patient_XX, to = doctor_YY
       const doctorId = recipientID || consultationData?.doctorID || consultationData?.doctor?.id;
@@ -1012,20 +1017,26 @@ export function ChatScreen({ navigation, route }) {
           handleCart={handleCartPress}
           isConsultationActive={isConsultationActive}
           consultationData={consultationData}
+          consultationEnded={consultationEndedState}
+          consultationDuration={consultationDuration}
         />
 
         {/* Clinic Info Bar */}
         {chatType === 'doctor' && clinicInfoState && (
           <View style={styles.clinicInfo}>
             <View style={styles.clinicLeft}>
-              <Image
-                source={typeof clinicInfoState.image === 'string' && clinicInfoState.image.startsWith('http')
-                  ? { uri: clinicInfoState.image }
-                  : typeof clinicInfoState.image === 'string'
-                  ? { uri: `https://telehealth.repla-projects.com/${clinicInfoState.image}` }
-                  : clinicInfoState.image}
-                style={styles.clinicImage}
-              />
+              {clinicInfoState.image ? (
+                <Image
+                  source={typeof clinicInfoState.image === 'string' && clinicInfoState.image.startsWith('http')
+                    ? { uri: clinicInfoState.image }
+                    : typeof clinicInfoState.image === 'string'
+                    ? { uri: `https://telehealth.repla-projects.com/${clinicInfoState.image}` }
+                    : clinicInfoState.image}
+                  style={styles.clinicImage}
+                />
+              ) : (
+                <ClinicAvatar name={clinicInfoState.name || clinicInfoState.clinicName} size={48} style={styles.clinicImage} />
+              )}
               <View>
                 <Text style={styles.clinicName}>{clinicInfoState.name || clinicInfoState.clinicName}</Text>
                 <Text style={styles.clinicLocation}>{clinicInfoState.location || clinicInfoState.address || ''}</Text>

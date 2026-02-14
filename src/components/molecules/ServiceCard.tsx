@@ -38,17 +38,17 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
         <View style={styles.serviceInfo}>
           <View style={styles.serviceTags}>
             <View style={styles.tag}>
-              <Text style={styles.TypetagText}>{type}</Text>
+              <Text style={styles.TypetagText} numberOfLines={1} ellipsizeMode="tail">{type}</Text>
             </View>
-            <View style={styles.tag}>
-              <Text style={styles.SGtagText}>{serviceGroup}</Text>
-            </View>
+              <View style={styles.tag}>
+                <Text style={styles.SGtagText} numberOfLines={1} ellipsizeMode="tail">{serviceGroup}</Text>
+              </View>
           </View>
           <Text style={styles.price}>{price}</Text>
         </View>
 
         <View style={styles.serviceFooter}>
-          <Text style={styles.serviceName}>{serviceName}</Text>
+          <Text style={styles.serviceName} numberOfLines={1} ellipsizeMode="tail">{serviceName}</Text>
           <View style={styles.durationContainer}>
             <Ionicons
               name="time-outline"
@@ -99,22 +99,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
+    maxWidth: 120,
   },
   TypetagText: {
     fontSize: 11,
     color: colors.primary,
     fontWeight: '500',
+    flexShrink: 1,
   },
   SGtagText: {
     fontSize: 11,
     color: colors.text,
     fontWeight: '500',
+    flexShrink: 1,
   },
   serviceName: {
     fontSize: 15,
     fontWeight: '600',
     color: colors.text || '#1A1A1A',
     marginBottom: 6,
+    flex: 1,
+    flexShrink: 1,
   },
   serviceFooter: {
     flexDirection: 'row',

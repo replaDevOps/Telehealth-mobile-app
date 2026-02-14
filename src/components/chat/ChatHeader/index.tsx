@@ -28,6 +28,8 @@ interface ChatHeaderProps {
     type?: string;
     code?: string;
   } | null;
+  consultationEnded?: boolean;
+  consultationDuration?: string | null;
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
@@ -40,6 +42,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   handleCart,
   isConsultationActive = false,
   consultationData,
+  consultationEnded = false,
+  consultationDuration = null,
 }) => {
   const { cartCount } = useCartCount();
   
@@ -55,6 +59,11 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
     // When consultation is active, always show the countdown timer
     if (isConsultationActive && !fromHistory) {
       return consultationTime; // This is the formatted countdown timer (MM:SS)
+    }
+    
+    // When consultation has ended, show the total consultation duration instead of service info
+    if (consultationEnded && consultationDuration) {
+      return consultationDuration;
     }
     
     // When viewing history, show service info

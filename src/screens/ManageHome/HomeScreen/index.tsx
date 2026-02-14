@@ -87,18 +87,22 @@ export const HomeScreen = ({ navigation }) => {
 
   // Fetch clinics function
   const fetchClinics = useCallback(async (
-    lat?: number, 
-    long?: number, 
-    pageNo: number = 1, 
-    recordsPerPage: number = 10, 
-    searchName: string = '', 
-    append: boolean = false
+    lat?: number,
+    long?: number,
+    pageNo: number = 1,
+    recordsPerPage: number = 10,
+    searchName: string = '',
+    append: boolean = false,
+    showCenterLoader: boolean = true
   ) => {
     try {
       if (append) {
         setLoadingMore(true);
       } else {
-        setLoading(true);
+        // Only show the center loading indicator when requested
+        if (showCenterLoader) {
+          setLoading(true);
+        }
         setLoadingMore(false);
         setCurrentPage(1);
         setHasMore(true);
@@ -305,17 +309,15 @@ export const HomeScreen = ({ navigation }) => {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    setRecommendedClinics([]);
-    setNearbyClinics([]);
     setCurrentPage(1);
     setHasMore(true);
-    
+
     if (location) {
-      await fetchClinics(location.lat, location.long, 1, recordsPerPage, searchQuery, false);
+      await fetchClinics(location.lat, location.long, 1, recordsPerPage, searchQuery, false, false);
     } else {
-      await fetchClinics(undefined, undefined, 1, recordsPerPage, searchQuery, false);
+      await fetchClinics(undefined, undefined, 1, recordsPerPage, searchQuery, false, false);
     }
-    
+
     setRefreshing(false);
   }, [location, searchQuery, fetchClinics, recordsPerPage]);
 

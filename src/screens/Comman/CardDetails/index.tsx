@@ -20,6 +20,7 @@ import { styles } from './style';
 import { Header2 } from '@components/common/Header2';
 import { CustomButton } from '@components/common/CustomButton';
 import { RecommandImage } from '@assets/images';
+import ClinicAvatar from '@components/common/ClinicAvatar';
 import RatingBottomSheet from '@components/molecules/RatingBottomSheet';
 import { RouteProp, useRoute } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
@@ -816,11 +817,15 @@ export function CardDetails({ navigation }: { navigation: any }) {
       <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
         <View style={styles.clinicInfo}>
           <View style={styles.clinicLeft}>
-            <Image
-              source={displayData.image || RecommandImage}
-              style={styles.clinicImage}
-              resizeMode="cover"
-            />
+            {displayData.image ? (
+              <Image
+                source={displayData.image}
+                style={styles.clinicImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <ClinicAvatar name={displayData.clinicName} size={56} style={styles.clinicImage} />
+            )}
             <View>
               <Text style={styles.clinicName}>{displayData.clinicName || t('clinic_name') || 'Clinic Name'}</Text>
               <Text style={styles.clinicLocation}>{displayData.clinicLocation || t('clinic_location') || 'Location'}</Text>
@@ -853,18 +858,18 @@ export function CardDetails({ navigation }: { navigation: any }) {
                 <View style={styles.serviceInfo}>
                   <View style={styles.serviceBadges}>
                     <View style={styles.categoryBadge}>
-                      <Text style={styles.categoryBadgeText}>
+                      <Text style={styles.categoryBadgeText} numberOfLines={1} ellipsizeMode="tail">
                         {service.category}
                       </Text>
                     </View>
                     <View style={styles.nameBadge}>
-                      <Text style={styles.nameBadgeText}>
+                      <Text style={styles.nameBadgeText} numberOfLines={1} ellipsizeMode="tail">
                         {service.categoryBadge}
                       </Text>
                     </View>
                   </View>
 
-                  <Text style={styles.serviceName}>{service.name}</Text>
+                  <Text style={styles.serviceName} numberOfLines={1} ellipsizeMode="tail">{service.name}</Text>
 
                   <View style={styles.durationContainer}>
                     <Ionicons

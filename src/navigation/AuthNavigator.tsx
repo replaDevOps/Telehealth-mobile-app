@@ -11,6 +11,7 @@ import {
   SignInScreen,
   SignUpScreen,
 } from '@screens';
+import { PolicyScreen } from '@screens/Comman';
 
 export type AuthStackParamList = {
   SignIn: undefined;
@@ -38,6 +39,7 @@ export type AuthStackParamList = {
     phone?: string;
     countryCode?: string;
   };
+  PolicyScreen: { type: 'privacy' | 'terms' };
 };
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
@@ -57,6 +59,7 @@ const AuthNavigator = () => {
       <Stack.Screen name="Profile" component={ProfileScreen} />
       <Stack.Screen name="ForgetPassword" component={ForgetPasswordScreen} />
       <Stack.Screen name="SetPassword" component={SetPassword} />
+      <Stack.Screen name="PolicyScreen" component={PolicyScreen} />
     </Stack.Navigator>
   );
 };

@@ -248,11 +248,7 @@ export const styles = StyleSheet.create({
       paddingVertical: mvs(12),
       borderTopWidth: 1,
       borderTopColor: colors.border,
-      elevation: 8,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: -2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
+     
       flexDirection: 'row',
       justifyContent: 'space-around',
     },

@@ -1,4 +1,4 @@
-import { View, Text, ActivityIndicator, PermissionsAndroid, Platform, TextInput, TouchableOpacity, FlatList, Modal, Image } from 'react-native';
+import { View, Text, ActivityIndicator, PermissionsAndroid, Platform, TextInput, TouchableOpacity, Modal, Image, ScrollView } from 'react-native';
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { Header2 } from '../../../components/common/Header2';
@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import Geolocation from '@react-native-community/geolocation';
 import { Toast } from 'toastify-react-native';
-import { searchPlaces, getPlaceDetails, PlacePrediction, reverseGeocode } from '../../../services/api/googlePlacesService';
+import { reverseGeocode, searchPlaces, getPlaceDetails, PlacePrediction } from '../../../services/api/googlePlacesService';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { colors } from '../../../styles/colors';
 import { apiClient } from '@services/api/api-client';
@@ -37,8 +37,8 @@ export const SelectLocation = ({ navigation }: any) => {
   } | null>(null);
   const [locationLoading, setLocationLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<PlacePrediction[]>([]);
   const [clinicSearchResults, setClinicSearchResults] = useState<ClinicApiResponse[]>([]);
+  const [placeSearchResults, setPlaceSearchResults] = useState<PlacePrediction[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
   
@@ -65,6 +65,7 @@ export const SelectLocation = ({ navigation }: any) => {
     setClinicsLoading(true);
     
     try {
+      console.log('Fetching clinics for coordinates:', { lat, lng }); // Debug log
       const response = await apiClient.get(API.CLINIC.GET_CLINICS, {
         params: {
           name: '',
@@ -73,7 +74,8 @@ export const SelectLocation = ({ navigation }: any) => {
           pageNo: 1,
           recordsPerPage: 20,
         },
-      });
+      }); 
+      console.log('Clinics API response:', response.data); // Debug log
 
       if (response.data.success && response.data.data) {
         const validClinics = response.data.data.filter(
@@ -414,8 +416,8 @@ export const SelectLocation = ({ navigation }: any) => {
     const timeoutId = setTimeout(async () => {
       // Handle empty query
       if (!searchQuery || searchQuery.trim().length === 0) {
-        setSearchResults([]);
         setClinicSearchResults([]);
+        setPlaceSearchResults([]);
         setShowSearchResults(false);
         // Reload clinics for current location when search is cleared
         if (selectedLocation) {
@@ -430,31 +432,35 @@ export const SelectLocation = ({ navigation }: any) => {
       try {
         // Capture current region value at the time of search
         const currentRegion = region;
-        const location = currentRegion ? { lat: currentRegion.latitude, lng: currentRegion.longitude } : undefined;
         
-        // Search both places and clinics in parallel
+        // Search both places (addresses/locations) and clinics in parallel
         const [placeResults, clinicResults] = await Promise.all([
-          searchPlaces(searchQuery, location),
+          searchPlaces(searchQuery, { lat: currentRegion.latitude, lng: currentRegion.longitude }),
           searchClinicsByName(searchQuery, currentRegion.latitude, currentRegion.longitude)
         ]);
-        
-        // Store clinic search results for the modal
-        setClinicSearchResults(clinicResults);
-        
-        // Update clinics on map with search results
-        if (clinicResults.length > 0) {
+
+        // Update place search results
+        if (placeResults && placeResults.length > 0) {
+          setPlaceSearchResults(placeResults);
+        } else {
+          setPlaceSearchResults([]);
+        }
+
+        // Update clinic search results
+        if (clinicResults && clinicResults.length > 0) {
+          setClinicSearchResults(clinicResults);
+          // Show matching clinics on the map
           setClinics(clinicResults);
           setSelectedClinic(null);
-          // Zoom to show all matching clinics
           setTimeout(() => zoomToFitClinics(clinicResults), 100);
+        } else {
+          setClinicSearchResults([]);
         }
-        
-        setSearchResults(placeResults);
       } catch (error) {
         console.error('Search error:', error);
         Toast.error('Failed to search');
-        setSearchResults([]);
         setClinicSearchResults([]);
+        setPlaceSearchResults([]);
       } finally {
         setIsSearching(false);
       }
@@ -466,56 +472,50 @@ export const SelectLocation = ({ navigation }: any) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery]); // Only depend on searchQuery to avoid re-running on region changes
 
+  // Handle place/location selection from search results
   const handlePlaceSelect = async (place: PlacePrediction) => {
     // Set flag to skip search when updating searchQuery
     isSelectingPlace.current = true;
     
-    setIsSearching(true);
     setShowSearchResults(false);
     setSearchQuery(place.description);
     setSelectedClinic(null);
-
-    try {
-      const details = await getPlaceDetails(place.place_id);
+    setClinicSearchResults([]);
+    setPlaceSearchResults([]);
+    
+    // Get place details (coordinates)
+    const placeDetails = await getPlaceDetails(place.place_id);
+    
+    if (placeDetails && placeDetails.geometry?.location) {
+      const lat = placeDetails.geometry.location.lat;
+      const lng = placeDetails.geometry.location.lng;
       
-      if (details && details.geometry && details.geometry.location) {
-        // Ensure coordinates are numbers (convert from string if needed)
-        const lat = typeof details.geometry.location.lat === 'string' 
-          ? parseFloat(details.geometry.location.lat) 
-          : Number(details.geometry.location.lat);
-        const lng = typeof details.geometry.location.lng === 'string' 
-          ? parseFloat(details.geometry.location.lng) 
-          : Number(details.geometry.location.lng);
-        
-        // Validate coordinates are valid numbers
-        if (isNaN(lat) || isNaN(lng)) {
-          throw new Error('Invalid coordinates');
-        }
-        
-        const newRegion = {
-          latitude: Number(lat),
-          longitude: Number(lng),
-          latitudeDelta: Number(0.0922),
-          longitudeDelta: Number(0.0421),
-        };
-        
-        setRegion(newRegion);
+      if (!isNaN(lat) && !isNaN(lng)) {
+        // Update selected location
         setSelectedLocation({
-          latitude: Number(lat),
-          longitude: Number(lng),
-          address: details.formatted_address,
+          latitude: lat,
+          longitude: lng,
+          address: placeDetails.formatted_address,
         });
         
-        // Fetch clinics for selected location
+        // Update map region
+        const newRegion = {
+          latitude: lat,
+          longitude: lng,
+          latitudeDelta: 0.02,
+          longitudeDelta: 0.02,
+        };
+        setRegion(newRegion);
+        
+        if (mapRef.current) {
+          mapRef.current.animateToRegion(newRegion, 500);
+        }
+        
+        // Fetch clinics near this location
         fetchClinics(lat, lng);
-      } else {
-        Toast.error('Failed to get location details');
       }
-    } catch (error) {
-      console.error('Error getting place details:', error);
+    } else {
       Toast.error('Failed to get location details');
-    } finally {
-      setIsSearching(false);
     }
   };
 
@@ -563,6 +563,27 @@ export const SelectLocation = ({ navigation }: any) => {
     }
   };
 
+  // Render place search result item
+  const renderPlaceSearchResult = ({ item }: { item: PlacePrediction }) => (
+    <TouchableOpacity
+      style={styles.searchResultItem}
+      onPress={() => handlePlaceSelect(item)}
+      activeOpacity={0.7}
+    >
+      <View style={styles.placeResultIcon}>
+        <Ionicons name="location" size={16} color="white" />
+      </View>
+      <View style={styles.searchResultText}>
+        <Text style={styles.searchResultMainText}>
+          {item.structured_formatting?.main_text || item.description}
+        </Text>
+        <Text style={styles.searchResultSecondaryText}>
+          {item.structured_formatting?.secondary_text || ''}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+
   // Render clinic search result item
   const renderClinicSearchResult = ({ item }: { item: ClinicApiResponse }) => (
     <TouchableOpacity
@@ -581,27 +602,6 @@ export const SelectLocation = ({ navigation }: any) => {
           {item.businessType} • ⭐ {parseFloat(item.avgRating).toFixed(1)}
           {item.details?.city ? ` • ${item.details.city}` : ''}
         </Text>
-      </View>
-    </TouchableOpacity>
-  );
-
-  // Render place search result item
-  const renderSearchResult = ({ item }: { item: PlacePrediction }) => (
-    <TouchableOpacity
-      style={styles.searchResultItem}
-      onPress={() => handlePlaceSelect(item)}
-      activeOpacity={0.7}
-    >
-      <Ionicons name="location" size={20} color={colors.primary} style={styles.searchResultIcon} />
-      <View style={styles.searchResultText}>
-        <Text style={styles.searchResultMainText}>
-          {item.structured_formatting?.main_text || item.description.split(',')[0]}
-        </Text>
-        {item.structured_formatting?.secondary_text && (
-          <Text style={styles.searchResultSecondaryText}>
-            {item.structured_formatting.secondary_text}
-          </Text>
-        )}
       </View>
     </TouchableOpacity>
   );
@@ -655,7 +655,8 @@ export const SelectLocation = ({ navigation }: any) => {
             <TouchableOpacity
               onPress={() => {
                 setSearchQuery('');
-                setSearchResults([]);
+                setPlaceSearchResults([]);
+                setClinicSearchResults([]);
                 setShowSearchResults(false);
               }}
               style={styles.clearButton}
@@ -668,7 +669,7 @@ export const SelectLocation = ({ navigation }: any) => {
 
       {/* Search Results Modal */}
       <Modal
-        visible={showSearchResults && (searchResults.length > 0 || clinicSearchResults.length > 0 || isSearching)}
+        visible={showSearchResults && (placeSearchResults.length > 0 || clinicSearchResults.length > 0 || isSearching)}
         transparent
         animationType="slide"
         onRequestClose={() => setShowSearchResults(false)}
@@ -694,39 +695,45 @@ export const SelectLocation = ({ navigation }: any) => {
                 <ActivityIndicator size="small" color={colors.primary} />
                 <Text style={styles.searchLoadingText}>{t('searching')}</Text>
               </View>
-            ) : (
-              <FlatList
-                data={[
-                  // Clinic results first
-                  ...clinicSearchResults.map(clinic => ({ type: 'clinic' as const, data: clinic })),
-                  // Then place results
-                  ...searchResults.map(place => ({ type: 'place' as const, data: place })),
-                ]}
-                renderItem={({ item }) => 
-                  item.type === 'clinic' 
-                    ? renderClinicSearchResult({ item: item.data as ClinicApiResponse })
-                    : renderSearchResult({ item: item.data as PlacePrediction })
-                }
-                keyExtractor={(item) => 
-                  item.type === 'clinic' 
-                    ? `clinic-${(item.data as ClinicApiResponse).clinicID}` 
-                    : `place-${(item.data as PlacePrediction).place_id}`
-                }
-                keyboardShouldPersistTaps="handled"
-                ListHeaderComponent={
-                  clinicSearchResults.length > 0 ? (
+              ) : (
+              <ScrollView keyboardShouldPersistTaps="handled">
+                {/* Places Section */}
+                {placeSearchResults.length > 0 && (
+                  <>
+                    <View style={styles.sectionHeader}>
+                      <Ionicons name="location" size={16} color={colors.primary} />
+                      <Text style={styles.sectionHeaderText}>{t('places') || 'Places'} ({placeSearchResults.length})</Text>
+                    </View>
+                    {placeSearchResults.map((place) => (
+                      <View key={place.place_id}>
+                        {renderPlaceSearchResult({ item: place })}
+                      </View>
+                    ))}
+                  </>
+                )}
+                
+                {/* Clinics Section */}
+                {clinicSearchResults.length > 0 && (
+                  <>
                     <View style={styles.sectionHeader}>
                       <Ionicons name="medkit" size={16} color={colors.primary} />
-                      <Text style={styles.sectionHeaderText}>{t('clinics')} ({clinicSearchResults.length})</Text>
+                      <Text style={styles.sectionHeaderText}>{t('clinics') || 'Clinics'} ({clinicSearchResults.length})</Text>
                     </View>
-                  ) : null
-                }
-                ListEmptyComponent={
+                    {clinicSearchResults.map((clinic) => (
+                      <View key={clinic.clinicID}>
+                        {renderClinicSearchResult({ item: clinic })}
+                      </View>
+                    ))}
+                  </>
+                )}
+                
+                {/* No Results */}
+                {placeSearchResults.length === 0 && clinicSearchResults.length === 0 && (
                   <View style={styles.noResultsContainer}>
                     <Text style={styles.noResultsText}>{t('no_results_found')}</Text>
                   </View>
-                }
-              />
+                )}
+              </ScrollView>
             )}
           </View>
         </TouchableOpacity>

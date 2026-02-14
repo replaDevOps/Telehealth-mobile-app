@@ -377,6 +377,15 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: mvs(12),
   },
+  placeResultIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#4CAF50',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: mvs(12),
+  },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',

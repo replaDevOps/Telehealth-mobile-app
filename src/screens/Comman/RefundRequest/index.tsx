@@ -11,6 +11,7 @@ import {
 import React, { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Header2 } from '@components/common/Header2';
+import ClinicAvatar from '@components/common/ClinicAvatar';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { RecommandImage } from '@assets/images';
 import { styles } from './style';
@@ -137,11 +138,15 @@ export function RefundRequest() {
         {/* Fixed Clinic Info */}
         <View style={styles.clinicInfo}>
           <View style={styles.clinicLeft}>
-            <Image
-              source={params.image || RecommandImage}
-              style={styles.clinicImage}
-              resizeMode="cover"
-            />
+            {params.image ? (
+              <Image
+                source={params.image}
+                style={styles.clinicImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <ClinicAvatar name={params.clinicName} size={56} style={styles.clinicImage} />
+            )}
             <View>
               <Text style={styles.clinicName}>{params.clinicName}</Text>
               <Text style={styles.clinicLocation}>
@@ -189,17 +194,17 @@ export function RefundRequest() {
                     <View style={styles.serviceInfo}>
                       <View style={styles.serviceBadges}>
                         <View style={styles.categoryBadge}>
-                          <Text style={styles.categoryBadgeText}>
+                          <Text style={styles.categoryBadgeText} numberOfLines={1} ellipsizeMode="tail">
                             {service.category}
                           </Text>
                         </View>
                         <View style={styles.nameBadge}>
-                          <Text style={styles.nameBadgeText}>
+                          <Text style={styles.nameBadgeText} numberOfLines={1} ellipsizeMode="tail">
                             {service.categoryBadge}
                           </Text>
                         </View>
                       </View>
-                      <Text style={styles.serviceName}>{service.name}</Text>
+                      <Text style={styles.serviceName} numberOfLines={1} ellipsizeMode="tail">{service.name}</Text>
                       <View style={styles.durationContainer}>
                         <Ionicons
                           name="time-outline"

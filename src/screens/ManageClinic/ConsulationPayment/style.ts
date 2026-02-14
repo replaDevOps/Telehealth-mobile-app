@@ -200,7 +200,7 @@ export const styles = StyleSheet.create({
       color: colors.text,
     },
     bottomSpacing: {
-      height: mvs(100),
+      height: mvs(16),
     },
     bottomContainer: {
       padding: mvs(16),

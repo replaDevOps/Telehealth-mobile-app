@@ -274,9 +274,19 @@ export function SignUpScreen({ navigation }) {
 
             <Text style={styles.TextContent}>
               {t('terms_agreement')}
-              <Text style={styles.linkText}>{t('terms_conditions')}</Text>
+              <Text 
+                style={styles.linkText}
+                onPress={() => navigation.navigate('PolicyScreen', { type: 'terms' })}
+              >
+                {t('terms_conditions')}
+              </Text>
               {t('and')}
-              <Text style={styles.linkText}>{t('privacy_policy')}</Text>
+              <Text 
+                style={styles.linkText}
+                onPress={() => navigation.navigate('PolicyScreen', { type: 'privacy' })}
+              >
+                {t('privacy_policy')}
+              </Text>
             </Text>
           </View>
         </ScrollView>

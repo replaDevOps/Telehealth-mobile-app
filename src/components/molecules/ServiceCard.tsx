@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { LoyaltyPSvg } from '@assets/icons';
 import { colors } from '../../styles/colors';
 
 interface ServiceCardProps {
@@ -13,6 +14,7 @@ interface ServiceCardProps {
   onPress: () => void;
   description?: string;
   procedure?: string;
+  bonusLoyalityPoints?: string | number;
 }
 
 export const ServiceCard: React.FC<ServiceCardProps> = ({
@@ -24,8 +26,20 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
   duration,
   description,
   procedure,
+  bonusLoyalityPoints,
   onPress,
 }) => {
+  console.log('ServiceCard props:', {
+    image,
+    type,
+    serviceGroup,
+    serviceName,
+    price,
+    duration,
+    description,
+    procedure,
+    bonusLoyalityPoints,
+  });
   return (
     <TouchableOpacity
       style={styles.serviceCard}
@@ -58,6 +72,13 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
             <Text style={styles.duration}>{duration}</Text>
           </View>
         </View>
+        {/* Loyalty badge */}
+        {bonusLoyalityPoints && Number(bonusLoyalityPoints) > 0 && (
+          <View style={styles.loyaltyBadge}>
+            <LoyaltyPSvg width={16} height={16} />
+            <Text style={styles.loyaltyBadgeText}>{`Earn ${Math.round(Number(bonusLoyalityPoints))} loyalty points`}</Text>
+          </View>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -140,5 +161,21 @@ const styles = StyleSheet.create({
   duration: {
     fontSize: 13,
     color: colors.secondaryText || '#666666',
+  },
+  loyaltyBadge: {
+    marginTop: 8,
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF8E6',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  loyaltyBadgeText: {
+    fontSize: 12,
+    color: '#7A4B00',
+    marginLeft: 6,
+    fontWeight: '500',
   },
 });

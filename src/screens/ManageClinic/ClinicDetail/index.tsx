@@ -352,7 +352,6 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
         }),
       ]);
       if (detailsResponse.data.success && detailsResponse.data.data) {
-        console.log('Clinic details response:', detailsResponse.data);
         setClinicDetail(detailsResponse.data.data);
       }
 
@@ -453,7 +452,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
           recordsPerPage: recordsPerPage,
         },
       });
-
+      console.log('fetchClinicServices response:', response.data);
       // Extract data array and pagination info
       const responseData = response.data;
       let servicesList: any[] = [];
@@ -1223,6 +1222,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
                     description={service.description}
                     procedure={service.procedure}
                     onPress={() => handleServicePress(service)}
+                    bonusLoyalityPoints={service.bonusLoyalityPoints}
                   />
                 ))}
 

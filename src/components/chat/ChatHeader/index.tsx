@@ -11,6 +11,7 @@ interface ChatHeaderProps {
   chatType: 'ai' | 'doctor';
   doctorInfo: DoctorInfo;
   consultationTime: string;
+  consultationElapsed?: string | null;
   fromHistory: boolean;
   handleGoBack: () => void;
   handleEndConsultation: () => void;
@@ -36,6 +37,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   chatType,
   doctorInfo,
   consultationTime,
+  consultationElapsed = null,
   fromHistory,
   handleGoBack,
   handleEndConsultation,
@@ -53,12 +55,15 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   const consultationType = consultationData?.type || '';
   const consultationCode = consultationData?.code || '';
   const serviceDuration = consultationData?.service?.duration;
-  
+
   // Build subtitle: Show countdown timer when consultation is active, otherwise show service info
   const buildSubtitle = () => {
     // When consultation is active, always show the countdown timer
     if (isConsultationActive && !fromHistory) {
-      return consultationTime; // This is the formatted countdown timer (MM:SS)
+      // Show both countdown timer and elapsed duration when available
+      return consultationElapsed
+        ? `${consultationTime} • ${consultationElapsed}`
+        : consultationTime;
     }
     
     // When consultation has ended, show the total consultation duration instead of service info
@@ -83,6 +88,10 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
     // Add type if available
     if (consultationType) {
       parts.push(consultationType);
+    }
+    if(consultationData?.duration)
+    {
+      parts.push(`${consultationData.duration}`);
     }
     // // Add duration if available
     // if (serviceDuration) {

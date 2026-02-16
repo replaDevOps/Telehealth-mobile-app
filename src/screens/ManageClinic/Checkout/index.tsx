@@ -92,12 +92,49 @@ export function CheckoutScreen({ route, navigation }) {
 
   const subtotal = calculateSubtotal();
   const tax = subtotal * 0.15; // 15% tax
-    const discountAmount = subtotal * (discount / 100);
-    const redemptionAmountInput = parseFloat(redeemPoints) || 0;
-    const maxRedemptionAllowed = Math.max(0, subtotal + tax - discountAmount);
-    const insufficientCoins = redemptionAmountInput > userLoyaltyPoints;
-    const appliedRedemptionAmount = insufficientCoins ? 0 : Math.min(redemptionAmountInput, maxRedemptionAllowed);
-    const total = subtotal + tax - discountAmount - appliedRedemptionAmount;
+  const discountAmount = subtotal * (discount / 100);
+
+  // Loyalty conversion: 100 coins = 5 SAR => 1 coin = 0.05 SAR
+  const COIN_TO_SAR = 5 / 100;
+
+  // `redeemPoints` input is number of coins the user wants to redeem
+  const redemptionCoinsInput = Math.max(0, Math.floor(Number(redeemPoints) || 0));
+
+  // Maximum amount (SAR) that can be redeemed against the remaining payable amount
+  const maxRedemptionSAR = Math.max(0, subtotal + tax - discountAmount);
+  // Convert SAR limit to maximum redeemable coins
+  const maxRedeemableCoins = Math.floor(maxRedemptionSAR / COIN_TO_SAR);
+
+  const insufficientCoins = redemptionCoinsInput > userLoyaltyPoints;
+
+  // Applied coins are limited by user's balance and by the payable amount
+  const appliedCoins = insufficientCoins ? 0 : Math.min(redemptionCoinsInput, maxRedeemableCoins);
+  const appliedRedemptionAmount = appliedCoins * COIN_TO_SAR; // SAR value
+
+  const total = subtotal + tax - discountAmount - appliedRedemptionAmount;
+
+  // Handler to validate points input from UI
+  const handlePointsToRedeemChange = (value: string) => {
+    // Normalize to integer coins
+    const coins = Math.max(0, Math.floor(Number(value) || 0));
+
+    // Recompute max redeemable coins based on current amounts
+    const maxRedemptionSAR = Math.max(0, subtotal + tax - discountAmount);
+    const maxRedeemableCoinsLocal = Math.floor(maxRedemptionSAR / COIN_TO_SAR);
+
+    if (coins > userLoyaltyPoints) {
+      Toast.error(t('insufficient_coins') || 'You do not have enough coins');
+      return;
+    }
+
+    if (coins > maxRedeemableCoinsLocal) {
+      Toast.error(t('redeem_exceeds_total') || 'Redeem amount exceeds remaining payable total');
+      return;
+    }
+
+    // Accept value (store as string to preserve controlled input behavior)
+    setRedeemPoints(String(coins));
+  };
 
   const handleApplyCoupon = () => {
     // Mock coupon validation
@@ -171,6 +208,13 @@ export function CheckoutScreen({ route, navigation }) {
       // Prevent proceeding if user tried to redeem more points than they own
       if (insufficientCoins) {
         Toast.error(t('insufficient_coins') || 'Insufficient coins');
+        setLoading(false);
+        return;
+      }
+
+      // Prevent proceeding if user requested more coins than allowed by payable amount
+      if (redemptionCoinsInput > maxRedeemableCoins) {
+        Toast.error(t('redeem_exceeds_total') || 'Redeem amount exceeds remaining payable total');
         setLoading(false);
         return;
       }
@@ -384,9 +428,12 @@ export function CheckoutScreen({ route, navigation }) {
           showRoyaltyPoints={true}
           royaltyPoints={userLoyaltyPoints}
           pointsToRedeem={redeemPoints}
-          onPointsToRedeemChange={setRedeemPoints}
+          onPointsToRedeemChange={handlePointsToRedeemChange}
+          coinToSar={COIN_TO_SAR}
+          maxRedemptionSAR={maxRedemptionSAR}
           onApplyCoupon={code => console.log('Apply', code)}
         />
+        
 
         {insufficientCoins && (
           <View style={{ marginHorizontal: 20, marginTop: 8 }}>
@@ -456,9 +503,9 @@ export function CheckoutScreen({ route, navigation }) {
         {(discountAmount > 0 || appliedRedemptionAmount > 0) && (
           <View style={styles.summaryTriggerRow}>
             <TouchableOpacity>
-              <Text style={styles.summaryTriggerText}>
+              {/* <Text style={styles.summaryTriggerText}>
                 {t('appointment_summary') || 'Appointment Summary'}
-              </Text>
+              </Text> */}
             </TouchableOpacity>
             <Text style={styles.originalSubtotal}>{(subtotal + tax).toFixed(2)} SAR</Text>
           </View>

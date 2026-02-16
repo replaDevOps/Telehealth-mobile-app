@@ -54,6 +54,9 @@ interface PaymentMethodProps {
   pointsToRedeem?: string;
   onPointsToRedeemChange?: (text: string) => void;
   onRedeemPoints?: (points: string) => void;
+  // Optional conversion props to show SAR/remaining info
+  coinToSar?: number;
+  maxRedemptionSAR?: number;
 
   // Coupon code
   showCouponCode?: boolean;
@@ -81,6 +84,8 @@ export function PaymentMethod({
   royaltyPoints = 0,
   pointsToRedeem: externalPointsToRedeem,
   onPointsToRedeemChange,
+  coinToSar = undefined,
+  maxRedemptionSAR = undefined,
   showCouponCode = false,
   couponCode: externalCouponCode,
   onCouponCodeChange,
@@ -156,6 +161,17 @@ export function PaymentMethod({
     const redeemed = parseInt(pointsToRedeem) || 0;
     return Math.max(0, royaltyPoints - redeemed);
   }, [royaltyPoints, pointsToRedeem]);
+
+  // Redemption calculations when conversion props provided
+  const appliedCoins = useMemo(() => Math.max(0, Math.floor(Number(pointsToRedeem) || 0)), [pointsToRedeem]);
+  const appliedRedemptionAmount = useMemo(() => {
+    if (!coinToSar) return 0;
+    return appliedCoins * coinToSar;
+  }, [appliedCoins, coinToSar]);
+  const maxRedeemableCoins = useMemo(() => {
+    if (!coinToSar || !maxRedemptionSAR) return 0;
+    return Math.floor(maxRedemptionSAR / coinToSar);
+  }, [coinToSar, maxRedemptionSAR]);
 
   // Event handlers
   const handlePaymentSelect = useCallback(
@@ -263,6 +279,8 @@ export function PaymentMethod({
           remainingPoints={remainingPoints}
           onPointsChange={handlePointsToRedeemChange}
           t={t}
+          coinToSar={coinToSar}
+          maxRedemptionSAR={maxRedemptionSAR}
         />
       )}
 
@@ -465,6 +483,8 @@ interface RoyaltyPointsSectionProps {
   remainingPoints: number;
   onPointsChange: (text: string) => void;
   t: (key: string) => string;
+  coinToSar?: number;
+  maxRedemptionSAR?: number;
 }
 
 function RoyaltyPointsSection({
@@ -473,7 +493,12 @@ function RoyaltyPointsSection({
   remainingPoints,
   onPointsChange,
   t,
+  coinToSar,
+  maxRedemptionSAR,
 }: RoyaltyPointsSectionProps) {
+  const appliedCoins = Math.max(0, Math.floor(Number(pointsToRedeem) || 0));
+  const appliedRedemptionAmount = coinToSar ? appliedCoins * coinToSar : 0;
+  const maxRedeemableCoins = coinToSar && maxRedemptionSAR ? Math.floor(maxRedemptionSAR / coinToSar) : 0;
   return (
     <View style={styles.royaltySection}>
       <View style={styles.royaltyHeader}>
@@ -497,10 +522,15 @@ function RoyaltyPointsSection({
           onChangeText={onPointsChange}
           keyboardType="numeric"
         />
-        <Text style={styles.royaltySubtext}>
+        {/* <Text style={styles.royaltySubtext}>
           {t('you_have')} {royaltyPoints} {t('coins')}. {t('remaining')}{' '}
           {remainingPoints} SAR
-        </Text>
+        </Text> */}
+        {appliedCoins > 0 && (
+          <Text style={[styles.royaltySubtext, { marginTop: 6 }] }>
+            {`${t('redemption')} ${appliedRedemptionAmount.toFixed(2)} SAR (${appliedCoins} ${t('loyaltyPoints')})  |  ${t('remaining_amount')} ${maxRedemptionSAR?.toFixed(2) || '0.00'} SAR (${maxRedeemableCoins} ${t('loyaltyPoints')})`}
+          </Text>
+        )}
       </View>
     </View>
   );

@@ -1011,6 +1011,7 @@ export function ChatScreen({ navigation, route }) {
           chatType={chatType}
           doctorInfo={doctorInfo}
           consultationTime={consultationTime}
+          consultationElapsed={calculateDuration()}
           fromHistory={fromHistory}
           handleGoBack={handleGoBack}
           handleEndConsultation={handleEndConsultation}

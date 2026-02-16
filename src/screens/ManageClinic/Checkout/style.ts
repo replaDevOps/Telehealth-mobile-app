@@ -378,6 +378,15 @@ export const styles = StyleSheet.create({
     color: '#EF4444',
   },
 
+  redemptionInfoRow: {
+    marginHorizontal: 20,
+    marginTop: 8,
+  },
+  redemptionInfoText: {
+    color: '#6B7280',
+    fontSize: 13,
+  },
+
   insufficientText: {
     color: '#EF4444',
     marginTop: 4,

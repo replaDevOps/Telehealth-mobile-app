@@ -300,7 +300,7 @@
   "invoice_saved_successfully": "Invoice saved successfully.",
   "select_services_for_refund": "Select Services for Refund",
   "provide_valid_reason_for_refund": "Please provide a valid reason for requesting a refund...",
-  "total_refund_amount": "Total Refund Amount",
+  "total_refund_amount": "Refund Amount",
   "refund_service_count": "Refund Service Count",
   "number_of_refund_service": "Number of Refund Service",
   "refund_status": "Refund Status",

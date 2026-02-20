@@ -187,12 +187,17 @@ export function RefundRequest() {
             {params.services?.map((service: any) => {
               const isChecked = selectedServices.includes(service.id);
               const refundState = service.refundState || '';
-              // determine disabled: explicit flag from mapping OR fully processed refund OR refundStatus indicates final
+              // determine disabled: explicit flag, any refund-* field/sub-status present, or booked — all should be non-selectable
               const svcStatusStr = (service.status || '').toString();
-              const svcRefundStatusStr = (service.refundStatus || '').toString();
-              const isProcessed = /processed|refunded|refunded|completed|refund/i.test(svcRefundStatusStr || svcStatusStr);
-              const isDisabled = !!service.disabled || isProcessed || refundState === 'processed';
+              const svcRefundStatusStr = (service.refundStatus || service.refund_status || '').toString();
 
+              // Disable only when service is Booked or refundStatus is explicitly Pending / Confirm.
+              const refundStatusNormalized = (svcRefundStatusStr || '').trim().toLowerCase();
+              const isRefundStatusDisabled = /^(pending|confirm|confirmed)$/i.test(refundStatusNormalized);
+
+              const isBooked = /booked/i.test(svcStatusStr);
+              // keep explicit `processed` check for fully processed refunds
+              const isDisabled = !!service.disabled || isBooked || isRefundStatusDisabled || refundState === 'processed';
               return (
                 <View key={service.id} style={[styles.serviceCard, isDisabled ? { opacity: 0.6 } : {}]}>
                   <View style={styles.serviceLeft}>
@@ -243,7 +248,6 @@ export function RefundRequest() {
                       {(() => {
                         const isRefund = typeof (service.status || '') === 'string' && /refund/i.test(service.status || '');
                         const displayStatus = isRefund ? (service.status + " " + service.refundStatus) : service.status;
-                        console.log(`Service ${service.id} - isRefund:`, isRefund, 'displayStatus:', displayStatus);
                         return displayStatus ? (
                           <Text style={{ fontSize: 12, color: '#112244', marginTop: 6 }} numberOfLines={2}>
                             {displayStatus}

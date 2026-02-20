@@ -389,9 +389,9 @@ export function CardDetails({ navigation }: { navigation: any }) {
           // Format date and time from date or created_at
           const dateTimeStr = consultationData.date || consultationData.created_at || '';
           const formattedDateTime = formatDateTimeLocal(dateTimeStr);
-
+          console.log('Formatted date time:', consultationData.price);
           // Format price with currency
-          const priceValue = consultationData.price || consultationData.amount || '0';
+          const priceValue = consultationData.price || '0';
           const formattedPrice = priceValue ? `SAR ${parseFloat(priceValue).toFixed(2)}` : 'SAR 0.00';
 
           // Format duration from service duration (in minutes)
@@ -799,6 +799,56 @@ export function CardDetails({ navigation }: { navigation: any }) {
   // Check if we have no data to display (no paymentDetails and empty displayData)
   const hasNoData = !paymentDetails && (!displayData.clinicName && !displayData.clinicLocation && !displayData.dateTime);
 
+  // Calculate total refunded amount for appointment by summing service-level refunds.
+  // Use `refundDate` on each `appointment_service` (fallback to `transferDate`) and include
+  // services whose `refundStatus` is Confirm. This is more reliable than relying on `transferData`.
+  const totalRefundedAmount = (() => {
+    if (!isAppointment || !paymentDetails) return 0;
+
+    const services = paymentDetails.appointment_services || [];
+
+    // Filter services that were confirmed refunded and have a refundDate (or transferDate as fallback)
+    const refundedServices = services.filter((svc: any) => {
+      const svcRefundStatus = (svc.refundStatus || svc.refund_status || svc.status || '').toString();
+      const hasRefundDate = !!(
+        svc.refundDate || svc.refund_date || svc.transferDate || svc.transfer_date || svc.transfer?.date || svc.refund?.date
+      );
+      return /confirm/i.test(svcRefundStatus) && hasRefundDate;
+    });
+
+    // Sum refunded amounts (try several possible fields, fall back to service.price)
+    const sum = refundedServices.reduce((acc: number, svc: any) => {
+      const amtCandidates = [
+        svc.refundAmount,
+        svc.refund_amount,
+        svc.refund?.amount,
+        svc.transferData?.amount,
+        svc.transfer_amount,
+        svc.transferAmount,
+        svc.price,
+        svc.service?.price,
+      ];
+
+      for (const cand of amtCandidates) {
+        if (cand === undefined || cand === null) continue;
+        const parsed = parseFloat(String(cand).replace(/[^0-9.-]+/g, ''));
+        if (!Number.isNaN(parsed)) {
+          return acc + parsed;
+        }
+      }
+
+      return acc;
+    }, 0);
+
+    return sum;
+  })();
+
+  // Disable "Request for Refund" when the main appointment status contains "Booked".
+  // Prefer the `status` passed via navigation params (history card) as the authoritative main status.
+  const mainStatus = (params.status || displayData.status || paymentDetails?.appointment?.status || paymentDetails?.transactions?.status || '').toString();
+  const disableRefundButton = /booked/i.test(mainStatus);
+  console.log('Refund button disabled:', disableRefundButton, 'Main status:', mainStatus);
+  console.log(paymentDetails)
   if (loading) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
@@ -955,6 +1005,14 @@ export function CardDetails({ navigation }: { navigation: any }) {
                 </View>
               )}
 
+              {/* Show total refunded amount when appointment refund is confirmed and transfer data exists */}
+              {isAppointment && totalRefundedAmount > 0 && (
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>{t('total_refund_amount')}</Text>
+                  <Text style={styles.detailValue}>{`SAR ${totalRefundedAmount.toFixed(2)}`}</Text>
+                </View>
+              )}
+
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>{t('status')}</Text>
                 <Text style={styles.detailValue}>
@@ -1041,7 +1099,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
 
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>{t('price')}</Text>
-                <Text style={styles.detailValue}>{displayData.servicePrice}</Text>
+                <Text style={styles.detailValue}>{displayData.total}</Text>
               </View>
 
               <View style={styles.detailRow}>
@@ -1076,6 +1134,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
             <CustomButton
               title={t('request_for_refund')}
               onPress={handleRefund}
+              disabled={disableRefundButton}
             />
           ) : (
             <CustomButton

@@ -249,7 +249,7 @@ export function HistoryScreen({ navigation }) {
               doctorAvatar: payment.doctorAvatar || doctorData.image || '',
               clinicName: payment.clinicName || clinicData.clinicName || clinicData.name || '',
               clinicLocation: payment.clinicLocation || clinicData.location || '',
-              price: payment.price || payment.amount || '0',
+              price: payment.transaction?.amount || payment.price || payment.amount || '0',
               status: payment.status || 'Completed',
               statusColor: payment.status === 'Completed' || payment.status === 'Success'
                 ? colors.green
@@ -319,7 +319,7 @@ export function HistoryScreen({ navigation }) {
               clinicName: payment.clinicName || clinicData.clinicName || clinicDetails.businessName || clinicData.name || '',
               clinicLocation: clinicLocationStr,
               numberOfService: String(appointmentServices.length || services.length || payment.serviceCount || 0),
-              price: payment.price || payment.amount || '0',
+              price: payment.transaction?.amount || payment.price || payment.amount || '0',
               status: payment.status || 'Completed',
               statusColor: payment.status === 'Completed' || payment.status === 'Success'
                 ? colors.green

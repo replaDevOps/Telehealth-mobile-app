@@ -508,7 +508,11 @@ function RoyaltyPointsSection({
             <Image source={coinIcon} style={styles.coinIcon} />
             <Text style={styles.pointsValue}>{royaltyPoints}</Text>
           </View>
-          <Text style={styles.conversionRate}>100 {t('coins')} = 5 SAR</Text>
+          <Text style={styles.conversionRate}>
+            {coinToSar && coinToSar > 0
+              ? `100 ${t('coins')} = ${(coinToSar * 100).toFixed(2)} SAR`
+              : `100 ${t('coins')} = 5 SAR`}
+          </Text>
         </View>
       </View>
 

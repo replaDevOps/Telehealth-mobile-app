@@ -231,14 +231,16 @@ export function SignUpScreen({ navigation }) {
             <View style={styles.line} />
           </View>
 
-          {/* Apple Sign Up */}
-          <TouchableOpacity
-            style={styles.appleButton}
-            onPress={() => console.log('Apple Sign Up')}
-          >
-            <AntDesign name="apple1" size={20} color={colors.white} />
-            <Text style={styles.appleText}>{t('sign_up_apple')}</Text>
-          </TouchableOpacity>
+          {/* Apple Sign Up (only on iOS) */}
+          {Platform.OS === 'ios' && (
+            <TouchableOpacity
+              style={styles.appleButton}
+              onPress={() => console.log('Apple Sign Up')}
+            >
+              <AntDesign name="apple1" size={20} color={colors.white} />
+              <Text style={styles.appleText}>{t('sign_up_apple')}</Text>
+            </TouchableOpacity>
+          )}
 
           {/* Google Sign Up */}
           <TouchableOpacity

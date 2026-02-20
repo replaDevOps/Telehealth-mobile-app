@@ -167,9 +167,11 @@ export const styles = StyleSheet.create({
     width:"100%"
   },
   serviceRight:{
-    alignItems:"center",
-    gap:15
-  
-  
+    alignItems: "flex-end",
+    justifyContent: 'space-between',
+    width: 110,
+    paddingLeft: 8,
+    // keep vertical spacing
+    paddingTop: 2,
   }
   });

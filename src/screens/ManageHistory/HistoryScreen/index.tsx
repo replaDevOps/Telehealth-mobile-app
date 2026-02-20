@@ -242,7 +242,7 @@ export function HistoryScreen({ navigation }) {
               date: payment.date || payment.created_at || '',
               paymentId: String(payment.paymentId || payment.id || ''),
               type: normalizedType,
-              duration: payment.duration || serviceData.duration || '',
+              duration: payment.duration || '',
               serviceName: capitalizeWords(payment.serviceName || serviceData.name || ''),
               doctorStatus: payment.doctorStatus || payment.status,
               doctorName: payment.doctorName || doctorData.name || '',
@@ -256,6 +256,7 @@ export function HistoryScreen({ navigation }) {
                 : payment.status === 'Pending'
                   ? colors.yellow
                   : colors.red,
+              refundServiceCount: payment.refundServiceCount || 0,
             } as PaymentConsultationItem;
           } else {
             // Map appointment payment (API: clinic.details.logo, clinic.details.address, city, district)
@@ -274,6 +275,40 @@ export function HistoryScreen({ navigation }) {
               ? locationParts.join(', ')
               : (payment.clinicLocation || clinicData.location || '');
 
+            // Calculate refund status
+            const refundServices = payment.refundServices || [];
+            let refundStatus = '';
+            let refundStatusColor = colors.secondaryText;
+            
+            if (refundServices.length > 0) {
+              // Check if any service has "Pending" status
+              const hasPending = refundServices.some((rs: any) => rs.status === 'Pending');
+              
+              if (hasPending) {
+                refundStatus = 'Pending';
+                refundStatusColor = colors.yellow;
+              } else {
+                // Check if all have the same status
+                const statuses = refundServices.map((rs: any) => rs.status);
+                const uniqueStatuses = [...new Set(statuses)];
+                
+                if (uniqueStatuses.length === 1) {
+                  refundStatus = uniqueStatuses[0];
+                  // Set color based on status
+                  if (refundStatus === 'Booked' || refundStatus === 'Completed' || refundStatus === 'Success') {
+                    refundStatusColor = colors.green;
+                  } else if (refundStatus === 'Refund') {
+                    refundStatusColor = colors.red;
+                  } else {
+                    refundStatusColor = colors.yellow;
+                  }
+                } else {
+                  refundStatus = 'Mixed';
+                  refundStatusColor = colors.secondaryText;
+                }
+              }
+            }
+
             return {
               id: String(payment.id || payment.paymentId || Date.now()),
               kind: 'appointment' as const,
@@ -291,6 +326,10 @@ export function HistoryScreen({ navigation }) {
                 : payment.status === 'Pending'
                   ? colors.yellow
                   : colors.red,
+              refundServiceCount: payment.refundServiceCount || 0,
+              refundServices: refundServices,
+              refundStatus: refundStatus,
+              refundStatusColor: refundStatusColor,
               services: services.map((service: any, index: number) => {
                 const serviceGroup = service.group || {};
                 const categoryRaw = service.category || serviceGroup.name || '';
@@ -354,17 +393,6 @@ export function HistoryScreen({ navigation }) {
       fetchPayments(1, false);
     }
   }, [activeTab, searchQuery, selectedType]);
-
-  // Refresh on focus
-  useFocusEffect(
-    useCallback(() => {
-      if (activeTab === 'consultation') {
-        fetchConsultations(1, false);
-      } else if (activeTab === 'payment' && selectedType) {
-        fetchPayments(1, false);
-      }
-    }, [activeTab, selectedType, fetchConsultations, fetchPayments])
-  );
 
   // Payments are already filtered by selectedType on the backend
   // No need for client-side filtering
@@ -486,7 +514,7 @@ export function HistoryScreen({ navigation }) {
             fetchConsultations(1, false);
           }}
           ListEmptyComponent={
-            loadingConsultations ? (
+            loadingConsultations && !refreshingConsultations ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={colors.primary} />
                 <Text style={styles.loadingText}>{t('loading') || 'Loading...'}</Text>
@@ -505,7 +533,11 @@ export function HistoryScreen({ navigation }) {
             ) : null
           }
           style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: 16, flexGrow: 1 }}
+          contentContainerStyle={
+            consultations.length === 0
+              ? { flexGrow: 1, justifyContent: 'center', paddingBottom: 16 }
+              : { paddingBottom: 16 }
+          }
           showsVerticalScrollIndicator={false}
         />
       ) : (
@@ -539,8 +571,13 @@ export function HistoryScreen({ navigation }) {
                   setRefreshingPayments(true);
                   fetchPayments(1, false);
                 }}
+                contentContainerStyle={
+                  payments.length === 0
+                    ? { flexGrow: 1, justifyContent: 'center', paddingBottom: 16 }
+                    : { paddingBottom: 16 }
+                }
                 ListEmptyComponent={
-                  loadingPayments ? (
+                  loadingPayments && !refreshingPayments ? (
                     <View style={styles.loadingContainer}>
                       <ActivityIndicator size="large" color={colors.primary} />
                       <Text style={styles.loadingText}>{t('loading') || 'Loading...'}</Text>

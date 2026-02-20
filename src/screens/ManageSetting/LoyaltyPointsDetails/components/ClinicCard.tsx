@@ -78,24 +78,22 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   category: {
-    fontSize: 14,
-    color: colors.primary,
-    fontWeight: '500',
+   
     alignSelf: 'flex-start',
   },
   categoryText: {
-    marginBottom: 8,
-    backgroundColor: '#F3E8FF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    // marginBottom: 8,
+    backgroundColor: '#E0E0E0',
+    paddingHorizontal: 6,
+    paddingVertical: 4,
     borderRadius: 6,
-    fontSize: 12,
+    fontSize: 10,
     color: '#8B5CF6',
-    fontWeight: '500',
+    fontWeight: '400',
   },
   transactionId: {
     fontSize: 13,
-    color: '#999',
+    color: '#000',
   },
   rightSection: {
     alignItems: 'flex-end',

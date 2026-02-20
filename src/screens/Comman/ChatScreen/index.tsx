@@ -100,7 +100,7 @@ export function ChatScreen({ navigation, route }) {
     : patient;
 
   useEffect(() => {
-    console.log('clinicInfo.image type:', typeof (clinicInfoState?.image));
+    console.log('clinicInfo.image type:', typeof (clinicInfoState));
     console.log('clinicInfo.image value:', clinicInfoState?.image);
   }, [clinicInfoState]);
 
@@ -987,9 +987,9 @@ export function ChatScreen({ navigation, route }) {
 
   const insets = useSafeAreaInsets();
   const inputPadding = {
-    paddingBottom: Math.max(insets.bottom, 34),
-    paddingLeft: Math.max(insets.left, 16),
-    paddingRight: Math.max(insets.right, 16),
+    paddingBottom: insets.bottom,
+    paddingLeft: 4,
+    paddingRight: 4,
   };
   const screenPadding = {
     paddingTop: insets.top,

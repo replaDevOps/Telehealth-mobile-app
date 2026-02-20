@@ -286,7 +286,6 @@ export function CardDetails({ navigation }: { navigation: any }) {
           const appointmentData = finalData.appointment || {};
           const appointmentServices = finalData.appointment_services || [];
           const transactionData = finalData.transactions || {};
-
           // Extract clinicID for rating
           const extractedClinicID = clinicData.clinicID || clinicData.id || appointmentData.clinicID || null;
           setClinicID(extractedClinicID);
@@ -304,12 +303,17 @@ export function CardDetails({ navigation }: { navigation: any }) {
             const serviceData = appointmentService.service || {};
             const groupData = serviceData.group || {};
 
+            // Service-level status may be provided on the appointmentService or the nested service
+            const svcStatus = appointmentService.status || appointmentService.refundStatus || appointmentService.serviceStatus || serviceData.status || '';
+
             return {
               id: serviceData.id || appointmentService.serviceID || index,
               appointmentServiceID: appointmentService.id, // This is the ID needed for refund API
               name: serviceData.name || '',
               duration: serviceData.duration ? `${serviceData.duration} min` : '',
               price: serviceData.price || appointmentService.price || '0',
+              status: svcStatus,
+              refundStatus:appointmentService.refundStatus,
               category: serviceData.serviceType && typeof serviceData.serviceType === 'string' && serviceData.serviceType.length
                 ? serviceData.serviceType.charAt(0).toUpperCase() + serviceData.serviceType.slice(1)
                 : '',
@@ -732,6 +736,15 @@ export function CardDetails({ navigation }: { navigation: any }) {
         const serviceData = appointmentService.service || {};
         const groupData = serviceData.group || {};
 
+        // Determine service-level status (API may use different field names)
+        const svcStatus = appointmentService.status || appointmentService.refundStatus || appointmentService.serviceStatus || serviceData.status || '';
+        const svcRefundStatus = appointmentService.refundStatus || serviceData.refundStatus || appointmentService.refund_status || '';
+        // Map refund state to simple categories: processed (final) or processing (in-progress)
+        const isProcessed = typeof svcStatus === 'string' && /(processed|refunded|completed)/i.test(svcStatus);
+        const isProcessing = typeof svcStatus === 'string' && /(processing|pending|in-progress|request)/i.test(svcStatus) && !isProcessed;
+        const isAlreadyRefunded = isProcessed || isProcessing;
+        const refundState = isProcessed ? 'processed' : (isProcessing ? 'processing' : '');
+
         return {
           id: serviceData.id || appointmentService.serviceID,
           appointmentServiceID: appointmentService.id, // Required for cancellation API
@@ -742,8 +755,14 @@ export function CardDetails({ navigation }: { navigation: any }) {
           category: groupData.name || serviceData.serviceType || '',
           categoryBadge: groupData.name || serviceData.serviceType || '',
           image: serviceData.image ? { uri: serviceData.image } : RecommandImage,
+          status: svcStatus,
+          refundStatus: svcRefundStatus,
+          refundState: refundState,
+          disabled: isProcessed, // disable only when fully processed/refunded
         };
       });
+
+      const overallRefundStatus = paymentDetails.refundStatus || paymentDetails.refund_status || paymentDetails.refund?.status || displayData.refundStatus || '';
 
       navigation.navigate('Refund', {
         paymentId: params.paymentId,
@@ -761,15 +780,18 @@ export function CardDetails({ navigation }: { navigation: any }) {
           district: clinicDetails.district || '',
         },
         appointmentID: paymentDetails.appointment?.id,
+        refundStatus: overallRefundStatus,
       });
     } else {
       // Fallback to params for consultations or if no paymentDetails
+      const fallbackRefundStatus = params.refundStatus || params.refund_status || '';
       navigation.navigate('Refund', {
         paymentId: params.paymentId,
         clinicName: params.clinicName,
         clinicLocation: params.clinicLocation,
         image: params.image,
         services: params.services,
+        refundStatus: fallbackRefundStatus,
       });
     }
   };
@@ -881,7 +903,18 @@ export function CardDetails({ navigation }: { navigation: any }) {
                   </View>
                 </View>
               </View>
-              <Text style={styles.servicePrice}>{service.price}</Text>
+              <View style={{ justifyContent: 'space-between', alignItems: 'flex-end', width: 110, paddingLeft: 8 }}>
+                <Text style={styles.servicePrice}>{service.price}</Text>
+                {(() => {
+                  const isRefund = typeof (service.status || '') === 'string' && /refund/i.test(service.status || '');
+                  const displayStatus = isRefund ? ((service.status + " "+service.refundStatus ) ) : service.status;
+                  return displayStatus ? (
+                    <Text style={{ fontSize: 12, color: '#6b7280', marginTop: 8 }} numberOfLines={1}>
+                      {displayStatus}
+                    </Text>
+                  ) : null;
+                })()}
+              </View>
             </View>
           ))}
         {reason && (
@@ -924,10 +957,11 @@ export function CardDetails({ navigation }: { navigation: any }) {
 
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>{t('status')}</Text>
-                <Text
-                  style={[styles.detailValue, { color: displayData.statusColor }]}
-                >
-                  {displayData.status}
+                <Text style={styles.detailValue}>
+                  <Text style={{ color: displayData.statusColor || colors.black }}>{displayData.status}</Text>
+                  {displayData.refundStatus ? (
+                    <Text style={{ color: displayData.refundStatusColor || '#6b7280' }}>{` ${displayData.refundStatus}`}</Text>
+                  ) : null}
                 </Text>
               </View>
 
@@ -969,10 +1003,11 @@ export function CardDetails({ navigation }: { navigation: any }) {
 
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>{t('status')}</Text>
-                <Text
-                  style={[styles.detailValue, { color: displayData.statusColor }]}
-                >
-                  {displayData.status}
+                <Text style={styles.detailValue}>
+                  <Text style={{ color: displayData.statusColor || colors.black }}>{displayData.status}</Text>
+                  {displayData.refundStatus ? (
+                    <Text style={{ color: displayData.refundStatusColor || '#6b7280' }}>{` ${displayData.refundStatus}`}</Text>
+                  ) : null}
                 </Text>
               </View>
 

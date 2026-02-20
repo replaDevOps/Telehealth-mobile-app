@@ -59,3 +59,46 @@ export const tryCatch = async <T, E = Error>(
     return [null, error as E] as const;
   }
 };
+
+/**
+ * Converts a UTC timestamp to local time format (HH:MM AM/PM)
+ * Handles various timestamp formats: ISO strings, Unix timestamps, Date objects
+ * @param timestamp The timestamp to convert (can be string, number, or Date)
+ * @returns Formatted time string in local timezone
+ */
+export const formatUTCToLocalTime = (timestamp: any): string => {
+  if (!timestamp) return '';
+  
+  try {
+    let date: Date;
+    
+    // Handle different timestamp formats
+    if (timestamp instanceof Date) {
+      date = timestamp;
+    } else if (typeof timestamp === 'number') {
+      // Unix timestamp - check if seconds or milliseconds
+      date = timestamp < 1e12 ? new Date(timestamp * 1000) : new Date(timestamp);
+    } else if (typeof timestamp === 'string') {
+      // ISO 8601 string (UTC) or other string formats
+      // Remove any timezone offset and parse as UTC, or parse directly
+      date = new Date(timestamp);
+    } else {
+      return String(timestamp);
+    }
+
+    // Check if valid date
+    if (isNaN(date.getTime())) {
+      return String(timestamp);
+    }
+
+    // Convert to local time and format
+    return date.toLocaleTimeString(undefined, {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+  } catch (e) {
+    console.error('Error formatting timestamp:', e);
+    return String(timestamp);
+  }
+};

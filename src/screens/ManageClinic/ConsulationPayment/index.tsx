@@ -1,6 +1,6 @@
 import { Header2 } from '@components/common/Header2';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, ScrollView, Modal, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, ScrollView, Modal, ActivityIndicator, Alert, AppState, AppStateStatus, Dimensions } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { mvs } from '@config/metrices';
 import { colors } from '../../../styles/colors';
@@ -16,6 +16,7 @@ import { API } from '@services/api/api-endpoint';
 import { pusherService } from '@services/pusher/PusherService';
 import NoResponseModal from '@components/molecules/NoResponseModal';
 import { useAuthStore } from '@store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export function ConsultationPayment({ navigation, route }) {
   const { t } = useTranslation();
@@ -27,7 +28,11 @@ export function ConsultationPayment({ navigation, route }) {
   const [isLoading, setIsLoading] = useState(false);
   const [waitingForDoctor, setWaitingForDoctor] = useState(false);
   const [timeLeft, setTimeLeft] = useState(120);
+  const [isTimerReady, setIsTimerReady] = useState(false);
   const timerRef = useRef<any>(null);
+  const startTimestampRef = useRef<number | null>(null);
+  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
+  const timerStorageKeyRef = useRef<string | null>(null);
   const refundProcessedRef = useRef(false);
   const [showNoResponseModal, setShowNoResponseModal] = useState(false);
   const auth = useAuthStore(state => state.auth);
@@ -62,6 +67,54 @@ export function ConsultationPayment({ navigation, route }) {
   const consultationType = consultationData.consultationTypeId || 'chat';
 
   const insets = useSafeAreaInsets();
+
+  const getRemainingSeconds = useCallback(() => {
+    if (!startTimestampRef.current) return 0;
+    const elapsed = Math.floor((Date.now() - startTimestampRef.current) / 1000);
+    return Math.max(0, 120 - elapsed);
+  }, []);
+
+  const showTimeoutModal = useCallback(() => {
+    console.log('⏰ [ConsultationPayment] showTimeoutModal called');
+    if (refundProcessedRef.current) return;
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    if (timerStorageKeyRef.current) {
+      AsyncStorage.removeItem(timerStorageKeyRef.current).catch(() => {});
+    }
+    setWaitingForDoctor(false);
+    setTimeLeft(0);
+    setShowNoResponseModal(true);
+  }, []);
+
+  const initTimerFromStorage = useCallback(async () => {
+    const key = timerStorageKeyRef.current;
+    if (!key) return;
+
+    try {
+      const stored = await AsyncStorage.getItem(key);
+      let startTs = stored ? Number(stored) : Date.now();
+
+      if (!stored) {
+        await AsyncStorage.setItem(key, String(startTs));
+      }
+
+      startTimestampRef.current = startTs;
+      const remaining = Math.max(0, 120 - Math.floor((Date.now() - startTs) / 1000));
+      console.log('⏰ [ConsultationPayment] initTimerFromStorage remaining:', remaining, 'startTs:', startTs);
+      setTimeLeft(remaining);
+      setIsTimerReady(true);
+
+      if (remaining <= 0) {
+        showTimeoutModal();
+      }
+    } catch (e) {
+      console.warn('⏰ [ConsultationPayment] initTimerFromStorage failed:', e);
+      setIsTimerReady(true);
+    }
+  }, [showTimeoutModal]);
 
   // Handle payment method change - only allow card payment
   const handlePaymentChange = (payment: 'credit' | 'applepay' | 'stc' | 'tabby' | 'tamara') => {
@@ -175,23 +228,16 @@ export function ConsultationPayment({ navigation, route }) {
 
       // Instead of navigating to WaitingForDoctor, show loader here and wait for acceptance
       consultationIdRef.current = consultationID;
+      console.log('⏰ [ConsultationPayment] Start waiting timer for consultation:', consultationID);
       setWaitingForDoctor(true);
       setTimeLeft(120);
       refundProcessedRef.current = false;
-
-      // Start countdown
-      timerRef.current = setInterval(() => {
-        setTimeLeft(prev => {
-          if (prev <= 1) {
-            // Timer expired - show modal
-            if (timerRef.current) clearInterval(timerRef.current);
-            setWaitingForDoctor(false);
-            setShowNoResponseModal(true);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+      timerStorageKeyRef.current = consultationID ? `waiting_timer_${consultationID}` : null;
+      startTimestampRef.current = Date.now();
+      setIsTimerReady(true);
+      if (timerStorageKeyRef.current) {
+        AsyncStorage.setItem(timerStorageKeyRef.current, String(startTimestampRef.current)).catch(() => {});
+      }
     } catch (error: any) {
       console.error('Error booking consultation:', error);
       const errorMessage =
@@ -203,6 +249,68 @@ export function ConsultationPayment({ navigation, route }) {
       setIsLoading(false);
     }
   };
+
+  // Initialize timer from storage when we start waiting
+  useEffect(() => {
+    if (!waitingForDoctor) {
+      setIsTimerReady(false);
+      return;
+    }
+
+    if (!isTimerReady) {
+      initTimerFromStorage();
+    }
+  }, [waitingForDoctor, isTimerReady, initTimerFromStorage]);
+
+  // AppState: recalculate remaining time when returning to foreground
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      const prev = appStateRef.current;
+      appStateRef.current = nextAppState;
+
+      if (prev.match(/inactive|background/) && nextAppState === 'active') {
+        if (!waitingForDoctor || !isTimerReady) return;
+        const remaining = getRemainingSeconds();
+        setTimeLeft(remaining);
+        if (remaining <= 0) {
+          showTimeoutModal();
+        }
+
+        // Pusher can drop in background; try to re-init
+        try {
+          pusherService.initialize();
+        } catch (e) {}
+      }
+    };
+
+    const sub = AppState.addEventListener('change', handleAppStateChange);
+    return () => sub.remove();
+  }, [waitingForDoctor, isTimerReady, getRemainingSeconds, showTimeoutModal]);
+
+  // Foreground ticking interval to update the UI timer
+  useEffect(() => {
+    if (!waitingForDoctor || !isTimerReady) return;
+
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+
+    timerRef.current = setInterval(() => {
+      const remaining = getRemainingSeconds();
+      setTimeLeft(remaining);
+      if (remaining <= 0) {
+        showTimeoutModal();
+      }
+    }, 1000);
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [waitingForDoctor, isTimerReady, getRemainingSeconds, showTimeoutModal]);
 
   // Setup Pusher listener to detect acceptance while waiting here
   useEffect(() => {
@@ -250,6 +358,9 @@ export function ConsultationPayment({ navigation, route }) {
         // Clear timer
         if (timerRef.current) {
           clearInterval(timerRef.current);
+        }
+        if (timerStorageKeyRef.current) {
+          AsyncStorage.removeItem(timerStorageKeyRef.current).catch(() => {});
         }
 
         const doctorData = consultation?.doctor || data?.doctor;
@@ -359,6 +470,9 @@ export function ConsultationPayment({ navigation, route }) {
       console.error('Error initiating refund:', error);
       Toastify.error(error?.response?.data?.message || 'Failed to initiate refund');
     } finally {
+      if (timerStorageKeyRef.current) {
+        AsyncStorage.removeItem(timerStorageKeyRef.current).catch(() => {});
+      }
       setTimeout(() => {
         navigation.replace('EntryPoint');
       }, 800);
@@ -404,7 +518,7 @@ export function ConsultationPayment({ navigation, route }) {
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={{ paddingBottom: insets.bottom + mvs(110) }}
+        contentContainerStyle={{ paddingBottom: Dimensions.get('window').height * 0.1 }}
         showsVerticalScrollIndicator={false}
         scrollEnabled={!waitingForDoctor}
       >
@@ -428,7 +542,7 @@ export function ConsultationPayment({ navigation, route }) {
 
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>{t('duration')}</Text>
-            <Text style={styles.summaryValue}>{consultationData.duration}</Text>
+            <Text style={styles.summaryValue}>{'30 min'}</Text>
           </View>
 
           <View style={styles.summaryRow}>

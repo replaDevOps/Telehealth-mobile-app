@@ -31,7 +31,7 @@ import { useCartCountContext } from '@context/CartCountContext';
 
 export function CheckoutScreen({ route, navigation }) {
   const { t } = useTranslation();
-  const { profileData, fetchProfile, refreshProfile } = useProfileStore();
+  const { profileData, fetchProfile, refreshProfile, currencyValuePerPoint } = useProfileStore();
   const { clearCart } = useCart();
   const { triggerRefresh } = useCartCountContext();
   const { services = [], totalLoyaltyPoints = 0 } = route.params || {};
@@ -94,8 +94,9 @@ export function CheckoutScreen({ route, navigation }) {
   const tax = subtotal * 0.15; // 15% tax
   const discountAmount = subtotal * (discount / 100);
 
-  // Loyalty conversion: 100 coins = 5 SAR => 1 coin = 0.05 SAR
-  const COIN_TO_SAR = 5 / 100;
+  // Loyalty conversion: prefer server-provided `currencyValuePerPoint`, fallback to 0.05 SAR per coin
+  const parsedCurrencyPerPoint = Number(String(currencyValuePerPoint ?? '').replace(/,/g, '.'));
+  const COIN_TO_SAR = parsedCurrencyPerPoint > 0 ? parsedCurrencyPerPoint : 5 / 100;
 
   // `redeemPoints` input is number of coins the user wants to redeem
   const redemptionCoinsInput = Math.max(0, Math.floor(Number(redeemPoints) || 0));

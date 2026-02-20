@@ -34,6 +34,7 @@ interface PaymentConsultationItem {
   price: string;
   status: string;
   statusColor: string;
+  refundServiceCount?: number;
 }
 
 interface PaymentAppointmentItem {
@@ -50,6 +51,15 @@ interface PaymentAppointmentItem {
   status: string;
   statusColor: string;
   services: ServiceDetail[];
+  refundServiceCount?: number;
+  refundServices?: Array<{
+    id: number;
+    appointmentID: number;
+    status: string;
+    serviceID: number;
+  }>;
+  refundStatus?: string;
+  refundStatusColor?: string;
 }
 
 export type PaymentItem = PaymentConsultationItem | PaymentAppointmentItem;

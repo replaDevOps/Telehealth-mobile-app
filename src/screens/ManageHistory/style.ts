@@ -388,6 +388,11 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+  refundCountText: {
+    fontSize: 12,
+    color: colors.secondaryText,
+    marginTop: 4,
+  },
   viewDetailsButton: {
     paddingVertical: 10,
     borderRadius: 8,

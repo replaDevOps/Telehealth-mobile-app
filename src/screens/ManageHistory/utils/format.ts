@@ -24,7 +24,18 @@ export function formatDateLocal(dateStr: string): string {
 export function formatDateTimeLocal(dateStr: string): string {
   if (!dateStr) return '';
   try {
-    const date = new Date(dateStr);
+    // Some APIs return date-times without timezone (e.g. "2024-10-02 11:05:00").
+    // On some platforms that may be parsed as UTC or local inconsistently. If
+    // the string has no timezone offset, treat it as UTC by appending a `Z`
+    // so the resulting Date will be converted to the device local timezone.
+    let input = dateStr;
+    const hasZone = /([zZ]|[+-]\d{2}:?\d{2})$/.test(dateStr);
+    const hasTSeparator = /T/.test(dateStr);
+    if (!hasZone && (hasTSeparator || /\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(dateStr))) {
+      // Normalize space to T then append Z to indicate UTC
+      input = dateStr.replace(' ', 'T') + 'Z';
+    }
+    const date = new Date(input);
     if (isNaN(date.getTime())) return dateStr;
     const datePart = date.toLocaleDateString('en-GB', {
       day: 'numeric',

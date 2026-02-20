@@ -46,6 +46,7 @@ export const HomeScreen = ({ navigation }) => {
   const isLoadingMoreRef = useRef(false);
   const currentSearchQueryRef = useRef('');
   const currentLocationRef = useRef<{ lat: number; long: number } | null>(null);
+  const prevLocationRef = useRef<typeof location | null>(null);
   const recordsPerPage = 10;
 
   // Transform API response to Clinic format
@@ -210,6 +211,13 @@ export const HomeScreen = ({ navigation }) => {
       return;
     }
 
+    // If location has just become available (null -> defined) after initial mount,
+    // skip this automatic refetch to avoid duplicate API call — initial fetch is sufficient.
+    if (!prevLocationRef.current && location) {
+      prevLocationRef.current = location;
+      return;
+    }
+
     // Cancel any ongoing load more operations
     isLoadingMoreRef.current = false;
 
@@ -220,6 +228,9 @@ export const HomeScreen = ({ navigation }) => {
     } else {
       currentLocationRef.current = null;
     }
+
+    // store current location for subsequent comparisons
+    prevLocationRef.current = location || null;
 
     // Clear data immediately to prevent flickering
     setRecommendedClinics([]);

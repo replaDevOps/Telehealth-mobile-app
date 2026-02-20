@@ -33,6 +33,7 @@ export interface PaymentConsultationItem {
   price: string;
   status: string;
   statusColor: string;
+  refundServiceCount?: number;
 }
 
 export interface PaymentAppointmentItem {
@@ -49,6 +50,17 @@ export interface PaymentAppointmentItem {
   status: string;
   statusColor: string;
   services: ServiceDetail[];
+  refundServiceCount?: number;
+  refundServices?: RefundService[];
+  refundStatus?: string;
+  refundStatusColor?: string;
+}
+
+export interface RefundService {
+  id: number;
+  appointmentID: number;
+  status: string;
+  serviceID: number;
 }
 
 export interface ServiceDetail {

@@ -186,9 +186,15 @@ export function RefundRequest() {
 
             {params.services?.map((service: any) => {
               const isChecked = selectedServices.includes(service.id);
+              const refundState = service.refundState || '';
+              // determine disabled: explicit flag from mapping OR fully processed refund OR refundStatus indicates final
+              const svcStatusStr = (service.status || '').toString();
+              const svcRefundStatusStr = (service.refundStatus || '').toString();
+              const isProcessed = /processed|refunded|refunded|completed|refund/i.test(svcRefundStatusStr || svcStatusStr);
+              const isDisabled = !!service.disabled || isProcessed || refundState === 'processed';
 
               return (
-                <View key={service.id} style={styles.serviceCard}>
+                <View key={service.id} style={[styles.serviceCard, isDisabled ? { opacity: 0.6 } : {}]}>
                   <View style={styles.serviceLeft}>
                     <Image source={service.image} style={styles.serviceImage} />
                     <View style={styles.serviceInfo}>
@@ -213,13 +219,16 @@ export function RefundRequest() {
                         />
                         <Text style={styles.duration}>{service.duration}</Text>
                       </View>
+
+                      {/* status moved to the right column for clearer layout */}
                     </View>
                   </View>
 
                   <View style={styles.serviceRight}>
                     <CheckBox
                       checked={isChecked}
-                      onPress={() => toggleService(service.id)}
+                      onPress={() => !isDisabled && toggleService(service.id)}
+                      disabled={isDisabled}
                       containerStyle={{
                         backgroundColor: 'transparent',
                         padding: 0,
@@ -228,7 +237,21 @@ export function RefundRequest() {
                       checkedColor={colors.primary}
                       uncheckedColor="#ccc"
                     />
-                    <Text style={styles.servicePrice}>{service.price}</Text>
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <Text style={styles.servicePrice}>{service.price}</Text>
+                      {/* show refundStatus when status indicates a refund otherwise show status */}
+                      {(() => {
+                        const isRefund = typeof (service.status || '') === 'string' && /refund/i.test(service.status || '');
+                        const displayStatus = isRefund ? (service.status + " " + service.refundStatus) : service.status;
+                        console.log(`Service ${service.id} - isRefund:`, isRefund, 'displayStatus:', displayStatus);
+                        return displayStatus ? (
+                          <Text style={{ fontSize: 12, color: '#112244', marginTop: 6 }} numberOfLines={2}>
+                            {displayStatus}
+                          </Text>
+                        ) : null;
+                      })()}
+                    
+                    </View>
                   </View>
                 </View>
               );

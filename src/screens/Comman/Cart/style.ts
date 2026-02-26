@@ -91,6 +91,33 @@ export const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.secondaryText,
   },
+  clinicPointsContainer: {
+    position: 'absolute',
+    right: 12,
+    top: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  coinWrapper: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FFF8E6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+  coinImage: {
+    width: 20,
+    height: 20,
+    resizeMode: 'contain',
+  },
+  clinicPointsText: {
+    marginLeft: 8,
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.yellow,
+  },
 
   // Service Card Styles
   serviceCard: {

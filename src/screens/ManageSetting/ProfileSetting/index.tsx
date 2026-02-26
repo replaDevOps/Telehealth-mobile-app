@@ -47,6 +47,9 @@ type State = {
   language: string;
   notificationEnabled: boolean;
   deleteModalVisible: boolean;
+  nationalID: string;
+  nationality: string;
+  city: string;
 };
 
 const initialState: State = {
@@ -62,6 +65,9 @@ const initialState: State = {
   language: 'English',
   notificationEnabled: false,
   deleteModalVisible: false,
+  nationalID: '',
+  nationality: '',
+  city: '',
 };
 
 // Field mapping configuration: API field -> State field with optional transformer
@@ -69,6 +75,8 @@ const fieldMapping: Record<string, { stateKey: keyof State; transformer?: (value
   name: { stateKey: 'fullName' },
   phoneNo: { stateKey: 'phone' },
   email: { stateKey: 'email' },
+  nationalID: { stateKey: 'nationalID' },
+  IDnumber: { stateKey: 'nationalID' },
   age: { stateKey: 'age', transformer: (val) => String(val ?? '') },
   gender: { 
     stateKey: 'gender', 
@@ -90,6 +98,17 @@ const fieldMapping: Record<string, { stateKey: keyof State; transformer?: (value
       return val;
     }
   },
+  nationality: {
+    stateKey: 'nationality',
+    transformer: (val) => {
+      if (!val) return '';
+      const v = String(val).toLowerCase();
+      if (v.includes('non')) return 'Non-Saudi';
+      if (v.includes('saudi')) return 'Saudi';
+      return String(val);
+    }
+  },
+  city: { stateKey: 'city' },
 };
 
 // Helper function to map API data to state
@@ -185,6 +204,11 @@ export const ProfileSetting = ({ navigation, route }: { navigation: any; route?:
       gender: state.gender.toLowerCase(), // Convert to lowercase for API
       notificationStatus: state.notificationEnabled,
       language: state.language,
+      IDnumber: state.nationalID?.trim() || undefined,
+      nationality: state.nationality
+        ? (state.nationality === 'Non-Saudi' ? 'non_saudi' : state.nationality === 'Saudi' ? 'saudi' : state.nationality.toString().toLowerCase())
+        : undefined,
+      city: state.city?.trim() || undefined,
     };
 
     console.log("🚀 ~ updateProfile ~ payload language:", payload.language);
@@ -384,6 +408,33 @@ export const ProfileSetting = ({ navigation, route }: { navigation: any; route?:
             value={state.age}
             onChangeText={(text) => dispatch({ age: text })}
             keyboardType="numeric"
+          />
+
+          <CustomTextInput
+            label={t('national_id') || 'National ID'}
+            placeholder={t('enter_national_id') || 'Enter National ID'}
+            value={state.nationalID}
+            onChangeText={(text) => dispatch({ nationalID: text })}
+            keyboardType="default"
+          />
+
+          <CustomDropdown
+            label={t('nationality') || 'Nationality'}
+            placeholder={t('select_nationality') || 'Select Nationality'}
+            value={state.nationality}
+            onValueChange={(text) => dispatch({ nationality: text })}
+            options={[
+              { label: 'Saudi', value: 'Saudi' },
+              { label: 'Non-Saudi', value: 'Non-Saudi' },
+            ]}
+          />
+
+          <CustomTextInput
+            label={t('city') || 'City'}
+            placeholder={t('enter_city') || 'Enter City'}
+            value={state.city}
+            onChangeText={(text) => dispatch({ city: text })}
+            keyboardType="default"
           />
 
           {/* Password Manager */}

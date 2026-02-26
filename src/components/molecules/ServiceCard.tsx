@@ -29,17 +29,17 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
   bonusLoyalityPoints,
   onPress,
 }) => {
-  console.log('ServiceCard props:', {
-    image,
-    type,
-    serviceGroup,
-    serviceName,
-    price,
-    duration,
-    description,
-    procedure,
-    bonusLoyalityPoints,
-  });
+  // console.log('ServiceCard props:', {
+  //   image,
+  //   type,
+  //   serviceGroup,
+  //   serviceName,
+  //   price,
+  //   duration,
+  //   description,
+  //   procedure,
+  //   bonusLoyalityPoints,
+  // });
   return (
     <TouchableOpacity
       style={styles.serviceCard}

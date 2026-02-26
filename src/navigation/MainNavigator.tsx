@@ -23,10 +23,10 @@ import {
   ChangePassword,
   FAQs,
   LoyaltyPointsDetails,
-  ProfileSetting,
   RefundRequest2,
   RoyaltyPoints,
   SettingScreen,
+  ProfileSetting,
 } from '@screens/ManageSetting';
 import {
   CardDetails,
@@ -165,6 +165,7 @@ export const SettingNavigator = () => {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="SettingScreen" component={SettingScreen} />
       <Stack.Screen name="ProfileSetting" component={ProfileSetting} />
+      {/* ProfileSetting is registered inside SettingNavigator to avoid duplicate route names */}
       <Stack.Screen name="ChangePassword" component={ChangePassword} />
       <Stack.Screen name="FAQs" component={FAQs} />
       <Stack.Screen name="RefundRequest2" component={RefundRequest2} />

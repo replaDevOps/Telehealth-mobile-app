@@ -91,9 +91,7 @@ export const SettingScreen = ({ navigation }: { navigation: any }) => {
     {
       icon: ProfileSvg,
       title: t('profile_settings'),
-      onPress: () => navigation.navigate('ProfileSetting', {
-        profileData: profileData,
-      }),
+      onPress: () => navigation.navigate('ProfileSetting', { profileData }),
     },
     {
       icon: FAQsSvg,

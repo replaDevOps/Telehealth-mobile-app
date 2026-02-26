@@ -44,6 +44,8 @@ type CardDetailsRouteParams = {
   image?: any;
   reason?: string;
   isRefundRequest?: boolean; // Flag to indicate this is from refund requests
+  refundStatus?: string;
+  refund_status?: string;
 
   consultationType?: 'Chat' | 'Video' | 'Audio';
   duration?: string;
@@ -109,6 +111,8 @@ export function CardDetails({ navigation }: { navigation: any }) {
     paymentMethod?: string;
     total?: string;
     services: any[];
+    refundStatus?: string;
+    refundStatusColor?: string;
   }>({
     clinicName: params.clinicName || '',
     clinicLocation: params.clinicLocation || '',
@@ -128,6 +132,8 @@ export function CardDetails({ navigation }: { navigation: any }) {
     paymentMethod: undefined,
     total: params.price || '',
     services: params.services || [],
+    refundStatus: params.refundStatus || params.refund_status || undefined,
+    refundStatusColor: undefined,
   });
 
   // Get user location for refund appointment details
@@ -298,6 +304,74 @@ export function CardDetails({ navigation }: { navigation: any }) {
           const priceValue = transactionData.amount || '0';
           const formattedPrice = priceValue ? `SAR ${parseFloat(priceValue).toFixed(2)}` : 'SAR 0.00';
 
+          // Handle refund detail payloads that return a top-level `service` object
+          if (!appointmentServices || appointmentServices.length === 0) {
+            // Some refund endpoints return the refunded item under `service` (see sample payloads)
+            const refundServicePayload = finalData.service || finalData.services || null;
+            if (refundServicePayload) {
+              const svc = refundServicePayload.service || refundServicePayload;
+              const mappedServicesRefund = [
+                {
+                  id: svc?.id || refundServicePayload?.serviceID || 0,
+                  appointmentServiceID: refundServicePayload?.id || undefined,
+                  name: svc?.name || refundServicePayload?.name || '',
+                  duration: svc?.duration ? `${svc.duration} min` : (refundServicePayload?.duration ? `${refundServicePayload.duration} min` : ''),
+                  price: svc?.price || refundServicePayload?.price || '0',
+                  status: refundServicePayload?.status || svc?.status || '',
+                  refundStatus: refundServicePayload?.refundStatus || refundServicePayload?.refund_status || '',
+                  category: svc?.serviceType || svc?.category || '',
+                  categoryBadge: svc?.group?.name || '',
+                  image: svc?.image ? { uri: svc.image } : RecommandImage,
+                },
+              ];
+
+              // Use clinic from finalData.clinic if available
+              const clinicDataRefund = finalData.clinic || {};
+              const clinicDetailsRefund = clinicDataRefund.details || {};
+
+              const dateStrRefund = refundServicePayload?.created_at || refundServicePayload?.updated_at || transactionData?.date || appointmentData?.created_at || '';
+              const formattedDateTimeRefund = formatDateTimeLocal(dateStrRefund);
+
+              const priceValueRefund = refundServicePayload?.price || transactionData?.amount || '0';
+              const formattedPriceRefund = priceValueRefund ? `SAR ${parseFloat(priceValueRefund).toFixed(2)}` : 'SAR 0.00';
+
+              const appointmentLocationPartsRefund = [
+                clinicDetailsRefund.address,
+                translateCityToEnglish(clinicDetailsRefund.city),
+                translateCityToEnglish(clinicDetailsRefund.district),
+              ].filter(Boolean);
+              const appointmentClinicLocationRefund = appointmentLocationPartsRefund.length > 0
+                ? appointmentLocationPartsRefund.join(', ')
+                : '';
+
+              setClinicID(clinicDataRefund.clinicID || clinicDataRefund.id || appointmentData.clinicID || null);
+
+              setDisplayData({
+                clinicName: clinicDataRefund.clinicName || clinicDetailsRefund.businessName || clinicDataRefund.name || '',
+                clinicLocation: appointmentClinicLocationRefund,
+                status: refundServicePayload?.status || transactionData.status || appointmentData.status || '',
+                statusColor: (refundServicePayload?.status === 'Paid' || refundServicePayload?.status === 'Completed') ? colors.green : colors.red,
+                dateTime: formattedDateTimeRefund,
+                price: formattedPriceRefund,
+                image: clinicDataRefund.image || clinicDetailsRefund.coverImage || clinicDetailsRefund.logo ? { uri: clinicDataRefund.image || clinicDetailsRefund.coverImage || clinicDetailsRefund.logo } : RecommandImage,
+                consultationType: undefined,
+                duration: undefined,
+                doctorName: undefined,
+                doctorAvatar: undefined,
+                serviceName: undefined,
+                servicePrice: undefined,
+                serviceType: undefined,
+                serviceGroup: undefined,
+                paymentMethod: undefined,
+                total: formattedPriceRefund,
+                services: mappedServicesRefund,
+              });
+
+              setLoading(false);
+              return;
+            }
+          }
+
           // Map appointment_services to services array
           const mappedServices = appointmentServices.map((appointmentService: any, index: number) => {
             const serviceData = appointmentService.service || {};
@@ -426,7 +500,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
               ? { uri: clinicData.image || clinicDetails.logo || clinicDetails.coverImage }
               : RecommandImage,
             consultationType: consultationData.type || consultationData.consultationType,
-            duration: consultationData.duration || '',
+            duration: formattedDuration || consultationData.duration || '',
             doctorName: doctorData.name || '',
             doctorAvatar: doctorData.image || undefined,
             serviceName: capitalizeWords(serviceData.name || ''),
@@ -742,7 +816,6 @@ export function CardDetails({ navigation }: { navigation: any }) {
         // Map refund state to simple categories: processed (final) or processing (in-progress)
         const isProcessed = typeof svcStatus === 'string' && /(processed|refunded|completed)/i.test(svcStatus);
         const isProcessing = typeof svcStatus === 'string' && /(processing|pending|in-progress|request)/i.test(svcStatus) && !isProcessed;
-        const isAlreadyRefunded = isProcessed || isProcessing;
         const refundState = isProcessed ? 'processed' : (isProcessing ? 'processing' : '');
         console.log('Service',groupData)
         return {

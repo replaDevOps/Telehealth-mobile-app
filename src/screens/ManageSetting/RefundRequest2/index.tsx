@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
+  Image,
   TextInput,
   TouchableOpacity,
   FlatList,
@@ -28,12 +29,14 @@ interface PaymentAppointmentItem {
   date: string;
   paymentId: string;
   clinicImg?: boolean;
+  clinicImage?: any;
   clinicName: string;
   clinicLocation: string;
   numberOfService: string;
   price: string;
   status: string;
   statusColor: string;
+  refundStatus?: string;
   services: {
     id: number;
     name: string;
@@ -141,17 +144,30 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
             }
           }
 
-          // Map services if available
-          const services = item.refund_appointments || item.service || [];
-          const mappedServices = Array.isArray(services) ? services.map((service: any) => ({
-            id: service.id || service.serviceID || 0,
-            name: service.name || service.serviceName || service.service_name || 'Service',
-            duration: service.duration || service.duration_minutes || '30 min',
-            price: service.price || service.servicePrice || service.service_price || 'SAR 0',
-            category: service.category || service.categoryName || service.category_name || 'Service',
-            categoryBadge: service.categoryBadge || service.category_badge || 'SVC',
-            image: service.image || service.serviceImage || service.service_image || RecommandImage,
-          })) : [];
+          // Map services if available — support multiple shapes: array, single object, nested fields
+          let servicesRaw: any = item.refund_appointments || item.services || item.service || null;
+          // If API returned top-level appointment.service (object) or a single service, normalize to array
+          if (!servicesRaw) {
+            // Try nested appointment/serviceIDs fallback (IDs only)
+            if (item.appointment && Array.isArray(item.appointment.serviceIDs) && item.service) {
+              servicesRaw = Array.isArray(item.service) ? item.service : [item.service];
+            } else {
+              servicesRaw = [];
+            }
+          }
+          const servicesArray = Array.isArray(servicesRaw) ? servicesRaw : [servicesRaw];
+
+          const mappedServices = servicesArray.map((service: any) => ({
+            id: service?.id || service?.serviceID || service?.service_id || 0,
+            name:
+              service?.name || service?.serviceName || service?.service_name ||
+              service?.title || item.service?.name || 'Service',
+            duration: service?.duration || service?.duration_minutes || service?.time || '30 min',
+            price: service?.price || service?.servicePrice || service?.service_price || item?.service?.price || 'SAR 0',
+            category: service?.category || service?.categoryName || service?.category_name || 'Service',
+            categoryBadge: service?.categoryBadge || service?.category_badge || 'SVC',
+            image: service?.image || service?.serviceImage || service?.service_image || service?.image_url || RecommandImage,
+          }));
 
           // Determine status and color
           const status = item.status || item.appointment_status || item.appointmentStatus || t('pending');
@@ -160,19 +176,38 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
              status.toLowerCase().includes('pending') ? colors.yellow :
              status.toLowerCase().includes('cancelled') ? colors.red : colors.green);
 
+          // Prefer explicit business fields returned from API (handle nested `clinic.details` too)
+          const clinicDetails = item.clinic?.details || item.details || (item.clinicDetails ? item.clinicDetails : {});
+
+          const clinicImageUrl =
+            item.logo || clinicDetails?.logo || clinicDetails?.coverImage || clinicDetails?.businessLogo ||
+            item.coverImage || item.businessLogo || item.clinicImage || item.clinic_image || item.image || null;
+
+          const clinicDisplayName =
+            item.businessName || clinicDetails?.businessName || clinicDetails?.business_name ||
+            item.clinicName || item.clinic_name || item.clinic?.clinicName || item.clinic?.name || item.name || 'Clinic';
+
+          const clinicLocation =
+            clinicDetails?.address || clinicDetails?.location ||
+            (clinicDetails?.city && clinicDetails?.district ? `${clinicDetails.city}, ${clinicDetails.district}` : clinicDetails?.city || clinicDetails?.district) ||
+            item.address || (item.city && item.district ? `${item.city}, ${item.district}` : item.city || item.district) ||
+            item.clinicLocation || item.clinic_location || item.clinic?.location || item.clinic?.address || '';
+
           return {
             id: item.id?.toString() || item.appointmentID?.toString() || item.appointment_id?.toString() || index.toString(),
             kind: 'appointment',
             state: item.state || item.appointment_state || item.appointmentState || t('pending'),
             date: formattedDate || item.date || item.appointment_date || '',
             paymentId: item.paymentId || item.payment_id || item.paymentID || item.id?.toString() || `PAY-${index}`,
-            clinicImg: !!item.clinicImage || !!item.clinic_image || !!item.image,
-            clinicName: item.clinicName || item.clinic_name || item.clinic?.clinicName || item.clinic?.name || 'Clinic',
-            clinicLocation: item.clinicLocation || item.clinic_location || item.clinic?.location || item.clinic?.address || '',
+            clinicImg: !!clinicImageUrl,
+            clinicImage: clinicImageUrl || RecommandImage,
+            clinicName: clinicDisplayName,
+            clinicLocation: clinicLocation,
             numberOfService: mappedServices.length.toString() || item.numberOfService || item.number_of_service || '0',
             price: item.price || item.totalPrice || item.total_price || item.amount || 'SAR 0',
             status: status,
             statusColor: statusColor,
+            refundStatus: item.refundStatus || item.refund_status || '',
             services: mappedServices,
           };
         });
@@ -251,10 +286,21 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
           <View style={styles.paymentDoctorRow}>
             <View style={styles.paymentDoctorSection}>
               <View style={styles.doctorAvatar}>
-                <Text style={styles.clinicLogo}>{t('clinic_image')}</Text>
-              </View>
+                  {item.clinicImage ? (
+                    <Image
+                      source={typeof item.clinicImage === 'string' ? { uri: item.clinicImage } : item.clinicImage}
+                      style={{ width: 48, height: 48,overflow: 'hidden', borderRadius: 8 }}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <Text style={styles.clinicLogo}>{t('clinic_image')}</Text>
+                  )}
+                </View>
               <View style={styles.doctorInfo}>
                 <Text style={styles.doctorName}>{item.clinicName}</Text>
+                {item.clinicLocation ? (
+                  <Text style={styles.clinicName}>{item.clinicLocation}</Text>
+                ) : null}
               </View>
             </View>
 
@@ -263,16 +309,20 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
 
           <View style={styles.serviceStatusRow}>
             <View style={styles.serviceInfo}>
-              <Text style={styles.serviceLabel}>{t('number_of_service')}</Text>
-              <Text style={styles.serviceValue}>{item.numberOfService}</Text>
+              <Text style={styles.serviceLabel}>{t('service') || 'Service'}</Text>
+              <Text style={styles.serviceValue}>
+                {item.services && item.services.length > 0
+                  ? item.services.map(s => s.name).join(', ')
+                  : item.numberOfService}
+              </Text>
             </View>
 
             <View style={styles.statusDivider} />
 
             <View style={styles.statusInfo}>
               <Text style={styles.statusLabel}>{t('status')}</Text>
-              <Text style={[styles.statusValue, { color: item.statusColor }]}>
-                {item.status}
+              <Text style={[styles.statusValue, { color: item.statusColor }]}> 
+                {item.status}{item.refundStatus ? ` ${item.refundStatus}` : ''}
               </Text>
             </View>
           </View>
@@ -286,10 +336,11 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
                 isAppointment: true,
                 paymentId: item.paymentId,
                 clinicName: item.clinicName,
-                image: item.clinicImg ? RecommandImage : undefined,
+                image: item.clinicImage || (item.clinicImg ? RecommandImage : undefined),
                 clinicLocation: item.clinicLocation,
                 status: item.status,
                 statusColor: item.statusColor,
+                refundStatus: item.refundStatus,
                 dateTime: item.date,
                 price: item.price,
                 services: item.services,

@@ -35,6 +35,12 @@ export function CheckoutScreen({ route, navigation }) {
   const { clearCart } = useCart();
   const { triggerRefresh } = useCartCountContext();
   const { services = [], totalLoyaltyPoints = 0 } = route.params || {};
+  const clinicLoyaltyPointsParam = route.params?.clinicLoyaltyPoints;
+  const clinicLoyaltyPoints = clinicLoyaltyPointsParam
+    ? typeof clinicLoyaltyPointsParam === 'string'
+      ? parseInt(clinicLoyaltyPointsParam, 10) || 0
+      : Number(clinicLoyaltyPointsParam) || 0
+    : 0;
 
   useEffect(() => {
     fetchProfile();
@@ -91,7 +97,10 @@ export function CheckoutScreen({ route, navigation }) {
   };
 
   const subtotal = calculateSubtotal();
-  const tax = subtotal * 0.15; // 15% tax
+  // Apply 15% tax only for non-Saudi users
+  const isNonSaudi = profileData?.nationality && String(profileData.nationality).toLowerCase() === 'non_saudi';
+  const TAX_RATE = isNonSaudi ? 0.15 : 0;
+  const tax = subtotal * TAX_RATE;
   const discountAmount = subtotal * (discount / 100);
 
   // Loyalty conversion: prefer server-provided `currencyValuePerPoint`, fallback to 0.05 SAR per coin
@@ -102,7 +111,7 @@ export function CheckoutScreen({ route, navigation }) {
   const redemptionCoinsInput = Math.max(0, Math.floor(Number(redeemPoints) || 0));
 
   // Maximum amount (SAR) that can be redeemed against the remaining payable amount
-  const maxRedemptionSAR = Math.max(0, subtotal + tax - discountAmount);
+  const maxRedemptionSAR = Math.max(0, subtotal + tax - discountAmount); // Updated to use new tax calculation
   // Convert SAR limit to maximum redeemable coins
   const maxRedeemableCoins = Math.floor(maxRedemptionSAR / COIN_TO_SAR);
 
@@ -434,7 +443,7 @@ export function CheckoutScreen({ route, navigation }) {
           showTitle={true}
           compact={true}
           showRoyaltyPoints={true}
-          royaltyPoints={userLoyaltyPoints}
+          royaltyPoints={clinicLoyaltyPoints}
           pointsToRedeem={redeemPoints}
           onPointsToRedeemChange={handlePointsToRedeemChange}
           coinToSar={COIN_TO_SAR}
@@ -467,8 +476,12 @@ export function CheckoutScreen({ route, navigation }) {
           </View>
 
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>{t('tax')}</Text>
-            <Text style={styles.summaryValue}>{tax.toFixed(2)} SAR</Text>
+            {TAX_RATE > 0 && (
+              <>
+                <Text style={styles.summaryLabel}>{t('tax')}</Text>
+                <Text style={styles.summaryValue}>{tax.toFixed(2)} SAR</Text>
+              </>
+            )}
           </View>
 
           {discount > 0 && (

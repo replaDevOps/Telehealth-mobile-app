@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,9 @@ import { coinIcon } from '@assets/images';
 import { LoyaltyPSvg } from '@assets/icons';
 import { ActivityIndicator } from 'react-native-paper';
 import { useCart } from '../../context/CartContext';
+import { useNavigation } from '@react-navigation/native';
+import { Toast } from 'toastify-react-native';
+import { checkProfile } from '@utils/checkProfile';
 
 interface Service {
   id: string;
@@ -54,27 +57,70 @@ export const ServiceDetailBottomSheet: React.FC<ServiceDetailBottomSheetProps> =
 }) => {
   const { t } = useTranslation();
   const { cartItems } = useCart();
+  const navigation = useNavigation();
+  const [checkingProfileAdd, setCheckingProfileAdd] = useState(false);
+  const [checkingProfileCheckout, setCheckingProfileCheckout] = useState(false);
+
   if (!visible) return null;
 
-  const handleAddToCart = () => {
-    if (loadingState !== 'none' || !service || isInCart) return;
+  
+
+  const handleAddToCart = async () => {
+    if (isAddDisabled || !service) return;
+    try {
+      setCheckingProfileAdd(true);
+      const result = await checkProfile();
+      if (!result.ok) {
+        const msg = result.message || t('please_complete_profile') || 'Please complete your profile before adding to cart';
+        Toast.error(msg);
+        try {
+          const { navigateToProfileSetting } = require('@navigation/root-navigation');
+          navigateToProfileSetting();
+        } catch (e) {
+          navigation.navigate('Setting' as any, { screen: 'ProfileSetting' });
+        }
+        return;
+      }
+    } catch (err) {
+      console.warn('checkProfile helper failed, proceeding with add to cart:', err);
+    } finally {
+      setCheckingProfileAdd(false);
+    }
+
     onAddToCart(service);
   };
 
-  const handleCheckout = () => {
-    if (loadingState !== 'none' || !service) return;
-    if (isInCart) {
-      // If already in cart, just navigate
-      onCheckout(service);
-    } else {
-      onCheckout(service);
+  const handleCheckout = async () => {
+    if (isCheckoutDisabled || !service) return;
+    try {
+      setCheckingProfileCheckout(true);
+      const result = await checkProfile();
+      if (!result.ok) {
+        const msg = result.message || t('please_complete_profile') || 'Please complete your profile before checkout';
+        Toast.error(msg);
+        try {
+          const { navigateToProfileSetting } = require('@navigation/root-navigation');
+          navigateToProfileSetting();
+        } catch (e) {
+          navigation.navigate('Setting' as any, { screen: 'ProfileSetting' });
+        }
+        return;
+      }
+    } catch (err) {
+      console.warn('checkProfile helper failed, proceeding with checkout:', err);
+    } finally {
+      setCheckingProfileCheckout(false);
     }
+
+    onCheckout(service);
   };
 
   const isInCart = service ? cartItems.some(item => item.service.id === service.id) : false;
   const isAddingToCart = loadingState === 'adding_to_cart';
   const isCheckingOut = loadingState === 'checking_out';
   const isActionDisabled = loadingState !== 'none';
+  const isAddDisabled = isActionDisabled || checkingProfileAdd || isInCart;
+  const isCheckoutDisabled = isActionDisabled || checkingProfileCheckout;
 
   return (
     <Modal
@@ -141,7 +187,7 @@ export const ServiceDetailBottomSheet: React.FC<ServiceDetailBottomSheetProps> =
                 </View>
 
                 <View style={{ flexDirection: 'row', gap: 20 }}>
-                  {service.loyality && service.bonusLoyalityPoints && (
+                  {service.loyality && service.bonusLoyalityPoints && Number(service.bonusLoyalityPoints) > 0 && (
                     <View style={styles.loyaltyBadge}>
                       <LoyaltyPSvg width={16} height={16} />
                       <Text style={styles.loyaltyBadgeText}>{t('earn_points', { points: service.bonusLoyalityPoints }) || `Earn ${service.bonusLoyalityPoints} loyalty points`}</Text>
@@ -175,13 +221,13 @@ export const ServiceDetailBottomSheet: React.FC<ServiceDetailBottomSheetProps> =
                 <TouchableOpacity
                   style={[
                     styles.addToCartButton,
-                    (isActionDisabled || isInCart) && styles.addToCartButtonDisabled
+                    isAddDisabled && styles.addToCartButtonDisabled
                   ]}
                   onPress={handleAddToCart}
                   activeOpacity={0.7}
-                  disabled={isActionDisabled || isInCart}
+                  disabled={isAddDisabled}
                 >
-                  {isAddingToCart ? (
+                  {(isAddingToCart || checkingProfileAdd) ? (
                     <ActivityIndicator size="small" color={colors.black} />
                   ) : (
                     <Text style={styles.addToCartText}>
@@ -193,13 +239,13 @@ export const ServiceDetailBottomSheet: React.FC<ServiceDetailBottomSheetProps> =
                 <TouchableOpacity
                   style={[
                     styles.checkoutButton,
-                    isActionDisabled && styles.addToCartButtonDisabled
+                    isCheckoutDisabled && styles.addToCartButtonDisabled
                   ]}
                   onPress={handleCheckout}
                   activeOpacity={0.7}
-                  disabled={isActionDisabled}
+                  disabled={isCheckoutDisabled}
                 >
-                  {isCheckingOut ? (
+                  {(isCheckingOut || checkingProfileCheckout) ? (
                     <ActivityIndicator size="small" color={colors.white} />
                   ) : (
                     <Text style={styles.checkoutText}>{t('checkout') || 'Checkout'}</Text>
@@ -214,6 +260,7 @@ export const ServiceDetailBottomSheet: React.FC<ServiceDetailBottomSheetProps> =
           )}
         </View>
       </View>
+        {/* (removed) full-screen loader — using button-level loaders for profile check */}
     </Modal>
   );
 };
@@ -439,6 +486,12 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     color: colors.secondaryText,
+  },
+  profileCheckingOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
 });
 

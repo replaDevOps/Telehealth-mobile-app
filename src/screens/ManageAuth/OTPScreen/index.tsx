@@ -6,7 +6,7 @@ import React, {
   RefObject,
   useCallback,
 } from 'react';
-import { TextInput, TouchableOpacity, View, Text } from 'react-native';
+import { TextInput, TouchableOpacity, View, Text, KeyboardAvoidingView, Platform } from 'react-native';
 import { useIsFocused, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import styles from './style';
@@ -365,7 +365,12 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
       <SafeAreaView style={{ flex: 1 }}>
         <Header2 title="" showLanguage={true} />
 
-        <View style={styles.container}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+          style={{ flex: 1 }}
+        >
+          <View style={styles.container}>
           <View style={styles.logoContainer}>
             <LogoSvg />
           </View>
@@ -422,7 +427,8 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
               )}
             </TouchableOpacity>
           </View>
-        </View>
+          </View>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </KeyboardAvoidScrollview>
   );

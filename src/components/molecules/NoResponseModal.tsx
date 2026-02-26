@@ -58,7 +58,7 @@ const NoResponseModal: React.FC<NoResponseModalProps> = ({
               onPress={onGetPrescription}
             >
               <Text style={styles.prescriptionButtonText}>
-                {t('refund_payment')}
+                {t('request_for_refund')}
               </Text>
             </TouchableOpacity>
           </View>

@@ -88,17 +88,17 @@ const PhoneNumberInput: React.FC<PhoneNumberInputProps> = ({
   const handleFormattedTextChange = (formattedText: string) => {
     if (!hasUserTypedRef.current) return;
 
-    const parsed = parsePhoneNumberFromString(formattedText);
-    const digitsOnly = parsed
-      ? parsed.nationalNumber
-      : formattedText.replace(/\D/g, '');
+    // Preserve the formatted international number (includes country dialing code)
+    const formattedClean = (formattedText || '').replace(/\s/g, '');
+    safeSetPhone(formattedClean);
 
-    safeSetPhone(digitsOnly);
-
-    if (formattedText && phoneInput.current) {
-      const valid = phoneInput.current.isValidNumber(formattedText);
+    if (formattedClean && phoneInput.current) {
+      const valid = phoneInput.current.isValidNumber(formattedClean);
       console.log('valid', valid);
       setIsValid(valid === true);
+      onValidationChange?.(valid && formattedClean.trim() !== '');
+    } else {
+      onValidationChange?.(false);
     }
   };
 

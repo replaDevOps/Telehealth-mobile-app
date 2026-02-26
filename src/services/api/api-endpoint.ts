@@ -77,6 +77,7 @@ export const API = {
     GET_SERVICES: '/patient-consultations/services',
     GET_CONSULTATION_TYPES: '/patient-consultations/consultationsTypes',
     FIND_DOCTORS: '/patient-consultations/findDoctors',
+    CHECK_PROFILE: '/patient-consultations/checkProfile',
     BOOK_CONSULTATION: '/patient-consultations/bookConsultations',
     GET_CONSULTATION_MESSAGES: '/patient-consultations/consultationsMessages', // GET /consultationsMessages/{consultationID}
     SEND_MESSAGE: '/patient-consultations/sendMessage',

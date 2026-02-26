@@ -27,6 +27,7 @@ import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
 import { Toast } from 'toastify-react-native';
 import { LoyaltyPSvg } from '@assets/icons';
+import { coinIcon } from '@assets/images';
 import { useFocusEffect } from '@react-navigation/native';
 
 export function CartScreen({ navigation }) {
@@ -124,6 +125,7 @@ export function CartScreen({ navigation }) {
   };
 
   const transformCartData = useCallback((apiData: any): any[] => {
+    console.log('Transforming API data for cart UI', apiData);
     // Transform API response structure to match UI
     // API response: { data: [{ clinicID, clinicName, distance_km, totalPrice, totalLoyaltyPoints, items: [...], suggestedServices: [...] }] }
     if (Array.isArray(apiData)) {
@@ -141,6 +143,7 @@ export function CartScreen({ navigation }) {
         },
         totalPrice: clinicGroup.totalPrice,
         totalLoyaltyPoints: clinicGroup.totalLoyaltyPoints,
+        clinicLoyaltyPoints: clinicGroup.clinicLoyaltyPoints, // For displaying loyalty points at clinic level
         services: (clinicGroup.items || []).map((item: any) => ({
           id: item.serviceID,
           cartID: item.cartID, // Keep cartID for removal
@@ -375,13 +378,14 @@ export function CartScreen({ navigation }) {
     // Navigate to checkout screen with clinic data
     const checkoutServices = clinicGroup.services.map(service => ({
       service: service,
-      clinic: clinicGroup.clinic,
+      clinic: { ...clinicGroup.clinic, clinicLoyaltyPoints: clinicGroup.clinicLoyaltyPoints },
     }));
 
     navigation.navigate('CheckoutScreen', {
       services: checkoutServices,
       fromCart: true,
       totalLoyaltyPoints: clinicGroup.totalLoyaltyPoints,
+      clinicLoyaltyPoints: clinicGroup.clinicLoyaltyPoints,
     });
   };
 
@@ -509,9 +513,19 @@ export function CartScreen({ navigation }) {
               )}
               <View style={styles.clinicInfo}>
                 <Text style={styles.clinicName} numberOfLines={1} ellipsizeMode="tail">{clinicGroup.clinic.name}</Text>
+                
                 <Text style={styles.clinicLocation} numberOfLines={1} ellipsizeMode="tail">
                   {clinicGroup.clinic.address || clinicGroup.clinic.location || ''}{clinicGroup.clinic.distance ? `, ${clinicGroup.clinic.distance}` : ''}
                 </Text>
+
+                {clinicGroup.clinicLoyaltyPoints && Number(clinicGroup.clinicLoyaltyPoints) > 0 && (
+                  <View style={styles.clinicPointsContainer}>
+                    <View style={styles.coinWrapper}>
+                        <Image source={coinIcon} style={styles.coinImage} />
+                      </View>
+                    <Text style={styles.clinicPointsText}>{Math.round(Number(clinicGroup.clinicLoyaltyPoints || 0))}</Text>
+                  </View>
+                )}
               </View>
             </View>
 

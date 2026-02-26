@@ -819,7 +819,27 @@ export function ChatScreen({ navigation, route }) {
     setServiceDetailVisible(true);
   }, []);
 
-  const handleAddToCart = service => {
+  const handleAddToCart = async service => {
+    // Before adding to cart, check profile completeness on server
+    try {
+      const checkRes = await apiClient.get(API.CONSULTATIONS.CHECK_PROFILE);
+      const checkData = checkRes.data?.data || checkRes.data;
+      const isComplete = checkData?.is_complete ?? checkData?.isComplete ?? checkRes.data?.success;
+      if (checkRes.data?.success === false || isComplete === false) {
+        const msg = checkRes.data?.message || 'Please complete your profile before proceeding';
+        Toast.error(msg);
+        try {
+          const { navigateToProfileSetting } = require('@navigation/root-navigation');
+          navigateToProfileSetting();
+        } catch (e) {
+          navigation.navigate('Setting', { screen: 'ProfileSetting' });
+        }
+        return;
+      }
+    } catch (err) {
+      console.warn('checkProfile failed, proceeding to add to cart:', err);
+    }
+
     const cartItem = {
       service: service,
       clinic: {
@@ -987,7 +1007,7 @@ export function ChatScreen({ navigation, route }) {
 
   const insets = useSafeAreaInsets();
   const inputPadding = {
-    paddingBottom: insets.bottom,
+    paddingBottom: 4,
     paddingLeft: 4,
     paddingRight: 4,
   };
@@ -1003,7 +1023,11 @@ export function ChatScreen({ navigation, route }) {
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
-        style={styles.keyboardView}
+        style={
+          flexToggle
+            ? [{ flexGrow: 1 }, styles.container]
+            : [{ flex: 1 }, styles.container]
+        }
         enabled={!flexToggle}
       >
         <View style={styles.content}>

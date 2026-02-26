@@ -53,6 +53,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   const [isPhoneValid, setIsPhoneValid] = useState(false);
   const [nationality, setNationality] = useState('');
   const [IdCardNumber, setIdCardNumber] = useState('');
+  const [city, setCity] = useState('');
   const [email, setEmail] = useState(routeEmail || '');
   
   // Auto-fill email and phone from route params
@@ -103,6 +104,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   const [ageError, setAgeError] = useState('');
   const [idError, setIdError] = useState('');
   const [nationalityError, setNationalityError] = useState('');
+  const [cityError, setCityError] = useState('');
   const [genderError, setGenderError] = useState('');
   const [profileImageError, setProfileImageError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -172,7 +174,6 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
       try {
         // Create FormData to include image file
         const formData = new FormData();
-        
         // Add text fields
         formData.append('fullName', fullName.trim());
         formData.append('email', email.trim());
@@ -181,6 +182,8 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
         formData.append('nationalID', IdCardNumber.trim());
         formData.append('gender', gender);
         formData.append('age', age.trim());
+        formData.append('city', city?.trim() || '');
+        console.log('🚀 ~ handleConfirm ~ formData before append:', formData);
 
         // Add image if available
         if (profileImageAsset && profileImageAsset.uri) {
@@ -271,6 +274,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
       if (IdCardNumber && IdCardNumber.trim()) payload.nationalID = IdCardNumber.trim();
       if (gender) payload.gender = gender;
       if (age && age.trim()) payload.age = age.trim();
+      if (city) payload.city = city;
 
       const response = await apiClient.post(API.AUTH.SKIP, payload);
 
@@ -317,6 +321,13 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   const nationalityOptions = [
     { label: t('saudi_arabian'), value: 'sau' },
     { label: t('non_saudi'), value: 'non_saudi' },
+  ];
+
+  const cityOptions = [
+    { label: 'Riyadh', value: 'Riyadh' },
+    { label: 'Jeddah', value: 'Jeddah' },
+    { label: 'Dammam', value: 'Dammam' },
+    { label: 'Other', value: 'Other' },
   ];
 
   const genderOptions = [
@@ -407,6 +418,18 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
             }}
             errorMessage={nationalityError}
             options={nationalityOptions}
+          />
+
+          <CustomDropdown
+            label={t('city') || 'City'}
+            placeholder={t('select_city') || 'Select City'}
+            value={city}
+            onValueChange={(value) => {
+              setCity(value);
+              if (cityError) setCityError('');
+            }}
+            errorMessage={cityError}
+            options={cityOptions}
           />
 
           <CustomTextInput

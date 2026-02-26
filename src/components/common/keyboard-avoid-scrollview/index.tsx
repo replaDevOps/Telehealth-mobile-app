@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleProp, StyleSheet, ViewStyle } from 'react-native';
+import { StyleProp, StyleSheet, ViewStyle, Platform } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { mvs } from '../../../config/metrices';
 import { colors } from '../../../styles/colors';
@@ -19,6 +19,9 @@ export const KeyboardAvoidScrollview = (props: props) => {
       showsVerticalScrollIndicator={false}
       showsHorizontalScrollIndicator={false}
       keyboardShouldPersistTaps={keyboardShouldPersistTaps}
+      enableOnAndroid={true}
+      extraScrollHeight={Platform.OS === 'android' ? mvs(100) : mvs(30)}
+      keyboardOpeningTime={0}
       contentContainerStyle={[
         styles.contentContainerStyle,
         contentContainerStyle,

@@ -11,30 +11,17 @@ import {
 import { AudioSvg, ChatSvg, VedioSvg } from '@assets/icons';
 import { CustomDropdown } from '@components/common/CustomDropdwon';
 import { colors } from '../../styles/colors';
-import { useNavigation, NavigationProp } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { CustomButton } from '@components/common/CustomButton';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
+import { Toast } from 'toastify-react-native';
+import { checkProfile } from '@utils/checkProfile';
 import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
-import { Toast } from 'toastify-react-native';
 
-type RootStackParamList = {
-  ConsultationPayment: {
-    consultationType: string;
-    consultationTypeId: 'chat' | 'audio' | 'video';
-    duration: string;
-    price: string;
-    serviceType: string;
-    serviceGroup: string;
-    service: string;
-    doctors?: any; // Optional doctors data from API
-    consultationPrice?: number; // Consultation price from API
-    servicePrice?: number; // Service price from API
-    serviceID?: number; // Service ID from API
-    message?: string; // Message from API (e.g., "2 doctors are available for this consultation")
-  };
-};
+// navigation typing is intentionally kept loose here because this component
+// needs to navigate across nested navigators (tabs -> setting stack).
 
 interface ServiceType {
   id: string | number;
@@ -84,6 +71,7 @@ export default function ConsultDoctorBottomSheet({
   const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const [isLoading, setIsLoading] = useState(false);
+  const [checkingProfile, setCheckingProfile] = useState(false);
 
   // Dropdown states
   const [serviceType, setServiceType] = useState('');
@@ -356,6 +344,28 @@ export default function ConsultDoctorBottomSheet({
     };
     const consultationType = consultationTypeMap[selectedCard.id] || 'Chat';
 
+    // Before searching for doctors, ensure profile is complete
+      try {
+        setCheckingProfile(true);
+        const result = await checkProfile();
+        console.log('Check profile result:', result);
+        if (!result.ok) {
+          const msg = result.message || t('please_complete_profile') || 'Please complete your profile before finding a doctor';
+          Toast.error(msg);
+          try {
+            const { navigateToProfileSetting } = require('@navigation/root-navigation');
+            navigateToProfileSetting();
+          } catch (e) {
+            navigation.navigate('Setting', { screen: 'ProfileSetting' });
+          }
+          return;
+        }
+      } catch (e) {
+        console.warn('checkProfile helper failed:', e);
+      } finally {
+        setCheckingProfile(false);
+      }
+
     // Show loading state
     setIsLoading(true);
 
@@ -622,8 +632,9 @@ export default function ConsultDoctorBottomSheet({
 
               <CustomButton
                 onPress={handleFindDoctor}
-                title={isLoading ? t('finding') : t('find_doctor')}
-                disabled={isLoading || !selectedConsultation}
+                title={(isLoading || checkingProfile) ? t('finding') : t('find_doctor')}
+                loading={isLoading || checkingProfile}
+                disabled={isLoading || checkingProfile || !selectedConsultation}
               />
 
               <View style={styles.bottomSpacing} />

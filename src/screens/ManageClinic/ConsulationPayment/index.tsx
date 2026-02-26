@@ -66,6 +66,11 @@ export function ConsultationPayment({ navigation, route }) {
 
   const consultationType = consultationData.consultationTypeId || 'chat';
 
+  const noDoctorsAvailable = Boolean(
+    (consultationData?.message && consultationData.message.toString().toLowerCase().includes('0 doctor')) ||
+    (consultationData?.doctors?.message && consultationData.doctors.message.toLowerCase().includes('0 doctor'))
+  );
+
   const insets = useSafeAreaInsets();
 
   const getRemainingSeconds = useCallback(() => {
@@ -523,7 +528,7 @@ export function ConsultationPayment({ navigation, route }) {
         scrollEnabled={!waitingForDoctor}
       >
         {/* Success Banner */}
-        <View style={styles.successBanner}>
+        <View style={[styles.successBanner, noDoctorsAvailable && { backgroundColor: colors.red }]}> 
           <Text style={styles.successText}>
             {consultationData.message || t('doctors_available')}
           </Text>
@@ -626,7 +631,7 @@ export function ConsultationPayment({ navigation, route }) {
         <CustomButton
           title={t('connect_with_doctor')}
           onPress={handleConnectWithDoctor}
-          disabled={waitingForDoctor || isLoading}
+          disabled={waitingForDoctor || isLoading || noDoctorsAvailable}
         />
       </View>
 

@@ -183,6 +183,30 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     if (!clinicID) return;
 
     try {
+        // Check if user profile is complete before allowing add to cart
+        try {
+          const checkRes = await apiClient.get(API.CONSULTATIONS.CHECK_PROFILE);
+          // If API explicitly returns success: false or indicates incomplete, block action
+          const checkData = checkRes.data?.data || checkRes.data;
+          const isComplete = checkData?.is_complete ?? checkData?.isComplete ?? checkRes.data?.success;
+          if (checkRes.data?.success === false || isComplete === false) {
+            const msg = checkRes.data?.message || 'Please complete your profile before proceeding';
+            Toast.error(msg);
+            // Navigate to profile settings so user can complete it (use Setting tab)
+            try {
+              const { navigateToProfileSetting } = require('@navigation/root-navigation');
+              navigateToProfileSetting();
+            } catch (e) {
+              navigation.navigate('Setting', { screen: 'ProfileSetting' });
+            }
+            setLoadingAddToCart(false);
+            setLoadingCheckout(false);
+            return;
+          }
+        } catch (checkErr) {
+          // If check profile fails non-fatally, continue (or choose to block depending on server contract)
+          console.warn('checkProfile failed, proceeding with add to cart:', checkErr);
+        }
       if (pageNo === 1) {
         setLoadingDescription(true);
       } else {
@@ -602,7 +626,6 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       } catch {
         tags = [];
       }
-
       return {
         id: service.id.toString(),
         image: service.image ? { uri: service.image } : RecommandImage,
@@ -617,7 +640,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
         procedure: service.procedure || '',
         // Additional data for detail view
         loyality: service.loyality,
-        bonusLoyalityPoints: service.bonusLoyalityPoints,
+        bonusLoyalityPoints: service.totalLoyaltyPoints,
         devices: service.devices || [],
         tags: tags,
         groupID: service.groupID,
@@ -852,7 +875,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
         } catch {
           tags = [];
         }
-
+        console.log('Fetched service details:', serviceDetail);
         const transformedService = {
           id: serviceDetail.id.toString(),
           image: serviceDetail.image ? { uri: serviceDetail.image } : RecommandImage,
@@ -866,7 +889,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
           description: serviceDetail.description || '',
           procedure: serviceDetail.procedure || '',
           loyality: serviceDetail.loyality,
-          bonusLoyalityPoints: serviceDetail.bonusLoyalityPoints,
+          bonusLoyalityPoints: serviceDetail.totalLoyaltyPoints,
           devices: serviceDetail.devices || [],
           tags: tags,
           groupID: serviceDetail.groupID,

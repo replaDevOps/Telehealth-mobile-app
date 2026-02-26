@@ -142,7 +142,7 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
           }
 
           // Map services if available
-          const services = item.services || item.service || [];
+          const services = item.refund_appointments || item.service || [];
           const mappedServices = Array.isArray(services) ? services.map((service: any) => ({
             id: service.id || service.serviceID || 0,
             name: service.name || service.serviceName || service.service_name || 'Service',
@@ -239,7 +239,7 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
         <View style={styles.cardContainer}>
           {/* ---------- Header (ID + location) ---------- */}
           <View style={styles.paymentHeader}>
-            <Text style={styles.paymentId}>{item.paymentId}</Text>
+            <Text style={styles.paymentId}>#{item.paymentId}</Text>
 
             {item.clinicLocation && (
               <View style={styles.paymentTypeContainer}>
@@ -281,6 +281,9 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
             style={styles.viewDetailsButton}
             onPress={() =>
               navigation.navigate('CardDetails', {
+                // indicate this navigation came from refund requests (appointment)
+                isRefundRequest: true,
+                isAppointment: true,
                 paymentId: item.paymentId,
                 clinicName: item.clinicName,
                 image: item.clinicImg ? RecommandImage : undefined,
@@ -322,12 +325,15 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
 
       {/* Content */}
       <FlatList
+        style={{ flex: 1 }}
         data={appointments}
         renderItem={({ item }) => renderAppointCard(item)}
         keyExtractor={(item) => item.id}
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}
-        refreshing={loading && appointments.length === 0}
+        // Only show FlatList pull-to-refresh indicator when we already have items.
+        // When list is empty we render a full-screen loader in ListEmptyComponent instead.
+        refreshing={loading && appointments.length > 0}
         onRefresh={() => fetchRefundAppointments(1, false)}
         ListEmptyComponent={
           loading ? (
@@ -358,7 +364,7 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
             </View>
           ) : null
         }
-        contentContainerStyle={styles.scrollView}
+        contentContainerStyle={{ padding: 15, paddingTop: 15 }}
         showsVerticalScrollIndicator={false}
       />
     </SafeAreaView>

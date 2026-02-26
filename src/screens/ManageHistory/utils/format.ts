@@ -47,6 +47,7 @@ export function formatDateTimeLocal(dateStr: string): string {
       minute: '2-digit',
       hour12: true,
     });
+    console.log('Parsed date:', { input, date, datePart, timePart,dateStr });
     return `${datePart}, ${timePart}`;
   } catch {
     return dateStr;

@@ -12,7 +12,7 @@ import React, { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Header2 } from '@components/common/Header2';
 import ClinicAvatar from '@components/common/ClinicAvatar';
-import { useRoute, useNavigation } from '@react-navigation/native';
+import { useRoute, useNavigation, CommonActions, StackActions } from '@react-navigation/native';
 import { RecommandImage } from '@assets/images';
 import { styles } from './style';
 import { colors } from '../../../styles/colors';
@@ -339,7 +339,25 @@ export function RefundRequest() {
         visible={showSuccessModal}
         onClose={() => {
           setShowSuccessModal(false);
-          navigation.goBack();
+          // Pop back to HistoryScreen if it's in the stack, otherwise navigate to it
+          navigation.dispatch((state: any) => {
+            const routes = state.routes || [];
+            const idx = routes.findIndex((r: any) => r.name === 'HistoryScreen');
+            if (idx === -1) {
+              return CommonActions.navigate({
+                name: 'EntryPoint',
+                params: { screen: 'History', params: { screen: 'HistoryScreen' } },
+              });
+            }
+            const popCount = routes.length - 1 - idx;
+            if (popCount <= 0) {
+              return CommonActions.navigate({
+                name: 'EntryPoint',
+                params: { screen: 'History', params: { screen: 'HistoryScreen' } },
+              });
+            }
+            return StackActions.pop(popCount);
+          });
         }}
         title={t('refund_request')}
         description={successMessage || t('refund_request_sent_successfully') || 'Refund request sent successfully'}

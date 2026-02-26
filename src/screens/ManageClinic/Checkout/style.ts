@@ -44,7 +44,7 @@ export const styles = StyleSheet.create({
   clinicCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 10,
+    padding: 5,
     marginHorizontal: 12,
     marginVertical: 10,
     borderRadius: 12,
@@ -78,7 +78,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    padding: 16,
+    padding: 4,
     marginHorizontal: 16,
     backgroundColor: colors.white,
     borderRadius: 12,
@@ -92,16 +92,16 @@ export const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 8,
-    marginRight: 12,
+    marginRight: 6,
   },
   serviceInfo: {
     flex: 1,
   },
   serviceBadges: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 3,
     marginBottom: 6,
-    maxWidth: "50%"
+    maxWidth: "40%"
   },
   categoryBadge: {
     backgroundColor: "#310A60",

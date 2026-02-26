@@ -23,7 +23,7 @@ import { colors } from '../../../styles/colors';
 import { styles } from './style';
 import { useTranslation } from 'react-i18next';
 import { CustomButton } from '@components/common/CustomButton';
-import { Toast } from '@components/common/Toast';
+import { Toast } from 'toastify-react-native';
 import { EmptyContentSvg } from '@assets/icons';
 import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
@@ -127,15 +127,7 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
   const [error, setError] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
-  const [toast, setToast] = useState<{
-    visible: boolean;
-    message: string;
-    type: 'success' | 'error';
-  }>({
-    visible: false,
-    message: '',
-    type: 'success',
-  });
+  // using toastify-react-native via `Toast` import
 
   const prescriptionId = route?.params?.prescriptionId;
   const consultationID = route?.params?.consultationID;
@@ -262,20 +254,12 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
       // Check if response contains prescription data to generate PDF
       if (responseData?.success !== false && responseData?.prescriptions && Array.isArray(responseData.prescriptions) && responseData.prescriptions.length > 0) {
         // If the response contains prescription data, generate and save as PDF
-        try {
+          try {
           await generateAndSavePDF(responseData);
-          setToast({
-            visible: true,
-            message: t('prescription_saved_successfully') || 'Prescription saved as PDF successfully',
-            type: 'success',
-          });
+          Toast.success(t('prescription_saved_successfully') || 'Prescription saved as PDF successfully');
         } catch (pdfError: any) {
           console.error('PDF generation error:', pdfError);
-          setToast({
-            visible: true,
-            message: pdfError?.message || t('failed_to_download_prescription') || 'Failed to download prescription. Please try again.',
-            type: 'error',
-          });
+          Toast.error(pdfError?.message || t('failed_to_download_prescription') || 'Failed to download prescription. Please try again.');
         }
       } else {
         // If no prescription data, show error
@@ -285,19 +269,13 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
       // Don't navigate automatically - let user stay on the prescription screen
     } catch (error: any) {
       console.error('Error downloading prescription:', error);
-      setToast({
-        visible: true,
-        message: error?.message || t('failed_to_download_prescription') || 'Failed to download prescription. Please try again.',
-        type: 'error',
-      });
+      Toast.error(error?.message || t('failed_to_download_prescription') || 'Failed to download prescription. Please try again.');
     } finally {
       setIsDownloading(false);
     }
   };
 
-  const hideToast = (): void => {
-    setToast(prev => ({ ...prev, visible: false }));
-  };
+
 
   // Generate HTML content for PDF
   const generatePrescriptionHTML = (apiData: any): string => {
@@ -590,11 +568,7 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
       });
     }
 
-    setToast({
-      visible: true,
-      message: t('prescription_saved_successfully') || `Prescription saved as PDF successfully\nLocation: ${Platform.OS === 'android' ? 'Downloads' : 'Documents'}`,
-      type: 'success',
-    });
+    Toast.success(t('prescription_saved_successfully') || `Prescription saved as PDF successfully\nLocation: ${Platform.OS === 'android' ? 'Downloads' : 'Documents'}`);
   };
 
   // Map API response to Prescription format
@@ -845,13 +819,6 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
       <StatusBar barStyle="dark-content" backgroundColor={colors.white} />
 
       <Header2 title={prescription.id} handleBackPress={handleHeaderBack} />
-      <Toast
-        message={toast.message}
-        type={toast.type}
-        visible={toast.visible}
-        onHide={hideToast}
-        duration={3000}
-      />
 
       <ScrollView
         style={styles.scrollView}

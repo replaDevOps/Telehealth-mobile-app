@@ -11,7 +11,7 @@ import {
 import { ClinicInfo } from '@components/molecules/ClinicInfo';
 import { colors } from '../../../styles/colors';
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, TouchableOpacity, Text, ActivityIndicator, Platform, PermissionsAndroid, RefreshControl, KeyboardAvoidingView, Image } from 'react-native';
+import { View, ScrollView, TouchableOpacity, Text, ActivityIndicator, Platform, PermissionsAndroid, RefreshControl, Image, KeyboardAvoidingView, Keyboard } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { RecommandImage } from '@assets/images';
 import ConsultDoctorBottomSheet from '@components/molecules/ConsultDoctorBottomSheet';
@@ -64,6 +64,9 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
   const [sortOption, setSortOption] = useState('by_date');
   const [sortedReviews, setSortedReviews] = useState<Review[]>([]);
   const [isFocus, setIsFocus] = useState(false);
+  const [flexToggle, setFlexToggle] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
+  const [chatButtonHeight, setChatButtonHeight] = useState<number>(0);
 
   // API data states
   const [clinicDetail, setClinicDetail] = useState<ClinicDetailResponse | null>(null);
@@ -134,6 +137,24 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       fetchClinicReviews();
     }
   }, [activeTab, clinicID]);
+
+  useEffect(() => {
+    const keyboardShowListener = Keyboard.addListener('keyboardDidShow', (e: any) => {
+      setFlexToggle(false);
+      const h = e?.endCoordinates?.height || 0;
+      setKeyboardHeight(h);
+    });
+
+    const keyboardHideListener = Keyboard.addListener('keyboardDidHide', () => {
+      setFlexToggle(true);
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      keyboardShowListener.remove();
+      keyboardHideListener.remove();
+    };
+  }, []);
 
   // Refetch services from server when search query changes (debounced)
   useEffect(() => {
@@ -1142,24 +1163,29 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
   // Individual sections will show their own loading states
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      style={
+        flexToggle
+          ? [{ flexGrow: 1 }, styles.container]
+          : [{ flex: 1 }, styles.container]
+      }
+      enabled={!flexToggle}
     >
-      <View style={styles.container}>
-        <ScrollView
-          style={styles.scrollView}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              colors={['#7625D7']} // primary color
-            />
-          }
-        >
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={{ paddingBottom: Math.max(chatButtonHeight + keyboardHeight + 24, 24) }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#7625D7']} // primary color
+          />
+        }
+      >
         {/* Header with background image and logo */}
         <ClinicHeader
           backgroundImage={clinicImage}
@@ -1381,7 +1407,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
                 ))}
 
                 {/* Load more control for paginated devices */}
-                {hasMoreDevices && (
+                {hasMoreDevices ? (
                   <View style={{ width: '100%', alignItems: 'center', paddingVertical: 12,height: 150 }}>
                     {loadingDevicesPage && !refreshing ? (
                       <ActivityIndicator size="small" color="#7625D7" />
@@ -1394,7 +1420,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
                       </TouchableOpacity>
                     )}
                   </View>
-                )}
+                ):(<View style={{height: "10%"}}/>)}
               </View>
             ) : (
               <Text style={{ fontSize: 14, color: colors.secondaryText, textAlign: 'center', paddingVertical: 20 }}>
@@ -1406,7 +1432,10 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       </ScrollView>
 
       {/* Chat with Vena AI Button */}
-      <View style={styles.chatButtonContainer}>
+      <View
+        style={[styles.chatButtonContainer, { bottom: keyboardHeight ? keyboardHeight : 0 }]}
+        onLayout={(e) => setChatButtonHeight(e.nativeEvent.layout.height)}
+      >
         <TouchableOpacity
           style={styles.chatButton}
           onPress={handleChatPress}
@@ -1452,7 +1481,6 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
         hasAudioPermission={hasAudioPermission}
         hasVideoPermission={hasVideoPermission}
       />
-      </View>
     </KeyboardAvoidingView>
   );
 };

@@ -13,6 +13,7 @@ import { colors } from '../../styles/colors';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
 import { coinIcon } from '@assets/images';
+import { LoyaltyPSvg } from '@assets/icons';
 import { ActivityIndicator } from 'react-native-paper';
 import { useCart } from '../../context/CartContext';
 
@@ -141,11 +142,9 @@ export const ServiceDetailBottomSheet: React.FC<ServiceDetailBottomSheetProps> =
 
                 <View style={{ flexDirection: 'row', gap: 20 }}>
                   {service.loyality && service.bonusLoyalityPoints && (
-                    <View style={styles.pointTag}>
-                      <Image source={coinIcon} style={{ width: 20, height: 20 }} />
-                      <Text style={styles.pointTagText}>
-                        {t('earn_points', { points: service.bonusLoyalityPoints }) || `Earn ${service.bonusLoyalityPoints} loyalty points`}
-                      </Text>
+                    <View style={styles.loyaltyBadge}>
+                      <LoyaltyPSvg width={16} height={16} />
+                      <Text style={styles.loyaltyBadgeText}>{t('earn_points', { points: service.bonusLoyalityPoints }) || `Earn ${service.bonusLoyalityPoints} loyalty points`}</Text>
                     </View>
                   )}
                 </View>
@@ -280,17 +279,22 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 12,
   },
-  pointTag: {
-    backgroundColor: colors.lightYellow,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
+  loyaltyBadge: {
+    marginTop: 8,
+    alignSelf: 'flex-start',
     flexDirection: 'row',
-    gap: 10,
+    alignItems: 'center',
+    backgroundColor: '#FFF8E6',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 16,
   },
-  pointTagText: { color: colors.yellow, fontWeight: '600' },
+  loyaltyBadgeText: {
+    fontSize: 12,
+    color: '#7A4B00',
+    marginLeft: 6,
+    fontWeight: '500',
+  },
 
   tagText: {
     fontSize: 12,

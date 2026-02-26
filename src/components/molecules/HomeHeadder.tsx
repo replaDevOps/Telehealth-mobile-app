@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    width: '80%',
+    width: '70%',
   },
   locationText: {
     color: '#FFF',

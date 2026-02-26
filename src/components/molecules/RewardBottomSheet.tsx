@@ -252,7 +252,7 @@ export const RewardsMilestonesBottomSheet = ({
     try {
       setLoadingDescription(true);
       const response = await apiClient.get(API.SETTINGS.LOYALTY_POINTS_DESCRIPTION);
-
+      console.log("response",response)
       if (response.data?.success !== false && response.data?.data) {
         // The API might return description in different formats
         let description = response.data.data.description

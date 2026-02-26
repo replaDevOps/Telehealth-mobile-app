@@ -79,9 +79,20 @@ export const formatUTCToLocalTime = (timestamp: any): string => {
       // Unix timestamp - check if seconds or milliseconds
       date = timestamp < 1e12 ? new Date(timestamp * 1000) : new Date(timestamp);
     } else if (typeof timestamp === 'string') {
-      // ISO 8601 string (UTC) or other string formats
-      // Remove any timezone offset and parse as UTC, or parse directly
-      date = new Date(timestamp);
+      // Normalize common server timestamp formats and ensure UTC parsing when needed
+      let ts = timestamp.trim();
+
+      // If timestamp looks like 'YYYY-MM-DD HH:MM:SS' convert space to 'T'
+      if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2}(\.\d+)?)?$/.test(ts)) {
+        ts = ts.replace(' ', 'T');
+      }
+
+      // If timestamp is ISO-like but has no timezone (no 'Z' or +/-offset), treat as UTC by appending 'Z'
+      if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?$/.test(ts)) {
+        ts = ts + 'Z';
+      }
+
+      date = new Date(ts);
     } else {
       return String(timestamp);
     }

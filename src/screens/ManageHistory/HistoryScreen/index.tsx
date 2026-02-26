@@ -121,7 +121,7 @@ export function HistoryScreen({ navigation }) {
             duration: consultation.duration || '',
             type: consultationType.type,
             icon: consultationType.icon,
-            doctorName: doctorData.name || consultation.doctorName || 'Refunded',
+            doctorName: doctorData.name || consultation.doctorName || 'No Doctor Accepted',
             doctorAvatar: doctorData.image || consultation.doctorAvatar || '',
             clinicName: normalizedClinicInfo.clinicName || '',
             price: consultation.price || '0',

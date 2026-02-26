@@ -131,7 +131,9 @@ export function CartScreen({ navigation }) {
         clinic: {
           id: clinicGroup.clinicID,
           name: clinicGroup.clinicName,
-          location: 'General', // Not provided in API response
+          // Prefer explicit address from API if provided, otherwise fall back to existing location or empty string
+          address: clinicGroup?.clinic?.address || clinicGroup?.address || '',
+          location: clinicGroup?.clinic?.address || clinicGroup?.address || clinicGroup.clinicName || '',
           image: RecommandImage, // Not provided in API response
           distance: clinicGroup.distance_km
             ? `${parseFloat(clinicGroup.distance_km.toString()).toFixed(1)}km`
@@ -507,8 +509,8 @@ export function CartScreen({ navigation }) {
               )}
               <View style={styles.clinicInfo}>
                 <Text style={styles.clinicName} numberOfLines={1} ellipsizeMode="tail">{clinicGroup.clinic.name}</Text>
-                <Text style={styles.clinicLocation}>
-                  {clinicGroup.clinic.distance || ''}
+                <Text style={styles.clinicLocation} numberOfLines={1} ellipsizeMode="tail">
+                  {clinicGroup.clinic.address || clinicGroup.clinic.location || ''}{clinicGroup.clinic.distance ? `, ${clinicGroup.clinic.distance}` : ''}
                 </Text>
               </View>
             </View>

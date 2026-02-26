@@ -5,7 +5,7 @@ import { coinIcon } from '@assets/images';
 
 type ClinicCardProps = {
   clinicImage: any;
-  category: string;
+  category: string | string[];
   categories?: string[];
   clinicName: string;
   totalPoints: number;
@@ -19,7 +19,18 @@ export const ClinicCard = ({
   totalPoints,
   handlePress,
 }: ClinicCardProps) => {
-  const pills = (categories && categories.length > 0 ? categories : [category]).filter(Boolean);
+  console.log('ClinicCard Props:', {
+    clinicImage,
+    category,
+    categories,
+    clinicName,
+    totalPoints,
+  });
+  const pills: string[] = Array.isArray(category)
+    ? category
+    : category
+    ? [category]
+    : [];
   return (
     <TouchableOpacity style={styles.card} onPress={handlePress}>
       <Image

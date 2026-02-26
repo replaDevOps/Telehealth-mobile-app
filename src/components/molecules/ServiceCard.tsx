@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
   },
   serviceInfoContainter: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 4,
     justifyContent: 'space-between',
   },
   serviceInfo: {
@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
   },
   serviceTags: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 4,
     marginBottom: 6,
   },
   tag: {
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
-    maxWidth: 120,
+    maxWidth: 70,
   },
   TypetagText: {
     fontSize: 11,
@@ -146,6 +146,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginLeft: 4,
   },
   price: {
     fontSize: 16,

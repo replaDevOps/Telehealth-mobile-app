@@ -387,7 +387,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
             : (clinicData.location || '');
 
           // Format date and time from date or created_at
-          const dateTimeStr = consultationData.date || consultationData.created_at || '';
+          const dateTimeStr =consultationData.created_at || '';
           const formattedDateTime = formatDateTimeLocal(dateTimeStr);
           console.log('Formatted date time:', consultationData.price);
           // Format price with currency
@@ -744,7 +744,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
         const isProcessing = typeof svcStatus === 'string' && /(processing|pending|in-progress|request)/i.test(svcStatus) && !isProcessed;
         const isAlreadyRefunded = isProcessed || isProcessing;
         const refundState = isProcessed ? 'processed' : (isProcessing ? 'processing' : '');
-
+        console.log('Service',groupData)
         return {
           id: serviceData.id || appointmentService.serviceID,
           appointmentServiceID: appointmentService.id, // Required for cancellation API
@@ -752,7 +752,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
           name: serviceData.name || '',
           duration: serviceData.duration ? `${serviceData.duration} min` : '',
           price: serviceData.price || appointmentService.price || '0',
-          category: groupData.name || serviceData.serviceType || '',
+          category: groupData.serviceType || serviceData.serviceType || '',
           categoryBadge: groupData.name || serviceData.serviceType || '',
           image: serviceData.image ? { uri: serviceData.image } : RecommandImage,
           status: svcStatus,
@@ -846,7 +846,28 @@ export function CardDetails({ navigation }: { navigation: any }) {
   // Disable "Request for Refund" when the main appointment status contains "Booked".
   // Prefer the `status` passed via navigation params (history card) as the authoritative main status.
   const mainStatus = (params.status || displayData.status || paymentDetails?.appointment?.status || paymentDetails?.transactions?.status || '').toString();
-  const disableRefundButton = /booked/i.test(mainStatus);
+  // Default behavior: disable when main status explicitly indicates 'Booked'
+  let disableRefundButton = /booked/i.test(mainStatus);
+
+  // If we have service-level statuses, prefer those: disable only when ALL services are either booked or related to refund
+  try {
+    const servicesList = displayData.services || [];
+    if (Array.isArray(servicesList) && servicesList.length > 0) {
+      const allServicesBookedOrRefund = servicesList.every((svc: any) => {
+        const status = String(svc.status || '');
+        const refundStatus = String(svc.refundStatus || '');
+        const combined = `${status} ${refundStatus}`.toLowerCase();
+        const isBooked = /booked/i.test(combined);
+        const isRefundRelated = /(refund|refunded|processing|confirm|request)/i.test(combined);
+        return isBooked || isRefundRelated;
+      });
+      disableRefundButton = allServicesBookedOrRefund;
+    }
+  } catch (err) {
+    // Fallback to main status rule on any error
+    disableRefundButton = /booked/i.test(mainStatus);
+  }
+
   console.log('Refund button disabled:', disableRefundButton, 'Main status:', mainStatus);
   console.log(paymentDetails)
   if (loading) {
@@ -991,7 +1012,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
                 </View>
               )}
 
-              {paymentDetails?.transactions?.loyaltyPointEarn !== null && paymentDetails?.transactions?.loyaltyPointEarn !== undefined && (
+              {paymentDetails?.transactions?.loyaltyPointEarn !== null &&paymentDetails?.transactions?.loyaltyPointEarn !== 0 && paymentDetails?.transactions?.loyaltyPointEarn !== undefined && (
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>{t('points_earned')}</Text>
                   <Text style={styles.points_earn}>{paymentDetails.transactions.loyaltyPointEarn} {t('points') || 'Points'}</Text>

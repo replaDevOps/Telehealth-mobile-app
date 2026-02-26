@@ -229,6 +229,12 @@ export function CheckoutScreen({ route, navigation }) {
         cvc: cvv,
         cardholderName: cardholderName,
         redeemPoints: redeemPoints || '',
+        // include services with clinic location/address so backend can process location-aware checkout
+        items: services.map(item => ({
+          serviceID: item.service?.id || item.service?.serviceID || item.serviceID,
+          clinicID: item.clinic?.id,
+          location: item.clinic?.address || item.clinic?.location || '',
+        })),
       };
 
       console.log('Checkout payload:', { ...payload, cardNumber: '***', cvc: '***' });
@@ -295,6 +301,7 @@ export function CheckoutScreen({ route, navigation }) {
 
   // Group services by clinic
   const groupedServices = services.reduce((acc, item) => {
+   
     const clinicId = item.clinic.id;
     if (!acc[clinicId]) {
       acc[clinicId] = {
@@ -327,7 +334,7 @@ export function CheckoutScreen({ route, navigation }) {
             key={group.clinic.id}
             style={{
               backgroundColor: colors.gray,
-              margin: 20,
+              margin: 10,
               borderRadius: 10,
             }}
           >
@@ -345,7 +352,7 @@ export function CheckoutScreen({ route, navigation }) {
               <View style={styles.clinicInfo}>
                 <Text style={styles.clinicName}>{group.clinic.name}</Text>
                 <Text style={styles.clinicLocation}>
-                  {group.clinic.location}, 2.2km
+                  {group.clinic.address || group.clinic.location || ''}{group.clinic.distance ? `, ${group.clinic.distance}` : ''}
                 </Text>
               </View>
             </View>

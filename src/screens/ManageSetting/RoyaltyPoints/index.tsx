@@ -12,8 +12,10 @@ import { colors } from '../../../styles/colors';
 import { useFocusEffect } from '@react-navigation/native';
 import { RewardsMilestonesBottomSheet } from '@components/molecules';
 import { MILESTONETIERS } from '@constants';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export const RoyaltyPoints = ({ navigation }) => {
+  const inset = useSafeAreaInsets();
   const { t } = useTranslation();
   const [loyaltyPointsData, setLoyaltyPointsData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -162,15 +164,14 @@ export const RoyaltyPoints = ({ navigation }) => {
       clinicName: item.clinicName,
       clinicImage: item.image,
       totalPoints: item.points,
-      category: item.categories?.join(' and ') || item.category,
+      category: item.categories || item.category,
     });
   };
 
   const renderItem = ({ item }) => (
     <ClinicCard
       clinicImage={item.image}
-      category={item.category}
-      categories={item.categories}
+      category={item.categories}
       clinicName={item.clinicName}
       totalPoints={item.points}
       handlePress={() => handlePointDetails(item)}
@@ -213,7 +214,7 @@ export const RoyaltyPoints = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container,{ paddingTop: inset.top }]}>
       <Header2 
         title={t('loyalty_points')}
         rightElement={

@@ -62,7 +62,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
     if (isConsultationActive && !fromHistory) {
       // Show both countdown timer and elapsed duration when available
       return consultationElapsed
-        ? `${consultationTime} • ${consultationElapsed}`
+        ? `${consultationTime}`
         : consultationTime;
     }
     

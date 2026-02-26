@@ -17,6 +17,7 @@ import { ClinicCard } from './components';
 import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
 import { colors } from '../../../styles/colors';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type PointsTab = 'earned' | 'used';
 
@@ -51,7 +52,7 @@ export const LoyaltyPointsDetails = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const recordsPerPage = 10;
-
+  const inset = useSafeAreaInsets();
   const handleClaim = (tierName: string) => {
     console.log(`Claiming reward for ${tierName}`);
   };
@@ -135,16 +136,34 @@ export const LoyaltyPointsDetails = () => {
             }
           }
 
+          // convert expiry date (UTC) to local formatted date
+          let formattedExpiry = '';
+          const expiryRaw = item.expiry_date || item.expiryDate || null;
+          if (expiryRaw) {
+            try {
+              const d = new Date(expiryRaw);
+              formattedExpiry = d.toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+              });
+            } catch (e) {
+              formattedExpiry = expiryRaw;
+            }
+          }
+
           return {
             id: item.id?.toString() || item.transactionID?.toString() || index.toString(),
             serviceName: item.service_name || item.serviceName || item.service?.name || item.name || 'Service',
             serviceImage: item.service_image || item.serviceImage || item.image || null,
             transactionId: item.transactionId || item.transactionID || item.id?.toString() || `TXN-${index}`,
             points: item.loyalty_points || item.points || item.loyaltyPoints || item.totalPoints || 0,
-            price: item.price || item.amount || item.totalAmount || '0 SAR',
+            // expiryDate will be a formatted local date string (or null)
+            expiryDate: formattedExpiry || null,
             isUsed: activeTab === 'used',
             date: formattedDate || item.date || item.created_at || item.createdAt || '',
-            expiryDate: item.expiry_date || item.expiryDate || null,
+            // keep raw expiry as a fallback if needed
+            expiryDateRaw: expiryRaw,
           };
         });
         
@@ -222,13 +241,13 @@ export const LoyaltyPointsDetails = () => {
             {item.points} <Text style={styles.pointsText}>{t('point')}</Text>
           </Text>
         </View>
-        <Text style={styles.price}>{item.price}</Text>
+        <Text style={styles.price}>{item.expiryDate ? item.expiryDate : ''}</Text>
       </View>
     </View>
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: inset.top }]}>
       <Header2 title={t('history')} />
 
       <ClinicCard

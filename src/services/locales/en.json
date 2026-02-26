@@ -278,7 +278,7 @@
   "is_chat_private_secure": "Is my chat or call private and secure?",
   "is_chat_private_secure_answer": "Absolutely! All consultations are end-to-end encrypted and comply with medical privacy standards. Your personal health information is completely confidential and secure.",
   "refund_request": "Refund Request",
-  "search_clinic_name_location": "Search by clinic name or location...",
+  "search_clinic_name_location": "Search by clinic name",
   "pending": "Pending",
   "scheduled": "Scheduled",
   "completed": "Completed",

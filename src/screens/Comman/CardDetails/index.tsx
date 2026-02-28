@@ -79,6 +79,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
   const route = useRoute<CardDetailsRouteProp>();
   const params = route.params;
   const reason = params.reason;
+  const [refundReason, setRefundReason] = useState<string | undefined>(params.reason);
 
   // Determine if it's appointment or consultation based on params
   const isAppointment = params.isAppointment;
@@ -297,7 +298,8 @@ export function CardDetails({ navigation }: { navigation: any }) {
           setClinicID(extractedClinicID);
 
           // Format date and time from appointment requestDate or transaction date
-          const dateStr = appointmentData.requestDate || transactionData.date || appointmentData.created_at || '';
+          const dateStr = transactionData.
+            created_at || appointmentData.created_at || '';
           const formattedDateTime = formatDateTimeLocal(dateStr);
 
           // Format price from transaction amount
@@ -309,6 +311,8 @@ export function CardDetails({ navigation }: { navigation: any }) {
             // Some refund endpoints return the refunded item under `service` (see sample payloads)
             const refundServicePayload = finalData.service || finalData.services || null;
             if (refundServicePayload) {
+                // Capture refund reason from payload if provided (some endpoints put actual reason here)
+                setRefundReason(refundServicePayload?.reason || svc?.reason || params.reason);
               const svc = refundServicePayload.service || refundServicePayload;
               const mappedServicesRefund = [
                 {
@@ -345,6 +349,12 @@ export function CardDetails({ navigation }: { navigation: any }) {
                 : '';
 
               setClinicID(clinicDataRefund.clinicID || clinicDataRefund.id || appointmentData.clinicID || null);
+
+              // Normalize transaction object: some refund endpoints return transaction under the `service` object
+              const txn = refundServicePayload.transaction || refundServicePayload.service?.transaction || finalData.transaction || finalData.transactions || null;
+              if (txn) {
+                setPaymentDetails(prev => ({ ...(prev || {}), transactions: txn }));
+              }
 
               setDisplayData({
                 clinicName: clinicDataRefund.clinicName || clinicDetailsRefund.businessName || clinicDataRefund.name || '',
@@ -387,7 +397,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
               duration: serviceData.duration ? `${serviceData.duration} min` : '',
               price: serviceData.price || appointmentService.price || '0',
               status: svcStatus,
-              refundStatus:appointmentService.refundStatus,
+              refundStatus: appointmentService.refundStatus,
               category: serviceData.serviceType && typeof serviceData.serviceType === 'string' && serviceData.serviceType.length
                 ? serviceData.serviceType.charAt(0).toUpperCase() + serviceData.serviceType.slice(1)
                 : '',
@@ -461,7 +471,8 @@ export function CardDetails({ navigation }: { navigation: any }) {
             : (clinicData.location || '');
 
           // Format date and time from date or created_at
-          const dateTimeStr =consultationData.created_at || '';
+          const dateTimeStr = consultationData.created_at || '';
+          console.log('Raw date time from API:', dateTimeStr);
           const formattedDateTime = formatDateTimeLocal(dateTimeStr);
           console.log('Formatted date time:', consultationData.price);
           // Format price with currency
@@ -511,6 +522,10 @@ export function CardDetails({ navigation }: { navigation: any }) {
             total: formattedPrice,
             services: [],
           });
+          // Some consultation endpoints may include a reason at top-level service
+          if (consultationData?.service?.reason) {
+            setRefundReason(consultationData.service.reason);
+          }
         }
       } else {
         // API returned failure or no data - show empty state
@@ -817,7 +832,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
         const isProcessed = typeof svcStatus === 'string' && /(processed|refunded|completed)/i.test(svcStatus);
         const isProcessing = typeof svcStatus === 'string' && /(processing|pending|in-progress|request)/i.test(svcStatus) && !isProcessed;
         const refundState = isProcessed ? 'processed' : (isProcessing ? 'processing' : '');
-        console.log('Service',groupData)
+        console.log('Service', groupData)
         return {
           id: serviceData.id || appointmentService.serviceID,
           appointmentServiceID: appointmentService.id, // Required for cancellation API
@@ -920,7 +935,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
   // Prefer the `status` passed via navigation params (history card) as the authoritative main status.
   const mainStatus = (params.status || displayData.status || paymentDetails?.appointment?.status || paymentDetails?.transactions?.status || '').toString();
   // Default behavior: disable when main status explicitly indicates 'Booked'
-  let disableRefundButton = /booked/i.test(mainStatus);
+  let disableRefundButton =false;
 
   // If we have service-level statuses, prefer those: disable only when ALL services are either booked or related to refund
   try {
@@ -930,9 +945,9 @@ export function CardDetails({ navigation }: { navigation: any }) {
         const status = String(svc.status || '');
         const refundStatus = String(svc.refundStatus || '');
         const combined = `${status} ${refundStatus}`.toLowerCase();
-        const isBooked = /booked/i.test(combined);
+        // const isBooked = /booked/i.test(combined);
         const isRefundRelated = /(refund|refunded|processing|confirm|request)/i.test(combined);
-        return isBooked || isRefundRelated;
+        return  isRefundRelated;
       });
       disableRefundButton = allServicesBookedOrRefund;
     }
@@ -1019,53 +1034,56 @@ export function CardDetails({ navigation }: { navigation: any }) {
         {isAppointment &&
           displayData.services?.map(service => (
             <View key={service.id} style={styles.serviceCard}>
-              <View style={styles.serviceLeft}>
-                <Image source={service.image} style={styles.serviceImage} />
-                <View style={styles.serviceInfo}>
-                  <View style={styles.serviceBadges}>
-                    <View style={styles.categoryBadge}>
-                      <Text style={styles.categoryBadgeText} numberOfLines={1} ellipsizeMode="tail">
-                        {service.category}
-                      </Text>
-                    </View>
-                    <View style={styles.nameBadge}>
-                      <Text style={styles.nameBadgeText} numberOfLines={1} ellipsizeMode="tail">
-                        {service.categoryBadge}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <Text style={styles.serviceName} numberOfLines={1} ellipsizeMode="tail">{service.name}</Text>
-
-                  <View style={styles.durationContainer}>
-                    <Ionicons
-                      name="time-outline"
-                      size={18}
-                      color={colors.secondaryText}
-                    />
-                    <Text style={styles.duration}>{service.duration}</Text>
-                  </View>
+              <View style={styles.serviceBadges}>
+                <View style={styles.categoryBadge}>
+                  <Text style={styles.categoryBadgeText} numberOfLines={1} ellipsizeMode="tail">
+                    {service.category}
+                  </Text>
+                </View>
+                <View style={styles.nameBadge}>
+                  <Text style={styles.nameBadgeText} numberOfLines={1} ellipsizeMode="tail">
+                    {service.categoryBadge}
+                  </Text>
                 </View>
               </View>
-              <View style={{ justifyContent: 'space-between', alignItems: 'flex-end', width: 110, paddingLeft: 8 }}>
-                <Text style={styles.servicePrice}>{service.price}</Text>
-                {(() => {
-                  const isRefund = typeof (service.status || '') === 'string' && /refund/i.test(service.status || '');
-                  const displayStatus = isRefund ? ((service.status + " "+service.refundStatus ) ) : service.status;
-                  return displayStatus ? (
-                    <Text style={{ fontSize: 12, color: '#6b7280', marginTop: 8 }} numberOfLines={1}>
-                      {displayStatus}
-                    </Text>
-                  ) : null;
-                })()}
+              <View style={styles.serviceContent}>
+                <View style={styles.serviceLeft}>
+                  <Image source={service.image} style={styles.serviceImage} />
+                  <View style={styles.serviceInfo}>
+
+
+                    <Text style={styles.serviceName} numberOfLines={1} ellipsizeMode="tail">{service.name}</Text>
+
+                    <View style={styles.durationContainer}>
+                      <Ionicons
+                        name="time-outline"
+                        size={18}
+                        color={colors.secondaryText}
+                      />
+                      <Text style={styles.duration}>{service.duration}</Text>
+                    </View>
+                  </View>
+                </View>
+                <View style={{ justifyContent: 'space-between', alignItems: 'flex-end', width: 110, paddingLeft: 8 }}>
+                  <Text style={styles.servicePrice}>{service.price} SAR</Text>
+                  {(() => {
+                    const isRefund = typeof (service.status || '') === 'string' && /refund/i.test(service.status || '');
+                    const displayStatus = isRefund ? ((service.status + " " + service.refundStatus)) : service.status;
+                    return displayStatus ? (
+                      <Text style={{ fontSize: 12, color: '#6b7280', marginTop: 8 }} numberOfLines={1}>
+                        {displayStatus}
+                      </Text>
+                    ) : null;
+                  })()}
+                </View>
               </View>
             </View>
           ))}
-        {reason && (
+        {(refundReason || reason) && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{t('reason_for_refund')}</Text>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>{reason}</Text>
+              <Text style={styles.detailLabel}>{refundReason || reason}</Text>
             </View>
           </View>
         )}
@@ -1074,7 +1092,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>{t('payment_detail')}</Text>
 
-             
+
 
               {paymentDetails?.transactions?.paymentMethod && (
                 <View style={styles.detailRow}>
@@ -1085,7 +1103,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
                 </View>
               )}
 
-              {paymentDetails?.transactions?.loyaltyPointEarn !== null &&paymentDetails?.transactions?.loyaltyPointEarn !== 0 && paymentDetails?.transactions?.loyaltyPointEarn !== undefined && (
+              {paymentDetails?.transactions?.loyaltyPointEarn !== null && paymentDetails?.transactions?.loyaltyPointEarn !== 0 && paymentDetails?.transactions?.loyaltyPointEarn !== undefined && (
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>{t('points_earned')}</Text>
                   <Text style={styles.points_earn}>{paymentDetails.transactions.loyaltyPointEarn} {t('points') || 'Points'}</Text>
@@ -1222,7 +1240,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
         )}
       </ScrollView>
 
-      {!reason && (
+      {!(refundReason || reason) && (
         <View style={styles.bottomButtonContainer}>
           {isAppointment ? (
             <CustomButton

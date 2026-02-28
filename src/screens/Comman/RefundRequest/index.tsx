@@ -190,14 +190,16 @@ export function RefundRequest() {
               // determine disabled: explicit flag, any refund-* field/sub-status present, or booked — all should be non-selectable
               const svcStatusStr = (service.status || '').toString();
               const svcRefundStatusStr = (service.refundStatus || service.refund_status || '').toString();
-
+              console.log(svcRefundStatusStr);
               // Disable only when service is Booked or refundStatus is explicitly Pending / Confirm.
               const refundStatusNormalized = (svcRefundStatusStr || '').trim().toLowerCase();
               const isRefundStatusDisabled = /^(pending|confirm|confirmed)$/i.test(refundStatusNormalized);
+              console.log(service)
 
-              const isBooked = /booked/i.test(svcStatusStr);
+              // const isBooked = /booked/i.test(svcStatusStr);
               // keep explicit `processed` check for fully processed refunds
-              const isDisabled = !!service.disabled || isBooked || isRefundStatusDisabled || refundState === 'processed';
+              const isDisabled = !!service.disabled  || isRefundStatusDisabled || refundState === 'processed';
+              console.log(`Service ID ${service.id} - Disabled: ${isDisabled} (refundStatus: ${svcRefundStatusStr}, status: ${svcStatusStr}, refundState: ${refundState})`);
               return (
                 <View key={service.id} style={[styles.serviceCard, isDisabled ? { opacity: 0.6 } : {}]}>
                   <View style={styles.serviceLeft}>

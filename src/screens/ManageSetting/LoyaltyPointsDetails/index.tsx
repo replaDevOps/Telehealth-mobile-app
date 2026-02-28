@@ -1,5 +1,5 @@
 import { Header2 } from '@components/common/Header2';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, FlatList, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { mvs } from '@config/metrices';
@@ -53,6 +53,7 @@ export const LoyaltyPointsDetails = () => {
   const [hasMore, setHasMore] = useState(true);
   const recordsPerPage = 10;
   const inset = useSafeAreaInsets();
+  const fetchIdRef = useRef(0);
   const handleClaim = (tierName: string) => {
     console.log(`Claiming reward for ${tierName}`);
   };
@@ -63,6 +64,8 @@ export const LoyaltyPointsDetails = () => {
       return;
     }
 
+    const requestId = ++fetchIdRef.current;
+
     try {
       if (append) {
         setLoadingMore(true);
@@ -72,11 +75,11 @@ export const LoyaltyPointsDetails = () => {
         setHasMore(true);
       }
       setError(null);
-      
-      const endpoint = activeTab === 'earned' 
+
+      const endpoint = activeTab === 'earned'
         ? API.SETTINGS.LOYALTY_POINTS_EARNED
         : API.SETTINGS.LOYALTY_POINTS_USED;
-      
+
       const response = await apiClient.get(endpoint, {
         params: {
           clinicID: clinicId,
@@ -84,8 +87,8 @@ export const LoyaltyPointsDetails = () => {
           recordsPerPage: recordsPerPage,
         },
       });
-      console.log("🚀 ~ fetchTransactions ~ response:",endpoint, response);
-      
+      console.log("🚀 ~ fetchTransactions ~ response:", endpoint, response);
+
       // API response structure with pagination:
       // {
       //   success: true,
@@ -97,7 +100,7 @@ export const LoyaltyPointsDetails = () => {
       //   data: [...]
       // }
       const responseData = response.data;
-      
+
       // Extract data array
       let transactionsList: any[] = [];
       if (Array.isArray(responseData)) {
@@ -109,15 +112,21 @@ export const LoyaltyPointsDetails = () => {
       } else if (Array.isArray(responseData?.points)) {
         transactionsList = responseData.points;
       }
-        
-        console.log('🚀 ~ fetchTransactions ~ transactionsList:', transactionsList);
-        
-        // Check if there's more data using nextPageUrl from backend
-        const hasMoreData = !!(responseData?.nextPageUrl);
-        setHasMore(hasMoreData);
-        
-        if (responseData?.success !== false && transactionsList.length > 0) {
-        
+
+      console.log('🚀 ~ fetchTransactions ~ transactionsList:', transactionsList);
+
+      // Ignore response if a newer fetch started
+      if (requestId !== fetchIdRef.current) {
+        console.log('Ignored stale response for request', requestId);
+        return;
+      }
+
+      // Check if there's more data using nextPageUrl from backend
+      const hasMoreData = !!(responseData?.nextPageUrl);
+      setHasMore(hasMoreData);
+
+      if (responseData?.success !== false && transactionsList.length > 0) {
+
         // Map API response to expected format
         const mappedTransactions = transactionsList.map((item: any, index: number) => {
           // Format date from ISO string to readable format
@@ -166,15 +175,15 @@ export const LoyaltyPointsDetails = () => {
             expiryDateRaw: expiryRaw,
           };
         });
-        
+
         console.log('🚀 ~ fetchTransactions ~ mappedTransactions:', mappedTransactions);
-        
+
         if (append) {
           setTransactions(prev => [...prev, ...mappedTransactions]);
         } else {
           setTransactions(mappedTransactions);
         }
-        
+
         // Update current page from backend response
         if (responseData?.currentPage) {
           setCurrentPage(responseData.currentPage);
@@ -188,6 +197,10 @@ export const LoyaltyPointsDetails = () => {
         setHasMore(false);
       }
     } catch (error: any) {
+      if (requestId !== fetchIdRef.current) {
+        // stale or aborted request
+        return;
+      }
       console.error(`Error fetching ${activeTab} points:`, error);
       setError(error?.response?.data?.message || error?.message || t('failed_to_load_points') || 'Failed to load points');
       if (!append) {
@@ -205,15 +218,18 @@ export const LoyaltyPointsDetails = () => {
     }
   };
 
-  // Fetch data when tab changes or screen comes into focus
+  // Fetch data when tab changes
   useEffect(() => {
     fetchTransactions(1, false);
   }, [activeTab, clinicId]);
 
+  // On screen focus, only fetch if there is no data to avoid duplicate requests
   useFocusEffect(
     useCallback(() => {
-      fetchTransactions(1, false);
-    }, [activeTab, clinicId])
+      if (transactions.length === 0) {
+        fetchTransactions(1, false);
+      }
+    }, [activeTab, clinicId, transactions.length])
   );
 
   const pointsTabs: TabItem<PointsTab>[] = [
@@ -221,27 +237,42 @@ export const LoyaltyPointsDetails = () => {
     { key: 'used', label: t('points_used') },
   ];
 
-  const renderItem = ({ item }) => (
-    <View style={styles.card}>
-      <View style={styles.leftSection}>
-        <Text style={styles.centerName}>{item.serviceName}</Text>
-        <Text style={styles.transactionId}>{item.transactionId}</Text>
-      </View>
+  const handleTabChange = (tab: PointsTab) => {
+    // keep previous data visible while loading to avoid empty flash;
+    // reset pagination and start loading for new tab
+    setError(null);
+    setHasMore(true);
+    setCurrentPage(1);
+    setLoading(true);
+    setActiveTab(tab);
+  };
 
-      <View style={styles.rightSection}>
-        <View style={styles.pointsContainer}>
-          <Image source={coinIcon} style={{ width: 16, height: 16 }} />
-          <Text
-            style={[
-              styles.points,
-              item.isUsed ? styles.negativePoints : styles.positivePoints,
-            ]}
-          >
-            {item.isUsed ? '-' : '+'}
-            {item.points} <Text style={styles.pointsText}>{t('point')}</Text>
-          </Text>
+  const renderItem = ({ item }) => (
+    <View style={{paddingTop: 2}}>
+      {item.expiryDate ? (
+        <Text style={styles.expiryLabel}>{`Expiry date ${item.expiryDate}`}</Text>
+      ) : null}
+
+      <View style={styles.card}>
+        <View style={styles.leftSection}>
+          <Text style={styles.centerName}>{item.serviceName}</Text>
+          <Text style={styles.transactionId}>{item.transactionId}</Text>
         </View>
-        <Text style={styles.price}>{item.expiryDate ? item.expiryDate : ''}</Text>
+
+        <View style={styles.rightSection}>
+          <View style={styles.pointsContainer}>
+            <Image source={coinIcon} style={{ width: 16, height: 16 }} />
+            <Text
+              style={[
+                styles.points,
+                item.isUsed ? styles.negativePoints : styles.positivePoints,
+              ]}
+            >
+              {item.isUsed ? '-' : '+'}
+              {item.points} <Text style={styles.pointsText}>{t('point')}</Text>
+            </Text>
+          </View>
+        </View>
       </View>
     </View>
   );
@@ -260,11 +291,11 @@ export const LoyaltyPointsDetails = () => {
       <GenericTabs
         tabs={pointsTabs}
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={handleTabChange}
         translateLabels={true}
       />
 
-      <View style={{ flex: 1, paddingHorizontal: 20, marginTop: mvs(20) }}>
+      <View style={{ flex: 1, marginTop: mvs(20) }}>
         {loading ? (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 100 }}>
             <ActivityIndicator size="large" color={colors.primary} />

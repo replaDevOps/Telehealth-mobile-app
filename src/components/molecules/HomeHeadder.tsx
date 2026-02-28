@@ -51,7 +51,7 @@ const HomeHeader = ({
       end={{ x: 0.5, y: 1 }}
       style={styles.LinearGradientContainer}
     >
-      <View style={[styles.headerContainer, { paddingTop: inset.top }]}>
+      <View style={[styles.headerContainer, { paddingTop: inset.top + 20 }]}>
         <View style={styles.topRow}>
           <View style={styles.locationContainer}>
             <Text style={styles.locationLabel}>{t('location_label')}</Text>

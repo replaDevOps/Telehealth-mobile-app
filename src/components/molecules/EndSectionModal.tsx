@@ -58,7 +58,7 @@ const ConsultationEndedModal: React.FC<ConsultationEndedModalProps> = ({
               <Text style={styles.closeButtonText}>{t('close')}</Text>
             </TouchableOpacity>
 
-            {hasPrescription && (
+            {/* {hasPrescription && (
               <TouchableOpacity
                 style={styles.prescriptionButton}
                 onPress={onGetPrescription}
@@ -67,7 +67,7 @@ const ConsultationEndedModal: React.FC<ConsultationEndedModalProps> = ({
                   {t('get_prescription')}
                 </Text>
               </TouchableOpacity>
-            )}
+            )} */}
           </View>
         </View>
       </View>

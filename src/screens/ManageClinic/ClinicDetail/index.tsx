@@ -183,30 +183,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     if (!clinicID) return;
 
     try {
-        // Check if user profile is complete before allowing add to cart
-        try {
-          const checkRes = await apiClient.get(API.CONSULTATIONS.CHECK_PROFILE);
-          // If API explicitly returns success: false or indicates incomplete, block action
-          const checkData = checkRes.data?.data || checkRes.data;
-          const isComplete = checkData?.is_complete ?? checkData?.isComplete ?? checkRes.data?.success;
-          if (checkRes.data?.success === false || isComplete === false) {
-            const msg = checkRes.data?.message || 'Please complete your profile before proceeding';
-            Toast.error(msg);
-            // Navigate to profile settings so user can complete it (use Setting tab)
-            try {
-              const { navigateToProfileSetting } = require('@navigation/root-navigation');
-              navigateToProfileSetting();
-            } catch (e) {
-              navigation.navigate('Setting', { screen: 'ProfileSetting' });
-            }
-            setLoadingAddToCart(false);
-            setLoadingCheckout(false);
-            return;
-          }
-        } catch (checkErr) {
-          // If check profile fails non-fatally, continue (or choose to block depending on server contract)
-          console.warn('checkProfile failed, proceeding with add to cart:', checkErr);
-        }
+       
       if (pageNo === 1) {
         setLoadingDescription(true);
       } else {
@@ -1277,7 +1254,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
 
                 {/* Load more control for paginated services */}
                 {hasMoreServices && (
-                  <View style={{ width: '100%', alignItems: 'center', paddingVertical: 12,height: 150 }}>
+                  <View style={{ width: '100%', alignItems: 'center',paddingTop: 6 }}>
                     {loadingServicesPage && !refreshing ? (
                       <ActivityIndicator size="small" color="#7625D7" />
                     ) : (
@@ -1346,7 +1323,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
 
                 {/* Load more control for paginated reviews */}
                 {hasMoreReviews && (
-                  <View style={{ width: '100%', alignItems: 'center', paddingVertical: 12 }}>
+                   <View style={{ width: '100%', alignItems: 'center',paddingTop: 6 }}>
                     {loadingReviewsPage && !refreshing ? (
                       <ActivityIndicator size="small" color="#7625D7" />
                     ) : (
@@ -1431,7 +1408,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
 
                 {/* Load more control for paginated devices */}
                 {hasMoreDevices ? (
-                  <View style={{ width: '100%', alignItems: 'center', paddingVertical: 12,height: 150 }}>
+                  <View style={{ width: '100%', alignItems: 'center',paddingTop: 6 }}>
                     {loadingDevicesPage && !refreshing ? (
                       <ActivityIndicator size="small" color="#7625D7" />
                     ) : (
@@ -1454,20 +1431,22 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
         )}
       </ScrollView>
 
-      {/* Chat with Vena AI Button */}
-      <View
-        style={[styles.chatButtonContainer, { bottom: keyboardHeight ? keyboardHeight : 0 }]}
-        onLayout={(e) => setChatButtonHeight(e.nativeEvent.layout.height)}
-      >
-        <TouchableOpacity
-          style={styles.chatButton}
-          onPress={handleChatPress}
-          activeOpacity={0.8}
+      {/* Chat with Vena AI Button - hide when keyboard is open */}
+      {keyboardHeight === 0 && (
+        <View
+          style={[styles.chatButtonContainer, { bottom: 0 }]}
+          onLayout={(e) => setChatButtonHeight(e.nativeEvent.layout.height)}
         >
-          <Text style={styles.chatButtonText}>{t('chat_with_vena_ai')}</Text>
-          <Ionicons name="sparkles" size={20} color={colors.white} />
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity
+            style={styles.chatButton}
+            onPress={handleChatPress}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.chatButtonText}>{t('chat_with_vena_ai')}</Text>
+            <Ionicons name="sparkles" size={20} color={colors.white} />
+          </TouchableOpacity>
+        </View>
+      )}
 
       <FilterBottomSheet
         visible={filterVisible}

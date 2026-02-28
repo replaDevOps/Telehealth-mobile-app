@@ -64,14 +64,14 @@ export const ConsultationCard: React.FC<ConsultationCardProps> = ({
 
         {/* Actions */}
         <View style={styles.actionsRow}>
-          <TouchableOpacity
+          {/* <TouchableOpacity
             style={styles.prescriptionButton}
             onPress={onPrescriptionPress}
           >
             <Text style={styles.prescriptionButtonText}>
               {t('get_prescription')}
             </Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
           {/* Only show View Chat button for Chat consultations, not Audio or Video */}
           {item.type === 'Chat' && (
             <TouchableOpacity style={styles.viewChatButton} onPress={onChatPress}>

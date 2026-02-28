@@ -25,6 +25,7 @@ import { mvs } from '@config/metrices';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../../services/i18n';
 import { tryCatch } from '@utils';
+import citiesData from '@utils/cities-data.json';
 import { API } from '@services/api/api-endpoint';
 import { apiClient } from '@services/api/api-client';
 import { Toast } from 'toastify-react-native';
@@ -275,6 +276,12 @@ export const ProfileSetting = ({ navigation, route }: { navigation: any; route?:
       return false;
     }
 
+    // If national ID / Iqama provided, ensure it's exactly 10 digits
+    if (state.nationalID && state.nationalID.replace(/[^0-9]/g, '').length !== 10) {
+      Alert.alert('Error', 'Iqama Number must be exactly 10 digits');
+      return false;
+    }
+
     return true;
   };
 
@@ -414,8 +421,13 @@ export const ProfileSetting = ({ navigation, route }: { navigation: any; route?:
             label={t('national_id') || 'National ID'}
             placeholder={t('enter_national_id') || 'Enter National ID'}
             value={state.nationalID}
-            onChangeText={(text) => dispatch({ nationalID: text })}
-            keyboardType="default"
+            onChangeText={(text) => {
+              // allow only digits and limit to 10 characters (Iqama)
+              const numeric = (text || '').replace(/[^0-9]/g, '').slice(0, 10);
+              dispatch({ nationalID: numeric });
+            }}
+            keyboardType="numeric"
+            maxLength={10}
           />
 
           <CustomDropdown
@@ -429,12 +441,12 @@ export const ProfileSetting = ({ navigation, route }: { navigation: any; route?:
             ]}
           />
 
-          <CustomTextInput
+          <CustomDropdown
             label={t('city') || 'City'}
-            placeholder={t('enter_city') || 'Enter City'}
+            placeholder={t('select_city') || 'Select City'}
             value={state.city}
-            onChangeText={(text) => dispatch({ city: text })}
-            keyboardType="default"
+            onValueChange={(text) => dispatch({ city: text })}
+            options={citiesData.map((c: any) => ({ label: c.name, value: c.name }))}
           />
 
           {/* Password Manager */}

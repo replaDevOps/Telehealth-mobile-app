@@ -96,7 +96,7 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
   },
   serviceCard: {
-    flexDirection: 'row',
+    // flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     padding: 16,
@@ -104,6 +104,10 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.lightGray,
     marginTop: 12,
     borderRadius: 12,
+  },
+  serviceContent:{
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   serviceLeft: {
     flexDirection: 'row',

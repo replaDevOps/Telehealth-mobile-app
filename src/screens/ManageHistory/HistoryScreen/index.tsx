@@ -24,7 +24,7 @@ import { ConsultationCard, PaymentCard, HistoryTabs, SearchBar } from '../compon
 import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
 import { capitalizeWords } from '../utils/format';
-import Toast from 'toastify-react-native';
+import { Toast } from 'toastify-react-native';
 import { colors } from '../../../styles/colors';
 
 const DROPDOWN_OPTIONS: DropdownOption[] = [
@@ -55,6 +55,7 @@ export function HistoryScreen({ navigation }) {
 
   // Fetch consultations from API
   const fetchConsultations = useCallback(async (pageNo: number = 1, append: boolean = false) => {
+    console.log('fetchConsultations called', { pageNo, append, activeTab, searchQuery });
     if (activeTab !== 'consultation') return;
 
     if (append) {
@@ -72,6 +73,7 @@ export function HistoryScreen({ navigation }) {
           recordsPerPage: recordsPerPage,
         },
       });
+      console.log('API.GET_CONSULTATIONS request params:', { name: searchQuery, pageNo });
 
       console.log('Consultations response:', response.data);
 
@@ -181,6 +183,7 @@ export function HistoryScreen({ navigation }) {
 
   // Fetch payment history from API
   const fetchPayments = useCallback(async (pageNo: number = 1, append: boolean = false) => {
+    console.log('fetchPayments called', { pageNo, append, activeTab, selectedType, searchQuery });
     if (activeTab !== 'payment') return;
 
     if (append) {
@@ -204,6 +207,7 @@ export function HistoryScreen({ navigation }) {
           recordsPerPage: recordsPerPage,
         },
       });
+      console.log('API.GET_PAYMENTS request', { endpoint, params: { name: searchQuery, pageNo } });
 
       console.log('Payments response:', response.data);
 
@@ -229,7 +233,7 @@ export function HistoryScreen({ navigation }) {
             const clinicData = payment.clinic || {};
             const doctorData = payment.doctor || {};
             const serviceData = payment.service || {};
-            console.log('payment', payment);
+            // console.log('payment', payment);
             const rawType = payment.type || payment.consultationType;
             const normalized = rawType && typeof rawType === 'string'
               ? rawType.charAt(0).toUpperCase() + rawType.slice(1).toLowerCase()
@@ -268,8 +272,8 @@ export function HistoryScreen({ navigation }) {
             const clinicLogo = clinicDetails.logo || clinicDetails.coverImage || clinicData.logo || clinicData.coverImage || clinicData.image || payment.clinicImage || '';
             const locationParts = [
               clinicDetails.address,
-              clinicDetails.city,
-              clinicDetails.district,
+              // clinicDetails.city,
+              // clinicDetails.district,
             ].filter(Boolean);
             const clinicLocationStr = locationParts.length > 0
               ? locationParts.join(', ')
@@ -312,8 +316,9 @@ export function HistoryScreen({ navigation }) {
             return {
               id: String(payment.id || payment.paymentId || Date.now()),
               kind: 'appointment' as const,
-              date: payment.date || payment.created_at || payment.requestDate || '',
+              date:  payment.created_at || payment.requestDate || '',
               paymentId: String(payment.paymentId || payment.id || ''),
+              paymentStatus: payment.transaction.status || '',
               clinicImg: !!clinicLogo || !!clinicData.image,
               clinicImage: clinicLogo,
               clinicName: payment.clinicName || clinicData.clinicName || clinicDetails.businessName || clinicData.name || '',
@@ -321,7 +326,7 @@ export function HistoryScreen({ navigation }) {
               numberOfService: String(appointmentServices.length || services.length || payment.serviceCount || 0),
               price: payment.transaction?.amount || payment.price || payment.amount || '0',
               status: payment.status || 'Completed',
-              statusColor: payment.status === 'Completed' || payment.status === 'Success'
+              statusColor:  payment.transaction.status === 'Paid'||payment.status === 'Completed' || payment.status === 'Success'
                 ? colors.green
                 : payment.status === 'Pending'
                   ? colors.yellow
@@ -387,6 +392,7 @@ export function HistoryScreen({ navigation }) {
 
   // Fetch consultations when tab changes or search query changes
   useEffect(() => {
+    console.log('History useEffect triggered by change', { activeTab, searchQuery, selectedType });
     if (activeTab === 'consultation') {
       fetchConsultations(1, false);
     } else if (activeTab === 'payment' && selectedType) {

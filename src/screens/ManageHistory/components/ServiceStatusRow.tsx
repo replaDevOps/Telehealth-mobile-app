@@ -17,6 +17,7 @@ export const ServiceStatusRow: React.FC<ServiceStatusRowProps> = ({ item }) => {
   const serviceLabel = isConsultation ? t('service') : t('number_of_service');
   const hasRefundServices = !isConsultation && item.kind === 'appointment' && 
     item.refundServiceCount && item.refundServiceCount > 0;
+  const displayStatus = item.kind === 'appointment' ? item.paymentStatus : item.status;
 
   return (
     <>
@@ -33,7 +34,7 @@ export const ServiceStatusRow: React.FC<ServiceStatusRowProps> = ({ item }) => {
         <View style={styles.statusInfo}>
           <Text style={styles.statusLabel}>{t('status')}</Text>
           <Text style={[styles.statusValue, { color: item.statusColor }]}>
-            {item.status}
+            {displayStatus}
           </Text>
         </View>
       </View>

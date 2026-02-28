@@ -26,7 +26,6 @@ import Geolocation from '@react-native-community/geolocation';
 import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
 import { Toast } from 'toastify-react-native';
-import { LoyaltyPSvg } from '@assets/icons';
 import { coinIcon } from '@assets/images';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -577,7 +576,9 @@ export function CartScreen({ navigation }) {
                     {/* Loyalty badge per service */}
                     {service.loyaltyPoints && Number(service.loyaltyPoints) > 0 && (
                       <View style={styles.loyaltyBadge}>
-                        <LoyaltyPSvg width={18} height={18} />
+                        <View style={styles.coinWrapper}>
+                          <Image source={coinIcon} style={styles.coinImage} />
+                        </View>
                         <Text style={styles.loyaltyBadgeText}>
                           {`Earn ${Math.round(Number(service.loyaltyPoints))} loyalty points`}
                         </Text>
@@ -672,7 +673,9 @@ export function CartScreen({ navigation }) {
                         {/* Loyalty badge for suggested service */}
                         {service.loyaltyPoints && Number(service.loyaltyPoints) > 0 && (
                           <View style={styles.loyaltyBadge}>
-                            <LoyaltyPSvg width={18} height={18} />
+                            <View style={styles.coinWrapper}>
+                              <Image source={coinIcon} style={styles.coinImage} />
+                            </View>
                             <Text style={styles.loyaltyBadgeText}>
                               {`Earn ${Math.round(Number(service.loyaltyPoints))} loyalty points`}
                             </Text>

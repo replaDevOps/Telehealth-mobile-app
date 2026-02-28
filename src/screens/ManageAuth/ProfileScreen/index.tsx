@@ -24,6 +24,7 @@ import { BASE_URL } from '@constants';
 import { useAuthStore } from '@store';
 import { AuthStackParamList } from '../../../navigation/AuthNavigator';
 import parsePhoneNumberFromString, { CountryCode } from 'libphonenumber-js';
+import citiesData from '@utils/cities-data.json';
 
 type NavProps = StackNavigationProp<AuthStackParamList, 'Profile'>;
 type RouteProps = RouteProp<AuthStackParamList, 'Profile'>;
@@ -155,6 +156,11 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     }
     if (!IdCardNumber.trim()) {
       setIdError(t('id_required'));
+      valid = false;
+    }
+    // Iqama/National ID must be exactly 10 digits
+    if (IdCardNumber && IdCardNumber.replace(/[^0-9]/g, '').length !== 10) {
+      setIdError('Iqama Number must be exactly 10 digits');
       valid = false;
     }
     if (!gender) {
@@ -323,12 +329,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     { label: t('non_saudi'), value: 'non_saudi' },
   ];
 
-  const cityOptions = [
-    { label: 'Riyadh', value: 'Riyadh' },
-    { label: 'Jeddah', value: 'Jeddah' },
-    { label: 'Dammam', value: 'Dammam' },
-    { label: 'Other', value: 'Other' },
-  ];
+  const cityOptions = citiesData.map((c: any) => ({ label: c.name, value: c.name }));
 
   const genderOptions = [
     { label: t('male'), value: 'male' },

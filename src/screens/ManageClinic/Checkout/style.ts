@@ -75,7 +75,6 @@ export const styles = StyleSheet.create({
     marginTop: 2,
   },
   serviceCard: {
-    flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     padding: 4,
@@ -83,6 +82,10 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: 12,
     marginBottom: 10
+  },
+  serviceContent:{
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   serviceLeft: {
     flexDirection: 'row',
@@ -147,19 +150,21 @@ export const styles = StyleSheet.create({
   pointsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 4,
-    gap: 4,
+    gap: 8,
     backgroundColor: "#EBAD0033",
-    borderWidth: 1,
-    borderColor: colors.yellow,
+    // borderWidth: 1,
+    // borderColor: colors.yellow,
     marginHorizontal: 12,
-    paddingHorizontal: 15,
+    paddingHorizontal: 8,
     paddingVertical: 8,
-    borderRadius: 8
+    borderRadius: 50
   },
   bonusInstruction: {
     color: colors.yellow,
-    textAlign: "center"
+    // textAlign: "center"
+    fontSize: 12,
   },
   servicePrice: {
     fontSize: 15,

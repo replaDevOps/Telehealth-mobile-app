@@ -369,10 +369,7 @@ export function CheckoutScreen({ route, navigation }) {
             {/* Services from this clinic */}
             {group.services.map(service => (
               <View key={service.id} style={styles.serviceCard}>
-                <View style={styles.serviceLeft}>
-                  <Image source={service.image} style={styles.serviceImage} />
-                  <View style={styles.serviceInfo}>
-                    <View style={styles.serviceBadges}>
+                 <View style={styles.serviceBadges}>
                       <View style={styles.categoryBadge}>
                         <Text
                           style={styles.categoryBadgeText}
@@ -387,6 +384,11 @@ export function CheckoutScreen({ route, navigation }) {
                         </Text>
                       </View>
                     </View>
+                    <View style={styles.serviceContent}>
+                <View style={styles.serviceLeft}>
+                  <Image source={service.image} style={styles.serviceImage} />
+                  <View style={styles.serviceInfo}>
+                   
                     <Text style={styles.serviceName} numberOfLines={1}>
                       {service.serviceName}
                     </Text>
@@ -401,6 +403,7 @@ export function CheckoutScreen({ route, navigation }) {
                   </View>
                 </View>
                 <Text style={styles.servicePrice}>{service.price}</Text>
+                </View>
               </View>
             ))}
 
@@ -484,24 +487,19 @@ export function CheckoutScreen({ route, navigation }) {
             )}
           </View>
 
-          {discount > 0 && (
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>
-                {t('discount')} ({discount}%)
-              </Text>
-              <Text style={[styles.summaryValue, styles.discountValue]}>
-                -{discountAmount.toFixed(2)} SAR
-              </Text>
-            </View>
-          )}
-          {appliedRedemptionAmount > 0 && (
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>{t('redemption')}</Text>
-              <Text style={[styles.summaryValue, styles.redemptionValue]}>
-                -{appliedRedemptionAmount.toFixed(2)} SAR
-              </Text>
-            </View>
-          )}
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>{t('discount')} ({discount}%)</Text>
+            <Text style={[styles.summaryValue, discount > 0 ? styles.discountValue : null]}>
+              {discount > 0 ? `-${discountAmount.toFixed(2)} SAR` : '0.00 SAR'}
+            </Text>
+          </View>
+
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>{t('redemption')}</Text>
+            <Text style={[styles.summaryValue, appliedRedemptionAmount > 0 ? styles.redemptionValue : null]}>
+              {appliedRedemptionAmount > 0 ? `-${appliedRedemptionAmount.toFixed(2)} SAR` : '0.00 SAR'}
+            </Text>
+          </View>
 
 
         </View>

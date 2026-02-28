@@ -267,6 +267,7 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
   );
 
   const renderAppointCard = (item: AppintItem) => {
+    console.log('Rendering appointment card for item:', item);
     return (
       <View key={item.id} style={styles.card}>
         <Text style={styles.dateText}>{item.date}</Text>
@@ -304,17 +305,13 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
               </View>
             </View>
 
-            <Text style={styles.paymentPrice}>{item.price}</Text>
+            <Text style={styles.paymentPrice}>{item.price} SAR</Text>
           </View>
 
           <View style={styles.serviceStatusRow}>
             <View style={styles.serviceInfo}>
-              <Text style={styles.serviceLabel}>{t('service') || 'Service'}</Text>
-              <Text style={styles.serviceValue}>
-                {item.services && item.services.length > 0
-                  ? item.services.map(s => s.name).join(', ')
-                  : item.numberOfService}
-              </Text>
+              <Text style={styles.serviceLabel}>{'No of Service'}</Text>
+              <Text style={styles.serviceValue}>1</Text>
             </View>
 
             <View style={styles.statusDivider} />
@@ -388,20 +385,20 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
         onRefresh={() => fetchRefundAppointments(1, false)}
         ListEmptyComponent={
           loading ? (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 100 }}>
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
               <ActivityIndicator size="large" color={colors.primary} />
               <Text style={{ marginTop: 16, color: colors.secondaryText }}>
                 {t('loading') || 'Loading...'}
               </Text>
             </View>
           ) : error ? (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 100, paddingHorizontal: 20 }}>
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 }}>
               <Text style={{ color: colors.red, textAlign: 'center' }}>
                 {error}
               </Text>
             </View>
           ) : (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 100 }}>
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
               <Text style={{ color: colors.secondaryText, textAlign: 'center' }}>
                 {t('no_refund_requests') || 'No refund requests found'}
               </Text>
@@ -415,7 +412,7 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
             </View>
           ) : null
         }
-        contentContainerStyle={{ padding: 15, paddingTop: 15 }}
+        contentContainerStyle={{ flexGrow: 1, padding: 15, paddingTop: 15 }}
         showsVerticalScrollIndicator={false}
       />
     </SafeAreaView>

@@ -189,7 +189,9 @@ export const ServiceDetailBottomSheet: React.FC<ServiceDetailBottomSheetProps> =
                 <View style={{ flexDirection: 'row', gap: 20 }}>
                   {service.loyality && service.bonusLoyalityPoints && Number(service.bonusLoyalityPoints) > 0 && (
                     <View style={styles.loyaltyBadge}>
-                      <LoyaltyPSvg width={16} height={16} />
+                      <View style={styles.coinWrapper}>
+                        <Image source={coinIcon} style={styles.coinImage} />
+                      </View>
                       <Text style={styles.loyaltyBadgeText}>{t('earn_points', { points: service.bonusLoyalityPoints }) || `Earn ${service.bonusLoyalityPoints} loyalty points`}</Text>
                     </View>
                   )}
@@ -331,16 +333,30 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF8E6',
+    backgroundColor: '#EBAD0033',
     paddingHorizontal: 8,
-    paddingVertical: 6,
+    paddingVertical: 4,
     borderRadius: 16,
   },
   loyaltyBadgeText: {
     fontSize: 12,
-    color: '#7A4B00',
+    color: '#CC9600',
     marginLeft: 6,
-    fontWeight: '500',
+    fontWeight: '600',
+  },
+  coinWrapper: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 0,
+  },
+  coinImage: {
+    width: 18,
+    height: 18,
+    resizeMode: 'contain',
   },
 
   tagText: {

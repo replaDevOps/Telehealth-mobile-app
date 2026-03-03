@@ -331,11 +331,13 @@ export const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.secondaryText,
     marginBottom: 4,
+    textAlign: 'center',
   },
   serviceValue: {
     fontSize: 14,
     fontWeight: '600',
     color: colors.text,
+    textAlign: 'center',
   },
   statusDivider: {
     width: 1,
@@ -346,7 +348,8 @@ export const styles = StyleSheet.create({
     //   right:20
   },
   statusInfo: {
-    alignItems: 'flex-end',
+    flex: 1,
+    alignItems: 'center',
   },
   noDoctorSection: {
     flexDirection: 'row',
@@ -383,10 +386,12 @@ export const styles = StyleSheet.create({
   statusLabel: {
     fontSize: 13,
     color: colors.secondaryText,
+    textAlign: 'center',
   },
   statusValue: {
     fontSize: 14,
     fontWeight: '600',
+    textAlign: 'center',
   },
   refundCountText: {
     fontSize: 12,

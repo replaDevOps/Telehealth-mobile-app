@@ -1,5 +1,5 @@
 import { Header2 } from '@components/common/Header2';
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { View, Text, FlatList, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { mvs } from '@config/metrices';
@@ -131,8 +131,8 @@ export const LoyaltyPointsDetails = () => {
         const mappedTransactions = transactionsList.map((item: any, index: number) => {
           // Format date from ISO string to readable format
           let formattedDate = '';
-          if (item.expiry_date || item.date || item.created_at || item.createdAt) {
-            const dateStr = item.expiry_date || item.date || item.created_at || item.createdAt;
+          if (item.used_date || item.expiry_date || item.date || item.created_at || item.createdAt) {
+            const dateStr = item.used_date || item.expiry_date || item.date || item.created_at || item.createdAt;
             try {
               const date = new Date(dateStr);
               formattedDate = date.toLocaleDateString('en-GB', {
@@ -163,10 +163,11 @@ export const LoyaltyPointsDetails = () => {
 
           return {
             id: item.id?.toString() || item.transactionID?.toString() || index.toString(),
-            serviceName: item.service_name || item.serviceName || item.service?.name || item.name || 'Service',
+            serviceName: item.service_name || item.serviceName || item.service?.name || item.name || '',
             serviceImage: item.service_image || item.serviceImage || item.image || null,
             transactionId: item.transactionId || item.transactionID || item.id?.toString() || `TXN-${index}`,
             points: item.loyalty_points || item.points || item.loyaltyPoints || item.totalPoints || 0,
+            amount: item.amount ? `SAR ${parseFloat(item.amount).toFixed(2)}` : '',
             // expiryDate will be a formatted local date string (or null)
             expiryDate: formattedExpiry || null,
             isUsed: activeTab === 'used',
@@ -218,18 +219,11 @@ export const LoyaltyPointsDetails = () => {
     }
   };
 
-  // Fetch data when tab changes
-  useEffect(() => {
-    fetchTransactions(1, false);
-  }, [activeTab, clinicId]);
-
-  // On screen focus, only fetch if there is no data to avoid duplicate requests
+  // Fetch on mount, tab change, and screen re-focus — single source of truth
   useFocusEffect(
     useCallback(() => {
-      if (transactions.length === 0) {
-        fetchTransactions(1, false);
-      }
-    }, [activeTab, clinicId, transactions.length])
+      fetchTransactions(1, false);
+    }, [activeTab, clinicId])
   );
 
   const pointsTabs: TabItem<PointsTab>[] = [
@@ -255,8 +249,10 @@ export const LoyaltyPointsDetails = () => {
 
       <View style={styles.card}>
         <View style={styles.leftSection}>
-          <Text style={styles.centerName}>{item.serviceName}</Text>
-          <Text style={styles.transactionId}>{item.transactionId}</Text>
+          <Text style={styles.centerName}>
+            {item.isUsed ? `#${item.transactionId}` : item.serviceName}
+          </Text>
+          <Text style={styles.transactionId}>{item.date}</Text>
         </View>
 
         <View style={styles.rightSection}>
@@ -272,6 +268,9 @@ export const LoyaltyPointsDetails = () => {
               {item.points} <Text style={styles.pointsText}>{t('point')}</Text>
             </Text>
           </View>
+          {item.amount ? (
+            <Text style={styles.price}>{item.amount}</Text>
+          ) : null}
         </View>
       </View>
     </View>
@@ -297,14 +296,11 @@ export const LoyaltyPointsDetails = () => {
 
       <View style={{ flex: 1, marginTop: mvs(20) }}>
         {loading ? (
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 100 }}>
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
             <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={{ marginTop: 16, color: colors.secondaryText }}>
-              {t('loading') || 'Loading...'}
-            </Text>
           </View>
         ) : error ? (
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 100, paddingHorizontal: 20 }}>
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 }}>
             <Text style={{ color: colors.red, textAlign: 'center' }}>
               {error}
             </Text>
@@ -318,8 +314,8 @@ export const LoyaltyPointsDetails = () => {
             ListEmptyComponent={
               <Text style={{ textAlign: 'center', marginTop: 20, color: '#666' }}>
                 {activeTab === 'earned'
-                  ? t('no_points_earned_yet') || 'No points earned yet'
-                  : t('no_points_used_yet') || 'No points used yet'}
+                  ? t('no_points_earned_yet')
+                  : t('no_points_used_yet')}
               </Text>
             }
             refreshing={loading && transactions.length === 0}
@@ -328,7 +324,7 @@ export const LoyaltyPointsDetails = () => {
             onEndReachedThreshold={0.5}
             ListFooterComponent={
               loadingMore ? (
-                <View style={{ paddingVertical: 20 }}>
+                <View style={{ paddingVertical: 20, alignItems: 'center' }}>
                   <ActivityIndicator size="small" color={colors.primary} />
                 </View>
               ) : null

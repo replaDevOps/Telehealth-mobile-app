@@ -138,6 +138,7 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
                 year: 'numeric',
                 hour: '2-digit',
                 minute: '2-digit',
+                hour12: true,
               });
             } catch (e) {
               formattedDate = dateStr;
@@ -273,11 +274,11 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
         <Text style={styles.dateText}>{item.date}</Text>
 
         <View style={styles.cardContainer}>
-          {/* ---------- Header (ID + location) ---------- */}
+          {/* ---------- Header (ID + State) ---------- */}
           <View style={styles.paymentHeader}>
             <Text style={styles.paymentId}>#{item.paymentId}</Text>
 
-            {item.clinicLocation && (
+            {item.state && (
               <View style={styles.paymentTypeContainer}>
                 <Text style={styles.paymentType}>{item.state}</Text>
               </View>
@@ -305,7 +306,7 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
               </View>
             </View>
 
-            <Text style={styles.paymentPrice}>{item.price} SAR</Text>
+            <Text style={styles.paymentPrice}>SAR {item.price}</Text>
           </View>
 
           <View style={styles.serviceStatusRow}>

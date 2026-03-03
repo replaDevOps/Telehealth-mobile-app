@@ -499,6 +499,7 @@ function RoyaltyPointsSection({
   const appliedCoins = Math.max(0, Math.floor(Number(pointsToRedeem) || 0));
   const appliedRedemptionAmount = coinToSar ? appliedCoins * coinToSar : 0;
   const maxRedeemableCoins = coinToSar && maxRedemptionSAR ? Math.floor(maxRedemptionSAR / coinToSar) : 0;
+  console.log('coinToSar', coinToSar);
   return (
     <View style={styles.royaltySection}>
       <View style={styles.royaltyHeader}>
@@ -510,8 +511,8 @@ function RoyaltyPointsSection({
           </View>
           <Text style={styles.conversionRate}>
             {coinToSar && coinToSar > 0
-              ? `10 ${t('coins')} = ${(coinToSar * 10).toFixed(2)} SAR`
-              : `100 ${t('coins')} = 5 SAR`}
+              ? `10 ${t('coins')} = SAR ${(coinToSar * 10).toFixed(2)}`
+              : `100 ${t('coins')} = SAR 5`}
           </Text>
         </View>
       </View>
@@ -532,7 +533,7 @@ function RoyaltyPointsSection({
         </Text> */}
         {appliedCoins > 0 && (
           <Text style={[styles.royaltySubtext, { marginTop: 6 }] }>
-            {`${t('redemption')} ${appliedRedemptionAmount.toFixed(2)} SAR (${appliedCoins} ${t('loyaltyPoints')})  |  ${t('remaining_amount')} ${maxRedemptionSAR?.toFixed(2) || '0.00'} SAR (${maxRedeemableCoins} ${t('loyaltyPoints')})`}
+            {`${t('redemption')} ${appliedRedemptionAmount.toFixed(2)} SAR (${appliedCoins} ${t('loyaltyPoints')})  |  ${t('remaining_amount')} ${Math.max(0, (maxRedemptionSAR ?? 0) - appliedRedemptionAmount).toFixed(2)} SAR (${Math.max(0, maxRedeemableCoins - appliedCoins)} ${t('loyaltyPoints')})`}
           </Text>
         )}
       </View>

@@ -340,9 +340,9 @@ export function CardDetails({ navigation }: { navigation: any }) {
               const formattedPriceRefund = priceValueRefund ? `SAR ${parseFloat(priceValueRefund).toFixed(2)}` : 'SAR 0.00';
 
               const appointmentLocationPartsRefund = [
-                clinicDetailsRefund.address,
-                translateCityToEnglish(clinicDetailsRefund.city),
-                translateCityToEnglish(clinicDetailsRefund.district),
+                clinicDetailsRefund.address
+                // translateCityToEnglish(clinicDetailsRefund.city),
+                // translateCityToEnglish(clinicDetailsRefund.district),
               ].filter(Boolean);
               const appointmentClinicLocationRefund = appointmentLocationPartsRefund.length > 0
                 ? appointmentLocationPartsRefund.join(', ')
@@ -359,8 +359,8 @@ export function CardDetails({ navigation }: { navigation: any }) {
               setDisplayData({
                 clinicName: clinicDataRefund.clinicName || clinicDetailsRefund.businessName || clinicDataRefund.name || '',
                 clinicLocation: appointmentClinicLocationRefund,
-                status: refundServicePayload?.status || transactionData.status || appointmentData.status || '',
-                statusColor: (refundServicePayload?.status === 'Paid' || refundServicePayload?.status === 'Completed') ? colors.green : colors.red,
+                status: txn?.status || transactionData.status || refundServicePayload?.status || appointmentData.status || '',
+                statusColor: (txn?.status === 'Paid' || txn?.status === 'Completed' || transactionData.status === 'Paid' || transactionData.status === 'Completed') ? colors.green : colors.red,
                 dateTime: formattedDateTimeRefund,
                 price: formattedPriceRefund,
                 image: clinicDataRefund.image || clinicDetailsRefund.coverImage || clinicDetailsRefund.logo ? { uri: clinicDataRefund.image || clinicDetailsRefund.coverImage || clinicDetailsRefund.logo } : RecommandImage,
@@ -989,7 +989,6 @@ export function CardDetails({ navigation }: { navigation: any }) {
       </SafeAreaView>
     );
   }
-
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
       <StatusBar barStyle="dark-content" />
@@ -1065,7 +1064,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
                   </View>
                 </View>
                 <View style={{ justifyContent: 'space-between', alignItems: 'flex-end', width: 110, paddingLeft: 8 }}>
-                  <Text style={styles.servicePrice}>{service.price} SAR</Text>
+                  <Text style={styles.servicePrice}>SAR {service.price}</Text>
                   {(() => {
                     const isRefund = typeof (service.status || '') === 'string' && /refund/i.test(service.status || '');
                     const displayStatus = isRefund ? ((service.status + " " + service.refundStatus)) : service.status;
@@ -1129,9 +1128,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
                 <Text style={styles.detailLabel}>{t('status')}</Text>
                 <Text style={styles.detailValue}>
                   <Text style={{ color: displayData.statusColor || colors.black }}>{displayData.status}</Text>
-                  {displayData.refundStatus ? (
-                    <Text style={{ color: displayData.refundStatusColor || '#6b7280' }}>{` ${displayData.refundStatus}`}</Text>
-                  ) : null}
+                 
                 </Text>
               </View>
 

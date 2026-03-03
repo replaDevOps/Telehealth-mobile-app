@@ -475,14 +475,14 @@ export function CheckoutScreen({ route, navigation }) {
 
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>{t('subtotal')}</Text>
-            <Text style={styles.summaryValue}>{subtotal.toFixed(2)} SAR</Text>
+            <Text style={styles.summaryValue}>SAR {subtotal.toFixed(2)}</Text>
           </View>
 
           <View style={styles.summaryRow}>
             {TAX_RATE > 0 && (
               <>
                 <Text style={styles.summaryLabel}>{t('tax')}</Text>
-                <Text style={styles.summaryValue}>{tax.toFixed(2)} SAR</Text>
+                <Text style={styles.summaryValue}>SAR {tax.toFixed(2)}</Text>
               </>
             )}
           </View>
@@ -516,7 +516,7 @@ export function CheckoutScreen({ route, navigation }) {
             {t('total_amount') || 'Total Amount'}{' '}
             <Text style={styles.inclTaxText}>({t('incl_tax') || 'incl tax'})</Text>
           </Text>
-          <Text style={styles.totalAmountValue}>{total.toFixed(2)} SAR</Text>
+          <Text style={styles.totalAmountValue}>SAR {total.toFixed(2)}</Text>
         </View>
 
         {(discountAmount > 0 || appliedRedemptionAmount > 0) && (
@@ -526,7 +526,7 @@ export function CheckoutScreen({ route, navigation }) {
                 {t('appointment_summary') || 'Appointment Summary'}
               </Text> */}
             </TouchableOpacity>
-            <Text style={styles.originalSubtotal}>{(subtotal + tax).toFixed(2)} SAR</Text>
+            <Text style={styles.originalSubtotal}>SAR {(subtotal + tax).toFixed(2)}</Text>
           </View>
         )}
 

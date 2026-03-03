@@ -315,7 +315,8 @@ export const styles = StyleSheet.create({
     //   right:20
     },
     statusInfo: {
-      alignItems: 'flex-end',
+      flex: 1,
+      alignItems: 'center',
     },
     noDoctorSection: {
       flexDirection: 'row',

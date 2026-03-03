@@ -1007,7 +1007,7 @@ export function ChatScreen({ navigation, route }) {
 
   const insets = useSafeAreaInsets();
   const inputPadding = {
-    paddingBottom: insets.bottom+20,
+    paddingBottom: insets.bottom-10,
     paddingLeft: 4,
     paddingRight: 4,
   };

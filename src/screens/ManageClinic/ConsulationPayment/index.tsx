@@ -53,7 +53,7 @@ export function ConsultationPayment({ navigation, route }) {
     consultationType: 'Chat',
     consultationTypeId: 'chat',
     duration: '30 Min',
-    price: '20 SAR',
+    price: 'SAR 20',
     serviceType: 'Derma',
     serviceGroup: 'Diagnostics',
     service: 'Impacted Surgical Exposure - Difficult',

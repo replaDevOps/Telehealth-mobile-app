@@ -101,30 +101,30 @@ export default function ConsultDoctorBottomSheet({
       cards.push({
         id: 'chat',
         name: t('chat_consultation'),
-        price: `${data.chatConsultationPrice} SAR`,
+        price: `SAR ${data.chatConsultationPrice} `,
       Icon: ChatSvg,
       });
     }
 
    
 
-    if (data.voiceConsultation) {
-      cards.push({
-        id: 'voice',
-        name: t('audio_consultation'),
-        price: `${data.voiceConsultationPrice} SAR`,
-      Icon: AudioSvg,
-      });
-    }
+    // if (data.voiceConsultation) {
+    //   cards.push({
+    //     id: 'voice',
+    //     name: t('audio_consultation'),
+    //     price: `${data.voiceConsultationPrice} SAR`,
+    //   Icon: AudioSvg,
+    //   });
+    // }
     
-     if (data.videoConsultation) {
-      cards.push({
-        id: 'video',
-        name: t('video_consultation'),
-        price: `${data.videoConsultationPrice} SAR`,
-        Icon: VedioSvg,
-      });
-    }
+    //  if (data.videoConsultation) {
+    //   cards.push({
+    //     id: 'video',
+    //     name: t('video_consultation'),
+    //     price: `${data.videoConsultationPrice} SAR`,
+    //     Icon: VedioSvg,
+    //   });
+    // }
 
     return cards;
   };
@@ -218,6 +218,7 @@ export default function ConsultDoctorBottomSheet({
       const data = response.data?.data || response.data;
       if (data) {
         const cards = mapConsultationTypesToCards(data);
+
         setConsultationTypeCards(cards);
         // Auto-select first consultation type if available
         if (cards.length > 0 && !selectedConsultation) {
@@ -429,9 +430,9 @@ export default function ConsultDoctorBottomSheet({
       
       // Format total price (from API) - this is the final price to pay
       const totalPrice = apiData?.totalPrice 
-        ? `${apiData.consultationPrice} SAR` 
+        ? `SAR ${apiData.consultationPrice}` 
         : apiData?.consultationPrice 
-        ? `${apiData.consultationPrice} SAR`
+        ? `SAR ${apiData.consultationPrice}`
         : selectedCard.price;
       
       // Prepare navigation params with proper mapping

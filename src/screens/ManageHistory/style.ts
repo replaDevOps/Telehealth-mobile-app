@@ -236,13 +236,13 @@ export const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 10,
     borderRadius: 8,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.white,
     alignItems: 'center',
   },
   viewChatButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.white,
+    color: colors.black,
   },
   paymentServiceHeader: {
     backgroundColor: colors.lightGray,

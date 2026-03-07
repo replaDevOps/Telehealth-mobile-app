@@ -311,8 +311,8 @@ export function CardDetails({ navigation }: { navigation: any }) {
             // Some refund endpoints return the refunded item under `service` (see sample payloads)
             const refundServicePayload = finalData.service || finalData.services || null;
             if (refundServicePayload) {
-                // Capture refund reason from payload if provided (some endpoints put actual reason here)
-                setRefundReason(refundServicePayload?.reason || svc?.reason || params.reason);
+              // Capture refund reason from payload if provided (some endpoints put actual reason here)
+              setRefundReason(refundServicePayload?.reason || svc?.reason || params.reason);
               const svc = refundServicePayload.service || refundServicePayload;
               const mappedServicesRefund = [
                 {
@@ -512,7 +512,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
               : RecommandImage,
             consultationType: consultationData.type || consultationData.consultationType,
             duration: formattedDuration || consultationData.duration || '',
-            doctorName: doctorData.name || '',
+            doctorName: doctorData.name ? t('customer_support') : t('no_agent_accepted'),
             doctorAvatar: doctorData.image || undefined,
             serviceName: capitalizeWords(serviceData.name || ''),
             servicePrice: formattedServicePrice,
@@ -935,7 +935,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
   // Prefer the `status` passed via navigation params (history card) as the authoritative main status.
   const mainStatus = (params.status || displayData.status || paymentDetails?.appointment?.status || paymentDetails?.transactions?.status || '').toString();
   // Default behavior: disable when main status explicitly indicates 'Booked'
-  let disableRefundButton =false;
+  let disableRefundButton = false;
 
   // If we have service-level statuses, prefer those: disable only when ALL services are either booked or related to refund
   try {
@@ -947,7 +947,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
         const combined = `${status} ${refundStatus}`.toLowerCase();
         // const isBooked = /booked/i.test(combined);
         const isRefundRelated = /(refund|refunded|processing|confirm|request)/i.test(combined);
-        return  isRefundRelated;
+        return isRefundRelated;
       });
       disableRefundButton = allServicesBookedOrRefund;
     }
@@ -1128,7 +1128,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
                 <Text style={styles.detailLabel}>{t('status')}</Text>
                 <Text style={styles.detailValue}>
                   <Text style={{ color: displayData.statusColor || colors.black }}>{displayData.status}</Text>
-                 
+
                 </Text>
               </View>
 

@@ -102,11 +102,11 @@ export default function ConsultDoctorBottomSheet({
         id: 'chat',
         name: t('chat_consultation'),
         price: `SAR ${data.chatConsultationPrice} `,
-      Icon: ChatSvg,
+        Icon: ChatSvg,
       });
     }
 
-   
+
 
     // if (data.voiceConsultation) {
     //   cards.push({
@@ -116,7 +116,7 @@ export default function ConsultDoctorBottomSheet({
     //   Icon: AudioSvg,
     //   });
     // }
-    
+
     //  if (data.videoConsultation) {
     //   cards.push({
     //     id: 'video',
@@ -346,26 +346,26 @@ export default function ConsultDoctorBottomSheet({
     const consultationType = consultationTypeMap[selectedCard.id] || 'Chat';
 
     // Before searching for doctors, ensure profile is complete
-      try {
-        setCheckingProfile(true);
-        const result = await checkProfile();
-        console.log('Check profile result:', result);
-        if (!result.ok) {
-          const msg = result.message || t('please_complete_profile') || 'Please complete your profile before finding a doctor';
-          Toast.error(msg);
-          try {
-            const { navigateToProfileSetting } = require('@navigation/root-navigation');
-            navigateToProfileSetting();
-          } catch (e) {
-            navigation.navigate('Setting', { screen: 'ProfileSetting' });
-          }
-          return;
+    try {
+      setCheckingProfile(true);
+      const result = await checkProfile();
+      console.log('Check profile result:', result);
+      if (!result.ok) {
+        const msg = result.message || t('please_complete_profile') || 'Please complete your profile before finding customer support';
+        Toast.error(msg);
+        try {
+          const { navigateToProfileSetting } = require('@navigation/root-navigation');
+          navigateToProfileSetting();
+        } catch (e) {
+          navigation.navigate('Setting', { screen: 'ProfileSetting' });
         }
-      } catch (e) {
-        console.warn('checkProfile helper failed:', e);
-      } finally {
-        setCheckingProfile(false);
+        return;
       }
+    } catch (e) {
+      console.warn('checkProfile helper failed:', e);
+    } finally {
+      setCheckingProfile(false);
+    }
 
     // Show loading state
     setIsLoading(true);
@@ -379,14 +379,14 @@ export default function ConsultDoctorBottomSheet({
         serviceType: serviceType,
       };
 
-      console.log('Finding doctors with payload:', payload);
+      console.log('Finding customer support with payload:', payload);
 
       // Call findDoctors API
       const response = await apiClient.post(API.CONSULTATIONS.FIND_DOCTORS, payload);
-      console.log('Find doctors response:', response.data);
+      console.log('Find customer support response:', response.data);
       // Check for success: false in response
       if (response.data?.success === false) {
-        const errorMessage = response.data?.message || 'Failed to find doctors';
+        const errorMessage = response.data?.message || 'Failed to find customer support';
         Toast.error(errorMessage);
         setIsLoading(false);
         return;
@@ -397,7 +397,7 @@ export default function ConsultDoctorBottomSheet({
       const apiData = response.data?.data || response.data;
       console.log('Extracted API data:', apiData);
       setIsLoading(false);
-      
+
       // Map API response to navigation params
       // API response structure:
       // {
@@ -412,29 +412,29 @@ export default function ConsultDoctorBottomSheet({
       //   serviceType: "Dermatology",
       //   totalPrice: 334
       // }
-      
+
       // Map consultation type from API to consultationTypeId
       const consultationTypeMap: Record<string, 'chat' | 'audio' | 'video'> = {
         'Chat': 'chat',
         'Video': 'video',
         'Voice': 'audio',
       };
-      
-      const consultationTypeId = consultationTypeMap[apiData?.consultationType] || 
+
+      const consultationTypeId = consultationTypeMap[apiData?.consultationType] ||
         (selectedCard.id === 'voice' ? 'audio' : selectedCard.id);
-      
+
       // Format duration (convert number to string with "min")
-      const duration = apiData?.duration 
-        ? `${apiData.duration} min` 
+      const duration = apiData?.duration
+        ? `${apiData.duration} min`
         : '30 min';
-      
+
       // Format total price (from API) - this is the final price to pay
-      const totalPrice = apiData?.totalPrice 
-        ? `SAR ${apiData.consultationPrice}` 
-        : apiData?.consultationPrice 
+      const totalPrice = apiData?.totalPrice
         ? `SAR ${apiData.consultationPrice}`
-        : selectedCard.price;
-      
+        : apiData?.consultationPrice
+          ? `SAR ${apiData.consultationPrice}`
+          : selectedCard.price;
+
       // Prepare navigation params with proper mapping
       const navigationParams = {
         consultationType: apiData?.consultationType || selectedCard.name,
@@ -451,17 +451,17 @@ export default function ConsultDoctorBottomSheet({
         servicePrice: apiData?.servicePrice,
         serviceID: apiData?.serviceID,
       };
-      
+
       console.log('Navigation params:', navigationParams);
-      
+
       navigation.navigate('ConsultationPayment', navigationParams);
       onClose();
     } catch (error: any) {
       console.error('Error finding doctors:', error);
-      const errorMessage = 
-        error?.response?.data?.message || 
+      const errorMessage =
+        error?.response?.data?.message ||
         error?.data?.message ||
-        error?.message || 
+        error?.message ||
         'Failed to find doctors';
       Toast.error(errorMessage);
       setIsLoading(false);
@@ -503,7 +503,7 @@ export default function ConsultDoctorBottomSheet({
 
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.header}>
-                <Text style={styles.title}>{t('consult_with_a_doctor')}</Text>
+                <Text style={styles.title}>{t('consult_with_support')}</Text>
                 <Text style={styles.subtitle}>
                   {t('choose_how_to_connect')}
                 </Text>
@@ -577,63 +577,63 @@ export default function ConsultDoctorBottomSheet({
                   consultationTypeCards.map(card => {
                     const isSelected = selectedConsultation === card.id;
                     const Icon = card.Icon;
-                    
+
                     // Disable audio/video options if permissions not granted
-                    const isDisabled = 
+                    const isDisabled =
                       (card.id === 'voice' && !hasAudioPermission) ||
                       (card.id === 'video' && !hasVideoPermission);
 
-                  return (
-                    <TouchableOpacity
+                    return (
+                      <TouchableOpacity
                         key={card.id}
-                      style={[
-                        styles.consultationCard,
-                        isSelected && styles.consultationCardSelected,
-                        isDisabled && styles.consultationCardDisabled,
-                      ]}
-                      onPress={() => {
-                        if (isDisabled) {
-                          Toast.error(
-                            card.id === 'voice'
-                              ? t('microphone_permission_required') || 'Microphone permission required for audio consultation'
-                              : t('camera_microphone_permission_required') || 'Camera and microphone permissions required for video consultation'
-                          );
-                        } else {
-                          setSelectedConsultation(card.id);
-                        }
-                      }}
-                      disabled={isDisabled}
-                    >
-                      <View style={styles.consultationLeft}>
-                        <View style={[styles.iconContainer, isDisabled && styles.iconContainerDisabled]}>
-                          <Icon width={24} height={24} />
-                        </View>
+                        style={[
+                          styles.consultationCard,
+                          isSelected && styles.consultationCardSelected,
+                          isDisabled && styles.consultationCardDisabled,
+                        ]}
+                        onPress={() => {
+                          if (isDisabled) {
+                            Toast.error(
+                              card.id === 'voice'
+                                ? t('microphone_permission_required') || 'Microphone permission required for audio consultation'
+                                : t('camera_microphone_permission_required') || 'Camera and microphone permissions required for video consultation'
+                            );
+                          } else {
+                            setSelectedConsultation(card.id);
+                          }
+                        }}
+                        disabled={isDisabled}
+                      >
+                        <View style={styles.consultationLeft}>
+                          <View style={[styles.iconContainer, isDisabled && styles.iconContainerDisabled]}>
+                            <Icon width={24} height={24} />
+                          </View>
 
-                        <View style={styles.consultationInfo}>
-                          <Text style={[styles.consultationTitle, isDisabled && styles.consultationTitleDisabled]}>
+                          <View style={styles.consultationInfo}>
+                            <Text style={[styles.consultationTitle, isDisabled && styles.consultationTitleDisabled]}>
                               {card.name}
-                          </Text>
-                          <View style={styles.durationContainer}>
-                            <Ionicons name="time-outline" size={20} color={isDisabled ? '#ccc' : colors.text} />
+                            </Text>
+                            <View style={styles.durationContainer}>
+                              <Ionicons name="time-outline" size={20} color={isDisabled ? '#ccc' : colors.text} />
                               <Text style={[styles.duration, isDisabled && styles.durationDisabled]}>
                                 30 min
                               </Text>
+                            </View>
                           </View>
                         </View>
-                      </View>
 
-                      <Text style={[styles.consultationPrice, isDisabled && styles.consultationPriceDisabled]}>
+                        {/* <Text style={[styles.consultationPrice, isDisabled && styles.consultationPriceDisabled]}>
                           {card.price}
-                      </Text>
-                    </TouchableOpacity>
-                  );
+                        </Text> */}
+                      </TouchableOpacity>
+                    );
                   })
                 )}
               </View>
 
               <CustomButton
                 onPress={handleFindDoctor}
-                title={(isLoading || checkingProfile) ? t('finding') : t('find_doctor')}
+                title={(isLoading || checkingProfile) ? t('searching_for_support') : t('find_support')}
                 loading={isLoading || checkingProfile}
                 disabled={isLoading || checkingProfile || !selectedConsultation}
               />

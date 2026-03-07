@@ -15,9 +15,9 @@ export const ServiceStatusRow: React.FC<ServiceStatusRowProps> = ({ item }) => {
 
   const serviceValue = isConsultation ? item.serviceName : item.numberOfService;
   const serviceLabel = isConsultation ? t('service') : t('number_of_service');
-  const hasRefundServices = !isConsultation && item.kind === 'appointment' && 
-    item.refundServiceCount && item.refundServiceCount > 0;
-  const displayStatus = item.kind === 'appointment' ? item.paymentStatus : item.status;
+  const hasRefundServices = !!(!isConsultation && item.kind === 'appointment' &&
+    item.refundServiceCount && item.refundServiceCount > 0);
+  const displayStatus = item.kind === 'appointment' ? (item as any).paymentStatus || item.status : item.status;
 
   return (
     <>

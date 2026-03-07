@@ -43,7 +43,7 @@ export const ConsultationCard: React.FC<ConsultationCardProps> = ({
           <Text style={styles.serviceName}>{item.serviceName}</Text>
           <View style={styles.serviceDetails}>
             {item.duration && <><Ionicons name="time-outline" size={14} color={colors.white} />
-            <Text style={styles.durationText}>{item.duration}</Text></>}
+              <Text style={styles.durationText}>{item.duration}</Text></>}
             <Ionicons name={item.icon as any} size={14} color={colors.white} />
             <Text style={styles.typeText}>{t(item.type)}</Text>
           </View>
@@ -59,7 +59,7 @@ export const ConsultationCard: React.FC<ConsultationCardProps> = ({
             <Text style={styles.doctorName}>{item.doctorName}</Text>
             <Text style={styles.clinicName}>{item.clinicName}</Text>
           </View>
-          <Text style={styles.price}>{"SAR "+item.price}</Text>
+          {/* <Text style={styles.price}>{"SAR " + item.price}</Text> */}
         </View>
 
         {/* Actions */}

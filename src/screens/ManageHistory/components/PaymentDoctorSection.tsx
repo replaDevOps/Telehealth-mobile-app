@@ -35,7 +35,7 @@ export const PaymentDoctorSection: React.FC<PaymentDoctorSectionProps> = ({
         </View>
         <View style={styles.noDoctorInfo}>
           <Text style={styles.noDoctorText}>
-            {t('no_doctor_accepted') || 'No doctor accepted!'}
+            {t('no_agent_accepted')}
           </Text>
           <Text style={styles.clinicName}>{item.clinicName}</Text>
         </View>
@@ -44,13 +44,21 @@ export const PaymentDoctorSection: React.FC<PaymentDoctorSectionProps> = ({
   }
 
   // Consultation with doctor assigned
-  if (item.kind === 'consultation' && item.doctorAvatar) {
+  if (item.kind === 'consultation' && item.doctorName) {
     return (
       <View style={styles.paymentDoctorSection}>
-        <Image
-          source={{ uri: item.doctorAvatar }}
-          style={styles.doctorAvatar}
-        />
+        {item.doctorAvatar ? (
+          <Image
+            source={{ uri: item.doctorAvatar }}
+            style={styles.doctorAvatar}
+          />
+        ) : (
+          <View style={[styles.doctorAvatar, { backgroundColor: '#f3f4f6', justifyContent: 'center', alignItems: 'center' }]}>
+            <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#6b7280' }}>
+              {item.doctorName.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+        )}
         <View style={styles.doctorInfo}>
           <Text style={styles.doctorName}>{item.doctorName}</Text>
           <Text style={styles.clinicName}>{item.clinicName}</Text>

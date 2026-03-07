@@ -37,7 +37,7 @@ export function HistoryScreen({ navigation }) {
   const [activeTab, setActiveTab] = useState<Tab>('consultation');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<PaymentKind | ''>(
-    'consultation',
+    'appointment',
   );
   const [consultations, setConsultations] = useState<ConsultationItem[]>([]);
   const [loadingConsultations, setLoadingConsultations] = useState(false);
@@ -123,7 +123,7 @@ export function HistoryScreen({ navigation }) {
             duration: consultation.duration || '',
             type: consultationType.type,
             icon: consultationType.icon,
-            doctorName: doctorData.name || consultation.doctorName || 'No Doctor Accepted',
+            doctorName: doctorData.name ? t('customer_support') : t('no_agent_accepted'),
             doctorAvatar: doctorData.image || consultation.doctorAvatar || '',
             clinicName: normalizedClinicInfo.clinicName || '',
             price: consultation.price || '0',
@@ -249,7 +249,7 @@ export function HistoryScreen({ navigation }) {
               duration: payment.duration || '',
               serviceName: capitalizeWords(payment.serviceName || serviceData.name || ''),
               doctorStatus: payment.doctorStatus || payment.status,
-              doctorName: payment.doctorName || doctorData.name || '',
+              doctorName: doctorData.name ? t('customer_support') : t('no_agent_accepted'),
               doctorAvatar: payment.doctorAvatar || doctorData.image || '',
               clinicName: payment.clinicName || clinicData.clinicName || clinicData.name || '',
               clinicLocation: payment.clinicLocation || clinicData.location || '',
@@ -283,11 +283,11 @@ export function HistoryScreen({ navigation }) {
             const refundServices = payment.refundServices || [];
             let refundStatus = '';
             let refundStatusColor = colors.secondaryText;
-            
+
             if (refundServices.length > 0) {
               // Check if any service has "Pending" status
               const hasPending = refundServices.some((rs: any) => rs.status === 'Pending');
-              
+
               if (hasPending) {
                 refundStatus = 'Pending';
                 refundStatusColor = colors.yellow;
@@ -295,7 +295,7 @@ export function HistoryScreen({ navigation }) {
                 // Check if all have the same status
                 const statuses = refundServices.map((rs: any) => rs.status);
                 const uniqueStatuses = [...new Set(statuses)];
-                
+
                 if (uniqueStatuses.length === 1) {
                   refundStatus = uniqueStatuses[0];
                   // Set color based on status
@@ -316,7 +316,7 @@ export function HistoryScreen({ navigation }) {
             return {
               id: String(payment.id || payment.paymentId || Date.now()),
               kind: 'appointment' as const,
-              date:  payment.created_at || payment.requestDate || '',
+              date: payment.created_at || payment.requestDate || '',
               paymentId: String(payment.paymentId || payment.id || ''),
               paymentStatus: payment.transaction.status || '',
               clinicImg: !!clinicLogo || !!clinicData.image,
@@ -326,7 +326,7 @@ export function HistoryScreen({ navigation }) {
               numberOfService: String(appointmentServices.length || services.length || payment.serviceCount || 0),
               price: payment.transaction?.amount || payment.price || payment.amount || '0',
               status: payment.status || 'Completed',
-              statusColor:  payment.transaction.status === 'Paid'||payment.status === 'Completed' || payment.status === 'Success'
+              statusColor: payment.transaction.status === 'Paid' || payment.status === 'Completed' || payment.status === 'Success'
                 ? colors.green
                 : payment.status === 'Pending'
                   ? colors.yellow
@@ -550,7 +550,7 @@ export function HistoryScreen({ navigation }) {
         <>
           {activeTab === 'payment' && (
             <View style={styles.content}>
-              <CustomDropdown
+              {/* <CustomDropdown
                 label={t('type')}
                 placeholder={t('select_type_here')}
                 value={selectedType}
@@ -563,7 +563,7 @@ export function HistoryScreen({ navigation }) {
                   ...option,
                   label: t(option.label.toLowerCase()),
                 }))}
-              />
+              /> */}
 
               <FlatList
                 data={payments}
@@ -595,7 +595,7 @@ export function HistoryScreen({ navigation }) {
                   )
                 }
                 ListFooterComponent={
-                  loadingMorePayments ? (
+                  loadingMorePayments && payments.length > 0 ? (
                     <View style={{ paddingVertical: 20 }}>
                       <ActivityIndicator size="small" color={colors.primary} />
                     </View>

@@ -168,7 +168,7 @@ export const usePusherNotifications = () => {
                     recipientID: doctorData?.id || consultation?.doctorID,
                     doctorInfo: {
                       id: String(doctorData?.id || consultation?.doctorID || ''),
-                      name: 'Customer Support',
+                      name: doctorData?.name || 'Doctor',
                       avatar: doctorData?.image ? { uri: doctorData.image } : 'https://i.pravatar.cc/150?img=12',
                       specialization: doctorData?.specialization,
                     },
@@ -190,7 +190,7 @@ export const usePusherNotifications = () => {
                   isInitiator: true,
                   doctorInfo: {
                     id: String(doctorData?.id || consultation?.doctorID || ''),
-                    name: 'Customer Support',
+                    name: doctorData?.name || 'Doctor',
                   },
                 });
 
@@ -202,7 +202,7 @@ export const usePusherNotifications = () => {
                     isInitiator: true, // Patient initiates the call
                     doctorInfo: {
                       id: String(doctorData?.id || consultation?.doctorID || ''),
-                      name: 'Customer Support',
+                      name: doctorData?.name || 'Doctor',
                       avatar: doctorData?.image ? { uri: doctorData.image } : 'https://i.pravatar.cc/150?img=12',
                       specialization: doctorData?.specialization,
                     },
@@ -219,7 +219,7 @@ export const usePusherNotifications = () => {
                   isInitiator: true,
                   doctorInfo: {
                     id: String(doctorData?.id || consultation?.doctorID || ''),
-                    name: 'Customer Support',
+                    name: doctorData?.name || 'Doctor',
                   },
                 });
 
@@ -231,7 +231,7 @@ export const usePusherNotifications = () => {
                     isInitiator: true, // Patient initiates the call
                     doctorInfo: {
                       id: String(doctorData?.id || consultation?.doctorID || ''),
-                      name: 'Customer Support',
+                      name: doctorData?.name || 'Doctor',
                       avatar: doctorData?.image ? { uri: doctorData.image } : 'https://i.pravatar.cc/150?img=12',
                       specialization: doctorData?.specialization,
                     },
@@ -249,7 +249,7 @@ export const usePusherNotifications = () => {
                   recipientID: doctorData?.id || consultation?.doctorID,
                   doctorInfo: {
                     id: String(doctorData?.id || consultation?.doctorID || ''),
-                    name: 'Customer Support',
+                    name: doctorData?.name || 'Doctor',
                     avatar: doctorData?.image ? { uri: doctorData.image } : 'https://i.pravatar.cc/150?img=12',
                     specialization: doctorData?.specialization,
                   },

@@ -11,7 +11,6 @@ import { API } from '@services/api/api-endpoint';
 import { ClinicApiResponse } from '../../../types/clinic.types';
 import { Toast } from 'toastify-react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { ClinicProfile } from '@assets/images';
 import ClinicAvatar from '@components/common/ClinicAvatar';
 import { showLocationSettingsAlert, handleLocationError } from '../../../utils/locationUtils';
 
@@ -70,7 +69,7 @@ export const NearbyClinics = ({ navigation }: any) => {
   useEffect(() => {
     // Add a small delay to ensure the component is fully mounted and attached to Activity
     const timer = setTimeout(() => {
-    requestLocationPermission();
+      requestLocationPermission();
     }, 100);
 
     return () => clearTimeout(timer);
@@ -100,7 +99,7 @@ export const NearbyClinics = ({ navigation }: any) => {
             buttonPositive: 'OK',
           }
         );
-        
+
         if (granted === PermissionsAndroid.RESULTS.GRANTED) {
           getCurrentLocation();
         } else {
@@ -122,8 +121,8 @@ export const NearbyClinics = ({ navigation }: any) => {
     } else {
       // iOS
       try {
-      Geolocation.requestAuthorization();
-      getCurrentLocation();
+        Geolocation.requestAuthorization();
+        getCurrentLocation();
       } catch (err) {
         console.warn('iOS location error:', err);
         setLocationLoading(false);
@@ -136,11 +135,11 @@ export const NearbyClinics = ({ navigation }: any) => {
     Geolocation.getCurrentPosition(
       position => {
         const { latitude, longitude } = position.coords;
-        
+
         // Ensure coordinates are numbers
         const lat = typeof latitude === 'string' ? parseFloat(latitude) : Number(latitude);
         const lng = typeof longitude === 'string' ? parseFloat(longitude) : Number(longitude);
-        
+
         // Validate coordinates
         if (isNaN(lat) || isNaN(lng)) {
           setLocationLoading(false);
@@ -148,7 +147,7 @@ export const NearbyClinics = ({ navigation }: any) => {
           Toast.error('Invalid location coordinates');
           return;
         }
-        
+
         const newRegion = {
           latitude: lat,
           longitude: lng,
@@ -179,7 +178,7 @@ export const NearbyClinics = ({ navigation }: any) => {
     setClinics([]);
     setSelectedClinic(null);
     setSelectedPoint(null);
-    
+
     try {
       setLoading(true);
       const response = await apiClient.get(API.CLINIC.GET_CLINICS, {
@@ -189,6 +188,7 @@ export const NearbyClinics = ({ navigation }: any) => {
           long: long.toString(),
           pageNo: pageNo,
           recordsPerPage: recordsPerPage,
+          sendFrom: 'map',
         },
       });
 
@@ -214,16 +214,16 @@ export const NearbyClinics = ({ navigation }: any) => {
   // Add small offset to markers at the same location to prevent overlap
   const getOffsetCoordinates = useCallback((clinic: ClinicApiResponse) => {
     if (!clinic.details?.lat || !clinic.details?.long) return null;
-    
-    let lat = typeof clinic.details.lat === 'string' 
-      ? parseFloat(clinic.details.lat) 
+
+    let lat = typeof clinic.details.lat === 'string'
+      ? parseFloat(clinic.details.lat)
       : Number(clinic.details.lat);
-    let lng = typeof clinic.details.long === 'string' 
-      ? parseFloat(clinic.details.long) 
+    let lng = typeof clinic.details.long === 'string'
+      ? parseFloat(clinic.details.long)
       : Number(clinic.details.long);
-    
+
     if (isNaN(lat) || isNaN(lng)) return null;
-    
+
     // Check for other clinics at the same location and apply offset
     const sameLocationClinics = clinics.filter((c) => {
       if (!c.details?.lat || !c.details?.long) return false;
@@ -232,7 +232,7 @@ export const NearbyClinics = ({ navigation }: any) => {
       // Consider same location if within 0.0001 degrees (~11 meters)
       return Math.abs(cLat - lat) < 0.0001 && Math.abs(cLng - lng) < 0.0001;
     });
-    
+
     if (sameLocationClinics.length > 1) {
       const myIndex = sameLocationClinics.findIndex(c => c.clinicID === clinic.clinicID);
       if (myIndex > 0) {
@@ -243,23 +243,23 @@ export const NearbyClinics = ({ navigation }: any) => {
         lng += offsetAmount * Math.sin(angle);
       }
     }
-    
+
     return { latitude: lat, longitude: lng };
   }, [clinics]);
 
   const handleMarkerPress = (clinic: ClinicApiResponse) => {
     setSelectedClinic(clinic);
     updateSelectedPoint(clinic);
-    
+
     // Animate to the marker
     if (clinic.details?.lat && clinic.details?.long && mapRef.current) {
-      const lat = typeof clinic.details.lat === 'string' 
-        ? parseFloat(clinic.details.lat) 
+      const lat = typeof clinic.details.lat === 'string'
+        ? parseFloat(clinic.details.lat)
         : Number(clinic.details.lat);
-      const lng = typeof clinic.details.long === 'string' 
-        ? parseFloat(clinic.details.long) 
+      const lng = typeof clinic.details.long === 'string'
+        ? parseFloat(clinic.details.long)
         : Number(clinic.details.long);
-      
+
       mapRef.current.animateToRegion({
         latitude: lat,
         longitude: lng,
@@ -271,9 +271,9 @@ export const NearbyClinics = ({ navigation }: any) => {
 
   const handleCardPress = () => {
     if (selectedClinic) {
-      navigation.navigate('ClinicDetail', { 
-        clinic: selectedClinic, 
-        clinicID: selectedClinic.clinicID 
+      navigation.navigate('ClinicDetail', {
+        clinic: selectedClinic,
+        clinicID: selectedClinic.clinicID
       });
     }
   };
@@ -307,82 +307,82 @@ export const NearbyClinics = ({ navigation }: any) => {
           <Text style={styles.loadingText}>
             {locationLoading ? 'Getting your location...' : 'Loading clinics...'}
           </Text>
-      </View>
+        </View>
       ) : (
         <View style={{ flex: 1 }}>
-        <MapView
+          <MapView
             ref={mapRef}
-          provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
-          style={styles.map}
-          region={region}
-          onRegionChangeComplete={(newRegion) => {
-            // Ensure all region coordinates are numbers
-            setRegion({
-              latitude: Number(newRegion.latitude),
-              longitude: Number(newRegion.longitude),
-              latitudeDelta: Number(newRegion.latitudeDelta),
-              longitudeDelta: Number(newRegion.longitudeDelta),
-            });
+            provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
+            style={styles.map}
+            region={region}
+            onRegionChangeComplete={(newRegion) => {
+              // Ensure all region coordinates are numbers
+              setRegion({
+                latitude: Number(newRegion.latitude),
+                longitude: Number(newRegion.longitude),
+                latitudeDelta: Number(newRegion.latitudeDelta),
+                longitudeDelta: Number(newRegion.longitudeDelta),
+              });
 
-            // Keep card anchored while panning/zooming
-            if (selectedClinic) {
-              updateSelectedPoint(selectedClinic);
-            }
-          }}
-          showsUserLocation={true}
-          showsMyLocationButton={true}
-          toolbarEnabled={false}
+              // Keep card anchored while panning/zooming
+              if (selectedClinic) {
+                updateSelectedPoint(selectedClinic);
+              }
+            }}
+            showsUserLocation={true}
+            showsMyLocationButton={true}
+            toolbarEnabled={false}
             onPress={() => setSelectedClinic(null)}
-        >
-          {clinics.map((clinic, index) => {
-            // Get coordinates with offset for overlapping markers
-            const coordinates = getOffsetCoordinates(clinic);
-            if (!coordinates) return null;
-              
-            const isSelected = selectedClinic?.clinicID === clinic.clinicID;
-            
-            return (
-              <Marker
-                key={`${clinic.clinicID}-${index}`}
-                coordinate={coordinates}
-                onPress={(e) => {
-                  e.stopPropagation();
-                  handleMarkerPress(clinic);
-                }}
-                tracksViewChanges={false}
-                stopPropagation={true}
-                zIndex={isSelected ? 1000 : index}
-              >
-                <TouchableOpacity 
-                  activeOpacity={0.8}
-                  onPress={() => handleMarkerPress(clinic)}
-                  style={styles.markerTouchable}
+          >
+            {clinics.map((clinic, index) => {
+              // Get coordinates with offset for overlapping markers
+              const coordinates = getOffsetCoordinates(clinic);
+              if (!coordinates) return null;
+
+              const isSelected = selectedClinic?.clinicID === clinic.clinicID;
+
+              return (
+                <Marker
+                  key={`${clinic.clinicID}-${index}`}
+                  coordinate={coordinates}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    handleMarkerPress(clinic);
+                  }}
+                  tracksViewChanges={false}
+                  stopPropagation={true}
+                  zIndex={isSelected ? 1000 : index}
                 >
-                  <View style={styles.markerContainer}>
-                    <View style={[
-                      styles.markerPin,
-                      isSelected && styles.markerPinSelected
-                    ]}>
-                      <Ionicons 
-                        name="home" 
-                        size={18} 
-                        color="white" 
-                      />
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => handleMarkerPress(clinic)}
+                    style={styles.markerTouchable}
+                  >
+                    <View style={styles.markerContainer}>
+                      <View style={[
+                        styles.markerPin,
+                        isSelected && styles.markerPinSelected
+                      ]}>
+                        <Ionicons
+                          name="home"
+                          size={18}
+                          color="white"
+                        />
+                      </View>
+                      <View style={[
+                        styles.markerTriangle,
+                        isSelected && styles.markerTriangleSelected
+                      ]} />
                     </View>
-                    <View style={[
-                      styles.markerTriangle,
-                      isSelected && styles.markerTriangleSelected
-                    ]} />
-                  </View>
-                </TouchableOpacity>
-              </Marker>
-            );
-          })}
-        </MapView>
+                  </TouchableOpacity>
+                </Marker>
+              );
+            })}
+          </MapView>
 
           {/* Clinic Info Card */}
           {selectedClinic && cardPosition && (
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.clinicCard, { left: cardPosition.left, top: cardPosition.top, width: cardWidth }]}
               activeOpacity={0.9}
               onPress={handleCardPress}
@@ -395,7 +395,7 @@ export const NearbyClinics = ({ navigation }: any) => {
                   ) : selectedClinic.details?.logo ? (
                     <Image source={{ uri: selectedClinic.details.logo }} style={styles.clinicImage} resizeMode="cover" />
                   ) : (
-                    <ClinicAvatar name={selectedClinic.name || selectedClinic.title || ''} size={56} style={styles.clinicImage} />
+                    <ClinicAvatar name={selectedClinic.clinicName || selectedClinic.name || ''} size={56} style={styles.clinicImage} />
                   )}
                   {/* Featured Badge on Image */}
                   {selectedClinic.is_featured && (
@@ -418,7 +418,7 @@ export const NearbyClinics = ({ navigation }: any) => {
                         </View>
                       ))}
                     </View>
-                    
+
                     {/* Rating */}
                     <View style={styles.ratingContainer}>
                       <Ionicons name="star" size={16} color="#FFD700" />

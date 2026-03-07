@@ -62,12 +62,12 @@ const ClinicListItem: React.FC<ClinicListItemProps> = ({ item, onPress }) => {
 
         <View style={styles.clinicInfo}>
           <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'flex-start',
-                alignItems: 'center',
-              }}
-            >
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'flex-start',
+              alignItems: 'center',
+            }}
+          >
             {/* If specialty is "Both", show Online and Offline chips; otherwise show single chip */}
             {item.specialty?.toLowerCase() === 'both' ? (
               <View style={styles.chipsContainer}>
@@ -110,7 +110,7 @@ const NearbyClinics = ({ clinics, onClinicPress }: NearbyClinicsProps) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>{t('all_clinic')}</Text>
+        <Text style={styles.title}>{t('nearby_clinic')}</Text>
       </View>
 
       <FlatList

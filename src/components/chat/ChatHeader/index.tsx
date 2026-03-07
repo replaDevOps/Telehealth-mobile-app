@@ -6,7 +6,6 @@ import { colors } from '../../../styles/colors';
 import { styles } from './style';
 import { DoctorInfo } from '../../../types/chat.types';
 import { useCartCount } from '../../../hooks/useCartCount';
-import { useTranslation } from 'react-i18next';
 
 interface ChatHeaderProps {
   chatType: 'ai' | 'doctor';
@@ -48,7 +47,6 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   consultationEnded = false,
   consultationDuration = null,
 }) => {
-  const { t } = useTranslation();
   const { cartCount } = useCartCount();
 
   // Extract doctor and service info from consultation data
@@ -109,7 +107,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       </TouchableOpacity>
 
       <View style={styles.doctorHeaderCenter}>
-        <Text style={styles.doctorName}>{t('customer_support')}</Text>
+        <Text style={styles.doctorName}>{doctorInfo.name}</Text>
         <Text style={styles.consultationTime}>
           {buildSubtitle()}
         </Text>

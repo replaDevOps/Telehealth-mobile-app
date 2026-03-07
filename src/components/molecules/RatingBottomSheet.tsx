@@ -37,9 +37,13 @@ const RatingBottomSheet = ({ visible, onClose, onSubmit, loading = false }) => {
     5: t('excellent'),
   };
 
-  /* ----------  Modal animation  ---------- */
+  /* ----------  Modal animation & State Reset  ---------- */
   useEffect(() => {
     if (visible) {
+      // Reset state when opening
+      setRating(4);
+      setFeedback('');
+
       Animated.spring(translateY, {
         toValue: 0,
         useNativeDriver: true,
@@ -138,7 +142,7 @@ const RatingBottomSheet = ({ visible, onClose, onSubmit, loading = false }) => {
           ]}
         >
           {/* Handle */}
-          <View style={styles.handleContainer}>
+          <View style={styles.handleContainer} {...panResponder.panHandlers}>
             <View style={styles.handle} />
           </View>
 
@@ -186,8 +190,8 @@ const RatingBottomSheet = ({ visible, onClose, onSubmit, loading = false }) => {
 
           {/* Sticky submit button */}
           <View style={styles.submitWrapper}>
-            <CustomButton 
-              title={loading ? (t('submitting') || 'Submitting...') : t('submit_feedback')} 
+            <CustomButton
+              title={loading ? (t('submitting') || 'Submitting...') : t('submit_feedback')}
               onPress={handleSubmit}
               disabled={loading}
               loading={loading}

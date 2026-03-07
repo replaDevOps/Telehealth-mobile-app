@@ -10,6 +10,7 @@ import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
 import { Toast } from 'toastify-react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import RatingBottomSheet from '@components/molecules/RatingBottomSheet';
 
 interface Notification {
   id: number | string;
@@ -19,6 +20,8 @@ interface Notification {
   created_at?: string;
   unread?: boolean;
   is_read?: boolean;
+  type?: string;
+  clinic_id?: number | string;
 }
 
 export const NotificationScreen = () => {
@@ -27,6 +30,11 @@ export const NotificationScreen = () => {
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<number | string | null>(null);
   const [clearingAll, setClearingAll] = useState(false);
+
+  // Rating states
+  const [showRating, setShowRating] = useState(false);
+  const [submittingRating, setSubmittingRating] = useState(false);
+  const [clinicIdToRate, setClinicIdToRate] = useState<number | string | null>(null);
 
   // Fetch notifications
   const fetchNotifications = async () => {
@@ -60,6 +68,8 @@ export const NotificationScreen = () => {
         created_at: item.dateTime || item.created_at || item.time || item.date, // Also store in created_at
         unread: item.is_read === false || item.unread === true || (item.read !== undefined ? !item.read : true),
         is_read: item.is_read !== undefined ? item.is_read : (item.read !== undefined ? item.read : false),
+        type: item.type,
+        clinic_id: item.clinic_id || item.clinicID,
       }));
 
       console.log('Mapped notifications:', mappedNotifications);
@@ -67,10 +77,10 @@ export const NotificationScreen = () => {
       setNotifications(mappedNotifications);
     } catch (error: any) {
       console.error('Error fetching notifications:', error);
-      const errorMessage = 
-        error?.response?.data?.message || 
+      const errorMessage =
+        error?.response?.data?.message ||
         error?.data?.message ||
-        error?.message || 
+        error?.message ||
         t('failed_to_load_notifications') || 'Failed to load notifications';
       Toast.error(errorMessage);
       setNotifications([]);
@@ -105,10 +115,10 @@ export const NotificationScreen = () => {
       Toast.success(response.data?.message || t('notification_deleted') || 'Notification deleted');
     } catch (error: any) {
       console.error('Error deleting notification:', error);
-      const errorMessage = 
-        error?.response?.data?.message || 
+      const errorMessage =
+        error?.response?.data?.message ||
         error?.data?.message ||
-        error?.message || 
+        error?.message ||
         t('failed_to_delete_notification') || 'Failed to delete notification';
       Toast.error(errorMessage);
     } finally {
@@ -127,7 +137,7 @@ export const NotificationScreen = () => {
       t('are_you_sure_clear_all') || 'Are you sure you want to clear all notifications?',
       [
         { text: t('cancel') || 'Cancel', style: 'cancel' },
-    {
+        {
           text: t('clear_all') || 'Clear All',
           style: 'destructive',
           onPress: async () => {
@@ -148,10 +158,10 @@ export const NotificationScreen = () => {
               Toast.success(response.data?.message || t('all_notifications_cleared') || 'All notifications cleared');
             } catch (error: any) {
               console.error('Error clearing notifications:', error);
-              const errorMessage = 
-                error?.response?.data?.message || 
+              const errorMessage =
+                error?.response?.data?.message ||
                 error?.data?.message ||
-                error?.message || 
+                error?.message ||
                 t('failed_to_clear_notifications') || 'Failed to clear notifications';
               Toast.error(errorMessage);
             } finally {
@@ -162,6 +172,39 @@ export const NotificationScreen = () => {
       ],
       { cancelable: true }
     );
+  };
+
+  const handleRatingSubmit = async (rating: number, feedback: string) => {
+    if (!clinicIdToRate) {
+      Toast.error(t('clinic_id_required') || 'Clinic ID is required');
+      return;
+    }
+
+    setSubmittingRating(true);
+    try {
+      const response = await apiClient.post(API.HISTORY.RATE_CLINIC, {
+        clinicID: clinicIdToRate,
+        rating: rating,
+        review: feedback || '',
+      });
+
+      if (response.data?.success !== false) {
+        Toast.success(t('review_submitted_successfully') || 'Review submitted successfully');
+        setShowRating(false);
+      } else {
+        throw new Error(response.data?.message || 'Failed to submit review');
+      }
+    } catch (error: any) {
+      console.error('Error submitting review:', error);
+      Toast.error(error?.response?.data?.message || error?.message || t('failed_to_submit_review') || 'Failed to submit review');
+    } finally {
+      setSubmittingRating(false);
+    }
+  };
+
+  const openRatingSheet = (clinicId: number | string) => {
+    setClinicIdToRate(clinicId);
+    setShowRating(true);
   };
 
   // Format time/date
@@ -180,6 +223,7 @@ export const NotificationScreen = () => {
       return timeString;
     }
   };
+  console.log('notifications', notifications);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -232,13 +276,22 @@ export const NotificationScreen = () => {
               <View style={styles.contentContainer}>
                 <Text style={styles.title}>{notification.title}</Text>
                 <Text style={styles.message}>{notification.message}</Text>
+
+                {notification.type === 'Appointment Booked' && notification.clinic_id && (
+                  <TouchableOpacity
+                    style={styles.giveReviewButton}
+                    onPress={() => openRatingSheet(notification.clinic_id!)}
+                  >
+                    <Text style={styles.giveReviewButtonText}>{t('give_review') || 'Give Review'}</Text>
+                  </TouchableOpacity>
+                )}
                 <Text style={styles.time}>
                   {formatTime(notification.time || notification.created_at)}
                 </Text>
               </View>
 
               <View style={styles.rightActions}>
-              {notification.unread && <View style={styles.unreadDot} />}
+                {notification.unread && <View style={styles.unreadDot} />}
                 <TouchableOpacity
                   onPress={() => handleDeleteNotification(notification.id)}
                   disabled={deletingId === notification.id}
@@ -263,6 +316,13 @@ export const NotificationScreen = () => {
           </Text>
         </View>
       )}
+
+      <RatingBottomSheet
+        visible={showRating}
+        onClose={() => setShowRating(false)}
+        onSubmit={handleRatingSubmit}
+        loading={submittingRating}
+      />
     </SafeAreaView>
   );
 };

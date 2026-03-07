@@ -40,7 +40,7 @@ export const HomeScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [hasAudioPermission, setHasAudioPermission] = useState(false);
   const [hasVideoPermission, setHasVideoPermission] = useState(false);
-  
+
   // Refs for pagination and preventing stale closures
   const isInitialMountRef = useRef(true);
   const isLoadingMoreRef = useRef(false);
@@ -51,6 +51,8 @@ export const HomeScreen = ({ navigation }) => {
 
   // Transform API response to Clinic format
   const transformClinicsData = (apiClinics: ClinicApiResponse[]): Clinic[] => {
+    console.log('apiClinics', apiClinics);
+
     return apiClinics.map((clinic): Clinic => {
       // Use clinicName (not name) for the card title
       const clinicName = clinic.clinicName || clinic.name || 'Clinic';
@@ -81,7 +83,7 @@ export const HomeScreen = ({ navigation }) => {
         rating: rating,
         location: location,
         image: image,
-        isFeatured: clinic.is_featured === true,
+        isFeatured: !!clinic.is_featured,
       };
     });
   };
@@ -114,18 +116,18 @@ export const HomeScreen = ({ navigation }) => {
         pageNo: pageNo,
         recordsPerPage: recordsPerPage,
       };
-      
+
       // Only include lat and long if they are provided
       // if (lat !== undefined && long !== undefined) {
       //   params.lat = lat.toString();
       //   params.long = long.toString();
       // }
-      
+
       const response = await apiClient.get(API.CLINIC.GET_CLINICS, {
         params: params,
       });
       console.log('response', response.data);
-      
+
       if (response.data.success && response.data.data) {
         const clinics = transformClinicsData(response.data.data);
 
@@ -138,14 +140,14 @@ export const HomeScreen = ({ navigation }) => {
         if (append) {
           // Append to existing clinics
           setRecommendedClinics(prev => {
-            const newFeatured = clinics.filter(clinic => clinic.isFeatured === true);
+            const newFeatured = clinics.filter(clinic => clinic.isFeatured);
             // Avoid duplicates by checking IDs
             const existingIds = new Set(prev.map(c => c.id));
             const uniqueNew = newFeatured.filter(c => !existingIds.has(c.id));
             return [...prev, ...uniqueNew];
           });
           setNearbyClinics(prev => {
-            const newNearby = clinics.filter(clinic => clinic.isFeatured !== true);
+            const newNearby = clinics.filter(clinic => !clinic.isFeatured);
             // Avoid duplicates
             const existingIds = new Set(prev.map(c => c.id));
             const uniqueNew = newNearby.filter(c => !existingIds.has(c.id));
@@ -153,8 +155,8 @@ export const HomeScreen = ({ navigation }) => {
           });
         } else {
           // Replace existing clinics
-          const featured = clinics.filter(clinic => clinic.isFeatured === true);
-          const nearby = clinics.filter(clinic => clinic.isFeatured !== true);
+          const featured = clinics.filter(clinic => clinic.isFeatured);
+          const nearby = clinics.filter(clinic => !clinic.isFeatured);
           setRecommendedClinics(featured);
           setNearbyClinics(nearby);
         }
@@ -349,7 +351,7 @@ export const HomeScreen = ({ navigation }) => {
 
     isLoadingMoreRef.current = true;
     const nextPage = currentPage + 1;
-    
+
     if (latestLocation) {
       fetchClinics(latestLocation.lat, latestLocation.long, nextPage, recordsPerPage, latestSearchQuery, true);
     } else {
@@ -426,7 +428,7 @@ export const HomeScreen = ({ navigation }) => {
           <Text style={styles.emptyMessage}>{t('no_clinics_message')}</Text>
         </ScrollView>
       ) : (
-        <ScrollView 
+        <ScrollView
           style={styles.content}
           onScroll={handleScroll}
           scrollEventThrottle={16}

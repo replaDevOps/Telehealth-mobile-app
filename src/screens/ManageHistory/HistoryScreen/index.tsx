@@ -123,7 +123,7 @@ export function HistoryScreen({ navigation }) {
             duration: consultation.duration || '',
             type: consultationType.type,
             icon: consultationType.icon,
-            doctorName: doctorData.name ? t('customer_support') : t('no_agent_accepted'),
+            doctorName: doctorData.name ? doctorData.name : t('no_agent_accepted'),
             doctorAvatar: doctorData.image || consultation.doctorAvatar || '',
             clinicName: normalizedClinicInfo.clinicName || '',
             price: consultation.price || '0',

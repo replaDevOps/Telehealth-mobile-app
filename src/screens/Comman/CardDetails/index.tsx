@@ -512,7 +512,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
               : RecommandImage,
             consultationType: consultationData.type || consultationData.consultationType,
             duration: formattedDuration || consultationData.duration || '',
-            doctorName: doctorData.name ? t('customer_support') : t('no_agent_accepted'),
+            doctorName: doctorData.name ? doctorData.name : t('no_agent_accepted'),
             doctorAvatar: doctorData.image || undefined,
             serviceName: capitalizeWords(serviceData.name || ''),
             servicePrice: formattedServicePrice,

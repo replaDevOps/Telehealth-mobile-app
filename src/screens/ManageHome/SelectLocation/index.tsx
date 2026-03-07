@@ -27,7 +27,7 @@ const DEFAULT_REGION: Region = {
 
 export const SelectLocation = ({ navigation }: any) => {
   const { t } = useTranslation();
-  const { location: storeLocation, fetchLocation: fetchStoreLocation } = useLocationStore();
+  const { fetchLocation: fetchStoreLocation } = useLocationStore();
   const mapRef = useRef<MapView>(null);
   const [region, setRegion] = useState<Region>(DEFAULT_REGION);
   const [selectedLocation, setSelectedLocation] = useState<{
@@ -41,10 +41,10 @@ export const SelectLocation = ({ navigation }: any) => {
   const [placeSearchResults, setPlaceSearchResults] = useState<PlacePrediction[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
-  
+
   // Ref to track when a place is being selected (to skip search)
   const isSelectingPlace = useRef(false);
-  
+
   // Clinic states
   const [clinics, setClinics] = useState<ClinicApiResponse[]>([]);
   const [clinicsLoading, setClinicsLoading] = useState(false);
@@ -63,7 +63,7 @@ export const SelectLocation = ({ navigation }: any) => {
     setSelectedClinic(null);
     setSelectedPoint(null);
     setClinicsLoading(true);
-    
+
     try {
       console.log('Fetching clinics for coordinates:', { lat, lng }); // Debug log
       const response = await apiClient.get(API.CLINIC.GET_CLINICS, {
@@ -73,8 +73,9 @@ export const SelectLocation = ({ navigation }: any) => {
           long: lng.toString(),
           pageNo: 1,
           recordsPerPage: 20,
+          sendFrom: 'map',
         },
-      }); 
+      });
       console.log('Clinics API response:', response.data); // Debug log
 
       if (response.data.success && response.data.data) {
@@ -97,23 +98,23 @@ export const SelectLocation = ({ navigation }: any) => {
   // Get offset coordinates for overlapping markers
   const getOffsetCoordinates = useCallback((clinic: ClinicApiResponse) => {
     if (!clinic.details?.lat || !clinic.details?.long) return null;
-    
-    let lat = typeof clinic.details.lat === 'string' 
-      ? parseFloat(clinic.details.lat) 
+
+    let lat = typeof clinic.details.lat === 'string'
+      ? parseFloat(clinic.details.lat)
       : Number(clinic.details.lat);
-    let lng = typeof clinic.details.long === 'string' 
-      ? parseFloat(clinic.details.long) 
+    let lng = typeof clinic.details.long === 'string'
+      ? parseFloat(clinic.details.long)
       : Number(clinic.details.long);
-    
+
     if (isNaN(lat) || isNaN(lng)) return null;
-    
+
     const sameLocationClinics = clinics.filter((c) => {
       if (!c.details?.lat || !c.details?.long) return false;
       const cLat = typeof c.details.lat === 'string' ? parseFloat(c.details.lat) : Number(c.details.lat);
       const cLng = typeof c.details.long === 'string' ? parseFloat(c.details.long) : Number(c.details.long);
       return Math.abs(cLat - lat) < 0.0001 && Math.abs(cLng - lng) < 0.0001;
     });
-    
+
     if (sameLocationClinics.length > 1) {
       const myIndex = sameLocationClinics.findIndex(c => c.clinicID === clinic.clinicID);
       if (myIndex > 0) {
@@ -123,7 +124,7 @@ export const SelectLocation = ({ navigation }: any) => {
         lng += offsetAmount * Math.sin(angle);
       }
     }
-    
+
     return { latitude: lat, longitude: lng };
   }, [clinics]);
 
@@ -156,9 +157,9 @@ export const SelectLocation = ({ navigation }: any) => {
 
   const handleCardPress = () => {
     if (selectedClinic) {
-      navigation.navigate('ClinicDetail', { 
-        clinic: selectedClinic, 
-        clinicID: selectedClinic.clinicID 
+      navigation.navigate('ClinicDetail', {
+        clinic: selectedClinic,
+        clinicID: selectedClinic.clinicID
       });
     }
   };
@@ -183,11 +184,11 @@ export const SelectLocation = ({ navigation }: any) => {
     Geolocation.getCurrentPosition(
       position => {
         const { latitude, longitude } = position.coords;
-        
+
         // Ensure coordinates are numbers (convert from string if needed)
         const lat = typeof latitude === 'string' ? parseFloat(latitude) : Number(latitude);
         const lng = typeof longitude === 'string' ? parseFloat(longitude) : Number(longitude);
-        
+
         // Validate coordinates are valid numbers
         if (isNaN(lat) || isNaN(lng)) {
           console.warn('Invalid coordinates from Geolocation:', { latitude, longitude });
@@ -195,28 +196,28 @@ export const SelectLocation = ({ navigation }: any) => {
           Toast.error('Invalid location coordinates');
           return;
         }
-        
+
         const newRegion = {
           latitude: Number(lat),
           longitude: Number(lng),
           latitudeDelta: Number(0.0922),
           longitudeDelta: Number(0.0421),
         };
-        
+
         // Update region state
         setRegion(newRegion);
-        
+
         // Animate map to current location
         if (mapRef.current) {
           mapRef.current.animateToRegion(newRegion, 1000);
         }
-        
+
         // Update selected location
-        setSelectedLocation({ 
-          latitude: Number(lat), 
-          longitude: Number(lng) 
+        setSelectedLocation({
+          latitude: Number(lat),
+          longitude: Number(lng)
         });
-        
+
         setLocationLoading(false);
         // Fetch clinics for current location
         fetchClinics(lat, lng);
@@ -321,29 +322,29 @@ export const SelectLocation = ({ navigation }: any) => {
 
   const handleMapPress = async (event: any) => {
     const { latitude, longitude } = event.nativeEvent.coordinate;
-    
+
     // Ensure coordinates are numbers (convert from string if needed)
     const lat = typeof latitude === 'string' ? parseFloat(latitude) : Number(latitude);
     const lng = typeof longitude === 'string' ? parseFloat(longitude) : Number(longitude);
-    
+
     // Validate coordinates are valid numbers
     if (isNaN(lat) || isNaN(lng)) {
       Toast.error('Invalid location coordinates');
       return;
     }
-    
+
     // Clear selected clinic
     setSelectedClinic(null);
-    
+
     // Reverse geocode to get address (don't block UI)
     reverseGeocode(lat, lng).then(address => {
-      setSelectedLocation({ 
-        latitude: Number(lat), 
-        longitude: Number(lng), 
-        address: address || undefined 
+      setSelectedLocation({
+        latitude: Number(lat),
+        longitude: Number(lng),
+        address: address || undefined
       });
     });
-    
+
     // Fetch clinics for new location
     fetchClinics(lat, lng);
   };
@@ -358,6 +359,7 @@ export const SelectLocation = ({ navigation }: any) => {
           long: lng.toString(),
           pageNo: 1,
           recordsPerPage: 10,
+          sendFrom: 'map',
         },
       });
 
@@ -380,7 +382,7 @@ export const SelectLocation = ({ navigation }: any) => {
   // Zoom map to fit clinic markers
   const zoomToFitClinics = useCallback((clinicList: ClinicApiResponse[]) => {
     if (!mapRef.current || clinicList.length === 0) return;
-    
+
     const coordinates = clinicList
       .filter(c => c.details?.lat && c.details?.long)
       .map(c => ({
@@ -388,7 +390,7 @@ export const SelectLocation = ({ navigation }: any) => {
         longitude: typeof c.details!.long === 'string' ? parseFloat(c.details!.long) : Number(c.details!.long),
       }))
       .filter(c => !isNaN(c.latitude) && !isNaN(c.longitude));
-    
+
     if (coordinates.length === 1) {
       // Single clinic - zoom to it
       mapRef.current.animateToRegion({
@@ -412,7 +414,7 @@ export const SelectLocation = ({ navigation }: any) => {
       isSelectingPlace.current = false;
       return;
     }
-    
+
     const timeoutId = setTimeout(async () => {
       // Handle empty query
       if (!searchQuery || searchQuery.trim().length === 0) {
@@ -432,7 +434,7 @@ export const SelectLocation = ({ navigation }: any) => {
       try {
         // Capture current region value at the time of search
         const currentRegion = region;
-        
+
         // Search both places (addresses/locations) and clinics in parallel
         const [placeResults, clinicResults] = await Promise.all([
           searchPlaces(searchQuery, { lat: currentRegion.latitude, lng: currentRegion.longitude }),
@@ -476,20 +478,20 @@ export const SelectLocation = ({ navigation }: any) => {
   const handlePlaceSelect = async (place: PlacePrediction) => {
     // Set flag to skip search when updating searchQuery
     isSelectingPlace.current = true;
-    
+
     setShowSearchResults(false);
     setSearchQuery(place.description);
     setSelectedClinic(null);
     setClinicSearchResults([]);
     setPlaceSearchResults([]);
-    
+
     // Get place details (coordinates)
     const placeDetails = await getPlaceDetails(place.place_id);
-    
+
     if (placeDetails && placeDetails.geometry?.location) {
       const lat = placeDetails.geometry.location.lat;
       const lng = placeDetails.geometry.location.lng;
-      
+
       if (!isNaN(lat) && !isNaN(lng)) {
         // Update selected location
         setSelectedLocation({
@@ -497,7 +499,7 @@ export const SelectLocation = ({ navigation }: any) => {
           longitude: lng,
           address: placeDetails.formatted_address,
         });
-        
+
         // Update map region
         const newRegion = {
           latitude: lat,
@@ -506,11 +508,11 @@ export const SelectLocation = ({ navigation }: any) => {
           longitudeDelta: 0.02,
         };
         setRegion(newRegion);
-        
+
         if (mapRef.current) {
           mapRef.current.animateToRegion(newRegion, 500);
         }
-        
+
         // Fetch clinics near this location
         fetchClinics(lat, lng);
       }
@@ -523,25 +525,25 @@ export const SelectLocation = ({ navigation }: any) => {
   const handleClinicSelect = (clinic: ClinicApiResponse) => {
     // Set flag to skip search when updating searchQuery
     isSelectingPlace.current = true;
-    
+
     setShowSearchResults(false);
     setSearchQuery(clinic.clinicName || clinic.name || '');
     setSelectedClinic(null);
     setClinicSearchResults([]);
-    
+
     // Get clinic coordinates
     if (clinic.details?.lat && clinic.details?.long) {
-      const lat = typeof clinic.details.lat === 'string' 
-        ? parseFloat(clinic.details.lat) 
+      const lat = typeof clinic.details.lat === 'string'
+        ? parseFloat(clinic.details.lat)
         : Number(clinic.details.lat);
-      const lng = typeof clinic.details.long === 'string' 
-        ? parseFloat(clinic.details.long) 
+      const lng = typeof clinic.details.long === 'string'
+        ? parseFloat(clinic.details.long)
         : Number(clinic.details.long);
-      
+
       if (!isNaN(lat) && !isNaN(lng)) {
         // Show only this clinic on map
         setClinics([clinic]);
-        
+
         // Zoom to clinic
         const newRegion = {
           latitude: lat,
@@ -550,11 +552,11 @@ export const SelectLocation = ({ navigation }: any) => {
           longitudeDelta: 0.02,
         };
         setRegion(newRegion);
-        
+
         if (mapRef.current) {
           mapRef.current.animateToRegion(newRegion, 500);
         }
-        
+
         // Auto-select this clinic to show card
         setTimeout(() => {
           handleClinicMarkerPress(clinic);
@@ -611,20 +613,20 @@ export const SelectLocation = ({ navigation }: any) => {
     if (!selectedLocation || selectedLocation.latitude == null || selectedLocation.longitude == null) {
       return null;
     }
-    
+
     // Convert coordinates to numbers (defensive check)
-    const lat = typeof selectedLocation.latitude === 'number' 
-      ? selectedLocation.latitude 
+    const lat = typeof selectedLocation.latitude === 'number'
+      ? selectedLocation.latitude
       : parseFloat(String(selectedLocation.latitude));
-    const lng = typeof selectedLocation.longitude === 'number' 
-      ? selectedLocation.longitude 
+    const lng = typeof selectedLocation.longitude === 'number'
+      ? selectedLocation.longitude
       : parseFloat(String(selectedLocation.longitude));
-    
+
     // Validate coordinates are valid numbers
     if (isNaN(lat) || isNaN(lng)) {
       return null;
     }
-    
+
     return {
       latitude: lat,
       longitude: lng,
@@ -634,7 +636,7 @@ export const SelectLocation = ({ navigation }: any) => {
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <Header2 title={t('select_location')} />
-      
+
       {/* Search Bar */}
       <View style={styles.searchRow}>
         <View style={styles.searchContainer}>
@@ -695,7 +697,7 @@ export const SelectLocation = ({ navigation }: any) => {
                 <ActivityIndicator size="small" color={colors.primary} />
                 <Text style={styles.searchLoadingText}>{t('searching')}</Text>
               </View>
-              ) : (
+            ) : (
               <ScrollView keyboardShouldPersistTaps="handled">
                 {/* Places Section */}
                 {placeSearchResults.length > 0 && (
@@ -711,7 +713,7 @@ export const SelectLocation = ({ navigation }: any) => {
                     ))}
                   </>
                 )}
-                
+
                 {/* Clinics Section */}
                 {clinicSearchResults.length > 0 && (
                   <>
@@ -726,7 +728,7 @@ export const SelectLocation = ({ navigation }: any) => {
                     ))}
                   </>
                 )}
-                
+
                 {/* No Results */}
                 {placeSearchResults.length === 0 && clinicSearchResults.length === 0 && (
                   <View style={styles.noResultsContainer}>
@@ -760,14 +762,14 @@ export const SelectLocation = ({ navigation }: any) => {
               zIndex={500}
             />
           )}
-          
+
           {/* Clinic markers (purple pins) */}
           {clinics.map((clinic, index) => {
             const coordinates = getOffsetCoordinates(clinic);
             if (!coordinates) return null;
-            
+
             const isSelected = selectedClinic?.clinicID === clinic.clinicID;
-            
+
             return (
               <Marker
                 key={`clinic-${clinic.clinicID}-${index}`}
@@ -779,7 +781,7 @@ export const SelectLocation = ({ navigation }: any) => {
                 tracksViewChanges={false}
                 zIndex={isSelected ? 1000 : index}
               >
-                <TouchableOpacity 
+                <TouchableOpacity
                   activeOpacity={0.8}
                   onPress={() => handleClinicMarkerPress(clinic)}
                   style={styles.markerTouchable}
@@ -814,7 +816,7 @@ export const SelectLocation = ({ navigation }: any) => {
 
         {/* Clinic Info Card */}
         {selectedClinic && cardPosition && (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.clinicCard, { left: cardPosition.left, top: cardPosition.top, width: cardWidth }]}
             activeOpacity={0.9}
             onPress={handleCardPress}
@@ -823,11 +825,11 @@ export const SelectLocation = ({ navigation }: any) => {
               <View style={styles.imageContainer}>
                 <Image
                   source={
-                    selectedClinic.details?.coverImage 
+                    selectedClinic.details?.coverImage
                       ? { uri: selectedClinic.details.coverImage }
                       : selectedClinic.details?.logo
-                      ? { uri: selectedClinic.details.logo }
-                      : ClinicProfile
+                        ? { uri: selectedClinic.details.logo }
+                        : ClinicProfile
                   }
                   style={styles.clinicImage}
                   resizeMode="cover"
@@ -879,7 +881,7 @@ export const SelectLocation = ({ navigation }: any) => {
               </Text>
             </View>
           </View>
-          
+
           {/* Action Buttons */}
           <View style={styles.actionButtonsContainer}>
             <TouchableOpacity
@@ -889,7 +891,7 @@ export const SelectLocation = ({ navigation }: any) => {
             >
               <Text style={styles.doneButtonText}>{t('done')}</Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               style={styles.currentLocationButton}
               onPress={getCurrentLocation}

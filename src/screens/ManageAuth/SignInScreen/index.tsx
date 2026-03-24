@@ -26,6 +26,7 @@ import { apiClient } from '@services/api/api-client';
 import { colors } from '../../../styles/colors';
 import { useAuthStore } from '@store';
 import { API } from '@services/api/api-endpoint';
+import { fcmService } from '../../../services/firebase/fcmService';
 
 type TabType = 'email' | 'phone';
 
@@ -164,7 +165,12 @@ export function SignInScreen({ navigation }) {
       const { data } = await apiClient.post(endpoint, payload);
       console.log('data', data);
       setAuth(data?.user);
-      
+
+      // Store FCM token in background after successful login
+      fcmService.initializeFcm().catch(err =>
+        console.warn('[FCM] Token store after login failed:', err),
+      );
+
       // Save credentials if remember me is checked
       if (meta.remember) {
         try {

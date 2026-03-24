@@ -34,6 +34,7 @@ export const API = {
   },
   SETTINGS: {
     VIEW_PROFILE: '/patient-setting/viewProfile',
+    STORE_FCM_TOKEN: '/patient-setting/storeFcmToken',
     UPDATE_PROFILE_IMAGE: '/patient-setting/updateProfileImage',
     UPDATE_PROFILE: '/patient-setting/updateProfile',
     CHANGE_PASSWORD: '/patient-setting/changePassword',

@@ -8,6 +8,7 @@ import { RootStackParamList } from '../../navigation/types';
 import { colors } from '../../styles/colors';
 import { useAuthStore, useProfileStore, useLocationStore } from '@store';
 import i18n from '../../services/i18n';
+import { fcmService } from '../../services/firebase/fcmService';
 
 type SplashScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -58,9 +59,13 @@ export const SplashScreen: React.FC<Props> = ({ navigation }) => {
         const currentAuth = useAuthStore.getState().auth;
         console.log('Current auth from store:', currentAuth);
 
-        // If user is authenticated, fetch profile data once on app start
+        // If user is authenticated, fetch profile data and refresh FCM token
         if (currentAuth?.token) {
           fetchProfile();
+          // Refresh FCM token in background — no need to await
+          fcmService.initializeFcm().catch(err =>
+            console.warn('[FCM] Background token refresh failed:', err),
+          );
         }
 
         // Prevent multiple navigations

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "827261290955",
+    "project_id": "vena-telehealth",
+    "storage_bucket": "vena-telehealth.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:827261290955:android:05a69cffac053769984e4e",
+        "android_client_info": {
+          "package_name": "com.telehealth"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBDmE9fQWTxT2t2OTNLIiwQg-u8BbLY0AY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

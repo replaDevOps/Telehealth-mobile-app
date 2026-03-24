@@ -34,8 +34,15 @@ apiClient.interceptors.request.use(config => {
 apiClient.interceptors.response.use(
   response => response,
   (error: AxiosError<any>) => {
+    const status = error.response?.status;
+
+    if (status === 401) {
+      console.warn('[API] 401 Unauthenticated — logging out user');
+      useAuthStore.getState().logout();
+    }
+
     const normalizedError = {
-      status: error.response?.status,
+      status,
       message:
         error.response?.data?.message ||
         error.message ||

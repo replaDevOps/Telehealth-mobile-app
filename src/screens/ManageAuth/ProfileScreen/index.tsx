@@ -59,42 +59,19 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   
   // Auto-fill email and phone from route params
   useEffect(() => {
-    if (routeEmail) {
-      setEmail(routeEmail);
-    }
-    
-    if (routePhone && routeCountryCode) {
-      // Check if phone already includes country code (starts with +)
-      if (routePhone.startsWith('+')) {
-        // Phone is in international format, parse it
-        try {
-          const phoneNumber = parsePhoneNumberFromString(routePhone);
-          if (phoneNumber) {
-            setPhone(phoneNumber.nationalNumber);
-            setCountryCode(phoneNumber.country || routeCountryCode);
-          } else {
-            // If parsing fails, try with country code
-            const phoneNumberWithCountry = parsePhoneNumberFromString(
-              routePhone,
-              routeCountryCode as CountryCode
-            );
-            if (phoneNumberWithCountry) {
-              setPhone(phoneNumberWithCountry.nationalNumber);
-              setCountryCode(routeCountryCode);
-            } else {
-              // Last resort: use as-is
-              setPhone(routePhone.replace(/^\+?\d{1,3}/, '')); // Remove country code prefix
-              setCountryCode(routeCountryCode);
-            }
-          }
-        } catch (error) {
-          // If parsing fails, remove country code prefix if present
-          const nationalNumber = routePhone.replace(/^\+?\d{1,3}/, '');
-          setPhone(nationalNumber);
-          setCountryCode(routeCountryCode);
-        }
+    if (routeEmail) setEmail(routeEmail);
+
+    if (routePhone) {
+      // Backend may send full international format (e.g. +966501234567) or national number
+      const parsed = parsePhoneNumberFromString(
+        routePhone.startsWith('+') ? routePhone : `+${routePhone}`,
+        routeCountryCode as CountryCode
+      ) ?? parsePhoneNumberFromString(routePhone, routeCountryCode as CountryCode);
+
+      if (parsed) {
+        setPhone(parsed.nationalNumber);
+        setCountryCode(parsed.country || routeCountryCode);
       } else {
-        // Phone is already in national format
         setPhone(routePhone);
         setCountryCode(routeCountryCode);
       }

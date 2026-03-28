@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
+import { View, Text, StyleSheet, ViewStyle } from 'react-native';
 import PhoneInput from 'react-native-phone-number-input';
-import { parsePhoneNumberFromString } from 'libphonenumber-js';
 
 import { mvs } from '../../config/metrices';
 import { colors } from '../../styles/colors';
@@ -17,7 +16,6 @@ interface PhoneNumberInputProps {
   phoneError?: string;
   errorMessage?: string;
   editable?: boolean;
-  maxLength?: number;
   onValidationChange?: (isValid: boolean) => void;
   initialValue?: string;
   CustomStyle?: ViewStyle;
@@ -33,7 +31,6 @@ const PhoneNumberInput: React.FC<PhoneNumberInputProps> = ({
   phoneError,
   errorMessage,
   editable = true,
-  maxLength = 9,
   onValidationChange,
   initialValue = '',
   CustomStyle,
@@ -52,15 +49,12 @@ const PhoneNumberInput: React.FC<PhoneNumberInputProps> = ({
 
   useEffect(() => {
     if (!hasBeenTouched) {
-      if (phone && phone !== value) {
-        setValue(phone);
-        setComponentKey(prev => prev + 1);
-      }
+      const phoneChanged = phone && phone !== value;
+      const countryChanged = countryCode && countryCode !== selectedCountryCode;
 
-      if (countryCode && countryCode !== selectedCountryCode) {
-        setSelectedCountryCode(countryCode);
-        setComponentKey(prev => prev + 1);
-      }
+      if (phoneChanged) setValue(phone);
+      if (countryChanged) setSelectedCountryCode(countryCode);
+      if (phoneChanged || countryChanged) setComponentKey(prev => prev + 1);
     }
   }, [phone, countryCode]);
 
@@ -141,7 +135,6 @@ const PhoneNumberInput: React.FC<PhoneNumberInputProps> = ({
           textInputProps={{
             placeholderTextColor: colors.gray,
             editable: editable,
-            maxLength,
           }}
           onChangeText={handleTextChange}
           onChangeCountry={handleCountryChange}

@@ -32,6 +32,7 @@ import { Toast } from 'toastify-react-native';
 import { useAuthStore, useProfileStore } from '@store';
 import { RouteProp } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import parsePhoneNumberFromString from 'libphonenumber-js';
 
 const { height } = Dimensions.get('window');
 
@@ -115,17 +116,29 @@ const fieldMapping: Record<string, { stateKey: keyof State; transformer?: (value
 // Helper function to map API data to state
 const mapProfileDataToState = (data: any): Partial<State> => {
   const mappedData: Partial<State> = {};
-  
+
   Object.keys(fieldMapping).forEach((apiKey) => {
     const mapping = fieldMapping[apiKey];
     const apiValue = data[apiKey];
-    
+
     if (mapping.transformer) {
       mappedData[mapping.stateKey] = mapping.transformer(apiValue);
     } else {
       mappedData[mapping.stateKey] = apiValue ?? '';
     }
   });
+
+  // Parse phone number to strip country code from the input value
+  const rawPhone = data.phoneNo;
+  if (rawPhone) {
+    const parsed = parsePhoneNumberFromString(
+      String(rawPhone).startsWith('+') ? String(rawPhone) : `+${rawPhone}`
+    );
+    if (parsed) {
+      mappedData.phone = parsed.nationalNumber;
+      mappedData.countryCode = parsed.country ?? '';
+    }
+  }
 
   return mappedData;
 };

@@ -42,7 +42,8 @@ export const HomeScreen = ({ navigation }) => {
   const [hasVideoPermission, setHasVideoPermission] = useState(false);
 
   // Refs for pagination and preventing stale closures
-  const isInitialMountRef = useRef(true);
+  const isInitialFetchDoneRef = useRef(false);
+  const locationFetchStartedRef = useRef(false);
   const isLoadingMoreRef = useRef(false);
   const currentSearchQueryRef = useRef('');
   const currentLocationRef = useRef<{ lat: number; long: number } | null>(null);
@@ -118,10 +119,10 @@ export const HomeScreen = ({ navigation }) => {
       };
 
       // Only include lat and long if they are provided
-      // if (lat !== undefined && long !== undefined) {
-      //   params.lat = lat.toString();
-      //   params.long = long.toString();
-      // }
+      if (lat !== undefined && long !== undefined) {
+        params.lat = lat.toString();
+        params.long = long.toString();
+      }
 
       const response = await apiClient.get(API.CLINIC.GET_CLINICS, {
         params: params,
@@ -188,28 +189,39 @@ export const HomeScreen = ({ navigation }) => {
     fetchLocation(); // Runs in background; no-op if already loading
   }, [fetchLocation]);
 
-  // Fetch clinics when component mounts if location is available
+  // Wait for location to resolve, then make the initial API call
   useEffect(() => {
-    console.log('Location:', location);
-    if (isInitialMountRef.current) {
-      // Initialize refs
-      currentSearchQueryRef.current = searchQuery;
-      if (location) {
-        currentLocationRef.current = { lat: location.lat, long: location.long };
-        fetchClinics(location.lat, location.long, 1, recordsPerPage, searchQuery, false);
-      } else {
-        currentLocationRef.current = null;
-        fetchClinics(undefined, undefined, 1, recordsPerPage, searchQuery, false);
-      }
-      isInitialMountRef.current = false;
+    if (isLocationLoading) {
+      // Mark that location loading has started so we know when it resolves
+      locationFetchStartedRef.current = true;
+      return;
+    }
+
+    // Don't fire on the very first render before fetchLocation() has started
+    if (!locationFetchStartedRef.current) return;
+
+    // Only do this once
+    if (isInitialFetchDoneRef.current) return;
+    isInitialFetchDoneRef.current = true;
+
+    console.log('Location resolved:', location);
+    currentSearchQueryRef.current = searchQuery;
+    prevLocationRef.current = location || null;
+
+    if (location) {
+      currentLocationRef.current = { lat: location.lat, long: location.long };
+      fetchClinics(location.lat, location.long, 1, recordsPerPage, searchQuery, false);
+    } else {
+      currentLocationRef.current = null;
+      fetchClinics(undefined, undefined, 1, recordsPerPage, searchQuery, false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run on mount
+  }, [isLocationLoading]);
 
   // Refetch when search query or location changes (with debounce)
   useEffect(() => {
-    // Skip on initial mount (handled by initial fetch useEffect)
-    if (isInitialMountRef.current) {
+    // Skip until the initial fetch has been done
+    if (!isInitialFetchDoneRef.current) {
       return;
     }
 

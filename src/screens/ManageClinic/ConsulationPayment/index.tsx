@@ -67,8 +67,8 @@ export function ConsultationPayment({ navigation, route }) {
   const consultationType = consultationData.consultationTypeId || 'chat';
 
   const noDoctorsAvailable = Boolean(
-    (consultationData?.message && consultationData.message.toString().toLowerCase().includes('0 doctor')) ||
-    (consultationData?.doctors?.message && consultationData.doctors.message.toLowerCase().includes('0 doctor'))
+    (consultationData?.message && consultationData.message.toString().toLowerCase().includes('0 customer support agent')) ||
+    (consultationData?.doctors?.message && consultationData.doctors.message.toLowerCase().includes('0 customer support agent'))
   );
 
   const insets = useSafeAreaInsets();
@@ -454,35 +454,13 @@ export function ConsultationPayment({ navigation, route }) {
     };
   }, [waitingForDoctor, patientID, navigation]);
 
-  // User initiated refund from modal
-  const handleUserInitiatedRefund = useCallback(async () => {
-    if (refundProcessedRef.current || !consultationIdRef.current) return;
-
-    refundProcessedRef.current = true;
+  const handleNoAgentModalClose = useCallback(() => {
     setShowNoResponseModal(false);
-
-    try {
-      const response = await apiClient.post(API.CONSULTATIONS.REFUND_CONSULTATION, {
-        consultationID: consultationIdRef.current,
-      });
-
-      if (response.data?.success !== false) {
-        Toastify.success(response.data?.message || 'Refund has been initiated');
-      } else {
-        Toastify.error(response.data?.message || 'Failed to initiate refund');
-      }
-    } catch (error: any) {
-      console.error('Error initiating refund:', error);
-      Toastify.error(error?.response?.data?.message || 'Failed to initiate refund');
-    } finally {
-      if (timerStorageKeyRef.current) {
-        AsyncStorage.removeItem(timerStorageKeyRef.current).catch(() => { });
-      }
-      setTimeout(() => {
-        navigation.replace('EntryPoint');
-      }, 800);
+    if (timerStorageKeyRef.current) {
+      AsyncStorage.removeItem(timerStorageKeyRef.current).catch(() => { });
     }
-  }, []);
+    navigation.replace('EntryPoint');
+  }, [navigation]);
 
   const getHeaderTitle = () => {
     if (consultationType === 'chat') return t('chat_consultation');
@@ -618,8 +596,7 @@ export function ConsultationPayment({ navigation, route }) {
 
       <NoResponseModal
         visible={showNoResponseModal}
-        onClose={() => setShowNoResponseModal(false)}
-        onGetPrescription={handleUserInitiatedRefund}
+        onClose={handleNoAgentModalClose}
       />
 
       <View

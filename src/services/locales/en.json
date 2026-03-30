@@ -99,6 +99,8 @@
   "home": "Home",
   "clinic": "Clinic",
   "no_clinics_found": "No Clinics Found",
+  "no_nearby_clinics_found": "No Nearby Clinic Found",
+  "no_nearby_clinics_message": "There are no clinics available near your current location.",
   "no_clinics_message": "We couldn't find any clinics matching your criteria. Try adjusting your filters or search terms.",
   "no_services_found": "No services found",
   "no_reviews_found": "No reviews found",

@@ -436,8 +436,8 @@ export const HomeScreen = ({ navigation }) => {
             />
           }
         >
-          <Text style={styles.emptyTitle}>{t('no_clinics_found')}</Text>
-          <Text style={styles.emptyMessage}>{t('no_clinics_message')}</Text>
+          <Text style={styles.emptyTitle}>{t('no_nearby_clinics_found')}</Text>
+          <Text style={styles.emptyMessage}>{t('no_nearby_clinics_message')}</Text>
         </ScrollView>
       ) : (
         <ScrollView

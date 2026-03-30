@@ -347,6 +347,8 @@
   "failed_to_load_payment_details": "فشل تحميل تفاصيل الدفع",
   "failed_to_load_loyalty_points": "فشل تحميل نقاط الولاء",
   "no_loyalty_points_found": "لم يتم العثور على نقاط ولاء",
+  "no_nearby_clinics_found": "لم يتم العثور على عيادات قريبة",
+  "no_nearby_clinics_message": "لا توجد عيادات متاحة بالقرب من موقعك الحالي.",
   "insufficient_coins": "لا توجد نقاط كافية",
   "redeem_exceeds_total": "مبلغ الاسترداد يتجاوز إجمالي المبلغ المستحق",
   "how_it_works": "كيف يعمل",

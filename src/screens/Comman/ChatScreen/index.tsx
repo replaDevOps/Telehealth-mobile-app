@@ -5,7 +5,7 @@ import React, {
   useMemo,
   useCallback,
 } from 'react';
-import { View, Text, ScrollView, ActivityIndicator, Alert, BackHandler, KeyboardAvoidingView, Keyboard, Platform, Image, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, ActivityIndicator, Alert, BackHandler, KeyboardAvoidingView, Platform, Image, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ServiceDetailBottomSheet } from '@components/molecules';
 import { styles } from './style';
@@ -39,6 +39,7 @@ import { useProfileStore } from '@store';
 import { pusherService } from '@services/pusher/PusherService';
 import { endConsultation } from '@services/api/webrtcService';
 import { useBackgroundTimer } from '../../../hooks/useBackgroundTimer';
+import { venaAIService, VenaAIServiceItem } from '@services/venaAI/venaAIService';
 
 // ---------- Main Component ----------
 export function ChatScreen({ navigation, route }) {
@@ -80,12 +81,15 @@ export function ChatScreen({ navigation, route }) {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [consultationData, setConsultationData] = useState<any>(null);
   const [showEndConsultationModal, setShowEndConsultationModal] = useState(false);
-  const [flexToggle, setFlexToggle] = useState(false);
   const [consultationDuration, setConsultationDuration] = useState<string | null>(null);
   const [consultationEndedState, setConsultationEndedState] = useState<boolean>(false);
   const consultationStartTimeRef = useRef<number | null>(null); // Track when consultation started
   const consultationEndedRef = useRef(false); // Prevent duplicate API calls
   const checkPrescriptionAndShowModalRef = useRef<(() => void) | undefined>(undefined); // Ref for background timer callback
+
+  // VenaAI refs (AI chat only)
+  const venaSessionIdRef = useRef<string>('');
+  const venaSocketRef = useRef<WebSocket | null>(null);
 
   const scrollRef = useRef<ScrollView>(null);
   const auth = useAuthStore(state => state.auth);
@@ -113,21 +117,22 @@ export function ChatScreen({ navigation, route }) {
   const showAvatar = chatType === 'doctor';
   const canSendMessages = !fromHistory;
 
-  // Keyboard listeners for Android flex toggle fix
-  useEffect(() => {
-    const keyboardShowListener = Keyboard.addListener("keyboardDidShow", () => {
-      setFlexToggle(false);
-    });
-
-    const keyboardHideListener = Keyboard.addListener("keyboardDidHide", () => {
-      setFlexToggle(true);
-    });
-
-    return () => {
-      keyboardShowListener.remove();
-      keyboardHideListener.remove();
-    };
-  }, []);
+  // Map VenaAI suggestion items to the local Service type
+  const mapVenaServicesToSuggestions = useCallback(
+    (services: VenaAIServiceItem[]): Service[] =>
+      services.map(s => ({
+        id: String(s.id),
+        image: RecommandImage,
+        type: '',
+        serviceGroup: s.clinicName ?? '',
+        serviceName: s.name ?? '',
+        price: s.priceDisplay ?? s.feeDisplay ?? '',
+        duration: '',
+        description: '',
+        procedure: '',
+      })),
+    [],
+  );
 
   // ---------- Lifecycle ----------
   useEffect(() => {
@@ -138,10 +143,115 @@ export function ChatScreen({ navigation, route }) {
       // For doctor chat without consultationID, start with empty messages
       setMessages([]);
     } else {
-      // For AI chat, use initial messages
-      setMessages(initialMessages);
+      // For AI chat, start fresh – VenaAI provides the conversation
+      setMessages([]);
     }
   }, [consultationID, chatType]);
+
+  // ---------- VenaAI WebSocket (AI chat only) ----------
+  useEffect(() => {
+    if (chatType !== 'ai') return;
+
+    // Generate a stable session ID for this chat session
+    venaSessionIdRef.current = `vena-${patientID ?? 'anon'}-${Date.now()}`;
+    const sessionId = venaSessionIdRef.current;
+    let socket: WebSocket | null = null;
+    let isMounted = true;
+
+    const connectSocket = () => {
+      const url = venaAIService.buildWebSocketUrl({
+        sessionId,
+        patientId: String(patientID ?? 'anon'),
+        lang: 'en',
+        dataSource: 'cache-first',
+      });
+
+      socket = new WebSocket(url);
+      venaSocketRef.current = socket;
+
+      socket.onopen = () => {
+        console.log('🤖 [VenaAI] WebSocket connected');
+      };
+
+      socket.onmessage = (event: any) => {
+        if (!isMounted) return;
+        try {
+          const payload = JSON.parse(event.data);
+
+          if (payload.type === 'connected') {
+            console.log('🤖 [VenaAI] Socket handshake ok, session:', payload.sessionId);
+            return;
+          }
+
+          if (payload.type === 'assistant_message') {
+            const data = payload.data;
+            const suggestions =
+              data?.suggestions?.meta?.showCards && data?.suggestions?.services?.length
+                ? mapVenaServicesToSuggestions(data.suggestions.services)
+                : undefined;
+
+            const botMsg: Message = {
+              id: `vena-bot-${Date.now()}`,
+              type: 'bot',
+              text: data?.reply ?? '',
+              timestamp: getCurrentTimestamp(),
+              suggestions,
+            };
+
+            setMessages(prev => {
+              // Remove the typing indicator if present, then append bot reply
+              const filtered = prev.filter(m => m.id !== 'vena-typing');
+              return [...filtered, botMsg];
+            });
+          }
+
+          if (payload.type === 'error') {
+            console.error('🤖 [VenaAI] Socket error:', payload.error);
+            setMessages(prev => prev.filter(m => m.id !== 'vena-typing'));
+          }
+        } catch (err) {
+          console.error('🤖 [VenaAI] Failed to parse message:', err);
+        }
+      };
+
+      socket.onerror = (err: Event) => {
+        console.error('🤖 [VenaAI] WebSocket error:', err);
+      };
+
+      socket.onclose = (event: any) => {
+        console.log('🤖 [VenaAI] WebSocket closed, code:', event.code);
+      };
+    };
+
+    // Start session, then open socket
+    venaAIService
+      .startSession({
+        sessionId,
+        patientId: String(patientID ?? 'anon'),
+        dataSource: 'cache-first',
+        userInfo: { language: 'en' },
+      })
+      .then(() => {
+        if (isMounted) connectSocket();
+      })
+      .catch(err => {
+        console.error('🤖 [VenaAI] Session start failed, connecting anyway:', err);
+        if (isMounted) connectSocket();
+      });
+
+    return () => {
+      isMounted = false;
+      if (socket) {
+        socket.onopen = null;
+        socket.onmessage = null;
+        socket.onerror = null;
+        socket.onclose = null;
+        socket.close();
+        venaSocketRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatType, patientID]);
 
   // Fetch consultation messages from API
   const fetchConsultationMessages = useCallback(async (silent: boolean = false) => {
@@ -544,14 +654,10 @@ export function ChatScreen({ navigation, route }) {
         
         // Check if this is for our consultation
         if (idsMatch) {
-          console.log('✅ [ChatScreen] Consultation ended by doctor, showing modal');
-          consultationEndedRef.current = true;
-          setIsConsultationActive(false);
-          
-          // Show modal without fetching prescription upfront
-          // Prescription will only be fetched when user clicks the button
-          setHasPrescription(true); // Always show button
-          setModalVisible(true);
+          console.log('✅ [ChatScreen] Consultation ended by doctor, recording duration and showing modal');
+          // Call checkPrescriptionAndShowModal which internally calls endConsultationAndNotify
+          // to record the actual elapsed duration before showing the modal
+          checkPrescriptionAndShowModal();
         } else {
           console.log('❌ [ChatScreen] Event consultationID mismatch - eventIDStr:', eventIDStr, 'consultationIDStr:', consultationIDStr);
         }
@@ -692,8 +798,47 @@ export function ChatScreen({ navigation, route }) {
             // Remove the optimistic message on error
             setMessages(prev => prev.filter(msg => msg.id !== tempId));
           }
+        } else if (chatType === 'ai') {
+          // VenaAI: upload image to AI service
+          try {
+            const data = await venaAIService.uploadImageWithMessage({
+              sessionId: venaSessionIdRef.current,
+              patientId: String(patientID ?? 'anon'),
+              imageUri: asset.uri,
+              imageName: asset.fileName || 'image.jpg',
+              imageType: asset.type || 'image/jpeg',
+              preferredLanguage: 'en',
+            });
+
+            // Remove uploading state from the user message
+            setMessages(prev =>
+              prev.map(msg =>
+                msg.id === tempId
+                  ? { ...msg, images: msg.images?.map(img => ({ ...img, isUploading: false })) }
+                  : msg,
+              ),
+            );
+
+            const suggestions =
+              data?.suggestions?.meta?.showCards && data?.suggestions?.services?.length
+                ? mapVenaServicesToSuggestions(data.suggestions.services)
+                : undefined;
+
+            const botMsg: Message = {
+              id: `vena-bot-${Date.now()}`,
+              type: 'bot',
+              text: data?.reply ?? '',
+              timestamp: getCurrentTimestamp(),
+              suggestions,
+            };
+            setMessages(prev => [...prev, botMsg]);
+          } catch (error: any) {
+            console.error('🤖 [VenaAI] Image upload error:', error);
+            Toast.error(error?.message || 'Failed to send image to AI');
+            setMessages(prev => prev.filter(msg => msg.id !== tempId));
+          }
         } else {
-          // No consultation ID, just remove uploading state
+          // No consultation ID and not AI chat, just remove uploading state
           setMessages(prev =>
             prev.map(msg =>
               msg.id === tempId
@@ -707,7 +852,7 @@ export function ChatScreen({ navigation, route }) {
         }
       },
     );
-  }, [showAvatar, consultationID, recipientID]);
+  }, [showAvatar, consultationID, recipientID, chatType, patientID, mapVenaServicesToSuggestions]);
 
   const handleSend = useCallback(async () => {
     const trimmedMessage = message.trim();
@@ -731,7 +876,7 @@ export function ChatScreen({ navigation, route }) {
     setMessages(prev => [...prev, newMsg]);
     setMessage('');
 
-    // Send message via API if consultationID exists
+    // Send message via API if consultationID exists (doctor chat)
     if (consultationID && recipientID) {
       try {
         const formData = new FormData();
@@ -777,8 +922,62 @@ export function ChatScreen({ navigation, route }) {
         // Remove the optimistic message on error
         setMessages(prev => prev.filter(msg => msg.id !== tempId));
       }
+    } else if (chatType === 'ai') {
+      // VenaAI: send via WebSocket (fallback to HTTP if socket not ready)
+      const typingMsg: Message = {
+        id: 'vena-typing',
+        type: 'bot',
+        text: '...',
+        timestamp: getCurrentTimestamp(),
+      };
+      setMessages(prev => [...prev, typingMsg]);
+
+      const sessionId = venaSessionIdRef.current;
+      const socket = venaSocketRef.current;
+
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(
+          JSON.stringify({
+            message: trimmedMessage,
+            dataSource: 'cache-first',
+            preferredLanguage: 'en',
+          }),
+        );
+      } else {
+        // Fallback: HTTP chat endpoint
+        try {
+          const data = await venaAIService.sendMessageHTTP({
+            sessionId,
+            patientId: String(patientID ?? 'anon'),
+            message: trimmedMessage,
+            preferredLanguage: 'en',
+          });
+
+          const suggestions =
+            data?.suggestions?.meta?.showCards && data?.suggestions?.services?.length
+              ? mapVenaServicesToSuggestions(data.suggestions.services)
+              : undefined;
+
+          const botMsg: Message = {
+            id: `vena-bot-${Date.now()}`,
+            type: 'bot',
+            text: data?.reply ?? '',
+            timestamp: getCurrentTimestamp(),
+            suggestions,
+          };
+
+          setMessages(prev => {
+            const filtered = prev.filter(m => m.id !== 'vena-typing');
+            return [...filtered, botMsg];
+          });
+        } catch (error: any) {
+          console.error('🤖 [VenaAI] HTTP fallback error:', error);
+          Toast.error(error?.message || 'Failed to get AI response');
+          setMessages(prev => prev.filter(m => m.id !== 'vena-typing'));
+        }
+      }
     }
-  }, [message, showAvatar, consultationID, recipientID]);
+  }, [message, showAvatar, consultationID, recipientID, chatType, patientID, mapVenaServicesToSuggestions]);
 
   // Handle delete message
   const handleDeleteMessage = useCallback(async (messageID: string) => {
@@ -1021,14 +1220,9 @@ export function ChatScreen({ navigation, route }) {
   return (
     <View style={[styles.container, screenPadding]}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
-        style={
-          flexToggle
-            ? [{ flexGrow: 1 }, styles.container]
-            : [{ flex: 1 }, styles.container]
-        }
-        enabled={!flexToggle}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={[{ flex: 1 }, styles.container]}
+        enabled={Platform.OS === "ios"}
       >
         <View style={styles.content}>
         <ChatHeader

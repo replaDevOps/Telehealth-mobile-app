@@ -171,7 +171,20 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     width: 110,
     paddingLeft: 8,
-    // keep vertical spacing
     paddingTop: 2,
-  }
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#ccc',
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
   });

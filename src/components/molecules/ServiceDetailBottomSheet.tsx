@@ -32,6 +32,7 @@ interface Service {
   procedure?: string;
   loyality?: boolean;
   bonusLoyalityPoints?: string;
+  totalLoyalityPoints?: string | number;
   devices?: any[];
   tags?: string[];
 }
@@ -186,16 +187,19 @@ export const ServiceDetailBottomSheet: React.FC<ServiceDetailBottomSheetProps> =
                   </View>
                 </View>
 
-                <View style={{ flexDirection: 'row', gap: 20 }}>
-                  {service.loyality && service.bonusLoyalityPoints && Number(service.bonusLoyalityPoints) > 0 && (
+                {(() => {
+                  const pts = service.totalLoyalityPoints ?? service.bonusLoyalityPoints;
+                  return pts && Number(pts) > 0 ? (
                     <View style={styles.loyaltyBadge}>
                       <View style={styles.coinWrapper}>
                         <Image source={coinIcon} style={styles.coinImage} />
                       </View>
-                      <Text style={styles.loyaltyBadgeText}>{t('earn_points', { points: service.bonusLoyalityPoints }) || `Earn ${service.bonusLoyalityPoints} loyalty points`}</Text>
+                      <Text style={styles.loyaltyBadgeText}>
+                        {t('earn_points', { points: Math.round(Number(pts)) }) || `Earn ${Math.round(Number(pts))} loyalty points`}
+                      </Text>
                     </View>
-                  )}
-                </View>
+                  ) : null;
+                })()}
 
                 {/* Description Section */}
                 {service.description && (

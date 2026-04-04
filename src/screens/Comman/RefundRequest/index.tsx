@@ -18,7 +18,6 @@ import { styles } from './style';
 import { colors } from '../../../styles/colors';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { CustomButton } from '@components/common/CustomButton';
-import { CheckBox } from '@rneui/base';
 import { SuccessMessageModal } from '@components/molecules';
 import { useTranslation } from 'react-i18next';
 import { apiClient } from '@services/api/api-client';
@@ -117,6 +116,14 @@ export function RefundRequest() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const formatPrice = (price: any): string => {
+    const str = String(price ?? '').trim();
+    if (!str) return 'SAR 0.00';
+    if (/^SAR\s/i.test(str)) return str;
+    const num = parseFloat(str.replace(/[^0-9.-]+/g, ''));
+    return isNaN(num) ? `SAR ${str}` : `SAR ${num.toFixed(2)}`;
   };
 
   const totalRefund =
@@ -232,20 +239,17 @@ export function RefundRequest() {
                   </View>
 
                   <View style={styles.serviceRight}>
-                    <CheckBox
-                      checked={isChecked}
+                    <TouchableOpacity
                       onPress={() => !isDisabled && toggleService(service.id)}
                       disabled={isDisabled}
-                      containerStyle={{
-                        backgroundColor: 'transparent',
-                        padding: 0,
-                        margin: 0,
-                      }}
-                      checkedColor={colors.primary}
-                      uncheckedColor="#ccc"
-                    />
+                      style={[styles.checkbox, isChecked && styles.checkboxChecked]}
+                    >
+                      {isChecked && (
+                        <Ionicons name="checkmark" size={14} color="#fff" />
+                      )}
+                    </TouchableOpacity>
                     <View style={{ alignItems: 'flex-end' }}>
-                      <Text style={styles.servicePrice}>{service.price}</Text>
+                      <Text style={styles.servicePrice}>{formatPrice(service.price)}</Text>
                       {/* show refundStatus when status indicates a refund otherwise show status */}
                       {(() => {
                         const isRefund = typeof (service.status || '') === 'string' && /refund/i.test(service.status || '');

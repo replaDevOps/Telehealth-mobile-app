@@ -92,6 +92,7 @@ export const API = {
     VIEW_ALL: '/patient-notifications/viewAll',
     DELETE: '/patient-notifications/delete',
     CLEAR_ALL: '/patient-notifications/clearAll',
+    READ_ALL: '/patient-notifications/readAll',
   },
   HISTORY: {
     GET_CONSULTATIONS: '/history/consultations', // GET /consultations?name=

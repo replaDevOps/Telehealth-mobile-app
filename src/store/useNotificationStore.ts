@@ -65,9 +65,9 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
           time: item.dateTime || item.created_at || item.time || item.date || '',
           dateTime: item.dateTime,
           // Default to unread (false) if read status is not provided
-          unread: item.is_read === false || item.unread === true || (item.read !== undefined ? !item.read : true),
-          is_read: item.is_read !== undefined ? item.is_read : (item.read !== undefined ? item.read : false),
-          read: item.is_read !== undefined ? item.is_read : (item.read !== undefined ? item.read : false),
+          unread: item.is_read === false,
+          is_read: item.is_read === true,
+          read: item.is_read === true,
           created_at: item.dateTime || item.created_at || item.time || item.date, // Prioritize 'dateTime'
           updated_at: item.updated_at,
           ...item, // Keep all original fields for backward compatibility

@@ -173,6 +173,8 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 12,
+    maxWidth: 120,
+    flexShrink: 1,
   },
   nameBadgeText: {
     fontSize: 12,

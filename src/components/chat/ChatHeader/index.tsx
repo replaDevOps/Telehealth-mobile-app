@@ -71,7 +71,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 
     // When viewing history, show service info
     if (!consultationData) {
-      return doctorInfo.serviceName || consultationTime;
+      return doctorInfo.serviceName || '';
     }
 
     const parts: string[] = [];
@@ -87,15 +87,12 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
     if (consultationType) {
       parts.push(consultationType);
     }
-    if (consultationData?.service?.duration) {
-      parts.push(`${consultationData.service.duration} min`);
+    const duration = (consultationData as any)?.duration || consultationData?.service?.duration;
+    if (duration) {
+      parts.push(String(duration));
     }
-    // // Add duration if available
-    // if (serviceDuration) {
-    //   parts.push(`${serviceDuration} min`);
-    // }
 
-    return parts.length > 0 ? parts.join(' | ') : (doctorInfo.serviceName || consultationTime);
+    return parts.length > 0 ? parts.join(' | ') : (doctorInfo.serviceName || '');
   };
 
   return chatType === 'ai' ? (

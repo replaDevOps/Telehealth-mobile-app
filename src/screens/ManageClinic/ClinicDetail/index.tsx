@@ -10,6 +10,7 @@ import {
 } from '@components/molecules';
 import { ClinicInfo } from '@components/molecules/ClinicInfo';
 import { colors } from '../../../styles/colors';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useState, useEffect } from 'react';
 import { View, ScrollView, TouchableOpacity, Text, ActivityIndicator, Platform, PermissionsAndroid, RefreshControl, Image, KeyboardAvoidingView, Keyboard } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -617,7 +618,8 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
         procedure: service.procedure || '',
         // Additional data for detail view
         loyality: service.loyality,
-        bonusLoyalityPoints: service.totalLoyaltyPoints,
+        bonusLoyalityPoints: (service as any).bonusLoyalityPoints,
+        totalLoyalityPoints: (service as any).totalLoyaltyPoints,
         devices: service.devices || [],
         tags: tags,
         groupID: service.groupID,
@@ -866,7 +868,8 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
           description: serviceDetail.description || '',
           procedure: serviceDetail.procedure || '',
           loyality: serviceDetail.loyality,
-          bonusLoyalityPoints: serviceDetail.totalLoyaltyPoints,
+          bonusLoyalityPoints: (serviceDetail as any).bonusLoyalityPoints,
+          totalLoyalityPoints: (serviceDetail as any).totalLoyaltyPoints,
           devices: serviceDetail.devices || [],
           tags: tags,
           groupID: serviceDetail.groupID,
@@ -887,8 +890,14 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     }
   };
 
-  const handleChatPress = () => {
-    navigation.navigate('ChatOnboarding');
+  const handleChatPress = async () => {
+    const seen = await AsyncStorage.getItem('vena_ai_onboarding_seen');
+    if (seen) {
+      navigation.navigate('ChatScreen');
+
+    } else {
+      navigation.navigate('ChatOnboarding');
+    }
   };
 
   const handleAddToCart = async (service: any, shouldNavigate: boolean = false) => {
@@ -1248,7 +1257,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
                     description={service.description}
                     procedure={service.procedure}
                     onPress={() => handleServicePress(service)}
-                    bonusLoyalityPoints={service.bonusLoyalityPoints}
+                    bonusLoyalityPoints={service.totalLoyalityPoints ?? service.bonusLoyalityPoints}
                   />
                 ))}
 

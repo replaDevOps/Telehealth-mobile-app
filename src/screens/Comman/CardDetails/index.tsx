@@ -420,8 +420,6 @@ export function CardDetails({ navigation }: { navigation: any }) {
 
           const appointmentLocationParts = [
             clinicDetails.address,
-            translateCityToEnglish(clinicDetails.city),
-            translateCityToEnglish(clinicDetails.district),
           ].filter(Boolean);
           const appointmentClinicLocation = appointmentLocationParts.length > 0
             ? appointmentLocationParts.join(', ')
@@ -460,11 +458,9 @@ export function CardDetails({ navigation }: { navigation: any }) {
           // Extract clinicID for rating
           setClinicID(clinicData.id || consultationData.clinicID || null);
 
-          // Build location from clinic.details (address, city, district)
+          // Build location from clinic.details (address only)
           const locationParts = [
             clinicDetails.address,
-            translateCityToEnglish(clinicDetails.city),
-            translateCityToEnglish(clinicDetails.district),
           ].filter(Boolean);
           const clinicLocationStr = locationParts.length > 0
             ? locationParts.join(', ')
@@ -511,7 +507,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
               ? { uri: clinicData.image || clinicDetails.logo || clinicDetails.coverImage }
               : RecommandImage,
             consultationType: consultationData.type || consultationData.consultationType,
-            duration: formattedDuration || consultationData.duration || '',
+            duration: consultationData.duration || formattedDuration || '',
             doctorName: doctorData.name ? doctorData.name : t('no_agent_accepted'),
             doctorAvatar: doctorData.image || undefined,
             serviceName: capitalizeWords(serviceData.name || ''),
@@ -1008,7 +1004,9 @@ export function CardDetails({ navigation }: { navigation: any }) {
             )}
             <View>
               <Text style={styles.clinicName}>{displayData.clinicName || t('clinic_name') || 'Clinic Name'}</Text>
-              <Text style={styles.clinicLocation}>{displayData.clinicLocation || t('clinic_location') || 'Location'}</Text>
+              {!!displayData.clinicLocation && (
+                <Text style={styles.clinicLocation}>{displayData.clinicLocation}</Text>
+              )}
             </View>
           </View>
 

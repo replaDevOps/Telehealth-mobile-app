@@ -1,14 +1,16 @@
 import { StyleSheet } from 'react-native';
 import { colors } from '../../../styles/colors';
+
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F3F0F8',
   },
   content: {
-    alignItems: 'center',
     flex: 1,
-    width: '100%',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 24,
   },
   title: {
     fontSize: 22,
@@ -26,92 +28,50 @@ export const styles = StyleSheet.create({
     color: '#6B6B6B',
     textAlign: 'center',
     marginTop: 10,
+    lineHeight: 20,
   },
   MainLogoContainer: {
-    marginVertical: 40,
+    marginTop: 28,
+    marginBottom: 20,
     width: 180,
     height: 180,
-    borderRadius: 100,
+    borderRadius: 90,
     backgroundColor: '#EBE3F1',
     justifyContent: 'center',
     alignItems: 'center',
   },
   logoContainer: {
-    marginVertical: 40,
-    width: 170,
-    height: 170,
-    borderRadius: 100,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
     backgroundColor: '#E4DBEB',
     justifyContent: 'center',
     alignItems: 'center',
   },
   logoCircle: {
-    width: 160,
-    height: 160,
-    borderRadius: 100,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
     backgroundColor: '#DDD2E6',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 10,
   },
-  logoText: {
-    fontSize: 60,
-    fontWeight: '900',
-    color: '#7B2FF7',
+  featuresSection: {
+    width: '100%',
+    alignItems: 'center',
   },
-  checkboxContainer: {
-    width: '85%',
-    marginTop: 10,
-  },
-
-  buttonText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 16,
+  featuresTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
   },
   checkboxGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    marginTop: 20,
-    width: '90%',
-  },
-  checkboxWrapper: {
-    margin: 6,
-  },
-  checkboxChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 16,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    minWidth: 140,
-    justifyContent: 'center',
-  },
-  checkedChip: {
-    shadowColor: '#8B5CF6',
-    shadowOpacity: 0.3,
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 5,
-    elevation: 4,
-  },
-  uncheckedChip: {
-    backgroundColor: '#F5F0FF',
-    borderWidth: 1,
-    borderColor: '#E2D4FF',
-  },
-  checkboxLabel: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  button: {
-    backgroundColor: colors.primary,
-    paddingVertical: 14,
-    borderRadius: 16,
-    marginTop: 30,
-    width: '90%',
-    position: 'absolute',
-    bottom: 0,
+    marginTop: 14,
+    width: '100%',
   },
   gradientChip: {
     borderRadius: 10,
@@ -133,5 +93,19 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 8,
     backgroundColor: '#fff',
+  },
+  checkboxChecked: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  checkboxLabel: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#1E1E1E',
+  },
+  button: {
+    marginTop: 'auto',
+    width: '100%',
+    borderRadius: 16,
   },
 });

@@ -164,12 +164,16 @@ export const ServiceDetailBottomSheet: React.FC<ServiceDetailBottomSheetProps> =
                 <View style={styles.serviceInfoContainter}>
                   <View style={styles.serviceInfo}>
                     <View style={styles.serviceTags}>
-                      <View style={styles.tag}>
-                        <Text style={styles.TypetagText} numberOfLines={1} ellipsizeMode="tail">{service.type}</Text>
-                      </View>
-                      <View style={styles.tag}>
-                        <Text style={styles.SGtagText} numberOfLines={1} ellipsizeMode="tail">{service.serviceGroup}</Text>
-                      </View>
+                      {!!service.type && (
+                        <View style={styles.tag}>
+                          <Text style={styles.TypetagText} numberOfLines={1} ellipsizeMode="tail">{service.type.charAt(0).toUpperCase() + service.type.slice(1).toLowerCase()}</Text>
+                        </View>
+                      )}
+                      {!!service.serviceGroup && (
+                        <View style={styles.tag}>
+                          <Text style={styles.SGtagText} numberOfLines={1} ellipsizeMode="tail">{service.serviceGroup.charAt(0).toUpperCase() + service.serviceGroup.slice(1).toLowerCase()}</Text>
+                        </View>
+                      )}
                     </View>
                     <Text style={styles.price}>{service.price}</Text>
                   </View>

@@ -14,6 +14,9 @@ export const styles = StyleSheet.create({
         backgroundColor: colors.white,
       },
       backButton: {
+        position: 'absolute',
+        left: 16,
+        zIndex: 1,
         width: 40,
         height: 40,
         borderRadius: 20,
@@ -25,7 +28,9 @@ export const styles = StyleSheet.create({
       },
       doctorHeaderCenter: {
         flex: 1,
+        width: '100%',
         alignItems: 'center',
+        justifyContent: 'center',
       },
       doctorName: {
         fontSize: 17,

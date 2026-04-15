@@ -18,6 +18,7 @@ interface ConsultationItem {
   doctorAvatar: string;
   clinicName: string;
   price: string;
+  noAgentAccepted?: boolean;
 }
 
 interface ConsultationCardProps {
@@ -72,8 +73,8 @@ export const ConsultationCard: React.FC<ConsultationCardProps> = ({
               {t('get_prescription')}
             </Text>
           </TouchableOpacity> */}
-          {/* Only show View Chat button for Chat consultations, not Audio or Video */}
-          {item.type === 'Chat' && (
+          {/* Only show View Chat button for Chat consultations where an agent was accepted */}
+          {item.type === 'Chat' && !item.noAgentAccepted && (
             <TouchableOpacity style={styles.viewChatButton} onPress={onChatPress}>
               <Text style={styles.viewChatButtonText}>{t('view_chat')}</Text>
             </TouchableOpacity>

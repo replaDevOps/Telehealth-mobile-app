@@ -374,12 +374,13 @@ export function CheckoutScreen({ route, navigation }) {
                         <Text
                           style={styles.categoryBadgeText}
                           numberOfLines={1}
+                          ellipsizeMode="tail"
                         >
                           {service.type}
                         </Text>
                       </View>
                       <View style={styles.nameBadge}>
-                        <Text style={styles.nameBadgeText} numberOfLines={1}>
+                        <Text style={styles.nameBadgeText} numberOfLines={1} ellipsizeMode="tail">
                           {service.serviceGroup}
                         </Text>
                       </View>

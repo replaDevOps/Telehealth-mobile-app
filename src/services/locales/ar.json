@@ -39,6 +39,7 @@
   "confirm": "تأكيد",
   "didnt_receive_code": "لم تستلم الرمز؟",
   "resend_code": "إعادة إرسال الرمز",
+  "new_code_sent_successfully": "تم إرسال الرمز الجديد بنجاح",
   "create_password": "إنشاء كلمة مرور",
   "create_strong_password": "الرجاء إنشاء كلمة مرور قوية.",
   "confirm_password": "تأكيد كلمة المرور",

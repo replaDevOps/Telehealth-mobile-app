@@ -893,10 +893,24 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
   const handleChatPress = async () => {
     const seen = await AsyncStorage.getItem('vena_ai_onboarding_seen');
     if (seen) {
-      navigation.navigate('ChatScreen');
-
+      navigation.navigate('ChatScreen', {
+        chatType: 'ai',
+        clinicInfo: {
+          id: clinicID,
+          name: displayClinic.name || displayClinic.clinicName,
+          location: displayClinic.details?.address,
+          image: clinicDescriptionData?.logo || clinicDetail?.details?.logo || clinic?.image,
+        },
+      });
     } else {
-      navigation.navigate('ChatOnboarding');
+      navigation.navigate('ChatOnboarding', {
+        clinicInfo: {
+          id: clinicID,
+          name: displayClinic.name || displayClinic.clinicName,
+          location: displayClinic.details?.address,
+          image: clinicDescriptionData?.logo || clinicDetail?.details?.logo || clinic?.image,
+        },
+      });
     }
   };
 
@@ -964,7 +978,8 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
           specialty: clinic.specialty,
           rating: clinic.rating,
         },
-      };
+      };  
+      console.log(cartItem)
 
       addToCart(cartItem);
 

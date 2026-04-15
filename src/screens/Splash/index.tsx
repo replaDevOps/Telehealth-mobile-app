@@ -31,8 +31,12 @@ export const SplashScreen: React.FC<Props> = ({ navigation }) => {
         return;
       }
       try {
-        const selectedLanguage = await AsyncStorage.getItem('selectedLanguage');
-        
+        const selectedLanguageRaw = await AsyncStorage.getItem('selectedLanguage');
+        // storeData() JSON.stringifies the value, so strip surrounding quotes if present
+        const selectedLanguage = selectedLanguageRaw
+          ? selectedLanguageRaw.replace(/^"|"$/g, '')
+          : null;
+
         // Initialize i18n with the saved language
         if (selectedLanguage) {
           await i18n.changeLanguage(selectedLanguage);

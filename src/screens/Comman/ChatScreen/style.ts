@@ -36,12 +36,16 @@ export const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         flex: 1,
+        marginRight: 8,
+      },
+      clinicTextWrapper: {
+        flex: 1,
       },
       clinicImage: {
         width: 48,
         height: 48,
         backgroundColor: '#e5e7eb',
-        borderRadius: 8,
+        borderRadius: 24,
         marginRight: 12,
       },
       clinicName: {
@@ -53,6 +57,7 @@ export const styles = StyleSheet.create({
         fontSize: 11,
         color: '#6b7280',
         marginTop: 2,
+        width:'70%'
       },
       consultButton: {
         backgroundColor: colors.black,

@@ -419,12 +419,16 @@ export function CartScreen({ navigation }) {
         return;
       }
 
+      console.log("Adding to cart",{
+        service: service,
+        clinic: clinic,
+      })
       // Add to local cart context for immediate UI update
       addToCart({
         service: service,
         clinic: clinic,
       });
-
+      
       // Show success message
       const successMessage = response.data?.message || response.data?.data?.message || 'Service added to cart successfully';
       Toast.success(successMessage);

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Header2 } from '@components/common/Header2';
@@ -19,9 +19,10 @@ const FEATURES = [
   'clinic_specific',
 ] as const;
 
-export function ChatOnboarding() {
+export function ChatOnboarding({ route }: any) {
   const { t } = useTranslation();
   const navigation = useNavigation();
+  const clinicInfo = route?.params?.clinicInfo;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -37,7 +38,19 @@ export function ChatOnboarding() {
         <View style={styles.MainLogoContainer}>
           <View style={styles.logoContainer}>
             <View style={styles.logoCircle}>
-              <SingleLogo />
+              {clinicInfo?.image ? (
+                <Image
+                  source={typeof clinicInfo.image === 'string' && clinicInfo.image.startsWith('http')
+                    ? { uri: clinicInfo.image }
+                    : typeof clinicInfo.image === 'string'
+                    ? { uri: `https://telehealth.repla-projects.com/${clinicInfo.image}` }
+                    : clinicInfo.image}
+                  style={{ width: 120, height: 120, borderRadius: 60 }}
+                  resizeMode="cover"
+                />
+              ) : (
+                <SingleLogo />
+              )}
             </View>
           </View>
         </View>
@@ -75,7 +88,10 @@ export function ChatOnboarding() {
           title={t('get_started')}
           onPress={async () => {
             await AsyncStorage.setItem('vena_ai_onboarding_seen', 'true');
-            (navigation as any).replace('ChatScreen');
+            (navigation as any).replace('ChatScreen', {
+              chatType: 'ai',
+              ...(clinicInfo ? { clinicInfo } : {}),
+            });
           }}
           style={styles.button}
         />

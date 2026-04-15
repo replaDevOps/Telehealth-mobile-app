@@ -25,10 +25,10 @@ export const Suggestion: React.FC<SuggestionProps> = ({
         >
           <Image source={service.image} style={styles.suggestionImage} />
           <View style={styles.suggestionContent}>
-            <Text style={styles.suggestionTitle}>{service.serviceGroup}</Text>
+            <Text style={styles.suggestionTitle}>{service.serviceName}</Text>
             <View style={styles.suggestionSubtitleRow}>
               <Text style={styles.suggestionSubtitle}>
-                {service.serviceName}
+                {service.clinicName}
               </Text>
               <FontAwesome5
                 name="external-link-alt"

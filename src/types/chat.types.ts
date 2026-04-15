@@ -32,6 +32,7 @@ export interface Service {
   duration: string;
   description: string;
   procedure: string;
+  clinicName?: string;
 }
 
 export interface Message {

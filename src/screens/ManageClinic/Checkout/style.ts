@@ -124,6 +124,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 12,
+    maxWidth: 120,
   },
   nameBadgeText: {
     fontSize: 12,
@@ -151,7 +152,7 @@ export const styles = StyleSheet.create({
   pointsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     marginBottom: 4,
     gap: 8,
     backgroundColor: "#EBAD0033",

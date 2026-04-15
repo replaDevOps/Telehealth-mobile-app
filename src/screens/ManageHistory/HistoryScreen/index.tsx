@@ -124,6 +124,7 @@ export function HistoryScreen({ navigation }) {
             type: consultationType.type,
             icon: consultationType.icon,
             doctorName: doctorData.name ? doctorData.name : t('no_agent_accepted'),
+            noAgentAccepted: !doctorData.name,
             doctorAvatar: doctorData.image || consultation.doctorAvatar || '',
             clinicName: normalizedClinicInfo.clinicName || '',
             price: consultation.price || '0',

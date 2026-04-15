@@ -39,6 +39,7 @@
   "confirm": "Confirm",
   "didnt_receive_code": "Didn’t receive code? ",
   "resend_code": "Resend Code",
+  "new_code_sent_successfully": "New code sent successfully",
   "create_password": "Create Password",
   "create_strong_password": "Please create a strong password.",
   "confirm_password": "Confirm Password",

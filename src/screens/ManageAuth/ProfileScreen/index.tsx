@@ -229,21 +229,25 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     setPhoneError('');
     setEmailError('');
 
-    // Ensure required fields are present before calling the skip API
+    // Validate all required fields at once
+    let hasError = false;
+
     if (!fullName || !fullName.trim()) {
       setNameError(t('name_required') || 'Full name is required');
-      return;
+      hasError = true;
     }
 
     if (!phone || !phone.trim()) {
       setPhoneError(t('phone_required') || 'Phone number is required');
-      return;
+      hasError = true;
     }
 
     if (!email || !email.trim() || !email.includes('@')) {
       setEmailError(t('email_required') || 'Email is required');
-      return;
+      hasError = true;
     }
+
+    if (hasError) return;
 
     setLoadingSkip(true);
     try {

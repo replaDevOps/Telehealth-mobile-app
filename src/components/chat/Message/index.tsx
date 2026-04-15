@@ -13,13 +13,31 @@ interface MessageProps {
   showAvatar: boolean;
   handleServicePress: (service: Service) => void;
   handleDeleteMessage?: (messageID: string) => void;
+  isRTL?: boolean;
 }
+
+const renderBoldText = (text: string, baseStyle: any) => {
+  const parts = text.split(/\*\*(.+?)\*\*/g);
+  if (parts.length === 1) return <Text style={baseStyle}>{text}</Text>;
+  return (
+    <Text style={baseStyle}>
+      {parts.map((part, i) =>
+        i % 2 === 1 ? (
+          <Text key={i} style={{ fontWeight: 'bold' }}>{part}</Text>
+        ) : (
+          part
+        ),
+      )}
+    </Text>
+  );
+};
 
 export const Message: React.FC<MessageProps> = ({
   msg,
   showAvatar,
   handleServicePress,
   handleDeleteMessage,
+  isRTL = false,
 }) => {
   const [loadingImages, setLoadingImages] = useState<{ [key: number]: boolean }>({});
   const [fullScreenImage, setFullScreenImage] = useState<string | null>(null);
@@ -67,9 +85,7 @@ export const Message: React.FC<MessageProps> = ({
             )}
             {(hasText || hasImages) && (
               <View style={styles.botMessage}>
-                {hasText && (
-                  <Text style={styles.botMessageText}>{msg.text}</Text>
-                )}
+                {hasText && renderBoldText(msg.text, [styles.botMessageText, isRTL && { textAlign: 'right' as const, writingDirection: 'rtl' as const }])}
                 {hasImages && (
                   <View style={styles.botImagesRow}>
                     {msg.images?.map((img, i) => {

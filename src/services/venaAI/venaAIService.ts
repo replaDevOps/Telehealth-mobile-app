@@ -39,6 +39,9 @@ export interface VenaAIServiceItem {
     name?: string;
     serviceType?: string;
   };
+  loyality?: boolean;
+  bonusLoyalityPoints?: string;
+  totalLoyalityPoints?: string | number;
 }
 
 export interface VenaAIAssistantData {

@@ -5,9 +5,9 @@ import React, {
   useMemo,
   useCallback,
 } from 'react';
-import { View, Text, ScrollView, ActivityIndicator, Alert, BackHandler, KeyboardAvoidingView, Platform, Image, TouchableOpacity, Keyboard } from 'react-native';
+import { View, Text, ScrollView, ActivityIndicator, Alert, BackHandler, KeyboardAvoidingView, Platform, Image, TouchableOpacity, Keyboard, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ServiceDetailBottomSheet } from '@components/molecules';
+import { ServiceDetailBottomSheet, DeviceDetailBottomSheet } from '@components/molecules';
 import { styles } from './style';
 import { patient, RecommandImage } from '@assets/images';
 import ClinicAvatar from '@components/common/ClinicAvatar';
@@ -44,6 +44,7 @@ import { venaAIService, VenaAIServiceItem } from '@services/venaAI/venaAIService
 // ---------- Main Component ----------
 export function ChatScreen({ navigation, route }) {
   const { t, i18n } = useTranslation();
+  const { height } = useWindowDimensions();
   // Extract route params with defaults
   const chatType = route?.params?.chatType || 'ai';
   const fromHistory = route?.params?.fromHistory || false;
@@ -52,7 +53,7 @@ export function ChatScreen({ navigation, route }) {
   // Get consultationID from route params - check both consultationID and id
   const consultationID = route?.params?.consultationID || route?.params?.id;
   const recipientID = route?.params?.recipientID;
-  
+
   // Log consultationID on mount for debugging
   useEffect(() => {
     console.log('📞 [ChatScreen] Route params - consultationID:', route?.params?.consultationID, 'id:', route?.params?.id, 'final consultationID:', consultationID);
@@ -64,6 +65,9 @@ export function ChatScreen({ navigation, route }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [serviceDetailVisible, setServiceDetailVisible] = useState(false);
+  const [selectedDevice, setSelectedDevice] = useState<any>(null);
+  const [deviceDetailVisible, setDeviceDetailVisible] = useState(false);
+  const [loadingDeviceDetail, setLoadingDeviceDetail] = useState(false);
   // selectedService and serviceDetailVisible kept for doctor-chat ServiceDetailBottomSheet
   const [isConsultationActive, setIsConsultationActive] = useState(
     chatType === 'doctor' && !fromHistory,
@@ -121,7 +125,7 @@ export function ChatScreen({ navigation, route }) {
 
   // Map VenaAI suggestion items to the local Service type
   const mapVenaServicesToSuggestions = useCallback(
-    (services: VenaAIServiceItem[]): Service[] =>
+    (services: VenaAIServiceItem[], category: 'service' | 'device' = 'service'): Service[] =>
       services.map(s => ({
         id: String(s.id),
         image: s.image ? { uri: s.image } : RecommandImage,
@@ -133,6 +137,10 @@ export function ChatScreen({ navigation, route }) {
         description: s.description ?? '',
         procedure: s.procedure ?? '',
         clinicName: s.clinicName ?? '',
+        loyality: s.loyality,
+        bonusLoyalityPoints: s.bonusLoyalityPoints,
+        totalLoyalityPoints: s.totalLoyalityPoints,
+        category,
       })),
     [],
   );
@@ -200,11 +208,20 @@ export function ChatScreen({ navigation, route }) {
           if (payload.type === 'assistant_message') {
             const data = payload.data;
             console.log('🤖 [VenaAI] Assistant response:', JSON.stringify(data, null, 2));
-            const showCards = data?.suggestions?.meta?.showCards !== false;
+            // const showCards = data?.suggestions?.meta?.showCards !== false;
+            const showCards = true;
+
+            console.log('🤖 [VenaAI] Assistant response:', JSON.stringify(data.catalog.services, null, 2));
             const suggestionServices = data?.suggestions?.services ?? [];
+            const suggestionDevices = data?.suggestions?.devices ?? [];
+
+            const mappedServices = mapVenaServicesToSuggestions(suggestionServices, 'service');
+            const mappedDevices = mapVenaServicesToSuggestions(suggestionDevices, 'device');
+            const combinedSuggestions = [...mappedServices, ...mappedDevices];
+            // console.log(combinedSuggestions)
             const suggestions =
-              showCards && suggestionServices.length
-                ? mapVenaServicesToSuggestions(suggestionServices)
+              showCards && combinedSuggestions.length
+                ? combinedSuggestions
                 : undefined;
 
             const botMsg: Message = {
@@ -643,7 +660,7 @@ export function ChatScreen({ navigation, route }) {
         console.log('📞 [ChatScreen] Consultation end event received (raw):', JSON.stringify(eventPayload, null, 2));
         console.log('📞 [ChatScreen] Event payload type:', typeof eventPayload, 'has data property:', !!eventPayload?.data);
         console.log('📞 [ChatScreen] Current state - isMounted:', isMounted, 'consultationEndedRef:', consultationEndedRef.current, 'consultationID:', consultationID, 'type:', typeof consultationID);
-        
+
         if (!isMounted || consultationEndedRef.current) {
           console.log('📞 [ChatScreen] Ignoring event - isMounted:', isMounted, 'consultationEndedRef:', consultationEndedRef.current);
           return;
@@ -658,12 +675,12 @@ export function ChatScreen({ navigation, route }) {
         } else {
           console.log('📞 [ChatScreen] Using direct payload');
         }
-        
+
         const eventConsultationID = data?.consultationID || data?.id || eventPayload?.consultationID || eventPayload?.id;
         const fromUser = (data?.from || eventPayload?.from || '').toString();
-        
+
         console.log('📞 [ChatScreen] Extracted - eventConsultationID:', eventConsultationID, 'type:', typeof eventConsultationID, 'fromUser:', fromUser, 'consultationID:', consultationID, 'type:', typeof consultationID);
-        
+
         // Check if this event is from the other side (doctor), not from ourselves (patient)
         // If we (patient) sent this event, ignore it
         const isFromPatient = fromUser && fromUser.startsWith('patient_');
@@ -671,14 +688,14 @@ export function ChatScreen({ navigation, route }) {
           console.log('📞 [ChatScreen] Ignoring own event from:', fromUser);
           return;
         }
-        
+
         // Compare IDs - ensure both are converted to strings for reliable comparison
         const eventIDStr = eventConsultationID?.toString() || '';
         const consultationIDStr = consultationID?.toString() || '';
         const idsMatch = eventIDStr && consultationIDStr && eventIDStr === consultationIDStr;
-        
+
         console.log('📞 [ChatScreen] ID comparison - eventIDStr:', eventIDStr, 'consultationIDStr:', consultationIDStr, 'match:', idsMatch);
-        
+
         // Check if this is for our consultation
         if (idsMatch) {
           console.log('✅ [ChatScreen] Consultation ended by doctor, recording duration and showing modal');
@@ -989,8 +1006,8 @@ export function ChatScreen({ navigation, route }) {
             data?.suggestions?.services?.length
               ? data.suggestions.services
               : data?.catalog?.services?.length
-              ? data.catalog.services
-              : [];
+                ? data.catalog.services
+                : [];
           const suggestions = serviceSource.length
             ? mapVenaServicesToSuggestions(serviceSource)
             : undefined;
@@ -1050,9 +1067,57 @@ export function ChatScreen({ navigation, route }) {
     );
   }, [t]);
 
-  const handleServicePress = useCallback((service: Service) => {
-    setSelectedService(service);
-    setServiceDetailVisible(true);
+  const handleServicePress = useCallback(async (service: Service) => {
+    if (service.category === 'device') {
+      setDeviceDetailVisible(true);
+      setLoadingDeviceDetail(true);
+      setSelectedDevice(null);
+      try {
+        const response = await apiClient.get(`${API.CLINIC.GET_DEVICE_DETAILS}/${service.id}`);
+        if (response.data.success && response.data.data) {
+          const d = response.data.data;
+          let badge = d.badge || {};
+          if (Object.keys(badge).length === 0) {
+            if (d.service_details?.length > 0) {
+              d.service_details.forEach((s: any, i: number) => { badge[i + 1] = s.name; });
+            } else {
+              badge[1] = d.name || d.title || 'Device';
+            }
+          }
+          setSelectedDevice({
+            id: d.id?.toString() || service.id,
+            image: d.image ? { uri: d.image } : service.image,
+            title: d.title || d.name || service.serviceName,
+            note: d.note || d.notes || '',
+            badge,
+            purpose: d.purpose || '',
+          });
+        } else {
+          setSelectedDevice({
+            id: service.id,
+            image: service.image,
+            title: service.serviceName,
+            note: '',
+            badge: { 1: service.serviceGroup || 'Device' },
+            purpose: service.description || '',
+          });
+        }
+      } catch {
+        setSelectedDevice({
+          id: service.id,
+          image: service.image,
+          title: service.serviceName,
+          note: '',
+          badge: { 1: service.serviceGroup || 'Device' },
+          purpose: service.description || '',
+        });
+      } finally {
+        setLoadingDeviceDetail(false);
+      }
+    } else {
+      setSelectedService(service);
+      setServiceDetailVisible(true);
+    }
   }, []);
 
   const addServiceToCart = async (service: any, shouldNavigate: boolean) => {
@@ -1144,13 +1209,13 @@ export function ChatScreen({ navigation, route }) {
     const clinicID = clinicInfoState?.id || consultationData?.clinicID;
     const clinic = clinicID
       ? {
-          id: clinicID,
-          name: clinicInfoState?.name || clinicInfoState?.clinicName || '',
-          location: clinicInfoState?.location || '',
-          image: clinicInfoState?.image,
-          specialty: 'General',
-          rating: 0,
-        }
+        id: clinicID,
+        name: clinicInfoState?.name || clinicInfoState?.clinicName || '',
+        location: clinicInfoState?.location || '',
+        image: clinicInfoState?.image,
+        specialty: 'General',
+        rating: 0,
+      }
       : null;
     navigation.navigate('PrescriptionScreen', {
       consultationID: consultationID,
@@ -1219,10 +1284,10 @@ export function ChatScreen({ navigation, route }) {
 
   const handleConfirmEndConsultation = useCallback(async () => {
     setShowEndConsultationModal(false);
-    
+
     // End the consultation first
     await endConsultationAndNotify();
-    
+
     // Navigate to clinic detail
     const clinicID = clinicInfoState?.id || consultationData?.clinicID;
     navigation.replace('ClinicDetail', {
@@ -1240,7 +1305,7 @@ export function ChatScreen({ navigation, route }) {
 
   const insets = useSafeAreaInsets();
   const inputPadding = {
-    paddingBottom: insets.bottom-10,
+    paddingBottom: insets.bottom - 10,
     paddingLeft: 4,
     paddingRight: 4,
   };
@@ -1256,78 +1321,78 @@ export function ChatScreen({ navigation, route }) {
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? insets.top : 0}
-        style={flexToggle ? [{ flexGrow: 1 }, styles.container] : [{ flex: 1 }, styles.container]}
+        style={flexToggle ? [{ flexGrow: 1 }, styles.container] : [{ flex: 1, paddingBottom: height < 700 ? 20 : 0 }, styles.container]}
         enabled={!flexToggle}
       >
         <View style={styles.content}>
-        <ChatHeader
-          chatType={chatType}
-          doctorInfo={doctorInfo}
-          consultationTime={consultationTime}
-          consultationElapsed={calculateDuration()}
-          fromHistory={fromHistory}
-          handleGoBack={handleGoBack}
-          handleEndConsultation={handleEndConsultation}
-          handleCart={handleCartPress}
-          isConsultationActive={isConsultationActive}
-          consultationData={consultationData}
-          consultationEnded={consultationEndedState}
-          consultationDuration={consultationDuration}
-        />
+          <ChatHeader
+            chatType={chatType}
+            doctorInfo={doctorInfo}
+            consultationTime={consultationTime}
+            consultationElapsed={calculateDuration()}
+            fromHistory={fromHistory}
+            handleGoBack={handleGoBack}
+            handleEndConsultation={handleEndConsultation}
+            handleCart={handleCartPress}
+            isConsultationActive={isConsultationActive}
+            consultationData={consultationData}
+            consultationEnded={consultationEndedState}
+            consultationDuration={consultationDuration}
+          />
 
-        {/* Clinic Info Bar */}
-        {clinicInfoState?.id && (chatType === 'doctor' || chatType === 'ai') && (
-          <View style={styles.clinicInfo}>
-            <View style={styles.clinicLeft}>
-              {clinicInfoState.image ? (
-                <Image
-                  source={typeof clinicInfoState.image === 'string' && clinicInfoState.image.startsWith('http')
-                    ? { uri: clinicInfoState.image }
-                    : typeof clinicInfoState.image === 'string'
-                    ? { uri: `https://telehealth.repla-projects.com/${clinicInfoState.image}` }
-                    : clinicInfoState.image}
-                  style={styles.clinicImage}
-                />
+          {/* Clinic Info Bar */}
+          {clinicInfoState?.id && (chatType === 'doctor' || chatType === 'ai') && (
+            <View style={styles.clinicInfo}>
+              <View style={styles.clinicLeft}>
+                {clinicInfoState.image ? (
+                  <Image
+                    source={typeof clinicInfoState.image === 'string' && clinicInfoState.image.startsWith('http')
+                      ? { uri: clinicInfoState.image }
+                      : typeof clinicInfoState.image === 'string'
+                        ? { uri: `https://telehealth.repla-projects.com/${clinicInfoState.image}` }
+                        : clinicInfoState.image}
+                    style={styles.clinicImage}
+                  />
+                ) : (
+                  <ClinicAvatar name={clinicInfoState.name || clinicInfoState.clinicName} size={48} style={styles.clinicImage} />
+                )}
+                <View style={styles.clinicTextWrapper}>
+                  <Text style={styles.clinicName} numberOfLines={1}>{clinicInfoState.name || clinicInfoState.clinicName}</Text>
+                  <Text style={styles.clinicLocation} numberOfLines={2}>{clinicInfoState.location || clinicInfoState.address || ''}</Text>
+                </View>
+              </View>
+              {chatType === 'ai' ? (
+                <TouchableOpacity style={styles.consultButton} onPress={handleConsultNow}>
+                  <Text style={styles.consultButtonText}>{t('consult_now') || 'Consult Now'}</Text>
+                </TouchableOpacity>
               ) : (
-                <ClinicAvatar name={clinicInfoState.name || clinicInfoState.clinicName} size={48} style={styles.clinicImage} />
+                <TouchableOpacity style={styles.consultButton} onPress={handleVisitClinic}>
+                  <Text style={styles.consultButtonText}>{t('visit') || 'Visit'}</Text>
+                </TouchableOpacity>
               )}
-              <View style={styles.clinicTextWrapper}>
-                <Text style={styles.clinicName} numberOfLines={1}>{clinicInfoState.name || clinicInfoState.clinicName}</Text>
-                <Text style={styles.clinicLocation} numberOfLines={2}>{clinicInfoState.location || clinicInfoState.address || ''}</Text>
-              </View>
             </View>
-            {chatType === 'ai' ? (
-              <TouchableOpacity style={styles.consultButton} onPress={handleConsultNow}>
-                <Text style={styles.consultButtonText}>{t('consult_now') || 'Consult Now'}</Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity style={styles.consultButton} onPress={handleVisitClinic}>
-                <Text style={styles.consultButtonText}>{t('visit') || 'Visit'}</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
+          )}
 
-        {/* Messages */}
-        {!modalVisible && (
-          <>
-            {loadingMessages ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#6B46C1" />
-                <Text style={styles.loadingText}>{t('loading_messages') || 'Loading messages...'}</Text>
-              </View>
-            ) : (
-              <MessageList
-                messages={messages}
-                scrollRef={scrollRef}
-                showAvatar={showAvatar}
-                handleServicePress={handleServicePress}
-                handleDeleteMessage={chatType === 'ai' ? undefined : handleDeleteMessage}
-                isRTL={i18n.language === 'ar'}
-              />
-            )}
-          </>
-        )}
+          {/* Messages */}
+          {!modalVisible && (
+            <>
+              {loadingMessages ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color="#6B46C1" />
+                  <Text style={styles.loadingText}>{t('loading_messages') || 'Loading messages...'}</Text>
+                </View>
+              ) : (
+                <MessageList
+                  messages={messages}
+                  scrollRef={scrollRef}
+                  showAvatar={showAvatar}
+                  handleServicePress={handleServicePress}
+                  handleDeleteMessage={chatType === 'ai' ? undefined : handleDeleteMessage}
+                  isRTL={i18n.language === 'ar'}
+                />
+              )}
+            </>
+          )}
         </View>
 
         {/* Input - apply safe area insets manually so bar is never clipped (SafeAreaView unreliable on stack screens) */}
@@ -1350,6 +1415,12 @@ export function ChatScreen({ navigation, route }) {
           service={selectedService}
           onAddToCart={handleAddToCart}
           onCheckout={handleCheckout}
+        />
+        <DeviceDetailBottomSheet
+          visible={deviceDetailVisible}
+          onClose={() => setDeviceDetailVisible(false)}
+          device={selectedDevice}
+          loading={loadingDeviceDetail}
         />
         <ConsultationEndedModal
           visible={modalVisible}

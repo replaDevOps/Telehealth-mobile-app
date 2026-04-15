@@ -19,6 +19,7 @@ export const RoyaltyPoints = ({ navigation }) => {
   const { t } = useTranslation();
   const [loyaltyPointsData, setLoyaltyPointsData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
@@ -26,10 +27,14 @@ export const RoyaltyPoints = ({ navigation }) => {
   const [hasMore, setHasMore] = useState(true);
   const recordsPerPage = 10;
 
-  const fetchLoyaltyPoints = async (pageNo: number = 1, append: boolean = false) => {
+  const fetchLoyaltyPoints = async (pageNo: number = 1, append: boolean = false, isRefresh: boolean = false) => {
     try {
       if (append) {
         setLoadingMore(true);
+      } else if (isRefresh) {
+        setRefreshing(true);
+        setCurrentPage(1);
+        setHasMore(true);
       } else {
         setLoading(true);
         setCurrentPage(1);
@@ -141,6 +146,7 @@ export const RoyaltyPoints = ({ navigation }) => {
       }
     } finally {
       setLoading(false);
+      setRefreshing(false);
       setLoadingMore(false);
     }
   };
@@ -236,8 +242,8 @@ export const RoyaltyPoints = ({ navigation }) => {
             loyaltyPointsData.length === 0 && { flexGrow: 1, justifyContent: 'center' }
           ]}
           ListEmptyComponent={renderEmptyComponent}
-          refreshing={loading && loyaltyPointsData.length > 0}
-          onRefresh={() => fetchLoyaltyPoints(1, false)}
+          refreshing={refreshing}
+          onRefresh={() => fetchLoyaltyPoints(1, false, true)}
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
           ListFooterComponent={

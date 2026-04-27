@@ -22,11 +22,13 @@ export type AuthStackParamList = {
     email?: string;
     phone?: string;
     countryCode?: string;
+    firebaseUid?: string;
   };
   Profile: {
     email?: string;
     phone?: string;
     countryCode?: string;
+    firebaseUid?: string;
   };
   ForgetPassword: undefined;
   SetPassword: {

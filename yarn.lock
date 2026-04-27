@@ -2083,6 +2083,13 @@
   dependencies:
     firebase "12.10.0"
 
+"@react-native-firebase/auth@^23.8.8":
+  version "23.8.8"
+  resolved "https://registry.npmjs.org/@react-native-firebase/auth/-/auth-23.8.8.tgz"
+  integrity sha512-2X067hMAW07O1vKvQh5LtnvlCNfgoKOFXeStTurhnA3+BslkASJwKzjs0qUvnE8RJ7R2YltiF/E+nJfplOKDuQ==
+  dependencies:
+    plist "^3.1.0"
+
 "@react-native-firebase/messaging@^23.8.8":
   version "23.8.8"
   resolved "https://registry.npmjs.org/@react-native-firebase/messaging/-/messaging-23.8.8.tgz"
@@ -2654,6 +2661,11 @@
   version "9.3.1"
   resolved "https://registry.npmjs.org/@vscode/sudo-prompt/-/sudo-prompt-9.3.1.tgz"
   integrity sha512-9ORTwwS74VaTn38tNbQhsA5U44zkJfcb0BdTSyyG6frP4e8KMtHuTXYmwefe5dpL8XB1aGSIVTaLjD3BbWb5iA==
+
+"@xmldom/xmldom@^0.9.10":
+  version "0.9.10"
+  resolved "https://registry.npmjs.org/@xmldom/xmldom/-/xmldom-0.9.10.tgz"
+  integrity sha512-A9gOqLdi6cV4ibazAjcQufGj0B1y/vDqYrcuP6d/6x8P27gRS8643Dj9o1dEKtB6O7fwxb2FgBmJS2mX7gpvdw==
 
 "@yarnpkg/lockfile@^1.1.0":
   version "1.1.0"
@@ -6556,6 +6568,15 @@ pkg-up@^3.1.0:
   dependencies:
     find-up "^3.0.0"
 
+plist@^3.1.0:
+  version "3.1.1"
+  resolved "https://registry.npmjs.org/plist/-/plist-3.1.1.tgz"
+  integrity sha512-ZIfcLJC+7E7FBFnDxm9MPmt7D+DidyQ26lewieO75AdhA2ayMtsJSES0iWzqJQbcVRSrTufQoy0DR94xHue0oA==
+  dependencies:
+    "@xmldom/xmldom" "^0.9.10"
+    base64-js "^1.5.1"
+    xmlbuilder "^15.1.1"
+
 possible-typed-array-names@^1.0.0:
   version "1.1.0"
   resolved "https://registry.npmjs.org/possible-typed-array-names/-/possible-typed-array-names-1.1.0.tgz"
@@ -8114,6 +8135,11 @@ ws@~8.18.3:
   version "8.18.3"
   resolved "https://registry.npmjs.org/ws/-/ws-8.18.3.tgz"
   integrity sha512-PEIGCY5tSlUt50cqyMXfCzX+oOPqN0vuGqWzbcJ2xvnkzkq46oOpz7dQaTDBdfICb4N14+GARUDw2XV2N4tvzg==
+
+xmlbuilder@^15.1.1:
+  version "15.1.1"
+  resolved "https://registry.npmjs.org/xmlbuilder/-/xmlbuilder-15.1.1.tgz"
+  integrity sha512-yMqGBqtXyeN1e3TGYvgNgDVZ3j84W4cwkOXQswghol6APgZWaff9lnbvN7MHYJOiXsvGPXtjTYJEiC9J2wv9Eg==
 
 xmlhttprequest-ssl@~2.1.1:
   version "2.1.2"

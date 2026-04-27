@@ -131,22 +131,27 @@ export const CreatePassword: React.FC<Props> = ({ navigation, route }) => {
       return;
     }
     setLoading(true);
-    const [data,err]= await tryCatch(apiClient.post(API.AUTH.CREATE_PASSWORD, {
-      password,
-      confirmPassword,
-    }));
+    const firebaseUid = route.params?.firebaseUid;
+    const [data, err] = await tryCatch(
+      apiClient.post(API.AUTH.CREATE_PASSWORD, {
+        password,
+        confirmPassword,
+        ...(firebaseUid ? { firebaseUid } : {}),
+      }),
+    );
     if (err) {
       Toast.error((err as Error).message);
-      return; 
+      setLoading(false);
+      return;
     }
     const successMsg = t('password_created_success');
     Toast.success(successMsg);
     setLoading(false);
-    // Pass email/phone data to Profile screen
     navigation.navigate('Profile', {
       email: route.params?.email,
       phone: route.params?.phone,
       countryCode: route.params?.countryCode,
+      firebaseUid,
     });
   };
 

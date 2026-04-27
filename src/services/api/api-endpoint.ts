@@ -11,6 +11,7 @@ export const API = {
     RESEND_OTP_PHONE: '/patient-auth/resendMobileOpt',
     // VERIFY OTP
     VERIFY_OTP: '/patient-auth/verifyOtp',
+    VERIFY_FIREBASE_OTP: '/patient-auth/verifyFirebaseOtp',
     // CREATE PASSWORD
     CREATE_PASSWORD: '/patient-auth/createPassword',
     // REGISTER

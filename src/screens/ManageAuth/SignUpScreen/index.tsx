@@ -25,6 +25,8 @@ import { useTranslation } from 'react-i18next';
 import { API } from '@services/api/api-endpoint';
 import { apiClient } from '@services/api/api-client';
 import { Toast } from 'toastify-react-native';
+import { sendPhoneOtp } from '@services/firebase/phoneAuth';
+import { setPhoneConfirmation } from '@services/firebase/phoneAuthStore';
 
 const isValidEmailFormat = (value: string): boolean => {
   if (!value || typeof value !== 'string') return false;
@@ -86,26 +88,32 @@ export function SignUpScreen({ navigation }) {
     if (valid) {
       try {
         setLoading(true);
-        const endPoint =
-          selectedTab === 'email'
-            ? API.AUTH.SEND_OTP_EMAIL
-            : API.AUTH.SEND_OTP_PHONE;
 
-        const payload =
-          selectedTab === 'email' ? { email } : { phoneNo: formattedPhone };
-
-        const { data } = await apiClient.post(endPoint, payload);
-        Toast.success(data.message);
-        navigation.navigate('OTPScreen', {
-          source: 'signUp',
-          method: selectedTab, // 'email' or 'phone'
-          email: selectedTab === 'email' ? email : undefined,
-          phone: selectedTab === 'phone' ? phone : undefined,
-          countryCode: selectedTab === 'phone' ? countryCode : undefined,
-        });
+        if (selectedTab === 'phone') {
+          console.log("formattedPhone",formattedPhone)
+          const confirmation = await sendPhoneOtp(formattedPhone);
+          setPhoneConfirmation(confirmation);
+          Toast.success(t('otp_sent_successfully'));
+          navigation.navigate('OTPScreen', {
+            source: 'signUp',
+            method: 'phone',
+            phone,
+            countryCode,
+          });
+        } else {
+          const { data } = await apiClient.post(API.AUTH.SEND_OTP_EMAIL, {
+            email,
+          });
+          Toast.success(data.message);
+          navigation.navigate('OTPScreen', {
+            source: 'signUp',
+            method: 'email',
+            email,
+          });
+        }
       } catch (error: any) {
         console.log('error', error);
-        Toast.error(error.message);
+        Toast.error(error?.message || t('something_went_wrong'));
       } finally {
         setLoading(false);
       }

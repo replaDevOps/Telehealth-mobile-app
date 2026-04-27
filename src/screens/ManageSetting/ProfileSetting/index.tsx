@@ -215,7 +215,7 @@ export const ProfileSetting = ({ navigation, route }: { navigation: any; route?:
       phoneNo: state.phone.trim(),
       email: state.email.trim(),
       age: state.age.trim(),
-      gender: state.gender.toLowerCase(), // Convert to lowercase for API
+      gender: state.gender.toLowerCase(),
       notificationStatus: state.notificationEnabled,
       language: state.language,
       IDnumber: state.nationalID?.trim() || undefined,
@@ -224,6 +224,8 @@ export const ProfileSetting = ({ navigation, route }: { navigation: any; route?:
         : undefined,
       city: state.city?.trim() || undefined,
     };
+
+    console.log('[ProfileSetting] UPDATE_PROFILE payload:', JSON.stringify(payload, null, 2));
 
     console.log("🚀 ~ updateProfile ~ payload language:", payload.language);
 

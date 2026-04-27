@@ -23,6 +23,14 @@ import { Toast } from 'toastify-react-native';
 import { API } from '@services/api/api-endpoint';
 import { apiClient } from '@services/api/api-client';
 import { tryCatch } from '@utils';
+import {
+  confirmPhoneOtp,
+  sendPhoneOtp,
+} from '@services/firebase/phoneAuth';
+import {
+  getPhoneConfirmation,
+  setPhoneConfirmation,
+} from '@services/firebase/phoneAuthStore';
 
 type NavProps = StackNavigationProp<AuthStackParamList, 'OTPScreen'>;
 type RouteProps = RouteProp<AuthStackParamList, 'OTPScreen'>;
@@ -37,7 +45,12 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
   const isFocused = useIsFocused();
   const [loading, setLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
-  const [inputValues, setInputValues] = useState<string[]>(Array(5).fill(''));
+  const isFirebasePhone =
+    route.params?.method === 'phone' && route.params?.source === 'signUp';
+  const otpLength = isFirebasePhone ? 6 : 5;
+  const [inputValues, setInputValues] = useState<string[]>(
+    Array(otpLength).fill(''),
+  );
   const [timer, setTimer] = useState(60); // 60 seconds = 1 minute
 
   const inputRefs = useRef<RefObject<TextInput | null>[]>([]);
@@ -52,10 +65,10 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
   const countryCode = route.params?.countryCode;
 
   useEffect(() => {
-    inputRefs.current = Array(5)
+    inputRefs.current = Array(otpLength)
       .fill(null)
       .map(() => createRef<TextInput>());
-  }, []);
+  }, [otpLength]);
 
   // Timer countdown effect
   useEffect(() => {
@@ -122,14 +135,57 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
       lastSubmittedOtp.current = otp;
       console.log('OTP submitted:', otp);
 
-      // Use different endpoint based on source
-      const endpoint = source === 'forgotPassword'
-        ? API.AUTH.VERIFY_OTP_PASSWORD
-        : API.AUTH.VERIFY_OTP;
+      let response: any;
 
-      const response = await apiClient.post(endpoint, {
-        otp,
-      });
+      if (isFirebasePhone) {
+        const confirmation = getPhoneConfirmation();
+        if (!confirmation) {
+          Toast.error(t('otp_session_expired'));
+          setInputValues(Array(otpLength).fill(''));
+          lastSubmittedOtp.current = '';
+          setLoading(false);
+          isSubmittingRef.current = false;
+          navigation.goBack();
+          return;
+        }
+
+        const { idToken, user: firebaseUser } = await confirmPhoneOtp(
+          confirmation,
+          otp,
+        );
+        console.log('[Firebase] OTP confirmed. user:', {
+          uid: firebaseUser?.uid,
+          phoneNumber: firebaseUser?.phoneNumber,
+        });
+        console.log('[Firebase] idToken:', idToken);
+
+        if (!idToken) {
+          throw new Error('No idToken returned from Firebase');
+        }
+
+        const backendResponse = await apiClient.post(
+          API.AUTH.VERIFY_FIREBASE_OTP,
+          {
+            firebaseIdToken: idToken,
+            phoneNo: phone,
+          },
+        );
+        console.log(
+          '[Backend] VERIFY_FIREBASE_OTP response:',
+          JSON.stringify(backendResponse?.data, null, 2),
+        );
+        response = backendResponse;
+      } else {
+        // Use different endpoint based on source
+        const endpoint =
+          source === 'forgotPassword'
+            ? API.AUTH.VERIFY_OTP_PASSWORD
+            : API.AUTH.VERIFY_OTP;
+
+        response = await apiClient.post(endpoint, {
+          otp,
+        });
+      }
 
       // Check for success: false in response
       if (response.data?.success === false) {
@@ -137,7 +193,7 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
         const errorMessage = response.data?.message || defaultError;
         Toast.error(errorMessage);
         // Clear all inputs on error
-        setInputValues(Array(5).fill(''));
+        setInputValues(Array(otpLength).fill(''));
         lastSubmittedOtp.current = ''; // Reset on error so user can retry
         setLoading(false);
         isSubmittingRef.current = false;
@@ -151,18 +207,26 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
         return;
       }
 
-      const defaultSuccess = source === 'forgotPassword' ? t('otp_verified') : t('email_verified_success');
-      const successMessage = defaultSuccess;
+      const successMessage =
+        source === 'forgotPassword'
+          ? t('otp_verified')
+          : isFirebasePhone
+          ? t('phone_verified_success')
+          : t('email_verified_success');
       Toast.success(successMessage);
 
       if (source === 'forgotPassword') {
-        // Extract token from response for password reset
         const token = response.data?.data?.token || response.data?.token;
-        navigation.navigate('SetPassword', {
-          token: token,
+        navigation.navigate('SetPassword', { token });
+      } else if (isFirebasePhone) {
+        const firebaseUid =
+          response.data?.firebase_uid || response.data?.data?.firebase_uid;
+        navigation.navigate('CreatePassword', {
+          phone: response.data?.phone || phone,
+          countryCode,
+          firebaseUid,
         });
       } else {
-        // Pass email/phone data to CreatePassword screen
         navigation.navigate('CreatePassword', {
           email,
           phone,
@@ -176,7 +240,7 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
         t('invalid_code_try_again');
       Toast.error(errorMessage);
       // Clear all inputs on error
-      setInputValues(Array(5).fill(''));
+      setInputValues(Array(otpLength).fill(''));
       lastSubmittedOtp.current = ''; // Reset on error so user can retry
       setLoading(false);
       isSubmittingRef.current = false;
@@ -200,7 +264,7 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
     setInputValues(newValues);
 
     // Focus next input if a digit was entered and not on last input
-    if (digit && index < 4) {
+    if (digit && index < otpLength - 1) {
       // Use setTimeout to ensure focus happens after state update and render
       setTimeout(() => {
         const nextRef = inputRefs.current[index + 1];
@@ -249,11 +313,11 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
       !loading &&
       !isSubmittingRef.current &&
       lastSubmittedOtp.current !== otp &&
-      otp.length === 5
+      otp.length === otpLength
     ) {
       handleNext();
     }
-  }, [inputValues, loading, handleNext]);
+  }, [inputValues, loading, handleNext, otpLength]);
 
   async function handleResendOTP() {
     // Don't allow resend if timer is still active
@@ -262,53 +326,76 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
     }
 
     setResendLoading(true);
-    let endPoint;
-    if (source === 'forgotPassword') {
-      endPoint =
-        method === 'email'
-          ? API.AUTH.RESEND_FORGOT_PASSWORD_EMAIL
-          : API.AUTH.RESEND_FORGOT_PASSWORD_PHONE;
-    } else {
-      endPoint =
-        method === 'email' ? API.AUTH.RESEND_OTP_EMAIL : API.AUTH.RESEND_OTP_PHONE;
-    }
 
-    let payload;
-    if (method === 'email') {
-      console.log('email', email);
-      // Use email from route params
-      payload = { email: email };
-    } else {
-      // Format phone number properly with country code
-      if (phone) {
-        let formattedPhone = phone;
-        if (countryCode) {
-          const phoneNumber = parsePhoneNumberFromString(
-            phone,
-            countryCode as CountryCode,
-          );
-          formattedPhone = phoneNumber
-            ? `${phoneNumber.nationalNumber}`
-            : phone;
-        }
-        payload = { phoneNo: formattedPhone };
-      } else {
+    if (isFirebasePhone) {
+      if (!phone || !countryCode) {
         Toast.error('Phone number is required');
         setResendLoading(false);
         return;
       }
-    }
+      const phoneNumber = parsePhoneNumberFromString(
+        phone,
+        countryCode as CountryCode,
+      );
+      const e164 = phoneNumber
+        ? `+${phoneNumber.countryCallingCode}${phoneNumber.nationalNumber}`
+        : `+${phone}`;
 
-    const [, err] = await tryCatch(apiClient.post(endPoint, payload));
-    if (err) {
-      const errorMessage =
-        (err as any)?.response?.data?.message ||
-        (err as any)?.response?.data?.data?.message ||
-        (err as Error).message ||
-        'Failed to resend OTP';
-      Toast.error(errorMessage);
-      setResendLoading(false);
-      return;
+      const [confirmation, err] = await tryCatch(sendPhoneOtp(e164));
+      if (err || !confirmation) {
+        Toast.error((err as Error)?.message || 'Failed to resend OTP');
+        setResendLoading(false);
+        return;
+      }
+      setPhoneConfirmation(confirmation);
+    } else {
+      let endPoint;
+      if (source === 'forgotPassword') {
+        endPoint =
+          method === 'email'
+            ? API.AUTH.RESEND_FORGOT_PASSWORD_EMAIL
+            : API.AUTH.RESEND_FORGOT_PASSWORD_PHONE;
+      } else {
+        endPoint =
+          method === 'email'
+            ? API.AUTH.RESEND_OTP_EMAIL
+            : API.AUTH.RESEND_OTP_PHONE;
+      }
+
+      let payload;
+      if (method === 'email') {
+        payload = { email: email };
+      } else {
+        if (phone) {
+          let formattedPhone = phone;
+          if (countryCode) {
+            const phoneNumber = parsePhoneNumberFromString(
+              phone,
+              countryCode as CountryCode,
+            );
+            formattedPhone = phoneNumber
+              ? `${phoneNumber.nationalNumber}`
+              : phone;
+          }
+          payload = { phoneNo: formattedPhone };
+        } else {
+          Toast.error('Phone number is required');
+          setResendLoading(false);
+          return;
+        }
+      }
+
+      const [, err] = await tryCatch(apiClient.post(endPoint, payload));
+      if (err) {
+        const errorMessage =
+          (err as any)?.response?.data?.message ||
+          (err as any)?.response?.data?.data?.message ||
+          (err as Error).message ||
+          'Failed to resend OTP';
+        Toast.error(errorMessage);
+        setResendLoading(false);
+        return;
+      }
     }
 
     // Show success message
@@ -318,8 +405,9 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
     setTimer(60);
 
     // Clear inputs to allow entering new OTP
-    setInputValues(Array(5).fill(''));
+    setInputValues(Array(otpLength).fill(''));
     lastSubmittedOtp.current = '';
+    isSubmittingRef.current = false;
 
     setResendLoading(false);
 
@@ -388,7 +476,7 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
           </View>
 
           <View style={styles.inputContainer}>
-            {Array.from({ length: 5 }).map((_, idx) => (
+            {Array.from({ length: otpLength }).map((_, idx) => (
               <TextInput
                 key={idx}
                 ref={inputRefs.current[idx] ?? undefined}

@@ -112,6 +112,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     setIdError('');
     setAgeError('');
     setNationalityError('');
+    setCityError('');
     setGenderError('');
     setProfileImageError('');
 
@@ -131,12 +132,14 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
       setNationalityError(t('nationality_required'));
       valid = false;
     }
+    if (!city) {
+      setCityError(t('city_required'));
+      valid = false;
+    }
     if (!IdCardNumber.trim()) {
       setIdError(t('id_required'));
       valid = false;
-    }
-    // Iqama/National ID must be exactly 10 digits
-    if (IdCardNumber && IdCardNumber.replace(/[^0-9]/g, '').length !== 10) {
+    } else if (IdCardNumber.replace(/[^0-9]/g, '').length !== 10) {
       setIdError('Iqama Number must be exactly 10 digits');
       valid = false;
     }
@@ -158,15 +161,33 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
         // Create FormData to include image file
         const formData = new FormData();
         // Add text fields
+        const nationalityPayload =
+          nationality === 'Non-Saudi'
+            ? 'non_saudi'
+            : nationality === 'Saudi'
+            ? 'saudi'
+            : nationality.toLowerCase();
+
         formData.append('fullName', fullName.trim());
         formData.append('email', email.trim());
         formData.append('phoneNo', phone.trim());
-        formData.append('nationality', nationality);
-        formData.append('nationalID', IdCardNumber.trim());
+        formData.append('nationality', nationalityPayload);
+        if (IdCardNumber.trim()) {
+          formData.append('nationalID', IdCardNumber.trim());
+        }
         formData.append('gender', gender);
         formData.append('age', age.trim());
-        formData.append('city', city?.trim() || '');
-        console.log('🚀 ~ handleConfirm ~ formData before append:', formData);
+        formData.append('city', city.trim());
+        console.log('[ProfileScreen] REGISTER payload:', {
+          fullName: fullName.trim(),
+          email: email.trim(),
+          phoneNo: phone.trim(),
+          nationality: nationalityPayload,
+          nationalID: IdCardNumber.trim() || undefined,
+          gender,
+          age: age.trim(),
+          city: city?.trim() || undefined,
+        });
 
         // Add image if available
         if (profileImageAsset && profileImageAsset.uri) {
@@ -228,6 +249,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     setNameError('');
     setPhoneError('');
     setEmailError('');
+    setIdError('');
 
     // Validate all required fields at once
     let hasError = false;
@@ -247,6 +269,12 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
       hasError = true;
     }
 
+    // If iqama is entered it must be exactly 10 digits
+    if (IdCardNumber.trim() && IdCardNumber.replace(/[^0-9]/g, '').length !== 10) {
+      setIdError('Iqama Number must be exactly 10 digits');
+      hasError = true;
+    }
+
     if (hasError) return;
 
     setLoadingSkip(true);
@@ -257,8 +285,17 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
         phoneNo: phone.trim(),
         email: email.trim(),
       };
-      if (nationality) payload.nationality = nationality;
-      if (IdCardNumber && IdCardNumber.trim()) payload.nationalID = IdCardNumber.trim();
+      if (nationality) {
+        payload.nationality =
+          nationality === 'Non-Saudi'
+            ? 'non_saudi'
+            : nationality === 'Saudi'
+            ? 'saudi'
+            : nationality.toLowerCase();
+      }
+      if (IdCardNumber?.trim() && IdCardNumber.replace(/[^0-9]/g, '').length === 10) {
+        payload.nationalID = IdCardNumber.trim();
+      }
       if (gender) payload.gender = gender;
       if (age && age.trim()) payload.age = age.trim();
       if (city) payload.city = city;
@@ -306,8 +343,8 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   const isPhoneSignup = !!routePhone;
 
   const nationalityOptions = [
-    { label: t('saudi_arabian'), value: 'sau' },
-    { label: t('non_saudi'), value: 'non_saudi' },
+    { label: t('saudi_arabian'), value: 'Saudi' },
+    { label: t('non_saudi'), value: 'Non-Saudi' },
   ];
 
   const cityOptions = citiesData.map((c: any) => ({ label: c.name, value: c.name }));

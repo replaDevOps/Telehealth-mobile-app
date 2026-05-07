@@ -13,5 +13,6 @@ export const onboarding3 = require("./onboarding3.png");
 export const coinIcon = require("./CoinIcon.png");
 export const Signature = require("./Signature.png")
 export const Marker_Pin = require("./Pin.png")
+export const AiLogo = require("./Ailogo.png")
 
 

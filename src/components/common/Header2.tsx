@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Text, Image } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { mvs } from '../../config/metrices';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { BackSvg, ShopingCartSvg, SingleLogo } from '../../assets/icons';
+import { BackSvg, ShopingCartSvg } from '../../assets/icons';
+import { AiLogo } from '../../assets/images';
 import { colors } from '../../styles/colors';
 import { useTranslation } from 'react-i18next';
 import { Dropdown } from 'react-native-element-dropdown';
@@ -119,7 +120,7 @@ const Header2: React.FC<Header2Props> = ({
 
       <View style={styles.textc}>
         {logo ? (
-          <SingleLogo width={30} height={30} />
+          <Image source={AiLogo} style={styles.logoImage} resizeMode="contain" />
         ) : (
           <Text style={styles.text}>{title}</Text>
         )}
@@ -232,6 +233,10 @@ const styles = StyleSheet.create({
     color: colors.black,
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  logoImage: {
+    width: 64,
+    height: 32,
   },
   cancelText: {
     fontSize: mvs(16),

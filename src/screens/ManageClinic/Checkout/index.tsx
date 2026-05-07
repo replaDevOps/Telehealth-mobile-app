@@ -254,7 +254,8 @@ export function CheckoutScreen({ route, navigation }) {
       // Check for success: false in response
       if (response.data?.success === false) {
         const errorMessage = response.data?.message || 'Checkout failed';
-        Toast.error(errorMessage);
+        // Toast.error(errorMessage);
+        console.log('Checkout error:', errorMessage);
         setShowErrorModal(true);
         setLoading(false);
         return;

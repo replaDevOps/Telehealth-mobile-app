@@ -140,7 +140,7 @@ export function RefundRequest() {
     <>
       <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
         <StatusBar barStyle="dark-content" />
-        <Header2 title={t('refund_request') + ' ' + params.paymentId} />
+        <Header2 title={t('refund_request') } />
 
         {/* Fixed Clinic Info */}
         <View style={styles.clinicInfo}>

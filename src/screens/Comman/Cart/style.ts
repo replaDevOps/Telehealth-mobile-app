@@ -69,7 +69,7 @@ export const styles = StyleSheet.create({
   clinicImage: {
     width: 44,
     height: 44,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#DACEFB',
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
@@ -86,10 +86,12 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#000',
     marginBottom: 2,
+    width: '70%',
   },
   clinicLocation: {
     fontSize: 12,
     color: colors.secondaryText,
+    width: '70%',
   },
   clinicPointsContainer: {
     position: 'absolute',

@@ -186,7 +186,9 @@ export const ServiceDetailBottomSheet: React.FC<ServiceDetailBottomSheetProps> =
                         size={14}
                         color={colors.secondaryText}
                       />
-                      <Text style={styles.duration}>{service.duration}</Text>
+                      <Text style={styles.duration}>
+                        {service.duration ? (/min|m\b|hr|h\b/i.test(service.duration) ? service.duration : `${service.duration} min`) : ''}
+                      </Text>
                     </View>
                   </View>
                 </View>

@@ -28,6 +28,7 @@ import {
 } from '../../../constants/appData';
 import { Message, Service } from '../../../types/chat.types';
 import { useCart } from '@context/CartContext';
+import { useCartCountContext } from '@context/CartCountContext';
 import { useTranslation } from 'react-i18next';
 import ConsultDoctorBottomSheet from '@components/molecules/ConsultDoctorBottomSheet';
 import { apiClient } from '@services/api/api-client';
@@ -59,6 +60,7 @@ export function ChatScreen({ navigation, route }) {
     console.log('📞 [ChatScreen] Route params - consultationID:', route?.params?.consultationID, 'id:', route?.params?.id, 'final consultationID:', consultationID);
   }, []);
   const { addToCart, cartItems } = useCart();
+  const { incrementCartCount, triggerRefresh } = useCartCountContext();
 
   // ---------- State ----------
   const [message, setMessage] = useState('');
@@ -1158,6 +1160,10 @@ export function ChatScreen({ navigation, route }) {
       };
 
       addToCart(cartItem);
+      // Bump the global cart-count badge immediately so the header updates
+      // without waiting for the user to open the cart screen.
+      incrementCartCount();
+      triggerRefresh();
       Toast.success(response.data?.message || response.data?.data?.message || 'Service added to cart');
       setServiceDetailVisible(false);
 

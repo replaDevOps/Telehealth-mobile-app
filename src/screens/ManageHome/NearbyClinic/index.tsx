@@ -1,4 +1,4 @@
-import { View, Text, ActivityIndicator, PermissionsAndroid, Platform, Image, TouchableOpacity } from 'react-native';
+import { View, Text, ActivityIndicator, PermissionsAndroid, Platform, Image, TouchableOpacity, Dimensions } from 'react-native';
 import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { Header2 } from '../../../components/common/Header2';
@@ -12,7 +12,41 @@ import { ClinicApiResponse } from '../../../types/clinic.types';
 import { Toast } from 'toastify-react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import ClinicAvatar from '@components/common/ClinicAvatar';
+import { Marker_Pin } from '@assets/images';
 import { showLocationSettingsAlert, handleLocationError } from '../../../utils/locationUtils';
+
+// Same Android-friendly marker pattern used in SelectLocation: start with
+// tracksViewChanges=true so the child Image is composited into the native
+// marker bitmap, then flip it off after load to avoid per-frame redraws.
+const ClinicMarker = ({
+  coordinates,
+  isSelected,
+  zIndex,
+  onPress,
+}: {
+  coordinates: { latitude: number; longitude: number };
+  isSelected: boolean;
+  zIndex: number;
+  onPress: () => void;
+}) => {
+  const [tracksChanges, setTracksChanges] = useState(true);
+  return (
+    <Marker
+      coordinate={coordinates}
+      tracksViewChanges={tracksChanges}
+      zIndex={isSelected ? 1000 : zIndex}
+      stopPropagation
+      onPress={onPress}
+    >
+      <Image
+        source={Marker_Pin}
+        style={{ width: 36, height: 44 }}
+        resizeMode="contain"
+        onLoad={() => setTracksChanges(false)}
+      />
+    </Marker>
+  );
+};
 
 export const NearbyClinics = ({ navigation }: any) => {
   const { t } = useTranslation();
@@ -31,8 +65,11 @@ export const NearbyClinics = ({ navigation }: any) => {
 
   const cardWidth = 260;
   const pointerWidth = 20;
-  const pointerHeight = 10;
-  const cardApproxHeight = 190; // used for positioning (actual height varies slightly)
+  // Conservative starting estimate: real measured heights for clinics with
+  // 2-line names land around 270–290px.
+  const cardApproxHeight = 290;
+  const [cardHeight, setCardHeight] = useState<number>(cardApproxHeight);
+  const [mapAreaHeight, setMapAreaHeight] = useState<number>(() => Dimensions.get('window').height);
 
   const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 
@@ -247,25 +284,49 @@ export const NearbyClinics = ({ navigation }: any) => {
     return { latitude: lat, longitude: lng };
   }, [clinics]);
 
-  const handleMarkerPress = (clinic: ClinicApiResponse) => {
+  const handleMarkerPress = async (clinic: ClinicApiResponse) => {
     setSelectedClinic(clinic);
-    updateSelectedPoint(clinic);
 
-    // Animate to the marker
-    if (clinic.details?.lat && clinic.details?.long && mapRef.current) {
-      const lat = typeof clinic.details.lat === 'string'
-        ? parseFloat(clinic.details.lat)
-        : Number(clinic.details.lat);
-      const lng = typeof clinic.details.long === 'string'
-        ? parseFloat(clinic.details.long)
-        : Number(clinic.details.long);
+    const coords = getOffsetCoordinates(clinic);
+    if (!coords || !mapRef.current) {
+      updateSelectedPoint(clinic);
+      return;
+    }
 
-      mapRef.current.animateToRegion({
-        latitude: lat,
-        longitude: lng,
-        latitudeDelta: 0.05,
-        longitudeDelta: 0.05,
-      }, 300);
+    try {
+      const point = await mapRef.current.pointForCoordinate(coords);
+      const gap = 12;
+      const minPinY = cardHeight + gap + 12;
+      if (point.y >= minPinY) {
+        setSelectedPoint({ x: point.x, y: point.y });
+        return;
+      }
+
+      // Pan the map north so the pin lands at minPinY, leaving room above
+      // the pin for the card.
+      const deltaPx = minPinY - point.y;
+      const latPerPx = region.latitudeDelta / mapAreaHeight;
+      const newRegion: Region = {
+        latitude: region.latitude + deltaPx * latPerPx,
+        longitude: region.longitude,
+        latitudeDelta: region.latitudeDelta,
+        longitudeDelta: region.longitudeDelta,
+      };
+      // Hide the card while panning so it doesn't flash at the old position.
+      setSelectedPoint(null);
+      mapRef.current.animateToRegion(newRegion, 300);
+
+      setTimeout(async () => {
+        if (!mapRef.current) return;
+        try {
+          const next = await mapRef.current.pointForCoordinate(coords);
+          setSelectedPoint({ x: next.x, y: next.y });
+        } catch {
+          updateSelectedPoint(clinic);
+        }
+      }, 320);
+    } catch {
+      updateSelectedPoint(clinic);
     }
   };
 
@@ -287,16 +348,15 @@ export const NearbyClinics = ({ navigation }: any) => {
 
   const cardPosition = useMemo(() => {
     if (!selectedPoint) return null;
-
-    // position relative to the Map parent (it fills the screen under header)
+    const gap = 12;
+    const maxBottom = mapAreaHeight - 12;
     const left = clamp(selectedPoint.x - cardWidth / 2, 12, 9999);
-    const top = clamp(selectedPoint.y - cardApproxHeight - pointerHeight - 8, 12, 9999);
-
-    // pointer should aim at the pin x position
+    // Always position above the pin. handleMarkerPress pans the map when
+    // needed to ensure there's room above; the clamp keeps the card on screen.
+    const top = clamp(selectedPoint.y - cardHeight - gap, 12, maxBottom - cardHeight);
     const pointerLeft = clamp(selectedPoint.x - left - pointerWidth / 2, 12, cardWidth - pointerWidth - 12);
-
     return { left, top, pointerLeft };
-  }, [selectedPoint]);
+  }, [selectedPoint, cardHeight, mapAreaHeight]);
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
@@ -309,7 +369,13 @@ export const NearbyClinics = ({ navigation }: any) => {
           </Text>
         </View>
       ) : (
-        <View style={{ flex: 1 }}>
+        <View
+          style={{ flex: 1 }}
+          onLayout={(e) => {
+            const h = e.nativeEvent.layout.height;
+            if (h && Math.abs(h - mapAreaHeight) > 1) setMapAreaHeight(h);
+          }}
+        >
           <MapView
             ref={mapRef}
             provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
@@ -342,40 +408,13 @@ export const NearbyClinics = ({ navigation }: any) => {
               const isSelected = selectedClinic?.clinicID === clinic.clinicID;
 
               return (
-                <Marker
+                <ClinicMarker
                   key={`${clinic.clinicID}-${index}`}
-                  coordinate={coordinates}
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    handleMarkerPress(clinic);
-                  }}
-                  tracksViewChanges={false}
-                  stopPropagation={true}
-                  zIndex={isSelected ? 1000 : index}
-                >
-                  <TouchableOpacity
-                    activeOpacity={0.8}
-                    onPress={() => handleMarkerPress(clinic)}
-                    style={styles.markerTouchable}
-                  >
-                    <View style={styles.markerContainer}>
-                      <View style={[
-                        styles.markerPin,
-                        isSelected && styles.markerPinSelected
-                      ]}>
-                        <Ionicons
-                          name="home"
-                          size={18}
-                          color="white"
-                        />
-                      </View>
-                      <View style={[
-                        styles.markerTriangle,
-                        isSelected && styles.markerTriangleSelected
-                      ]} />
-                    </View>
-                  </TouchableOpacity>
-                </Marker>
+                  coordinates={coordinates}
+                  isSelected={isSelected}
+                  zIndex={index}
+                  onPress={() => handleMarkerPress(clinic)}
+                />
               );
             })}
           </MapView>
@@ -386,6 +425,11 @@ export const NearbyClinics = ({ navigation }: any) => {
               style={[styles.clinicCard, { left: cardPosition.left, top: cardPosition.top, width: cardWidth }]}
               activeOpacity={0.9}
               onPress={handleCardPress}
+              onLayout={(e) => {
+                const h = e.nativeEvent.layout.height;
+                // Only grow — shrinking can race with a just-completed pan.
+                if (h && h > cardHeight + 1) setCardHeight(h);
+              }}
             >
               <View style={styles.cardContent}>
                 {/* Clinic Image with Featured Badge */}
@@ -395,7 +439,7 @@ export const NearbyClinics = ({ navigation }: any) => {
                   ) : selectedClinic.details?.logo ? (
                     <Image source={{ uri: selectedClinic.details.logo }} style={styles.clinicImage} resizeMode="cover" />
                   ) : (
-                    <ClinicAvatar name={selectedClinic.clinicName || selectedClinic.name || ''} size={56} style={styles.clinicImage} />
+                    <ClinicAvatar name={selectedClinic.details?.businessName || selectedClinic.clinicName || ''} size={56} style={styles.clinicImage} />
                   )}
                   {/* Featured Badge on Image */}
                   {selectedClinic.is_featured && (
@@ -430,7 +474,7 @@ export const NearbyClinics = ({ navigation }: any) => {
 
                   {/* Clinic Name */}
                   <Text style={styles.clinicName} numberOfLines={2}>
-                    {selectedClinic.clinicName || selectedClinic.details?.businessName || selectedClinic.name}
+                    {selectedClinic.details?.businessName || selectedClinic.clinicName || ''}
                   </Text>
                 </View>
               </View>

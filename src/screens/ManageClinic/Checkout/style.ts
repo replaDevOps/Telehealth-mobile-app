@@ -52,7 +52,7 @@ export const styles = StyleSheet.create({
   clinicImage: {
     width: 48,
     height: 48,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: '#DACEFB',
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',

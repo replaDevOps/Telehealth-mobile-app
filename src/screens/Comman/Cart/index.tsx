@@ -135,7 +135,17 @@ export function CartScreen({ navigation }) {
           // Prefer explicit address from API if provided, otherwise fall back to existing location or empty string
           address: clinicGroup?.clinic?.address || clinicGroup?.address || '',
           location: clinicGroup?.clinic?.address || clinicGroup?.address || clinicGroup.clinicName || '',
-          image: RecommandImage, // Not provided in API response
+          // Prefer real clinic image when the API provides one, otherwise leave
+          // undefined so the card falls back to ClinicAvatar (initials).
+          image: clinicGroup?.clinic?.coverImage
+            ? { uri: clinicGroup.clinic.coverImage }
+            : clinicGroup?.clinic?.logo
+              ? { uri: clinicGroup.clinic.logo }
+              : clinicGroup?.coverImage
+                ? { uri: clinicGroup.coverImage }
+                : clinicGroup?.logo
+                  ? { uri: clinicGroup.logo }
+                  : undefined,
           distance: clinicGroup.distance_km
             ? `${parseFloat(clinicGroup.distance_km.toString()).toFixed(1)}km`
             : null,
@@ -529,6 +539,7 @@ export function CartScreen({ navigation }) {
                     <Text style={styles.clinicPointsText}>{Math.round(Number(clinicGroup.clinicLoyaltyPoints || 0))}</Text>
                   </View>
                 )}
+                
               </View>
             </View>
 

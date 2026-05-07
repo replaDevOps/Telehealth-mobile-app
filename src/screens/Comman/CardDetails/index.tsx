@@ -927,33 +927,23 @@ export function CardDetails({ navigation }: { navigation: any }) {
     return sum;
   })();
 
-  // Disable "Request for Refund" when the main appointment status contains "Booked".
-  // Prefer the `status` passed via navigation params (history card) as the authoritative main status.
-  const mainStatus = (params.status || displayData.status || paymentDetails?.appointment?.status || paymentDetails?.transactions?.status || '').toString();
-  // Default behavior: disable when main status explicitly indicates 'Booked'
-  let disableRefundButton = false;
-
-  // If we have service-level statuses, prefer those: disable only when ALL services are either booked or related to refund
-  try {
+  // Disable "Request for Refund" when every service would already be non-selectable
+  // on the Refund screen. Mirrors the per-service rule in RefundRequest/index.tsx.
+  const disableRefundButton = (() => {
     const servicesList = displayData.services || [];
-    if (Array.isArray(servicesList) && servicesList.length > 0) {
-      const allServicesBookedOrRefund = servicesList.every((svc: any) => {
-        const status = String(svc.status || '');
-        const refundStatus = String(svc.refundStatus || '');
-        const combined = `${status} ${refundStatus}`.toLowerCase();
-        // const isBooked = /booked/i.test(combined);
-        const isRefundRelated = /(refund|refunded|processing|confirm|request)/i.test(combined);
-        return isRefundRelated;
-      });
-      disableRefundButton = allServicesBookedOrRefund;
-    }
-  } catch (err) {
-    // Fallback to main status rule on any error
-    disableRefundButton = /booked/i.test(mainStatus);
-  }
+    if (!Array.isArray(servicesList) || servicesList.length === 0) return false;
 
-  console.log('Refund button disabled:', disableRefundButton, 'Main status:', mainStatus);
-  console.log(paymentDetails)
+    return servicesList.every((svc: any) => {
+      const svcStatusStr = String(svc.status || '');
+      const svcRefundStatusStr = String(svc.refundStatus || svc.refund_status || '');
+      const refundStatusNormalized = svcRefundStatusStr.trim().toLowerCase();
+
+      const isProcessed = /(processed|refunded|completed)/i.test(svcStatusStr);
+      const isRefundStatusDisabled = /^(pending|confirm|confirmed)$/i.test(refundStatusNormalized);
+
+      return isProcessed || isRefundStatusDisabled;
+    });
+  })();
   if (loading) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
@@ -1100,27 +1090,28 @@ export function CardDetails({ navigation }: { navigation: any }) {
                 </View>
               )}
 
-              {paymentDetails?.transactions?.loyaltyPointEarn !== null && paymentDetails?.transactions?.loyaltyPointEarn !== 0 && paymentDetails?.transactions?.loyaltyPointEarn !== undefined && (
+              {/* {paymentDetails?.transactions?.loyaltyPointEarn !== null && paymentDetails?.transactions?.loyaltyPointEarn !== 0 && paymentDetails?.transactions?.loyaltyPointEarn !== undefined && ( */}
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>{t('points_earned')}</Text>
-                  <Text style={styles.points_earn}>{paymentDetails.transactions.loyaltyPointEarn} {t('points') || 'Points'}</Text>
+                  <Text style={styles.points_earn}>{paymentDetails.transactions.loyaltyPointEarn || 0} {t('points') || 'Points'}</Text>
                 </View>
-              )}
+              {/* )} */}
 
-              {paymentDetails?.transactions?.loyaltyPointUsed !== null && paymentDetails?.transactions?.loyaltyPointUsed !== undefined && (
+              {/* {paymentDetails?.transactions?.loyaltyPointUsed !== null && paymentDetails?.transactions?.loyaltyPointUsed !== undefined && ( */}
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>{t('points_used')}</Text>
-                  <Text style={styles.points_use}>{paymentDetails.transactions.loyaltyPointUsed} {t('points') || 'Points'}</Text>
+                  <Text style={styles.points_use}>{paymentDetails.transactions.loyaltyPointUsed || 0} {t('points') || 'Points'}</Text>
                 </View>
-              )}
+              {/* )} */}
+
 
               {/* Show total refunded amount when appointment refund is confirmed and transfer data exists */}
-              {isAppointment && totalRefundedAmount > 0 && (
+              {/* {isAppointment && totalRefundedAmount > 0 && ( */}
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>{t('total_refund_amount')}</Text>
                   <Text style={styles.detailValue}>{`SAR ${totalRefundedAmount.toFixed(2)}`}</Text>
                 </View>
-              )}
+              {/* )} */}
 
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>{t('status')}</Text>

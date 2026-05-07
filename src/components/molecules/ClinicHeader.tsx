@@ -78,7 +78,9 @@ export const ClinicHeader: React.FC<ClinicHeaderProps> = ({
           {hasLogo ? (
             <Image source={logo} style={styles.logo} />
           ) : (
-            <ClinicAvatar name={clinicName} size={100} style={styles.logo} textStyle={styles.initialsText} />
+            // Use logoFrame (border + size, no white background) so the
+            // avatar's primary-color circle and white initials remain visible.
+            <ClinicAvatar name={clinicName} size={100} style={styles.logoFrame} textStyle={styles.initialsText} />
           )}
         </View>
       </View>
@@ -90,6 +92,9 @@ const styles = StyleSheet.create({
   headerBackground: {
     height: 200,
     width: '100%',
+    // Shown when no real background image is available; matches the calm
+    // light-gray placeholder used elsewhere instead of a dummy photo.
+    backgroundColor: colors.lightGray,
   },
   headerOverlay: {
     flex: 1,
@@ -139,6 +144,14 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50,
     backgroundColor: colors.white,
+    borderWidth: 4,
+    borderColor: colors.white,
+    zIndex: 9999,
+  },
+  logoFrame: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     borderWidth: 4,
     borderColor: colors.white,
     zIndex: 9999,

@@ -54,10 +54,7 @@ export const styles = StyleSheet.create({
         color: colors.secondaryText,
       },
       emptyContainer: {
-        flex: 1,
-        justifyContent: 'center',
         alignItems: 'center',
-        paddingTop: mvs(50),
         paddingHorizontal: mvs(20),
       },
       emptyText: {

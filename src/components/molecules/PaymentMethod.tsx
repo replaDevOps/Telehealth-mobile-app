@@ -527,13 +527,9 @@ function RoyaltyPointsSection({
           onChangeText={onPointsChange}
           keyboardType="numeric"
         />
-        {/* <Text style={styles.royaltySubtext}>
-          {t('you_have')} {royaltyPoints} {t('coins')}. {t('remaining')}{' '}
-          {remainingPoints} SAR
-        </Text> */}
         {appliedCoins > 0 && (
           <Text style={[styles.royaltySubtext, { marginTop: 6 }] }>
-            {`${t('redemption')} ${appliedRedemptionAmount.toFixed(2)} SAR (${appliedCoins} ${t('loyaltyPoints')})  |  ${t('remaining_amount')} ${Math.max(0, (maxRedemptionSAR ?? 0) - appliedRedemptionAmount).toFixed(2)} SAR (${Math.max(0, maxRedeemableCoins - appliedCoins)} ${t('loyaltyPoints')})`}
+            {`${t('redemption') || 'Redemption'} SAR ${appliedRedemptionAmount.toFixed(2)} | ${t('remaining_amount') || 'Remaining Amount'} SAR ${Math.max(0, (maxRedemptionSAR || 0) - appliedRedemptionAmount).toFixed(2)}`}
           </Text>
         )}
       </View>

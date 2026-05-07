@@ -497,8 +497,8 @@ export default function ConsultDoctorBottomSheet({
           />
           <View style={styles.bottomSheet}>
             <View style={styles.handleBar} />
-            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-              <Text style={styles.closeIcon}>×</Text>
+            <TouchableOpacity style={styles.closeButton} onPress={onClose} hitSlop={{ top: 4, bottom: 4, left: 8, right: 8 }}>
+              <Ionicons name="close" size={20} color={colors.text} />
             </TouchableOpacity>
 
             <ScrollView showsVerticalScrollIndicator={false}>
@@ -671,17 +671,16 @@ const styles = StyleSheet.create({
     top: 16,
     right: 20,
     zIndex: 10,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: colors.white,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.border,
   },
-  closeIcon: { fontSize: 25, color: colors.text, fontWeight: '300' },
-  header: { alignItems: 'center', marginTop: 8, marginBottom: 24 },
+  header: { alignItems: 'center', marginTop: 14, marginBottom: 24, paddingHorizontal: 8 },
   title: {
     fontSize: 20,
     fontWeight: '700',

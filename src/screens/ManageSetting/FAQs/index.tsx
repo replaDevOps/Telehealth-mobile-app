@@ -130,7 +130,10 @@ export const FAQs = ({ navigation }: { navigation: any }) => {
       <ScrollView
         style={styles.container}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: mvs(20) }}
+        contentContainerStyle={[
+          { paddingBottom: mvs(20) },
+          faqData.length === 0 && { flexGrow: 1, justifyContent: 'center' },
+        ]}
       >
         {faqData.length === 0 ? (
           <View style={styles.emptyContainer}>

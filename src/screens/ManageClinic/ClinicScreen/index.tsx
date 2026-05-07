@@ -3,7 +3,6 @@ import SearchServicesBar from '@components/common/SearchInput';
 import NearbyClinics from '@components/molecules/ClinicListItem';
 import RecommendedClinics from '@components/molecules/RecommendedClinics';
 import { mvs } from '@config/metrices';
-import { RecommandImage } from '@assets/images';
 import { colors } from '../../../styles/colors';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -250,8 +249,9 @@ export const ClinicScreen = ({ navigation, route }) => {
         : (businessType || 'General');
       const rating = parseFloat(clinic.avgRating) || 0;
 
-      // Use cover image, logo, or default image
-      let image: { uri: string } | number = RecommandImage;
+      // Use cover image or logo when available; leave undefined otherwise so
+      // the card falls back to ClinicAvatar (initials) instead of a dummy image.
+      let image: { uri: string } | undefined;
       if (clinic.details?.coverImage) {
         image = { uri: clinic.details.coverImage };
       } else if (clinic.details?.logo) {

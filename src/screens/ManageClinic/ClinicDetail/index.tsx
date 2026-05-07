@@ -891,24 +891,31 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
   };
 
   const handleChatPress = async () => {
+    // Block while detail/description are still loading; sending undefined name
+    // and location would create a chat session with empty clinic context.
+    if (loading || loadingDescription || !clinicDetail) {
+      Toast.info(t('loading') || 'Loading clinic details...');
+      return;
+    }
+
     const seen = await AsyncStorage.getItem('vena_ai_onboarding_seen');
     if (seen) {
       navigation.navigate('ChatScreen', {
         chatType: 'ai',
         clinicInfo: {
           id: clinicID,
-          name: displayClinic.name || displayClinic.clinicName,
-          location: displayClinic.details?.address,
-          image: clinicDescriptionData?.logo || clinicDetail?.details?.logo || clinic?.image,
+          name: clinicName,
+          location: clinicLocation || 'No location',
+          image: clinicImage,
         },
       });
     } else {
       navigation.navigate('ChatOnboarding', {
         clinicInfo: {
           id: clinicID,
-          name: displayClinic.name || displayClinic.clinicName,
-          location: displayClinic.details?.address,
-          image: clinicDescriptionData?.logo || clinicDetail?.details?.logo || clinic?.image,
+          name: clinicName,
+          location: clinicLocation,
+          image: clinicLogo || clinicImage,
         },
       });
     }
@@ -1085,8 +1092,8 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
 
   // Get clinic data from API or fallback to route params
   const displayClinic = clinicDetail || {
-    name: clinic?.name,
-    clinicName: clinic?.name,
+    // name: clinic?.name,
+    clinicName: clinic?.clinicName,
     businessType: clinic?.specialty,
     avgRating: clinic?.rating?.toString() || '0',
     details: {
@@ -1118,13 +1125,15 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       ? `${(clinicDetail.distance).toFixed(1)}km`
       : '--km';
 
+  // Prefer real images; fall back to undefined (no image) instead of a dummy
+  // so the header renders its solid color background rather than a placeholder.
   const clinicImage = clinicDescriptionData?.coverImage
     ? { uri: clinicDescriptionData.coverImage }
     : clinicDetail?.details?.coverImage
       ? { uri: clinicDetail.details.coverImage }
-      : clinicDetail?.details?.logo
-        ? { uri: clinicDetail.details.logo }
-        : (typeof clinic?.image === 'string' && clinic.image ? { uri: clinic.image } : (clinic?.image || RecommandImage));
+      : (typeof clinic?.image === 'string' && clinic.image)
+        ? { uri: clinic.image }
+        : (clinic?.image && typeof clinic.image !== 'string' ? clinic.image : undefined);
 
   const clinicLogo = clinicDescriptionData?.logo
     ? { uri: clinicDescriptionData.logo }

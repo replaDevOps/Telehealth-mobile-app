@@ -5,7 +5,6 @@ import { colors } from '../../../styles/colors';
 import { mvs } from '../../../config/metrices';
 import RecommendedClinics from '../../../components/molecules/RecommendedClinics';
 import NearbyClinics from '../../../components/molecules/ClinicListItem';
-import { RecommandImage } from '@assets/images';
 import { useTranslation } from 'react-i18next';
 import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
@@ -69,8 +68,9 @@ export const HomeScreen = ({ navigation }) => {
         : (businessType || 'General');
       const rating = parseFloat(clinic.avgRating) || 0;
 
-      // Use cover image, logo, or default image
-      let image: { uri: string } | number = RecommandImage;
+      // Use cover image or logo when available; leave undefined otherwise so
+      // the card falls back to ClinicAvatar (initials) instead of a dummy image.
+      let image: { uri: string } | undefined;
       if (clinic.details?.coverImage) {
         image = { uri: clinic.details.coverImage };
       } else if (clinic.details?.logo) {

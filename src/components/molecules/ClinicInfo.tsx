@@ -48,7 +48,7 @@ export const ClinicInfo: React.FC<ClinicInfoProps> = ({
       <View style={styles.locationRow}>
         <View style={styles.locationName}>
           <Ionicons name="location" size={16} color={colors.secondaryText} />
-          <Text style={styles.locationText}>{location},</Text>
+          <Text style={styles.locationText} numberOfLines={1} ellipsizeMode="tail">{location},</Text>
           <Text style={styles.statText}>{distance},</Text>
           <View style={styles.statItem}>
             <Ionicons name="star" size={16} color="#FFD700" />
@@ -119,6 +119,7 @@ const styles = StyleSheet.create({
   locationText: {
     fontSize: 14,
     color: colors.secondaryText,
+    width: '65%',
   },
   statsRow: {
     flexDirection: 'row',

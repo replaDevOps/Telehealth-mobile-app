@@ -243,9 +243,9 @@ export const LoyaltyPointsDetails = () => {
 
   const renderItem = ({ item }) => (
     <View style={{paddingTop: 2}}>
-      {item.expiryDate ? (
+      {/* {item.expiryDate ? (
         <Text style={styles.expiryLabel}>{`Expiry date ${item.expiryDate}`}</Text>
-      ) : null}
+      ) : null} */}
 
       <View style={styles.card}>
         <View style={styles.leftSection}>
@@ -305,19 +305,20 @@ export const LoyaltyPointsDetails = () => {
               {error}
             </Text>
           </View>
+        ) : transactions.length === 0 ? (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 }}>
+            <Text style={{ textAlign: 'center', color: '#666' }}>
+              {activeTab === 'earned'
+                ? t('no_points_earned_yet')
+                : t('no_points_used_yet')}
+            </Text>
+          </View>
         ) : (
           <FlatList
             data={transactions}
             renderItem={renderItem}
             keyExtractor={item => item.id}
             contentContainerStyle={styles.listContainer}
-            ListEmptyComponent={
-              <Text style={{ textAlign: 'center', marginTop: 20, color: '#666' }}>
-                {activeTab === 'earned'
-                  ? t('no_points_earned_yet')
-                  : t('no_points_used_yet')}
-              </Text>
-            }
             refreshing={loading && transactions.length === 0}
             onRefresh={() => fetchTransactions(1, false)}
             onEndReached={loadMore}

@@ -103,9 +103,11 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         <Ionicons name="chevron-back" size={24} color={colors.text} />
       </TouchableOpacity>
 
-      <View style={styles.doctorHeaderCenter}>
-        <Text style={styles.doctorName}>{doctorInfo.name}</Text>
-        <Text style={styles.consultationTime}>
+      <View style={styles.doctorHeaderCenter} pointerEvents="none">
+        <Text style={styles.doctorName} numberOfLines={1} ellipsizeMode="tail">
+          {doctorInfo.name}
+        </Text>
+        <Text style={styles.consultationTime} numberOfLines={1} ellipsizeMode="tail">
           {buildSubtitle()}
         </Text>
       </View>

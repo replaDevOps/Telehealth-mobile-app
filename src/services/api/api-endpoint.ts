@@ -12,6 +12,8 @@ export const API = {
     // VERIFY OTP
     VERIFY_OTP: '/patient-auth/verifyOtp',
     VERIFY_FIREBASE_OTP: '/patient-auth/verifyFirebaseOtp',
+    // VERIFY FIREBASE OTP FOR FORGOT PASSWORD (URL TBD)
+    VERIFY_FIREBASE_FORGOT_PASSWORD: '/patient-auth/verifyFirebaseForgotPassword',
     // CREATE PASSWORD
     CREATE_PASSWORD: '/patient-auth/createPassword',
     // REGISTER

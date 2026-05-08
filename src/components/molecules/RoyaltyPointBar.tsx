@@ -40,11 +40,11 @@ export const RoyaltyPointsBar: React.FC<RoyaltyPointsProps> = ({
             <AntDesign name="right" size={18} color={colors.white} />
           </View>
 
-          {(points ?? 0) > 0 && (
+          {/* {(points ?? 0) > 0 && (
             <Text style={style.royaltySubtitle}>
               {t('valid_till_date')} {validTill}
             </Text>
-          )}
+          )} */}
 
           <Text style={style.royaltyPointsLabel}>{t('current_points')}</Text>
           <Text style={style.royaltyPointsValue}>{points}</Text>

@@ -243,9 +243,9 @@ export const LoyaltyPointsDetails = () => {
 
   const renderItem = ({ item }) => (
     <View style={{paddingTop: 2}}>
-      {/* {item.expiryDate ? (
+      {item.expiryDate ? (
         <Text style={styles.expiryLabel}>{`Expiry date ${item.expiryDate}`}</Text>
-      ) : null} */}
+      ) : null}
 
       <View style={styles.card}>
         <View style={styles.leftSection}>

@@ -185,6 +185,38 @@ export function CartScreen({ navigation }) {
     return [];
   }, [t]);
 
+  const fetchClinicLogos = useCallback(async (data: any[]) => {
+    const updates = await Promise.all(
+      data.map(async (group) => {
+        if (group.clinic.image) return null; // already have image, skip
+        try {
+          const res = await apiClient.get(API.CLINIC.GET_CLINIC_DESCRIPTION, {
+            params: { clinicID: group.clinic.id },
+          });
+          const d = res.data?.data;
+          const image = d?.logo
+            ? { uri: d.logo }
+            : d?.coverImage
+              ? { uri: d.coverImage }
+              : null;
+          return image ? { clinicId: group.clinic.id, image } : null;
+        } catch {
+          return null;
+        }
+      })
+    );
+    const imageMap: Record<string, any> = {};
+    updates.forEach(u => { if (u) imageMap[u.clinicId] = u.image; });
+    if (Object.keys(imageMap).length === 0) return;
+    setCartData(prev =>
+      prev.map(group =>
+        imageMap[group.clinic.id]
+          ? { ...group, clinic: { ...group.clinic, image: imageMap[group.clinic.id] } }
+          : group
+      )
+    );
+  }, []);
+
   const fetchCartDetails = useCallback(async (lat: number, long: number, isInitialLoad: boolean = true, forceRefresh: boolean = false) => {
     // Request deduplication - prevent multiple simultaneous calls
     if (isFetchingRef.current) {
@@ -258,6 +290,8 @@ export function CartScreen({ navigation }) {
         // Store grand totals from API response
         setGrandTotalPrice(response.data.grandTotalPrice || 0);
         setGrandTotalLoyaltyPoints(response.data.grandTotalLoyaltyPoints || 0);
+        // Fetch clinic logos for clinics that don't have an image yet
+        fetchClinicLogos(transformedData);
       } else {
         setCartData([]);
         setGrandTotalPrice(0);
@@ -531,14 +565,12 @@ export function CartScreen({ navigation }) {
                   {clinicGroup.clinic.address || clinicGroup.clinic.location || ''}{clinicGroup.clinic.distance ? `, ${clinicGroup.clinic.distance}` : ''}
                 </Text>
 
-                {clinicGroup.clinicLoyaltyPoints && Number(clinicGroup.clinicLoyaltyPoints) > 0 && (
-                  <View style={styles.clinicPointsContainer}>
-                    <View style={styles.coinWrapper}>
-                        <Image source={coinIcon} style={styles.coinImage} />
-                      </View>
-                    <Text style={styles.clinicPointsText}>{Math.round(Number(clinicGroup.clinicLoyaltyPoints || 0))}</Text>
+                <View style={styles.clinicPointsContainer}>
+                  <View style={styles.coinWrapper}>
+                    <Image source={coinIcon} style={styles.coinImage} />
                   </View>
-                )}
+                  <Text style={styles.clinicPointsText}>{Math.round(Number(clinicGroup.clinicLoyaltyPoints || 0))}</Text>
+                </View>
                 
               </View>
             </View>

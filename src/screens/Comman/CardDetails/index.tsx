@@ -992,10 +992,10 @@ export function CardDetails({ navigation }: { navigation: any }) {
             ) : (
               <ClinicAvatar name={displayData.clinicName} size={56} style={styles.clinicImage} />
             )}
-            <View>
-              <Text style={styles.clinicName}>{displayData.clinicName || t('clinic_name') || 'Clinic Name'}</Text>
+            <View style={{ flex: 1, flexShrink: 1 }}>
+              <Text style={styles.clinicName} numberOfLines={1} ellipsizeMode="tail">{displayData.clinicName || t('clinic_name') || 'Clinic Name'}</Text>
               {!!displayData.clinicLocation && (
-                <Text style={styles.clinicLocation}>{displayData.clinicLocation}</Text>
+                <Text style={styles.clinicLocation} numberOfLines={1} ellipsizeMode="tail">{displayData.clinicLocation}</Text>
               )}
             </View>
           </View>

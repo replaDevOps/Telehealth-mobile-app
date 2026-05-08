@@ -63,6 +63,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    marginRight: 8,
   },
   clinicImage: {
     width: 48,

@@ -21,6 +21,9 @@ import { useTranslation } from 'react-i18next';
 import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
 import { Toast } from 'toastify-react-native';
+import parsePhoneNumberFromString, { CountryCode } from 'libphonenumber-js';
+import { sendPhoneOtp } from '@services/firebase/phoneAuth';
+import { setPhoneConfirmation } from '@services/firebase/phoneAuthStore';
 
 interface ForgetPasswordScreenProps {
   navigation: any;
@@ -175,41 +178,40 @@ export function ForgetPasswordScreen({
               setPhoneError('');
 
               try {
-                let response;
-
                 if (selectedTab === 'email') {
-                  // Call forgot password by email API
-                  response = await apiClient.post(API.AUTH.FORGOT_PASSWORD_EMAIL, {
+                  const response = await apiClient.post(API.AUTH.FORGOT_PASSWORD_EMAIL, {
+                    email: email.trim(),
+                  });
+
+                  if (response.data?.success === false) {
+                    Toast.error(response.data?.message || 'Failed to send OTP');
+                    setLoading(false);
+                    return;
+                  }
+
+                  Toast.success(response.data?.message || 'OTP sent successfully');
+                  navigation.navigate('OTPScreen', {
+                    source: 'forgotPassword',
+                    method: 'email',
                     email: email.trim(),
                   });
                 } else {
-                  console.log('phone', phone);
-                  // Call forgot password by phone API
-                  response = await apiClient.post(API.AUTH.FORGOT_PASSWORD_PHONE, {
-                    phoneNo: phone.trim(),
+                  // Phone: verify via Firebase (same as registration)
+                  const phoneNumber = parsePhoneNumberFromString(phone, countryCode as CountryCode);
+                  const formattedPhone = phoneNumber
+                    ? `+${phoneNumber.countryCallingCode}${phoneNumber.nationalNumber}`
+                    : `+${phone}`;
+
+                  const confirmation = await sendPhoneOtp(formattedPhone);
+                  setPhoneConfirmation(confirmation);
+                  Toast.success(t('otp_sent_successfully'));
+                  navigation.navigate('OTPScreen', {
+                    source: 'forgotPassword',
+                    method: 'phone',
+                    phone: phone.trim(),
+                    countryCode,
                   });
                 }
-
-                // Check for success: false in response
-                if (response.data?.success === false) {
-                  const errorMsg = response.data?.message || 'Failed to send OTP';
-                  Toast.error(errorMsg);
-                  setLoading(false);
-                  return;
-                }
-
-                // Success - show success message and navigate to OTP screen
-                const successMessage = response.data?.message || 'OTP sent successfully';
-                Toast.success(successMessage);
-
-                navigation.navigate('OTPScreen', {
-                  source: 'forgotPassword',
-                  method: selectedTab, // 'email' or 'phone'
-                  email: selectedTab === 'email' ? email.trim() : undefined,
-                  phone: selectedTab === 'phone' ? phone.trim() : undefined,
-                  countryCode:
-                    selectedTab === 'phone' ? countryCode : undefined,
-                });
               } catch (error: any) {
                 console.error('Forgot password error:', error);
                 const errorMsg =
@@ -220,7 +222,6 @@ export function ForgetPasswordScreen({
 
                 Toast.error(errorMsg);
 
-                // Set field-specific error
                 if (selectedTab === 'email') {
                   setEmailError(errorMsg);
                 } else {

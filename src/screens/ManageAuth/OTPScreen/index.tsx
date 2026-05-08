@@ -47,7 +47,9 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
   const [resendLoading, setResendLoading] = useState(false);
   const isFirebasePhone =
     route.params?.method === 'phone' && route.params?.source === 'signUp';
-  const otpLength = isFirebasePhone ? 6 : 5;
+  const isFirebaseForgotPasswordPhone =
+    route.params?.method === 'phone' && route.params?.source === 'forgotPassword';
+  const otpLength = (isFirebasePhone || isFirebaseForgotPasswordPhone) ? 6 : 5;
   const [inputValues, setInputValues] = useState<string[]>(
     Array(otpLength).fill(''),
   );
@@ -137,7 +139,7 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
 
       let response: any;
 
-      if (isFirebasePhone) {
+      if (isFirebasePhone || isFirebaseForgotPasswordPhone) {
         const confirmation = getPhoneConfirmation();
         if (!confirmation) {
           Toast.error(t('otp_session_expired'));
@@ -163,15 +165,16 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
           throw new Error('No idToken returned from Firebase');
         }
 
-        const backendResponse = await apiClient.post(
-          API.AUTH.VERIFY_FIREBASE_OTP,
-          {
-            firebaseIdToken: idToken,
-            phoneNo: phone,
-          },
-        );
+        const endpoint = isFirebaseForgotPasswordPhone
+          ? API.AUTH.VERIFY_FIREBASE_FORGOT_PASSWORD
+          : API.AUTH.VERIFY_FIREBASE_OTP;
+
+        const backendResponse = await apiClient.post(endpoint, {
+          firebaseIdToken: idToken,
+          phoneNo: phone,
+        });
         console.log(
-          '[Backend] VERIFY_FIREBASE_OTP response:',
+          `[Backend] ${endpoint} response:`,
           JSON.stringify(backendResponse?.data, null, 2),
         );
         response = backendResponse;
@@ -327,7 +330,7 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
 
     setResendLoading(true);
 
-    if (isFirebasePhone) {
+    if (isFirebasePhone || isFirebaseForgotPasswordPhone) {
       if (!phone || !countryCode) {
         Toast.error('Phone number is required');
         setResendLoading(false);

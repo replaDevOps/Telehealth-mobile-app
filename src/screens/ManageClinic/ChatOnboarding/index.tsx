@@ -11,6 +11,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
 import { styles } from './style';
+import { AiLogo } from '@assets/images';
 
 const FEATURES = [
   'saudi_dialect',
@@ -38,19 +39,15 @@ export function ChatOnboarding({ route }: any) {
         <View style={styles.MainLogoContainer}>
           <View style={styles.logoContainer}>
             <View style={styles.logoCircle}>
-              {clinicInfo?.image ? (
+              {/* {clinicInfo?.image ? ( */}
                 <Image
-                  source={typeof clinicInfo.image === 'string' && clinicInfo.image.startsWith('http')
-                    ? { uri: clinicInfo.image }
-                    : typeof clinicInfo.image === 'string'
-                    ? { uri: `https://telehealth.repla-projects.com/${clinicInfo.image}` }
-                    : clinicInfo.image}
-                  style={{ width: 120, height: 120, borderRadius: 60 }}
-                  resizeMode="cover"
+                  source={AiLogo}
+                  style={{ width: 120, height: 120 }}
+                  resizeMode="contain"
                 />
-              ) : (
+              {/* ) : (
                 <SingleLogo />
-              )}
+              )} */}
             </View>
           </View>
         </View>

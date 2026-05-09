@@ -64,7 +64,7 @@ export function SignInScreen({ navigation }) {
     console.log('parsed', parsed);
     if (!parsed) return '';
 
-    return `${parsed.nationalNumber}`;
+    return parsed.format('E.164');
   }, [form.phone, meta.countryCode]);
 
   // Load saved credentials on mount if remember me was checked

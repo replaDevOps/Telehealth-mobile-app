@@ -226,7 +226,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
       console.log('endpoint', endpoint);
 
       const response = await apiClient.get(endpoint);
-      console.log('Payment details response:', endpoint, response);
+      // console.log('Payment details response:', endpoint, response);
 
       // API response structure for appointment details:
       // {
@@ -298,8 +298,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
           setClinicID(extractedClinicID);
 
           // Format date and time from appointment requestDate or transaction date
-          const dateStr = transactionData.
-            created_at || appointmentData.created_at || '';
+          const dateStr =  appointmentData.created_at || '';
           const formattedDateTime = formatDateTimeLocal(dateStr);
 
           // Format price from transaction amount
@@ -332,8 +331,8 @@ export function CardDetails({ navigation }: { navigation: any }) {
               // Use clinic from finalData.clinic if available
               const clinicDataRefund = finalData.clinic || {};
               const clinicDetailsRefund = clinicDataRefund.details || {};
-
-              const dateStrRefund = refundServicePayload?.created_at || refundServicePayload?.updated_at || transactionData?.date || appointmentData?.created_at || '';
+              console.log(refundServicePayload)
+              const dateStrRefund = refundServicePayload?.appointment?.created_at || refundServicePayload?.created_at || refundServicePayload?.updated_at || transactionData?.date || appointmentData?.created_at || '';
               const formattedDateTimeRefund = formatDateTimeLocal(dateStrRefund);
 
               const priceValueRefund = refundServicePayload?.price || transactionData?.amount || '0';
@@ -363,7 +362,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
                 statusColor: (txn?.status === 'Paid' || txn?.status === 'Completed' || transactionData.status === 'Paid' || transactionData.status === 'Completed') ? colors.green : colors.red,
                 dateTime: formattedDateTimeRefund,
                 price: formattedPriceRefund,
-                image: clinicDataRefund.image || clinicDetailsRefund.coverImage || clinicDetailsRefund.logo ? { uri: clinicDataRefund.image || clinicDetailsRefund.coverImage || clinicDetailsRefund.logo } : RecommandImage,
+                image:  {uri: clinicDetailsRefund.logo} ,
                 consultationType: undefined,
                 duration: undefined,
                 doctorName: undefined,
@@ -432,9 +431,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
             statusColor: statusColor,
             dateTime: formattedDateTime,
             price: formattedPrice,
-            image: clinicData.image || clinicDetails.coverImage || clinicDetails.logo
-              ? { uri: clinicData.image || clinicDetails.coverImage || clinicDetails.logo }
-              : RecommandImage,
+            image: { uri: clinicDetails.logo },
             consultationType: undefined,
             duration: undefined,
             doctorName: undefined,
@@ -467,6 +464,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
             : (clinicData.location || '');
 
           // Format date and time from date or created_at
+          console.log("consultationData",consultationData.created_at)
           const dateTimeStr = consultationData.created_at || '';
           console.log('Raw date time from API:', dateTimeStr);
           const formattedDateTime = formatDateTimeLocal(dateTimeStr);
@@ -826,6 +824,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
         const svcRefundStatus = appointmentService.refundStatus || serviceData.refundStatus || appointmentService.refund_status || '';
         // Map refund state to simple categories: processed (final) or processing (in-progress)
         const isProcessed = typeof svcStatus === 'string' && /(processed|refunded|completed)/i.test(svcStatus);
+        const isRejected = /reject/i.test(svcStatus) || /reject/i.test(svcRefundStatus);
         const isProcessing = typeof svcStatus === 'string' && /(processing|pending|in-progress|request)/i.test(svcStatus) && !isProcessed;
         const refundState = isProcessed ? 'processed' : (isProcessing ? 'processing' : '');
         console.log('Service', groupData)
@@ -842,7 +841,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
           status: svcStatus,
           refundStatus: svcRefundStatus,
           refundState: refundState,
-          disabled: isProcessed, // disable only when fully processed/refunded
+          disabled: isProcessed || isRejected,
         };
       });
 
@@ -888,6 +887,14 @@ export function CardDetails({ navigation }: { navigation: any }) {
   // services whose `refundStatus` is Confirm. This is more reliable than relying on `transferData`.
   const totalRefundedAmount = (() => {
     if (!isAppointment || !paymentDetails) return 0;
+
+    // When opened from refund details, the refund amount is the price of the item
+    if (params.isRefundRequest) {
+      const svc = displayData.services?.[0];
+      const raw = svc?.price ?? displayData.price ?? '0';
+      const parsed = parseFloat(String(raw).replace(/[^0-9.-]+/g, ''));
+      return isNaN(parsed) ? 0 : parsed;
+    }
 
     const services = paymentDetails.appointment_services || [];
 
@@ -939,9 +946,10 @@ export function CardDetails({ navigation }: { navigation: any }) {
       const refundStatusNormalized = svcRefundStatusStr.trim().toLowerCase();
 
       const isProcessed = /(processed|refunded|completed)/i.test(svcStatusStr);
-      const isRefundStatusDisabled = /^(pending|confirm|confirmed)$/i.test(refundStatusNormalized);
+      const isRefundStatusDisabled = /^(pending|confirm|confirmed|rejected|reject)$/i.test(refundStatusNormalized);
+      const isRejected = /reject/i.test(svcStatusStr) || /reject/i.test(svcRefundStatusStr);
 
-      return isProcessed || isRefundStatusDisabled;
+      return isProcessed || isRefundStatusDisabled || isRejected;
     });
   })();
   if (loading) {

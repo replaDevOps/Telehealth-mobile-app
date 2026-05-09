@@ -11,13 +11,22 @@ interface ServiceStatusRowProps {
 
 export const ServiceStatusRow: React.FC<ServiceStatusRowProps> = ({ item }) => {
   const { t } = useTranslation();
+  console.log(item.status)
   const isConsultation = item.kind === 'consultation';
 
   const serviceValue = isConsultation ? item.serviceName : item.numberOfService;
   const serviceLabel = isConsultation ? t('service') : t('number_of_service');
   const hasRefundServices = !!(!isConsultation && item.kind === 'appointment' &&
     item.refundServiceCount && item.refundServiceCount > 0);
-  const displayStatus = item.kind === 'appointment' ? (item as any).paymentStatus || item.status : item.status;
+
+  const isRefunded = !isConsultation && item.kind === 'appointment' && (
+    (typeof item.refundStatus === 'string' && /confirm|refunded/i.test(item.refundStatus)) ||
+    /^refunded$/i.test(item.status)
+  );
+  const displayStatus = isRefunded
+    ? 'Refunded'
+    : item.kind === 'appointment' ? (item as any).paymentStatus || item.status : item.status;
+  const displayStatusColor = isRefunded ? '#ef4444' : item.statusColor;
 
   return (
     <>
@@ -33,14 +42,14 @@ export const ServiceStatusRow: React.FC<ServiceStatusRowProps> = ({ item }) => {
 
         <View style={styles.statusInfo}>
           <Text style={styles.statusLabel}>{t('status')}</Text>
-          <Text style={[styles.statusValue, { color: item.statusColor }]}>
+          <Text style={[styles.statusValue, { color: displayStatusColor }]}>
             {displayStatus}
           </Text>
         </View>
       </View>
 
-      {/* Compact refund indicator shown in the status area for appointments */}
-      {hasRefundServices && item.kind === 'appointment' && (
+      {/* Compact refund indicator shown only when refund status is Confirm */}
+      {hasRefundServices && item.kind === 'appointment' && isRefunded && (
         <Text
           style={{
             fontSize: 12,
@@ -48,11 +57,11 @@ export const ServiceStatusRow: React.FC<ServiceStatusRowProps> = ({ item }) => {
             marginTop: 6,
             paddingHorizontal: 8,
             paddingVertical: 2,
-            alignSelf: 'flex-end',
+            textAlign: 'center',
           }}
           numberOfLines={1}
         >
-          {`Number of Refund Status: ${item.refundServiceCount}`}
+          {`No of Refunds: ${item.refundServiceCount}`}
         </Text>
       )}
     </>

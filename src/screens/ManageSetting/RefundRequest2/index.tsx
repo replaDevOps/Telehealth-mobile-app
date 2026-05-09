@@ -123,13 +123,14 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
       setHasMore(hasMoreData);
       
       if (responseData?.success !== false && appointmentsList.length > 0) {
-
+        console.log("appointmentsList",appointmentsList)
         // Map API response to AppintItem format
         const mappedAppointments: AppintItem[] = appointmentsList.map((item: any, index: number) => {
+          console.log(item.appointment.created_at)
           // Format date from ISO string to readable format
           let formattedDate = '';
-          if (item.date || item.appointment_date || item.created_at || item.createdAt) {
-            const dateStr = item.date || item.appointment_date || item.created_at || item.createdAt;
+          if (item.appointment.created_at ) {
+            const dateStr = item.appointment.created_at ;
             try {
               const date = new Date(dateStr);
               formattedDate = date.toLocaleDateString('en-GB', {
@@ -268,7 +269,7 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
   );
 
   const renderAppointCard = (item: AppintItem) => {
-    console.log('Rendering appointment card for item:', item);
+    // console.log('Rendering appointment card for item:', item);
     return (
       <View key={item.id} style={styles.card}>
         <Text style={styles.dateText}>{item.date}</Text>

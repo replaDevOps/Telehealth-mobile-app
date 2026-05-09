@@ -49,6 +49,7 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
     route.params?.method === 'phone' && route.params?.source === 'signUp';
   const isFirebaseForgotPasswordPhone =
     route.params?.method === 'phone' && route.params?.source === 'forgotPassword';
+    console.log(isFirebasePhone,isFirebaseForgotPasswordPhone)
   const otpLength = (isFirebasePhone || isFirebaseForgotPasswordPhone) ? 6 : 5;
   const [inputValues, setInputValues] = useState<string[]>(
     Array(otpLength).fill(''),
@@ -164,11 +165,12 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
         if (!idToken) {
           throw new Error('No idToken returned from Firebase');
         }
-
+        
         const endpoint = isFirebaseForgotPasswordPhone
           ? API.AUTH.VERIFY_FIREBASE_FORGOT_PASSWORD
           : API.AUTH.VERIFY_FIREBASE_OTP;
-
+        console.log(endpoint)
+        console.log(  idToken, phone,)
         const backendResponse = await apiClient.post(endpoint, {
           firebaseIdToken: idToken,
           phoneNo: phone,

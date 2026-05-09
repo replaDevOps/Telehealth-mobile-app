@@ -168,9 +168,12 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
             ? 'saudi'
             : nationality.toLowerCase();
 
+        const parsedPhoneConfirm = parsePhoneNumberFromString(phone, countryCode as CountryCode);
+        const fullPhoneConfirm = parsedPhoneConfirm ? parsedPhoneConfirm.format('E.164') : phone.trim();
+
         formData.append('fullName', fullName.trim());
         formData.append('email', email.trim());
-        formData.append('phoneNo', phone.trim());
+        formData.append('phoneNo', fullPhoneConfirm);
         formData.append('nationality', nationalityPayload);
         if (IdCardNumber.trim()) {
           formData.append('nationalID', IdCardNumber.trim());
@@ -181,7 +184,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
         console.log('[ProfileScreen] REGISTER payload:', {
           fullName: fullName.trim(),
           email: email.trim(),
-          phoneNo: phone.trim(),
+          phoneNo: fullPhoneConfirm,
           nationality: nationalityPayload,
           nationalID: IdCardNumber.trim() || undefined,
           gender,
@@ -211,7 +214,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
 
         // Get auth token if available
         const token = useAuthStore.getState().auth?.token;
-        
+        console.log(formData)
         // Use fetch for FormData upload
         const response = await fetch(`${BASE_URL}${API.AUTH.REGISTER}`, {
           method: 'POST',
@@ -279,10 +282,13 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
 
     setLoadingSkip(true);
     try {
+      const parsedPhoneSkip = parsePhoneNumberFromString(phone, countryCode as CountryCode);
+      const fullPhoneSkip = parsedPhoneSkip ? parsedPhoneSkip.format('E.164') : phone.trim();
+
       // Build payload: fullName, phoneNo and email are required; include other profile fields if provided
       const payload: any = {
         fullName: fullName.trim(),
-        phoneNo: phone.trim(),
+        phoneNo: fullPhoneSkip,
         email: email.trim(),
       };
       if (nationality) {
@@ -299,7 +305,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
       if (gender) payload.gender = gender;
       if (age && age.trim()) payload.age = age.trim();
       if (city) payload.city = city;
-
+      console.log("Skip",payload)
       const response = await apiClient.post(API.AUTH.SKIP, payload);
 
       // API may return success:false with message field — prefer showing field errors

@@ -137,15 +137,7 @@ export function CartScreen({ navigation }) {
           location: clinicGroup?.clinic?.address || clinicGroup?.address || clinicGroup.clinicName || '',
           // Prefer real clinic image when the API provides one, otherwise leave
           // undefined so the card falls back to ClinicAvatar (initials).
-          image: clinicGroup?.clinic?.coverImage
-            ? { uri: clinicGroup.clinic.coverImage }
-            : clinicGroup?.clinic?.logo
-              ? { uri: clinicGroup.clinic.logo }
-              : clinicGroup?.coverImage
-                ? { uri: clinicGroup.coverImage }
-                : clinicGroup?.logo
-                  ? { uri: clinicGroup.logo }
-                  : undefined,
+          image: { uri: clinicGroup.logo },
           distance: clinicGroup.distance_km
             ? `${parseFloat(clinicGroup.distance_km.toString()).toFixed(1)}km`
             : null,

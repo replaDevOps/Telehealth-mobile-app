@@ -119,7 +119,8 @@ const styles = StyleSheet.create({
   locationText: {
     fontSize: 14,
     color: colors.secondaryText,
-    width: '65%',
+    flex: 1,
+    flexShrink: 1,
   },
   statsRow: {
     flexDirection: 'row',

@@ -57,7 +57,7 @@ export const styles = StyleSheet.create({
         fontSize: 11,
         color: '#6b7280',
         marginTop: 2,
-        width:'70%'
+        flexShrink: 1,
       },
       consultButton: {
         backgroundColor: colors.black,

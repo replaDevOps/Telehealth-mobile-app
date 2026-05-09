@@ -1,6 +1,6 @@
 import { Header2 } from '@components/common/Header2';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, ScrollView, Modal, ActivityIndicator, Alert, AppState, AppStateStatus, Dimensions } from 'react-native';
+import { View, Text, ScrollView, Modal, ActivityIndicator, Alert, AppState, AppStateStatus } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { mvs } from '@config/metrices';
 import { colors } from '../../../styles/colors';
@@ -501,7 +501,7 @@ export function ConsultationPayment({ navigation, route }) {
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={{ paddingBottom: Dimensions.get('window').height * 0.1 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}
         showsVerticalScrollIndicator={false}
         scrollEnabled={!waitingForDoctor}
       >

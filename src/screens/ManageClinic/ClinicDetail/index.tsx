@@ -13,6 +13,7 @@ import { colors } from '../../../styles/colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useState, useEffect } from 'react';
 import { View, ScrollView, TouchableOpacity, Text, ActivityIndicator, Platform, PermissionsAndroid, RefreshControl, Image, KeyboardAvoidingView, Keyboard } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { RecommandImage } from '@assets/images';
 import ConsultDoctorBottomSheet from '@components/molecules/ConsultDoctorBottomSheet';
@@ -47,6 +48,7 @@ interface SortOption {
 
 export const ClinicDetailScreen = ({ navigation, route }) => {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { clinic } = route.params;
   const { addToCart, cartItems } = useCart();
   const { triggerRefresh, incrementCartCount } = useCartCountContext();
@@ -1467,7 +1469,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       {/* Chat with Vena AI Button - hide when keyboard is open */}
       {keyboardHeight === 0 && (
         <View
-          style={[styles.chatButtonContainer, { bottom: 0 }]}
+          style={[styles.chatButtonContainer, { bottom: 0, paddingBottom: 20 + insets.bottom }]}
           onLayout={(e) => setChatButtonHeight(e.nativeEvent.layout.height)}
         >
           <TouchableOpacity

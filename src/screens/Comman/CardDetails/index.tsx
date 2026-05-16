@@ -19,7 +19,6 @@ import { colors } from '../../../styles/colors';
 import { styles } from './style';
 import { Header2 } from '@components/common/Header2';
 import { CustomButton } from '@components/common/CustomButton';
-import { RecommandImage } from '@assets/images';
 import ClinicAvatar from '@components/common/ClinicAvatar';
 import RatingBottomSheet from '@components/molecules/RatingBottomSheet';
 import { RouteProp, useRoute } from '@react-navigation/native';
@@ -324,7 +323,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
                   refundStatus: refundServicePayload?.refundStatus || refundServicePayload?.refund_status || '',
                   category: svc?.serviceType || svc?.category || '',
                   categoryBadge: svc?.group?.name || '',
-                  image: svc?.image ? { uri: svc.image } : RecommandImage,
+                  image: svc?.image ? { uri: svc.image } : null,
                 },
               ];
 
@@ -362,7 +361,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
                 statusColor: (txn?.status === 'Paid' || txn?.status === 'Completed' || transactionData.status === 'Paid' || transactionData.status === 'Completed') ? colors.green : colors.red,
                 dateTime: formattedDateTimeRefund,
                 price: formattedPriceRefund,
-                image:  {uri: clinicDetailsRefund.logo} ,
+                image: clinicDetailsRefund.logo ? { uri: clinicDetailsRefund.logo } : undefined,
                 consultationType: undefined,
                 duration: undefined,
                 doctorName: undefined,
@@ -405,7 +404,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
                 : (serviceData.serviceType && typeof serviceData.serviceType === 'string'
                   ? serviceData.serviceType.charAt(0).toUpperCase() + serviceData.serviceType.slice(1)
                   : ''),
-              image: serviceData.image ? { uri: serviceData.image } : RecommandImage,
+              image: serviceData.image ? { uri: serviceData.image } : null,
             };
           });
 
@@ -431,7 +430,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
             statusColor: statusColor,
             dateTime: formattedDateTime,
             price: formattedPrice,
-            image: { uri: clinicDetails.logo },
+            image: clinicDetails.logo ? { uri: clinicDetails.logo } : undefined,
             consultationType: undefined,
             duration: undefined,
             doctorName: undefined,
@@ -503,7 +502,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
             price: formattedPrice,
             image: (clinicData.image || clinicDetails.logo || clinicDetails.coverImage)
               ? { uri: clinicData.image || clinicDetails.logo || clinicDetails.coverImage }
-              : RecommandImage,
+              : undefined,
             consultationType: consultationData.type || consultationData.consultationType,
             duration: consultationData.duration || formattedDuration || '',
             doctorName: doctorData.name ? doctorData.name : t('no_agent_accepted'),
@@ -837,7 +836,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
           price: serviceData.price || appointmentService.price || '0',
           category: groupData.serviceType || serviceData.serviceType || '',
           categoryBadge: groupData.name || serviceData.serviceType || '',
-          image: serviceData.image ? { uri: serviceData.image } : RecommandImage,
+          image: serviceData.image ? { uri: serviceData.image } : null,
           status: svcStatus,
           refundStatus: svcRefundStatus,
           refundState: refundState,

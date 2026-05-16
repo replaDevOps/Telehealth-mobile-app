@@ -10,13 +10,13 @@ import {
   StatusBar,
   ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import ClinicAvatar from '@components/common/ClinicAvatar';
 import { useFocusEffect } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { colors } from '../../../styles/colors';
 import { styles } from './style';
 import { Header2 } from '@components/common/Header2';
-import { RecommandImage } from '@assets/images';
 import { useTranslation } from 'react-i18next';
 import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
@@ -52,6 +52,7 @@ type AppintItem = PaymentAppointmentItem;
 
 export function RefundRequest2({ navigation }: { navigation: any }) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const [appointments, setAppointments] = useState<AppintItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -168,7 +169,7 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
             price: service?.price || service?.servicePrice || service?.service_price || item?.service?.price || 'SAR 0',
             category: service?.category || service?.categoryName || service?.category_name || 'Service',
             categoryBadge: service?.categoryBadge || service?.category_badge || 'SVC',
-            image: service?.image || service?.serviceImage || service?.service_image || service?.image_url || RecommandImage,
+            image: service?.image || service?.serviceImage || service?.service_image || service?.image_url ,
           }));
 
           // Determine status and color
@@ -202,7 +203,7 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
             date: formattedDate || item.date || item.appointment_date || '',
             paymentId: item.paymentId || item.payment_id || item.paymentID || item.id?.toString() || `PAY-${index}`,
             clinicImg: !!clinicImageUrl,
-            clinicImage: clinicImageUrl || RecommandImage,
+            clinicImage: clinicImageUrl || null,
             clinicName: clinicDisplayName,
             clinicLocation: clinicLocation,
             numberOfService: mappedServices.length.toString() || item.numberOfService || item.number_of_service || '0',
@@ -292,11 +293,11 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
                   {item.clinicImage ? (
                     <Image
                       source={typeof item.clinicImage === 'string' ? { uri: item.clinicImage } : item.clinicImage}
-                      style={{ width: 48, height: 48,overflow: 'hidden', borderRadius: 8 }}
+                      style={{ width: 48, height: 48, overflow: 'hidden', borderRadius: 8 }}
                       resizeMode="cover"
                     />
                   ) : (
-                    <Text style={styles.clinicLogo}>{t('clinic_image')}</Text>
+                    <ClinicAvatar name={item.clinicName} size={48} style={{ borderRadius: 8 }} />
                   )}
                 </View>
               <View style={styles.doctorInfo}>
@@ -335,7 +336,7 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
                 isAppointment: true,
                 paymentId: item.paymentId,
                 clinicName: item.clinicName,
-                image: item.clinicImage || (item.clinicImg ? RecommandImage : undefined),
+                image: item.clinicImage || undefined,
                 clinicLocation: item.clinicLocation,
                 status: item.status,
                 statusColor: item.statusColor,

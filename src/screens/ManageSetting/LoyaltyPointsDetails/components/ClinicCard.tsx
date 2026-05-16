@@ -2,6 +2,7 @@ import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import React from 'react';
 import { colors } from '../../../../styles/colors';
 import { coinIcon } from '@assets/images';
+import ClinicAvatar from '@components/common/ClinicAvatar';
 
 type ClinicCardProps = {
   clinicImage: any;
@@ -33,10 +34,14 @@ export const ClinicCard = ({
     : [];
   return (
     <TouchableOpacity style={styles.card} onPress={handlePress}>
-      <Image
-        source={clinicImage}
-        style={{ width: 50, height: 50, borderRadius: 10 }}
-      />
+      {clinicImage ? (
+        <Image
+          source={clinicImage}
+          style={{ width: 50, height: 50, borderRadius: 10 }}
+        />
+      ) : (
+        <ClinicAvatar name={clinicName} size={50} style={{ borderRadius: 10 }} />
+      )}
       <View style={styles.leftSection}>
         <View style={styles.pillsRow}>
           {pills.map((label, index) => (

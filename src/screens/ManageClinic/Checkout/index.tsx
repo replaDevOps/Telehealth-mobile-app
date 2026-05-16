@@ -9,7 +9,7 @@ import {
   StatusBar,
   ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../../../styles/colors';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { mvs } from '@config/metrices';
@@ -31,6 +31,7 @@ import { useCartCountContext } from '@context/CartCountContext';
 
 export function CheckoutScreen({ route, navigation }) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { profileData, fetchProfile, refreshProfile, currencyValuePerPoint } = useProfileStore();
   const { clearCart } = useCart();
   const { triggerRefresh } = useCartCountContext();
@@ -335,7 +336,7 @@ export function CheckoutScreen({ route, navigation }) {
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 40 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Render services grouped by clinic */}
@@ -512,7 +513,7 @@ export function CheckoutScreen({ route, navigation }) {
       </ScrollView>
 
       {/* Bottom Button */}
-      <View style={styles.bottomContainer}>
+      <View style={[styles.bottomContainer, { paddingBottom: 20 + insets.bottom }]}>
         <View style={styles.bottomInfoRow}>
           <Text style={styles.totalAmountText}>
             {t('total_amount') || 'Total Amount'}{' '}

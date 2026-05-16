@@ -3,7 +3,7 @@ import React, { useState, useCallback, useRef } from 'react';
 import { View, Text, FlatList, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { mvs } from '@config/metrices';
-import { coinIcon, RecommandImage } from '@assets/images';
+import { coinIcon } from '@assets/images';
 import { useTranslation } from 'react-i18next';
 import { styles } from './style';
 import { RewardSvg } from '@assets/icons';
@@ -38,7 +38,7 @@ export const LoyaltyPointsDetails = () => {
   const {
     clinicId = '',
     clinicName = 'Unknown Clinic',
-    clinicImage = RecommandImage,
+    clinicImage = null,
     totalPoints = 0,
     category = 'Clinic',
   } = params;

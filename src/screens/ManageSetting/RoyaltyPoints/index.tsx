@@ -7,7 +7,6 @@ import { useTranslation } from 'react-i18next';
 import { ClinicCard } from '../LoyaltyPointsDetails/components';
 import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
-import { RecommandImage } from '@assets/images';
 import { colors } from '../../../styles/colors';
 import { useFocusEffect } from '@react-navigation/native';
 import { RewardsMilestonesBottomSheet } from '@components/molecules';
@@ -95,11 +94,11 @@ export const RoyaltyPoints = ({ navigation }) => {
           const clinicId = item.clinicID?.toString() || item.clinic?.id?.toString() || index.toString();
           const clinicName = item.clinic?.clinicName || item.clinicName || 'Unknown Clinic';
           const points = item.total_loyalty_points || item.totalLoyaltyPoints || 0;
-          const image = item.clinic?.image 
-            ? { uri: item.clinic.image } 
-            : item.clinicImage 
+          const image = item.clinic?.image
+            ? { uri: item.clinic.image }
+            : item.clinicImage
             ? (typeof item.clinicImage === 'string' ? { uri: item.clinicImage } : item.clinicImage)
-            : RecommandImage;
+            : null;
           const businessType = item.clinic?.businessType || item.businessType;
           const categories = getCategories(businessType);
           const category = categories[0] ?? 'General';

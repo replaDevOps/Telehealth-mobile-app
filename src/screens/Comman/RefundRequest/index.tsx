@@ -9,11 +9,10 @@ import {
   Alert,
 } from 'react-native';
 import React, { useState } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Header2 } from '@components/common/Header2';
 import ClinicAvatar from '@components/common/ClinicAvatar';
 import { useRoute, useNavigation, CommonActions, StackActions } from '@react-navigation/native';
-import { RecommandImage } from '@assets/images';
 import { styles } from './style';
 import { colors } from '../../../styles/colors';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -26,6 +25,7 @@ import { Toast } from 'toastify-react-native';
 
 export function RefundRequest() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const route = useRoute();
   const navigation = useNavigation<any>();
   const params = route.params as any;
@@ -52,7 +52,7 @@ export function RefundRequest() {
         id: clinicId || params.clinicID || params.clinicID || `clinic_${Date.now()}`,
         name: params.clinicName || businessInfo.businessName || '',
         location: params.clinicLocation || businessInfo.address || '',
-        image: params.image || RecommandImage,
+        image: params.image || undefined,
         specialty: businessInfo.specialization || 'General',
         rating: businessInfo.rating || 0,
       },
@@ -211,7 +211,11 @@ export function RefundRequest() {
               return (
                 <View key={service.id} style={[styles.serviceCard, isDisabled ? { opacity: 0.6 } : {}]}>
                   <View style={styles.serviceLeft}>
-                    <Image source={service.image} style={styles.serviceImage} />
+                    {service.image ? (
+                      <Image source={service.image} style={styles.serviceImage} />
+                    ) : (
+                      <ClinicAvatar name={service.name} size={56} style={styles.serviceImage as any} />
+                    )}
                     <View style={styles.serviceInfo}>
                       <View style={styles.serviceBadges}>
                         <View style={styles.categoryBadge}>
@@ -332,7 +336,7 @@ export function RefundRequest() {
         </ScrollView>
 
         {/* Fixed Submit Button */}
-        <View style={styles.bottomButtonContainer}>
+        <View style={[styles.bottomButtonContainer, { bottom: insets.bottom }]}>
           <CustomButton
             title={t('submit_request')}
             onPress={handleSubmit}

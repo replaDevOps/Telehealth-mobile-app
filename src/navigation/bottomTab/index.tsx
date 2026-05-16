@@ -5,6 +5,7 @@ import { CommonActions } from '@react-navigation/native';
 import { colors } from '../../styles/colors';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   ClinicSvg,
@@ -34,6 +35,7 @@ const Tab = createBottomTabNavigator<TabParamList>();
 
 export default function CustomTabBar() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   return (
     <Tab.Navigator
       initialRouteName="Home"
@@ -54,7 +56,11 @@ export default function CustomTabBar() {
             return { display: 'none' };
           }
 
-          return styles.tabBar;
+          return {
+            ...styles.tabBar,
+            height: 65 + insets.bottom,
+            paddingBottom: 5 + insets.bottom,
+          };
         })(),
 
         tabBarIcon: ({ focused }) => {

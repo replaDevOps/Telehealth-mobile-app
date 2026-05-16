@@ -8,13 +8,14 @@ import { mvs } from '../../../config/metrices';
 import { CustomButton } from '../../../components/common/CustomButton';
 import { useNavigation } from '@react-navigation/native';
 import { LanguageSelection } from '@assets/images';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { storeData } from '../../../utils';
 
 export function LanguageScreen() {
   const navigation = useNavigation();
   const { t, i18n } = useTranslation();
+  const insets = useSafeAreaInsets();
 
   const handleNext = async () => {
     try {
@@ -77,7 +78,7 @@ export function LanguageScreen() {
           </View>
         </View>
       </ScrollView>
-      <View style={styles.button}>
+      <View style={[styles.button, { bottom: mvs(20) + insets.bottom }]}>
         <CustomButton
           title={t('next')}
           onPress={handleNext}

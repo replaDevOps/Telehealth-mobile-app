@@ -615,6 +615,8 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
         serviceGroup: service.group?.name || 'Group',
         serviceName: service.name,
         price: `SAR ${parseFloat(service.price).toFixed(2)}`,
+        campaignDiscount: (service as any).campaignDiscount,
+        finalPrice: (service as any).finalPrice,
         duration: `${service.duration} ${t('minutes')}`,
         description: service.description || '',
         procedure: service.procedure || '',
@@ -866,6 +868,8 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
           serviceGroup: serviceDetail.group?.name || 'Group',
           serviceName: serviceDetail.name,
           price: `SAR ${parseFloat(serviceDetail.price).toFixed(2)}`,
+          campaignDiscount: (serviceDetail as any).campaignDiscount,
+          finalPrice: (serviceDetail as any).finalPrice,
           duration: `${serviceDetail.duration} ${t('minutes')}`,
           description: serviceDetail.description || '',
           procedure: serviceDetail.procedure || '',
@@ -1284,6 +1288,8 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
                     procedure={service.procedure}
                     onPress={() => handleServicePress(service)}
                     bonusLoyalityPoints={service.totalLoyalityPoints ?? service.bonusLoyalityPoints}
+                    campaignDiscount={service.campaignDiscount}
+                    finalPrice={service.finalPrice}
                   />
                 ))}
 

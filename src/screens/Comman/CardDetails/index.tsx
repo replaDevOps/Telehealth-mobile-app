@@ -225,7 +225,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
       console.log('endpoint', endpoint);
 
       const response = await apiClient.get(endpoint);
-      // console.log('Payment details response:', endpoint, response);
+      console.log('Payment details response:', endpoint, response);
 
       // API response structure for appointment details:
       // {
@@ -312,13 +312,18 @@ export function CardDetails({ navigation }: { navigation: any }) {
               // Capture refund reason from payload if provided (some endpoints put actual reason here)
               setRefundReason(refundServicePayload?.reason || svc?.reason || params.reason);
               const svc = refundServicePayload.service || refundServicePayload;
+              const refundOriginal = refundServicePayload?.servicePrice ?? svc?.price ?? refundServicePayload?.price ?? '0';
+              const refundFinal = refundServicePayload?.price ?? svc?.price ?? '0';
+              const refundDiscount = refundServicePayload?.campaignDiscount ?? 0;
               const mappedServicesRefund = [
                 {
                   id: svc?.id || refundServicePayload?.serviceID || 0,
                   appointmentServiceID: refundServicePayload?.id || undefined,
                   name: svc?.name || refundServicePayload?.name || '',
                   duration: svc?.duration ? `${svc.duration} min` : (refundServicePayload?.duration ? `${refundServicePayload.duration} min` : ''),
-                  price: svc?.price || refundServicePayload?.price || '0',
+                  price: String(refundOriginal),
+                  campaignDiscount: Number(refundDiscount || 0),
+                  finalPrice: Number(refundFinal || 0),
                   status: refundServicePayload?.status || svc?.status || '',
                   refundStatus: refundServicePayload?.refundStatus || refundServicePayload?.refund_status || '',
                   category: svc?.serviceType || svc?.category || '',
@@ -388,12 +393,18 @@ export function CardDetails({ navigation }: { navigation: any }) {
             // Service-level status may be provided on the appointmentService or the nested service
             const svcStatus = appointmentService.status || appointmentService.refundStatus || appointmentService.serviceStatus || serviceData.status || '';
 
+            // API returns: servicePrice (original), price (final), campaignDiscount (discount)
+            const originalPriceRaw = appointmentService.servicePrice ?? serviceData.price ?? appointmentService.price ?? '0';
+            const finalPriceRaw = appointmentService.price ?? serviceData.price ?? '0';
+            const discountRaw = appointmentService.campaignDiscount ?? 0;
             return {
               id: serviceData.id || appointmentService.serviceID || index,
               appointmentServiceID: appointmentService.id, // This is the ID needed for refund API
               name: serviceData.name || '',
               duration: serviceData.duration ? `${serviceData.duration} min` : '',
-              price: serviceData.price || appointmentService.price || '0',
+              price: String(originalPriceRaw),
+              campaignDiscount: Number(discountRaw || 0),
+              finalPrice: Number(finalPriceRaw || 0),
               status: svcStatus,
               refundStatus: appointmentService.refundStatus,
               category: serviceData.serviceType && typeof serviceData.serviceType === 'string' && serviceData.serviceType.length
@@ -827,13 +838,19 @@ export function CardDetails({ navigation }: { navigation: any }) {
         const isProcessing = typeof svcStatus === 'string' && /(processing|pending|in-progress|request)/i.test(svcStatus) && !isProcessed;
         const refundState = isProcessed ? 'processed' : (isProcessing ? 'processing' : '');
         console.log('Service', groupData)
+        // API: servicePrice (original), price (final), campaignDiscount (discount)
+        const originalPriceRaw = appointmentService.servicePrice ?? serviceData.price ?? appointmentService.price ?? '0';
+        const finalPriceRaw = appointmentService.price ?? serviceData.price ?? '0';
+        const discountRaw = appointmentService.campaignDiscount ?? 0;
         return {
           id: serviceData.id || appointmentService.serviceID,
           appointmentServiceID: appointmentService.id, // Required for cancellation API
           serviceID: appointmentService.serviceID,
           name: serviceData.name || '',
           duration: serviceData.duration ? `${serviceData.duration} min` : '',
-          price: serviceData.price || appointmentService.price || '0',
+          price: String(originalPriceRaw),
+          campaignDiscount: Number(discountRaw || 0),
+          finalPrice: Number(finalPriceRaw || 0),
           category: groupData.serviceType || serviceData.serviceType || '',
           categoryBadge: groupData.name || serviceData.serviceType || '',
           image: serviceData.image ? { uri: serviceData.image } : null,
@@ -1059,7 +1076,19 @@ export function CardDetails({ navigation }: { navigation: any }) {
                   </View>
                 </View>
                 <View style={{ justifyContent: 'space-between', alignItems: 'flex-end', width: 110, paddingLeft: 8 }}>
-                  <Text style={styles.servicePrice}>SAR {service.price}</Text>
+                  {Number((service as any).campaignDiscount || 0) > 0 && (service as any).finalPrice !== null && (service as any).finalPrice !== undefined ? (
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <Text style={[styles.servicePrice, { fontSize: 12, color: '#888', textDecorationLine: 'line-through', fontWeight: '400' }]}>
+                        SAR {parseFloat(String(service.price)).toFixed(2)}
+                      </Text>
+                      <Text style={styles.servicePrice}>{`SAR ${Number((service as any).finalPrice).toFixed(2)}`}</Text>
+                      <Text style={{ fontSize: 11, fontWeight: '600', color: '#16a34a', marginTop: 2 }}>
+                        {`-SAR ${Number((service as any).campaignDiscount).toFixed(2)}`}
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text style={styles.servicePrice}>SAR {service.price}</Text>
+                  )}
                   {(() => {
                     const isRefund = typeof (service.status || '') === 'string' && /refund/i.test(service.status || '');
                     const displayStatus = isRefund ? ((service.status + " " + service.refundStatus)) : service.status;
@@ -1143,15 +1172,49 @@ export function CardDetails({ navigation }: { navigation: any }) {
                   {displayData.services?.length || 0}
                 </Text>
               </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>{t('subtotal')}</Text>
-                <Text style={styles.detailValue}>{displayData.price}</Text>
-              </View>
-
-              <View style={styles.totalContainer}>
-                <Text style={styles.totalLabel}>{t('total')}</Text>
-                <Text style={styles.totalAmount}>{displayData.price}</Text>
-              </View>
+              {(() => {
+                const servicesList = displayData.services || [];
+                const subtotalSum = servicesList.reduce((s: number, sv: any) => s + parseFloat(String(sv.price || 0)), 0);
+                const discountSum = servicesList.reduce((s: number, sv: any) => s + Number(sv.campaignDiscount || 0), 0);
+                const txn = paymentDetails?.transactions || {};
+                const taxAmount = Number(txn.totalTax || 0);
+                const txnAmount = txn.amount !== undefined && txn.amount !== null ? Number(txn.amount) : null;
+                const totalAmount = txnAmount !== null
+                  ? txnAmount
+                  : servicesList.reduce((s: number, sv: any) => {
+                      const fp = sv.finalPrice !== null && sv.finalPrice !== undefined
+                        ? Number(sv.finalPrice)
+                        : parseFloat(String(sv.price || 0));
+                      return s + fp;
+                    }, 0);
+                const hasDiscount = discountSum > 0;
+                return (
+                  <>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>{t('subtotal')}</Text>
+                      <Text style={styles.detailValue}>{`SAR ${subtotalSum.toFixed(2)}`}</Text>
+                    </View>
+                    {hasDiscount && (
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>{t('discount') || 'Discount'}</Text>
+                        <Text style={[styles.detailValue, { color: '#16a34a' }]}>
+                          {`-SAR ${discountSum.toFixed(2)}`}
+                        </Text>
+                      </View>
+                    )}
+                    {taxAmount > 0 && (
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>{t('tax') || 'Tax'}</Text>
+                        <Text style={styles.detailValue}>{`SAR ${taxAmount.toFixed(2)}`}</Text>
+                      </View>
+                    )}
+                    <View style={styles.totalContainer}>
+                      <Text style={styles.totalLabel}>{t('total')}</Text>
+                      <Text style={styles.totalAmount}>{`SAR ${totalAmount.toFixed(2)}`}</Text>
+                    </View>
+                  </>
+                );
+              })()}
             </View>
           </>
         ) : (

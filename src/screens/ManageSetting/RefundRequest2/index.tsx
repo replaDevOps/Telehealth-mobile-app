@@ -280,11 +280,16 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
           <View style={styles.paymentHeader}>
             <Text style={styles.paymentId}>#{item.paymentId}</Text>
 
-            {item.state && (
-              <View style={styles.paymentTypeContainer}>
-                <Text style={styles.paymentType}>{item.state}</Text>
-              </View>
-            )}
+            {(() => {
+              const isConfirmed = /^confirm(ed)?$/i.test(String(item.refundStatus || '').trim());
+              const label = isConfirmed ? (t('refunded') || 'Refunded') : item.state;
+              if (!label) return null;
+              return (
+                <View style={styles.paymentTypeContainer}>
+                  <Text style={styles.paymentType}>{label}</Text>
+                </View>
+              );
+            })()}
           </View>
 
           <View style={styles.paymentDoctorRow}>

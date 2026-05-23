@@ -130,8 +130,14 @@ export function RefundRequest() {
     params.services
       ?.filter((s: any) => selectedServices.includes(s.id))
       .reduce(
-        (sum: number, s: any) =>
-          sum + parseFloat(s.price.replace(/[^0-9.-]+/g, '')),
+        (sum: number, s: any) => {
+          // Refund the actually-paid (final) amount when a campaign discount applied
+          const discount = Number(s.campaignDiscount || 0);
+          if (discount > 0 && s.finalPrice !== undefined && s.finalPrice !== null) {
+            return sum + Number(s.finalPrice);
+          }
+          return sum + parseFloat(String(s.price).replace(/[^0-9.-]+/g, ''));
+        },
         0,
       )
       .toFixed(2) || '0.00';
@@ -154,9 +160,9 @@ export function RefundRequest() {
             ) : (
               <ClinicAvatar name={params.clinicName} size={56} style={styles.clinicImage} />
             )}
-            <View>
-              <Text style={styles.clinicName}>{params.clinicName}</Text>
-              <Text style={styles.clinicLocation}>
+            <View style={{ flex: 1, flexShrink: 1, marginRight: 8 }}>
+              <Text style={styles.clinicName} numberOfLines={1} ellipsizeMode="tail">{params.clinicName}</Text>
+              <Text style={styles.clinicLocation} numberOfLines={1} ellipsizeMode="tail">
                 {params.clinicLocation}
               </Text>
             </View>
@@ -164,6 +170,7 @@ export function RefundRequest() {
           <TouchableOpacity
             style={{
               ...styles.consultButton,
+              flexShrink: 0,
               backgroundColor: (params && (params.appointmentID || params.businessInfo)) ? colors.gray : colors.black,
             }}
             onPress={handleVisit}
@@ -254,7 +261,19 @@ export function RefundRequest() {
                       )}
                     </TouchableOpacity>
                     <View style={{ alignItems: 'flex-end' }}>
-                      <Text style={styles.servicePrice}>{formatPrice(service.price)}</Text>
+                      {Number(service.campaignDiscount || 0) > 0 && service.finalPrice !== undefined && service.finalPrice !== null ? (
+                        <View style={{ alignItems: 'flex-end' }}>
+                          <Text style={[styles.servicePrice, { fontSize: 12, color: '#888', textDecorationLine: 'line-through', fontWeight: '400' }]}>
+                            {formatPrice(service.price)}
+                          </Text>
+                          <Text style={styles.servicePrice}>{formatPrice(service.finalPrice)}</Text>
+                          <Text style={{ fontSize: 11, fontWeight: '600', color: '#16a34a', marginTop: 2 }}>
+                            {`-SAR ${Number(service.campaignDiscount).toFixed(2)}`}
+                          </Text>
+                        </View>
+                      ) : (
+                        <Text style={styles.servicePrice}>{formatPrice(service.price)}</Text>
+                      )}
                       {/* show refundStatus when status indicates a refund otherwise show status */}
                       {(() => {
                         const isRefund = typeof (service.status || '') === 'string' && /refund/i.test(service.status || '');

@@ -35,6 +35,8 @@ interface Service {
   totalLoyalityPoints?: string | number;
   devices?: any[];
   tags?: string[];
+  campaignDiscount?: number | string;
+  finalPrice?: number | string;
 }
 
 interface ServiceDetailBottomSheetProps {
@@ -175,7 +177,20 @@ export const ServiceDetailBottomSheet: React.FC<ServiceDetailBottomSheetProps> =
                         </View>
                       )}
                     </View>
-                    <Text style={styles.price}>{service.price}</Text>
+                    {(() => {
+                      const disc = Number(service.campaignDiscount || 0);
+                      const hasDiscount = disc > 0 && service.finalPrice !== undefined && service.finalPrice !== null;
+                      if (!hasDiscount) {
+                        return <Text style={styles.price}>{service.price}</Text>;
+                      }
+                      return (
+                        <View style={{ alignItems: 'flex-end' }}>
+                          <Text style={styles.priceStrikethrough}>{service.price}</Text>
+                          <Text style={styles.price}>{`SAR ${parseFloat(String(service.finalPrice)).toFixed(2)}`}</Text>
+                          <Text style={styles.discountText}>{`-SAR ${disc.toFixed(2)}`}</Text>
+                        </View>
+                      );
+                    })()}
                   </View>
 
                   <View style={styles.serviceFooter}>
@@ -373,6 +388,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.primary,
     fontWeight: '500',
+  },
+  priceStrikethrough: {
+    fontSize: 12,
+    color: colors.secondaryText || '#888',
+    textDecorationLine: 'line-through',
+    textAlign: 'right',
+  },
+  discountText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#16a34a',
+    textAlign: 'right',
+    marginTop: 2,
   },
   nameRow: {
     flexDirection: 'row',

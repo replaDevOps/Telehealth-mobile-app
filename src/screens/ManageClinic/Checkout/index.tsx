@@ -36,6 +36,9 @@ export function CheckoutScreen({ route, navigation }) {
   const { clearCart } = useCart();
   const { triggerRefresh } = useCartCountContext();
   const { services = [], totalLoyaltyPoints = 0 } = route.params || {};
+  const groupServicePrice = Number(route.params?.groupServicePrice || 0);
+  const groupCampaignDiscount = Number(route.params?.groupCampaignDiscount || 0);
+  const groupTotalPrice = Number(route.params?.groupTotalPrice || 0);
   const clinicLoyaltyPointsParam = route.params?.clinicLoyaltyPoints;
   const clinicLoyaltyPoints = clinicLoyaltyPointsParam
     ? typeof clinicLoyaltyPointsParam === 'string'
@@ -92,16 +95,33 @@ export function CheckoutScreen({ route, navigation }) {
   // Calculate totals
   const calculateSubtotal = () => {
     return services.reduce((total, item) => {
-      const price = parseFloat(item.service.price.replace(/[^0-9.]/g, ''));
+      const price = parseFloat(String(item.service.price).replace(/[^0-9.]/g, ''));
       return total + price;
     }, 0);
   };
 
-  const subtotal = calculateSubtotal();
+  const calculateCampaignDiscount = () => {
+    return services.reduce((total, item) => {
+      return total + Number(item.service?.campaignDiscount || 0);
+    }, 0);
+  };
+
+  const itemsSubtotal = calculateSubtotal();
+  // Prefer clinic-level group values from the cart payload (the API exposes
+  // campaignDiscount/servicePrice/totalPrice at the clinic group level, not per item).
+  // Fall back to per-item summation when the group values aren't provided.
+  const subtotal = groupServicePrice > 0 ? groupServicePrice : itemsSubtotal;
+  const campaignDiscountTotal = groupCampaignDiscount > 0
+    ? groupCampaignDiscount
+    : calculateCampaignDiscount();
+  // groupTotalPrice (post-discount, pre-tax) is informational — totals are recomputed below.
+  void groupTotalPrice;
   // Apply 15% tax only for non-Saudi users
   const isNonSaudi = profileData?.nationality && String(profileData.nationality).toLowerCase() === 'non_saudi';
   const TAX_RATE = isNonSaudi ? 0.15 : 0;
-  const tax = subtotal * TAX_RATE;
+  // Tax is calculated on the post-campaign-discount subtotal
+  const taxableBase = Math.max(0, subtotal - campaignDiscountTotal);
+  const tax = taxableBase * TAX_RATE;
   const discountAmount = subtotal * (discount / 100);
 
   // Loyalty conversion: prefer server-provided `currencyValuePerPoint`, fallback to 0.05 SAR per coin
@@ -112,7 +132,7 @@ export function CheckoutScreen({ route, navigation }) {
   const redemptionCoinsInput = Math.max(0, Math.floor(Number(redeemPoints) || 0));
 
   // Maximum amount (SAR) that can be redeemed against the remaining payable amount
-  const maxRedemptionSAR = Math.max(0, subtotal + tax - discountAmount); // Updated to use new tax calculation
+  const maxRedemptionSAR = Math.max(0, subtotal - campaignDiscountTotal + tax - discountAmount); // Updated to use new tax calculation
   // Convert SAR limit to maximum redeemable coins
   const maxRedeemableCoins = Math.floor(maxRedemptionSAR / COIN_TO_SAR);
 
@@ -122,7 +142,7 @@ export function CheckoutScreen({ route, navigation }) {
   const appliedCoins = insufficientCoins ? 0 : Math.min(redemptionCoinsInput, maxRedeemableCoins);
   const appliedRedemptionAmount = appliedCoins * COIN_TO_SAR; // SAR value
 
-  const total = subtotal + tax - discountAmount - appliedRedemptionAmount;
+  const total = subtotal - campaignDiscountTotal + tax - discountAmount - appliedRedemptionAmount;
 
   // Handler to validate points input from UI
   const handlePointsToRedeemChange = (value: string) => {
@@ -130,7 +150,7 @@ export function CheckoutScreen({ route, navigation }) {
     const coins = Math.max(0, Math.floor(Number(value) || 0));
 
     // Recompute max redeemable coins based on current amounts
-    const maxRedemptionSAR = Math.max(0, subtotal + tax - discountAmount);
+    const maxRedemptionSAR = Math.max(0, subtotal - campaignDiscountTotal + tax - discountAmount);
     const maxRedeemableCoinsLocal = Math.floor(maxRedemptionSAR / COIN_TO_SAR);
 
     if (coins > userLoyaltyPoints) {
@@ -405,7 +425,19 @@ export function CheckoutScreen({ route, navigation }) {
                     </View>
                   </View>
                 </View>
-                <Text style={styles.servicePrice}>{service.price}</Text>
+                {Number(service.campaignDiscount || 0) > 0 && service.finalPrice !== undefined && service.finalPrice !== null ? (
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={[styles.servicePrice, { fontSize: 12, color: '#888', textDecorationLine: 'line-through', fontWeight: '400' }]}>
+                      {service.price}
+                    </Text>
+                    <Text style={styles.servicePrice}>{`SAR ${Number(service.finalPrice).toFixed(2)}`}</Text>
+                    <Text style={{ fontSize: 11, fontWeight: '600', color: '#16a34a', marginTop: 2 }}>
+                      {`-SAR ${Number(service.campaignDiscount).toFixed(2)}`}
+                    </Text>
+                  </View>
+                ) : (
+                  <Text style={styles.servicePrice}>{service.price}</Text>
+                )}
                 </View>
               </View>
             ))}
@@ -481,6 +513,8 @@ export function CheckoutScreen({ route, navigation }) {
             <Text style={styles.summaryValue}>SAR {subtotal.toFixed(2)}</Text>
           </View>
 
+      
+
           <View style={styles.summaryRow}>
             {TAX_RATE > 0 && (
               <>
@@ -491,9 +525,9 @@ export function CheckoutScreen({ route, navigation }) {
           </View>
 
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>{t('discount')} ({discount}%)</Text>
-            <Text style={[styles.summaryValue, discount > 0 ? styles.discountValue : null]}>
-              {discount > 0 ? `-${discountAmount.toFixed(2)} SAR` : '0.00 SAR'}
+            <Text style={styles.summaryLabel}>{t('discount')}</Text>
+            <Text style={[styles.summaryValue, styles.discountValue]}>
+            {`-${campaignDiscountTotal.toFixed(2)} SAR`}
             </Text>
           </View>
 
@@ -522,7 +556,7 @@ export function CheckoutScreen({ route, navigation }) {
           <Text style={styles.totalAmountValue}>SAR {total.toFixed(2)}</Text>
         </View>
 
-        {(discountAmount > 0 || appliedRedemptionAmount > 0) && (
+        {(discountAmount > 0 || appliedRedemptionAmount > 0 || campaignDiscountTotal > 0) && (
           <View style={styles.summaryTriggerRow}>
             <TouchableOpacity>
               {/* <Text style={styles.summaryTriggerText}>

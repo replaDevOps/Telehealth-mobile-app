@@ -143,6 +143,8 @@ export function CartScreen({ navigation }) {
             : null,
         },
         totalPrice: clinicGroup.totalPrice,
+        servicePrice: clinicGroup.servicePrice,
+        campaignDiscount: Number(clinicGroup.campaignDiscount || 0),
         totalLoyaltyPoints: clinicGroup.totalLoyaltyPoints,
         clinicLoyaltyPoints: clinicGroup.clinicLoyaltyPoints, // For displaying loyalty points at clinic level
         services: (clinicGroup.items || []).map((item: any) => ({
@@ -153,6 +155,9 @@ export function CartScreen({ navigation }) {
           serviceGroup: item.group?.groupName || 'Group',
           serviceName: item.serviceName,
           price: item.price ? `SAR ${parseFloat(item.price).toFixed(2)}` : 'SAR 0.00',
+          rawPrice: Number(item.price || 0),
+          campaignDiscount: Number(item.campaignDiscount || 0),
+          finalPrice: item.finalPrice !== undefined && item.finalPrice !== null ? Number(item.finalPrice) : null,
           duration: item.duration ? `${item.duration} ${t('minutes') || 'minutes'}` : '0 minutes',
           loyaltyPoints: item.loyaltyPoints,
         })),
@@ -165,6 +170,8 @@ export function CartScreen({ navigation }) {
           serviceGroup: service.group?.name || 'Group',
           serviceName: service.name,
           price: service.price ? `SAR ${parseFloat(service.price).toFixed(2)}` : 'SAR 0.00',
+          campaignDiscount: Number(service.campaignDiscount || 0),
+          finalPrice: service.finalPrice !== undefined && service.finalPrice !== null ? Number(service.finalPrice) : null,
           duration: service.duration ? `${service.duration} ${t('minutes') || 'minutes'}` : '0 minutes',
           loyaltyPoints: service.bonusLoyalityPoints || '0',
           description: service.description,
@@ -350,6 +357,21 @@ export function CartScreen({ navigation }) {
     return `SAR ${total.toFixed(2)}`;
   };
 
+  const calculateGroupDiscount = (clinicGroup: any) => {
+    return (clinicGroup.services || []).reduce((sum: number, service: any) => {
+      return sum + Number(service.campaignDiscount || 0);
+    }, 0);
+  };
+
+  const calculateGroupFinalTotal = (clinicGroup: any) => {
+    return (clinicGroup.services || []).reduce((sum: number, service: any) => {
+      const finalP = service.finalPrice !== null && service.finalPrice !== undefined
+        ? Number(service.finalPrice)
+        : Number(service.rawPrice || 0);
+      return sum + finalP;
+    }, 0);
+  };
+
   const handleRemoveService = async (service: any) => {
     // Check if cartID is available
     if (!service.cartID) {
@@ -421,6 +443,9 @@ export function CartScreen({ navigation }) {
       fromCart: true,
       totalLoyaltyPoints: clinicGroup.totalLoyaltyPoints,
       clinicLoyaltyPoints: clinicGroup.clinicLoyaltyPoints,
+      groupServicePrice: Number(clinicGroup.servicePrice || 0),
+      groupCampaignDiscount: Number(clinicGroup.campaignDiscount || 0),
+      groupTotalPrice: Number(clinicGroup.totalPrice || 0),
     });
   };
 
@@ -610,7 +635,17 @@ export function CartScreen({ navigation }) {
                         />
                         <Text style={styles.duration}>{service.duration}</Text>
                       </View>
-                      <Text style={styles.servicePrice}>{service.price}</Text>
+                      {Number(service.campaignDiscount || 0) > 0 && service.finalPrice !== null ? (
+                        <View style={{ alignItems: 'flex-end' }}>
+                          <Text style={[styles.servicePrice, { fontSize: 12, color: '#888', textDecorationLine: 'line-through', fontWeight: '400' }]}>{service.price}</Text>
+                          <Text style={styles.servicePrice}>{`SAR ${Number(service.finalPrice).toFixed(2)}`}</Text>
+                          <Text style={{ fontSize: 11, fontWeight: '600', color: '#16a34a', marginTop: 2 }}>
+                            {`-SAR ${Number(service.campaignDiscount).toFixed(2)}`}
+                          </Text>
+                        </View>
+                      ) : (
+                        <Text style={styles.servicePrice}>{service.price}</Text>
+                      )}
                     </View>
                     {/* Loyalty badge per service */}
                     {service.loyaltyPoints && Number(service.loyaltyPoints) > 0 && (
@@ -635,6 +670,22 @@ export function CartScreen({ navigation }) {
                 {calculateSubtotal(clinicGroup)}
               </Text>
             </View>
+            {calculateGroupDiscount(clinicGroup) > 0 && (
+              <>
+                <View style={[styles.subtotalContainer, { borderTopWidth: 0, paddingVertical: 6 }]}>
+                  <Text style={styles.subtotalLabel}>{t('discount') || 'Discount'}</Text>
+                  <Text style={[styles.subtotalValue, { color: '#16a34a' }]}>
+                    {`-SAR ${calculateGroupDiscount(clinicGroup).toFixed(2)}`}
+                  </Text>
+                </View>
+                <View style={[styles.subtotalContainer, { borderTopWidth: 0, paddingVertical: 6 }]}>
+                  <Text style={[styles.subtotalLabel, { fontWeight: '700' }]}>{t('total') || 'Total'}</Text>
+                  <Text style={styles.subtotalValue}>
+                    {`SAR ${calculateGroupFinalTotal(clinicGroup).toFixed(2)}`}
+                  </Text>
+                </View>
+              </>
+            )}
             <CustomButton
               title={t('continue_to_checkout')}
               onPress={() => handleCheckout(clinicGroup)}
@@ -704,9 +755,23 @@ export function CartScreen({ navigation }) {
                             </Text>
                           </View>
                           <View style={styles.suggestedPriceContainer}>
-                            <Text style={styles.servicePrice}>
-                              {service.price}
-                            </Text>
+                            {Number(service.campaignDiscount || 0) > 0 && service.finalPrice !== null ? (
+                              <View style={{ alignItems: 'flex-end' }}>
+                                <Text style={[styles.servicePrice, { fontSize: 12, color: '#888', textDecorationLine: 'line-through', fontWeight: '400' }]}>
+                                  {service.price}
+                                </Text>
+                                <Text style={styles.servicePrice}>
+                                  {`SAR ${Number(service.finalPrice).toFixed(2)}`}
+                                </Text>
+                                <Text style={{ fontSize: 11, fontWeight: '600', color: '#16a34a', marginTop: 2 }}>
+                                  {`-SAR ${Number(service.campaignDiscount).toFixed(2)}`}
+                                </Text>
+                              </View>
+                            ) : (
+                              <Text style={styles.servicePrice}>
+                                {service.price}
+                              </Text>
+                            )}
                           </View>
                         </View>
                         {/* Loyalty badge for suggested service */}

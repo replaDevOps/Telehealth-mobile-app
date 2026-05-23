@@ -15,6 +15,8 @@ interface ServiceCardProps {
   description?: string;
   procedure?: string;
   bonusLoyalityPoints?: string | number;
+  campaignDiscount?: number | string;
+  finalPrice?: number | string;
 }
 
 export const ServiceCard: React.FC<ServiceCardProps> = ({
@@ -27,8 +29,15 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
   description,
   procedure,
   bonusLoyalityPoints,
+  campaignDiscount,
+  finalPrice,
   onPress,
 }) => {
+  const discountNum = Number(campaignDiscount || 0);
+  const hasDiscount = discountNum > 0 && finalPrice !== undefined && finalPrice !== null;
+  const finalPriceLabel = hasDiscount
+    ? `SAR ${parseFloat(String(finalPrice)).toFixed(2)}`
+    : null;
   // console.log('ServiceCard props:', {
   //   image,
   //   type,
@@ -58,7 +67,17 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
                 <Text style={styles.SGtagText} numberOfLines={1} ellipsizeMode="tail">{serviceGroup}</Text>
               </View>
           </View>
-          <Text style={styles.price}>{price}</Text>
+          <View style={{ alignItems: 'flex-end' }}>
+            {hasDiscount ? (
+              <>
+                <Text style={styles.priceStrikethrough}>{price}</Text>
+                <Text style={styles.price}>{finalPriceLabel}</Text>
+                <Text style={styles.discountText}>{`-SAR ${discountNum.toFixed(2)}`}</Text>
+              </>
+            ) : (
+              <Text style={styles.price}>{price}</Text>
+            )}
+          </View>
         </View>
 
         <View style={styles.serviceFooter}>
@@ -155,6 +174,19 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.text || '#1A1A1A',
     textAlign: 'right',
+  },
+  priceStrikethrough: {
+    fontSize: 12,
+    color: colors.secondaryText || '#888',
+    textDecorationLine: 'line-through',
+    textAlign: 'right',
+  },
+  discountText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#16a34a',
+    textAlign: 'right',
+    marginTop: 2,
   },
   durationContainer: {
     flexDirection: 'row',

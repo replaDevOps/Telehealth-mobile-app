@@ -1,5 +1,7 @@
 {
   "select_language": "Select Language",
+  "please_select_language": "Please select a language to continue",
+  "please_accept_terms": "Please accept the Terms & Conditions and Privacy Policy to continue.",
   "choose_language": "Choose your preferred language.",
   "english": "English",
   "arabic": "Arabic",

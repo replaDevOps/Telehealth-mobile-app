@@ -27,6 +27,7 @@ import { colors } from '../../../styles/colors';
 import { useAuthStore } from '@store';
 import { API } from '@services/api/api-endpoint';
 import { fcmService } from '../../../services/firebase/fcmService';
+import { signInWithGoogle, googleStatusCodes } from '../../../services/firebase/googleAuth';
 
 type TabType = 'email' | 'phone';
 
@@ -232,6 +233,47 @@ export function SignInScreen({ navigation }) {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    setMeta(prev => ({ ...prev, loading: true }));
+    try {
+      const { accessToken } = await signInWithGoogle();
+      if (!accessToken) throw new Error('No access token returned from Google');
+
+      const { data } = await apiClient.post(API.AUTH.LOGIN_GOOGLE, { accessToken });
+      console.log('✅ [Google] API response:', JSON.stringify(data, null, 2));
+      setAuth(data?.user);
+
+      fcmService.initializeFcm().catch(err =>
+        console.warn('[FCM] Token store after Google login failed:', err),
+      );
+
+      Toast.success(data?.message || 'Google sign-in successful');
+      setTimeout(() => {
+        if (data?.is_new_user) {
+          navigation.replace('Profile', {
+            name: data?.user?.name || data?.user?.fullName || '',
+            email: data?.user?.email || '',
+          });
+        } else {
+          navigation.replace('Main', { screen: 'Home' });
+        }
+      }, 500);
+    } catch (error: any) {
+      if (error?.code === googleStatusCodes.SIGN_IN_CANCELLED) {
+        return;
+      }
+      const errorMsg =
+        error?.response?.data?.data?.message ||
+        error?.response?.data?.message ||
+        error?.message ||
+        'Google sign-in failed';
+      console.error('❌ [Google] Sign-in error:', error);
+      Toast.error(errorMsg);
+    } finally {
+      setMeta(prev => ({ ...prev, loading: false }));
+    }
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.white }}>
       <KeyboardAvoidingView
@@ -393,7 +435,7 @@ export function SignInScreen({ navigation }) {
 
           <TouchableOpacity
             style={styles.googleButton}
-            onPress={() => console.log('Google Sign In')}
+            onPress={handleGoogleSignIn}
           >
             <GoogleSvg />
             <Text style={styles.googleText}>{t('sign_in_google')}</Text>

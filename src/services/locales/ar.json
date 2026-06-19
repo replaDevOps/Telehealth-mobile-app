@@ -1,5 +1,7 @@
 {
   "select_language": "اختار اللغة",
+  "please_select_language": "يرجى اختيار اللغة للمتابعة",
+  "please_accept_terms": "يرجى قبول الشروط والأحكام وسياسة الخصوصية للمتابعة.",
   "choose_language": "اختر لغتك المفضلة.",
   "english": "انجليزي",
   "arabic": "عربي",

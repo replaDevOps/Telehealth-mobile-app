@@ -33,6 +33,7 @@ import { useAuthStore, useProfileStore } from '@store';
 import { RouteProp } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import parsePhoneNumberFromString from 'libphonenumber-js';
+import { signOutGoogle } from '../../../services/firebase/googleAuth';
 
 const { height } = Dimensions.get('window');
 
@@ -342,7 +343,8 @@ export const ProfileSetting = ({ navigation, route }: { navigation: any; route?:
       closeDeleteModal();
       
       // Logout and navigate to login
-      setTimeout(() => {
+      setTimeout(async () => {
+        try { await signOutGoogle(); } catch {}
         logout();
         navigation.replace('Auth', { screen: 'SignIn' });
       }, 1000);

@@ -4,10 +4,10 @@ import Svg, { G, Path, Defs } from 'react-native-svg';
 const LogoSvg = (props) => (
   <Svg
     xmlns="http://www.w3.org/2000/svg"
-    width='165'
-    height='72'
+    width='300'
+    height='130.9'
     fill="none"
-    viewBox="0 0 165 72"
+    viewBox="0 0 140 72"
   >
     <Path
       fill="#4A148B"

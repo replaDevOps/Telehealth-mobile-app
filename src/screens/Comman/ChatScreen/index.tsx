@@ -5,7 +5,7 @@ import React, {
   useMemo,
   useCallback,
 } from 'react';
-import { View, Text, ScrollView, ActivityIndicator, Alert, BackHandler, KeyboardAvoidingView, Platform, Image, TouchableOpacity, Keyboard, useWindowDimensions } from 'react-native';
+import { View, Text, ScrollView, ActivityIndicator, Alert, BackHandler, Platform, Image, TouchableOpacity, Keyboard, useWindowDimensions, KeyboardAvoidingView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ServiceDetailBottomSheet, DeviceDetailBottomSheet } from '@components/molecules';
 import { styles } from './style';
@@ -82,7 +82,7 @@ export function ChatScreen({ navigation, route }) {
       console.log('📞 [ChatScreen] Consultation started, tracking duration');
     }
   }, [isConsultationActive, chatType, consultationID]);
-  const [flexToggle, setFlexToggle] = useState(false);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [showBottomSheet, setShowBottomSheet] = useState(false);
   const [hasPrescription, setHasPrescription] = useState(false);
@@ -161,10 +161,12 @@ export function ChatScreen({ navigation, route }) {
     }
   }, [consultationID, chatType]);
 
-  // ---------- Keyboard flex toggle (Android) ----------
+  // ---------- Keyboard listener: toggle KAV behavior ----------
   useEffect(() => {
-    const showListener = Keyboard.addListener('keyboardDidShow', () => setFlexToggle(false));
-    const hideListener = Keyboard.addListener('keyboardDidHide', () => setFlexToggle(true));
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showListener = Keyboard.addListener(showEvent, () => setKeyboardOpen(true));
+    const hideListener = Keyboard.addListener(hideEvent, () => setKeyboardOpen(false));
     return () => {
       showListener.remove();
       hideListener.remove();
@@ -1325,10 +1327,9 @@ export function ChatScreen({ navigation, route }) {
   return (
     <View style={[styles.container, screenPadding, chatType === 'ai' && { direction: 'ltr' }]}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? insets.top : 0}
-        style={flexToggle ? [{ flexGrow: 1 }, styles.container] : [{ flex: 1, paddingBottom: height < 700 ? 20 : 0 }, styles.container]}
-        enabled={!flexToggle}
+        behavior={keyboardOpen ? 'padding' : undefined}
+        keyboardVerticalOffset={0}
+        style={[{ flex: 1 }, styles.container]}
       >
         <View style={styles.content}>
           <ChatHeader

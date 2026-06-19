@@ -1,7 +1,6 @@
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import React from 'react';
 import { colors } from '../../../../styles/colors';
-import { coinIcon } from '@assets/images';
 import ClinicAvatar from '@components/common/ClinicAvatar';
 
 type ClinicCardProps = {
@@ -54,10 +53,7 @@ export const ClinicCard = ({
       </View>
 
       <View style={styles.rightSection}>
-        <View style={styles.pointsContainer}>
-          <Image source={coinIcon} style={{ width: 16, height: 16 }} />
-          <Text style={styles.points}>{totalPoints}</Text>
-        </View>
+        <Text style={styles.points}>{totalPoints}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -114,15 +110,9 @@ const styles = StyleSheet.create({
   rightSection: {
     alignItems: 'flex-end',
   },
-  pointsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-    gap: 4,
-  },
   points: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
     color: colors.yellow,
   },
 });

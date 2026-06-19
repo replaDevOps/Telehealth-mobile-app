@@ -29,6 +29,7 @@ export type AuthStackParamList = {
     phone?: string;
     countryCode?: string;
     firebaseUid?: string;
+    name?: string;
   };
   ForgetPassword: undefined;
   SetPassword: {

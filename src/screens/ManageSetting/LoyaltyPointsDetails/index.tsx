@@ -252,6 +252,7 @@ export const LoyaltyPointsDetails = () => {
           <Text style={styles.centerName}>
             {item.isUsed ? `#${item.transactionId}` : item.serviceName}
           </Text>
+          <Text style={styles.transactionId}>{`Appointment ID: #${item.transactionId}`}</Text>
           <Text style={styles.transactionId}>{item.date}</Text>
         </View>
 

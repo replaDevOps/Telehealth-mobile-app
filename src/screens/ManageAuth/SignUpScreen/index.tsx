@@ -27,6 +27,9 @@ import { apiClient } from '@services/api/api-client';
 import { Toast } from 'toastify-react-native';
 import { sendPhoneOtp } from '@services/firebase/phoneAuth';
 import { setPhoneConfirmation } from '@services/firebase/phoneAuthStore';
+import { signInWithGoogle, googleStatusCodes } from '@services/firebase/googleAuth';
+import { useAuthStore } from '@store';
+import { fcmService } from '../../../services/firebase/fcmService';
 
 const isValidEmailFormat = (value: string): boolean => {
   if (!value || typeof value !== 'string') return false;
@@ -36,6 +39,7 @@ const isValidEmailFormat = (value: string): boolean => {
 
 export function SignUpScreen({ navigation }) {
   const { t } = useTranslation();
+  const { setAuth } = useAuthStore();
   const [selectedTab, setSelectedTab] = useState<'email' | 'phone'>('email');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -80,6 +84,7 @@ export function SignUpScreen({ navigation }) {
 
     if (!isChecked) {
       setRememberError(true);
+      Toast.warn(t('please_accept_terms') || 'Please accept the Terms & Conditions and Privacy Policy to continue.');
       valid = false;
     } else {
       setRememberError(false);
@@ -117,6 +122,47 @@ export function SignUpScreen({ navigation }) {
       } finally {
         setLoading(false);
       }
+    }
+  };
+
+  const handleGoogleSignUp = async () => {
+    setLoading(true);
+    try {
+      const { accessToken } = await signInWithGoogle();
+      if (!accessToken) throw new Error('No access token returned from Google');
+
+      const { data } = await apiClient.post(API.AUTH.LOGIN_GOOGLE, { accessToken });
+      console.log('✅ [Google] API response:', JSON.stringify(data, null, 2));
+      setAuth(data?.user);
+
+      fcmService.initializeFcm().catch(err =>
+        console.warn('[FCM] Token store after Google sign-up failed:', err),
+      );
+
+      Toast.success(data?.message || 'Google sign-up successful');
+      setTimeout(() => {
+        if (data?.is_new_user) {
+          navigation.replace('Profile', {
+            name: data?.user?.name || data?.user?.fullName || '',
+            email: data?.user?.email || '',
+          });
+        } else {
+          navigation.replace('Main', { screen: 'Home' });
+        }
+      }, 500);
+    } catch (error: any) {
+      if (error?.code === googleStatusCodes.SIGN_IN_CANCELLED) {
+        return;
+      }
+      const errorMsg =
+        error?.response?.data?.data?.message ||
+        error?.response?.data?.message ||
+        error?.message ||
+        'Google sign-up failed';
+      console.error('❌ [Google] Sign-up error:', error);
+      Toast.error(errorMsg);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -253,7 +299,7 @@ export function SignUpScreen({ navigation }) {
           {/* Google Sign Up */}
           <TouchableOpacity
             style={styles.googleButton}
-            onPress={() => console.log('Google Sign Up')}
+            onPress={handleGoogleSignUp}
           >
             <GoogleSvg />
             <Text style={styles.googleText}>{t('sign_up_google')}</Text>

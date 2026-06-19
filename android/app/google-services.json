@@ -12,7 +12,28 @@
           "package_name": "com.telehealth"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "827261290955-du1un8fna849uj5p7tifrjosrr9u6vd1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.telehealth",
+            "certificate_hash": "3c2fe04ec8605608e04996eeeb8f3024d4b8ebbe"
+          }
+        },
+        {
+          "client_id": "827261290955-th1ppf9irisnrc2p3gdh88dd339o6rj9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.telehealth",
+            "certificate_hash": "0fa541dd8bbde28378d9f99fe1968f838d9b4424"
+          }
+        },
+        {
+          "client_id": "827261290955-i12opd83asbqhsvqjdoj9q98p4slpcjo.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBDmE9fQWTxT2t2OTNLIiwQg-u8BbLY0AY"
@@ -20,7 +41,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "827261290955-i12opd83asbqhsvqjdoj9q98p4slpcjo.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "827261290955-42h0md1epmj6asmlpvb984ketdrt3u9k.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.telehealth"
+              }
+            }
+          ]
         }
       }
     }

@@ -37,12 +37,13 @@ interface Props {
 export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   const { t } = useTranslation();
   
-  // Get email/phone from route params
+  // Get email/phone/name from route params
   const routeEmail = route.params?.email;
   const routePhone = route.params?.phone;
   const routeCountryCode = route.params?.countryCode || 'SA';
-  
-  const [fullName, setFullName] = useState('');
+  const routeName = route.params?.name;
+
+  const [fullName, setFullName] = useState(routeName || '');
   const [gender, setGender] = useState('');
   const [age, setAge] = useState('');
   const [profileImage, setProfileImage] = useState('');

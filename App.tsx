@@ -66,20 +66,20 @@ const AppContent = () => {
 const App = () => {
   return (
     <SafeAreaProvider>
-      <StatusBar
-        backgroundColor="transparent"
-        translucent={false}
-        barStyle="dark-content"
-      />
-      <PaperProvider>
-        <CartProvider>
-          <CartCountProvider>
-            <NotificationCountProvider>
-              <AppContent />
-            </NotificationCountProvider>
-          </CartCountProvider>
-        </CartProvider>
-      </PaperProvider>
+        <StatusBar
+          backgroundColor="transparent"
+          translucent={false}
+          barStyle="dark-content"
+        />
+        <PaperProvider>
+          <CartProvider>
+            <CartCountProvider>
+              <NotificationCountProvider>
+                <AppContent />
+              </NotificationCountProvider>
+            </CartCountProvider>
+          </CartProvider>
+        </PaperProvider>
     </SafeAreaProvider>
   );
 };

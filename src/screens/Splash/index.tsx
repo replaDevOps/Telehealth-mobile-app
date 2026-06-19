@@ -9,6 +9,8 @@ import { colors } from '../../styles/colors';
 import { useAuthStore, useProfileStore, useLocationStore } from '@store';
 import i18n from '../../services/i18n';
 import { fcmService } from '../../services/firebase/fcmService';
+import { useTranslation } from 'react-i18next';
+import { Toast } from 'toastify-react-native';
 
 type SplashScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -19,6 +21,7 @@ type Props = {
 export const SplashScreen: React.FC<Props> = ({ navigation }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const hasNavigatedRef = useRef(false);
+  const { t } = useTranslation();
   const { auth } = useAuthStore();
   console.log('auth', auth);
   const { fetchProfile } = useProfileStore();
@@ -80,12 +83,11 @@ export const SplashScreen: React.FC<Props> = ({ navigation }) => {
 
         // Navigate after both location is fetched and minimum duration has passed
         if (!selectedLanguage) {
+          Toast.info(t('please_select_language'));
           navigation.replace('Auth', { screen: 'LanguageSelection' });
         } else if (currentAuth?.token) {
-          console.log(currentAuth, "Called Sign");
-          navigation.replace('Main', { screen: 'Home' });
+          navigation.replace('Main', { screen: 'EntryPoint' });
         } else {
-          console.log(currentAuth, "Called Sign");
           navigation.replace('Auth', { screen: 'SignIn' });
         }
       } catch (error) {
@@ -105,8 +107,8 @@ export const SplashScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <View style={styles.logoContainer}>
-      <Animated.View style={{ opacity: fadeAnim }}>
-        <LogoSvg width={mvs(250)} height={mvs(200)} />
+      <Animated.View style={{ opacity: fadeAnim, alignItems: 'center', justifyContent: 'center', width: '100%'}}>
+        <LogoSvg />
       </Animated.View>
       <ActivityIndicator
         size="large"

@@ -34,6 +34,8 @@ export const API = {
     // SKIP (complete profile later)
     SKIP: '/patient-auth/skip',
     LOGOUT: '/patient-auth/logout',
+    // GOOGLE LOGIN / REGISTER
+    LOGIN_GOOGLE: '/patient-auth/login-with-google',
   },
   SETTINGS: {
     VIEW_PROFILE: '/patient-setting/viewProfile',

@@ -211,14 +211,9 @@ export const ServiceDetailBottomSheet: React.FC<ServiceDetailBottomSheetProps> =
                 {(() => {
                   const pts = service.totalLoyalityPoints ?? service.bonusLoyalityPoints;
                   return pts && Number(pts) > 0 ? (
-                    <View style={styles.loyaltyBadge}>
-                      <View style={styles.coinWrapper}>
-                        <Image source={coinIcon} style={styles.coinImage} />
-                      </View>
-                      <Text style={styles.loyaltyBadgeText}>
-                        {t('earn_points', { points: Math.round(Number(pts)) }) || `Earn ${Math.round(Number(pts))} loyalty points`}
-                      </Text>
-                    </View>
+                    <Text style={styles.loyaltyBadgeText}>
+                      {t('earn_points', { points: Math.round(Number(pts)) }) || `Earn ${Math.round(Number(pts))} loyalty points`}
+                    </Text>
                   ) : null;
                 })()}
 
@@ -353,36 +348,15 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 12,
   },
-  loyaltyBadge: {
-    marginTop: 8,
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#EBAD0033',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 16,
-  },
+  loyaltyBadge: {},
   loyaltyBadgeText: {
+    marginTop: 8,
     fontSize: 12,
     color: '#CC9600',
-    marginLeft: 6,
     fontWeight: '600',
   },
-  coinWrapper: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'transparent',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 0,
-  },
-  coinImage: {
-    width: 18,
-    height: 18,
-    resizeMode: 'contain',
-  },
+  coinWrapper: {},
+  coinImage: {},
 
   tagText: {
     fontSize: 12,

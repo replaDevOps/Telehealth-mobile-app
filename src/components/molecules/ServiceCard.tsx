@@ -93,12 +93,7 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
         </View>
         {/* Loyalty badge */}
         {bonusLoyalityPoints && Number(bonusLoyalityPoints) > 0 && (
-          <View style={styles.loyaltyBadge}>
-            <View style={styles.coinWrapper}>
-              <Image source={coinIcon} style={styles.coinImage} />
-            </View>
-            <Text style={styles.loyaltyBadgeText}>{`Earn ${Math.round(Number(bonusLoyalityPoints))} loyalty points`}</Text>
-          </View>
+          <Text style={styles.loyaltyBadgeText}>{`Earn ${Math.round(Number(bonusLoyalityPoints))} loyalty points`}</Text>
         )}
       </View>
     </TouchableOpacity>
@@ -197,34 +192,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.secondaryText || '#666666',
   },
-  loyaltyBadge: {
-    marginTop: 8,
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#EBAD0033',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 16,
-  },
+  loyaltyBadge: {},
   loyaltyBadgeText: {
+    marginTop: 8,
     fontSize: 12,
     color: '#CC9600',
-    marginLeft: 6,
     fontWeight: '600',
   },
-  coinWrapper: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'transparent',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 0,
-  },
-  coinImage: {
-    width: 18,
-    height: 18,
-    resizeMode: 'contain',
-  },
+  coinWrapper: {},
+  coinImage: {},
 });

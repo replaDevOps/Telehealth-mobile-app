@@ -6,12 +6,12 @@ import React, {
   RefObject,
   useCallback,
 } from 'react';
-import { TextInput, TouchableOpacity, View, Text, KeyboardAvoidingView, Platform } from 'react-native';
+import { TextInput, TouchableOpacity, View, Text, KeyboardAvoidingView, Platform, Image } from 'react-native';
 import { useIsFocused, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import styles from './style';
 import { KeyboardAvoidScrollview } from '../../../components/common/keyboard-avoid-scrollview';
-import { LogoSvg } from '../../../assets/icons';
+import { LogoPng } from '../../../assets/images';
 import { Header2 } from '../../../components/common/Header2';
 import CustomText from '../../../components/common/CustomText';
 import { CustomButton } from '../../../components/common/CustomButton';
@@ -465,7 +465,7 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
         >
           <View style={styles.container}>
           <View style={styles.logoContainer}>
-            <LogoSvg />
+            <Image source={LogoPng} style={{ width: 300, height: 131, resizeMode: 'contain' }} />
           </View>
 
           <View style={styles.title}>

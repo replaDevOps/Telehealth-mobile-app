@@ -152,21 +152,18 @@ export const styles = StyleSheet.create({
   pointsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-start',
     marginBottom: 4,
-    gap: 8,
-    backgroundColor: "#EBAD0033",
-    // borderWidth: 1,
-    // borderColor: colors.yellow,
     marginHorizontal: 12,
-    paddingHorizontal: 8,
+  },
+  bonusInstructionContainer: {
+    alignSelf: 'stretch',
+    paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 50
   },
   bonusInstruction: {
     color: colors.yellow,
-    // textAlign: "center"
     fontSize: 12,
+    fontWeight: '600',
   },
   servicePrice: {
     fontSize: 15,

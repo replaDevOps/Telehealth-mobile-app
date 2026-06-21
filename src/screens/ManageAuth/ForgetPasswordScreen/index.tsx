@@ -6,12 +6,13 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
 import { colors } from '../../../styles/colors';
 import { mvs } from '../../../config/metrices';
 import { CustomButton } from '../../../components/common/CustomButton';
 import { Header2 } from '../../../components/common/Header2';
-import { LogoSvg } from '../../../assets/icons';
+import { LogoPng } from '../../../assets/images';
 import { CustomText } from '../../../components/common/CustomText';
 import PhoneNumberInput from '../../../components/common/PhoneTextInput';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -56,7 +57,7 @@ export function ForgetPasswordScreen({
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.logoContainer}>
-            <LogoSvg />
+            <Image source={LogoPng} style={{ width: 300, height: 131, resizeMode: 'contain' }} />
           </View>
 
           <View style={{ ...styles.title }}>

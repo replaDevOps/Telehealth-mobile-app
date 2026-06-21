@@ -1,8 +1,8 @@
 import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, Animated, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, Animated, ActivityIndicator, Image } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { mvs } from '../../config/metrices';
-import LogoSvg from '../../assets/icons/LogoSvg';
+import { LogoPng } from '../../assets/images';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { colors } from '../../styles/colors';
@@ -108,7 +108,7 @@ export const SplashScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <View style={styles.logoContainer}>
       <Animated.View style={{ opacity: fadeAnim, alignItems: 'center', justifyContent: 'center', width: '100%'}}>
-        <LogoSvg />
+        <Image source={LogoPng} style={{ width: 300, height: 131, resizeMode: 'contain' }} />
       </Animated.View>
       <ActivityIndicator
         size="large"

@@ -8,6 +8,7 @@ import {
   Image,
   StatusBar,
   ActivityIndicator,
+  I18nManager,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../../../styles/colors';
@@ -21,7 +22,6 @@ import { styles } from './style';
 import ClinicAvatar from '@components/common/ClinicAvatar';
 import { PaymentMethod, SuccessMessageModal } from '@components/molecules'; // Verify this path
 import { useTranslation } from 'react-i18next';
-import { coinIcon } from '@assets/images';
 import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
 import { Toast } from 'toastify-react-native';
@@ -442,9 +442,8 @@ export function CheckoutScreen({ route, navigation }) {
               </View>
             ))}
 
-            <View style={styles.pointsContainer}>
-              <Image source={coinIcon} style={{ width: 16, height: 16 }} />
-              <Text style={styles.bonusInstruction}>
+            <View style={styles.bonusInstructionContainer}>
+              <Text style={[styles.bonusInstruction, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>
                 {t('you_will_earn_coins_for_this_appointment', {
                   count: totalLoyaltyPoints,
                 })}

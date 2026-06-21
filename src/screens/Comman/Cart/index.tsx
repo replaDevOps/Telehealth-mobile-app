@@ -649,14 +649,9 @@ export function CartScreen({ navigation }) {
                     </View>
                     {/* Loyalty badge per service */}
                     {service.loyaltyPoints && Number(service.loyaltyPoints) > 0 && (
-                      <View style={styles.loyaltyBadge}>
-                        <View style={styles.coinWrapper}>
-                          <Image source={coinIcon} style={styles.coinImage} />
-                        </View>
-                        <Text style={styles.loyaltyBadgeText}>
-                          {`Earn ${Math.round(Number(service.loyaltyPoints))} loyalty points`}
-                        </Text>
-                      </View>
+                      <Text style={styles.loyaltyBadgeText}>
+                        {`Earn ${Math.round(Number(service.loyaltyPoints))} loyalty points`}
+                      </Text>
                     )}
                   </View>
                 </View>

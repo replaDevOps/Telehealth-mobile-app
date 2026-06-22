@@ -48,7 +48,7 @@ export const signInWithGoogle = async (): Promise<GoogleSignInResult> => {
     (response as any)?.data?.idToken ?? (response as any)?.idToken ?? null;
 
   if (!googleIdToken) {
-    throw new Error('No idToken returned from Google Sign-In');
+    throw new Error('Google Sign-In Failed!');
   }
 
   // Get the OAuth2 access token (needed for backend verification)

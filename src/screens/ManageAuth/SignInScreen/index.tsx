@@ -427,8 +427,9 @@ export function SignInScreen({ navigation }) {
 
           {Platform.OS === 'ios' && (
             <TouchableOpacity
-              style={styles.appleButton}
+              style={[styles.appleButton, meta.loading && { opacity: 0.6 }]}
               onPress={() => console.log('Apple Sign In')}
+              disabled={meta.loading}
             >
               <AntDesign name="apple1" size={20} color={colors.white} />
               <Text style={styles.appleText}>{t('sign_in_apple')}</Text>
@@ -436,8 +437,9 @@ export function SignInScreen({ navigation }) {
           )}
 
           <TouchableOpacity
-            style={styles.googleButton}
+            style={[styles.googleButton, meta.loading && { opacity: 0.6 }]}
             onPress={handleGoogleSignIn}
+            disabled={meta.loading}
           >
             <GoogleSvg />
             <Text style={styles.googleText}>{t('sign_in_google')}</Text>

@@ -290,8 +290,9 @@ export function SignUpScreen({ navigation }) {
           {/* Apple Sign Up (only on iOS) */}
           {Platform.OS === 'ios' && (
             <TouchableOpacity
-              style={styles.appleButton}
+              style={[styles.appleButton, loading && { opacity: 0.6 }]}
               onPress={() => console.log('Apple Sign Up')}
+              disabled={loading}
             >
               <AntDesign name="apple1" size={20} color={colors.white} />
               <Text style={styles.appleText}>{t('sign_up_apple')}</Text>
@@ -300,8 +301,9 @@ export function SignUpScreen({ navigation }) {
 
           {/* Google Sign Up */}
           <TouchableOpacity
-            style={styles.googleButton}
+            style={[styles.googleButton, loading && { opacity: 0.6 }]}
             onPress={handleGoogleSignUp}
+            disabled={loading}
           >
             <GoogleSvg />
             <Text style={styles.googleText}>{t('sign_up_google')}</Text>

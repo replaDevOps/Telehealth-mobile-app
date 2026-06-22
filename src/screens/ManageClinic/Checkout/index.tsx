@@ -13,11 +13,8 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../../../styles/colors';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { mvs } from '@config/metrices';
 import { ApplePaySvg, StcPaySvg, TabbySvg, TamaraSvg } from '@assets/icons';
 import MasterCardSvg from '@assets/icons/MastercardSvg';
-import { CustomTextInput } from '@components/common/CustomTextInput';
-import { CustomButton } from '@components/common/CustomButton';
 import { styles } from './style';
 import ClinicAvatar from '@components/common/ClinicAvatar';
 import { PaymentMethod, SuccessMessageModal } from '@components/molecules'; // Verify this path

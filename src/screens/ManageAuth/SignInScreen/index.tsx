@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { mvs } from '@config/metrices';
 import { CustomButton } from '@components/common/CustomButton';
@@ -57,6 +58,8 @@ export function SignInScreen({ navigation }) {
     isPhoneValid: false,
     loading: false,
   });
+
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const formattedPhone = useMemo(() => {
     if (!form.phone || typeof form.phone !== 'string') {
@@ -236,7 +239,7 @@ export function SignInScreen({ navigation }) {
   };
 
   const handleGoogleSignIn = async () => {
-    setMeta(prev => ({ ...prev, loading: true }));
+    setGoogleLoading(true);
     try {
       const { accessToken } = await signInWithGoogle();
       if (!accessToken) throw new Error('No access token returned from Google');
@@ -272,7 +275,7 @@ export function SignInScreen({ navigation }) {
       console.error('❌ [Google] Sign-in error:', error);
       Toast.error(errorMsg);
     } finally {
-      setMeta(prev => ({ ...prev, loading: false }));
+      setGoogleLoading(false);
     }
   };
 
@@ -410,6 +413,7 @@ export function SignInScreen({ navigation }) {
             title={t('sign_in')}
             onPress={handleSignIn}
             loading={meta.loading}
+            disabled={googleLoading}
           />
 
           <View style={styles.signinRow}>
@@ -427,9 +431,9 @@ export function SignInScreen({ navigation }) {
 
           {Platform.OS === 'ios' && (
             <TouchableOpacity
-              style={[styles.appleButton, meta.loading && { opacity: 0.6 }]}
+              style={[styles.appleButton, (meta.loading || googleLoading) && { opacity: 0.6 }]}
               onPress={() => console.log('Apple Sign In')}
-              disabled={meta.loading}
+              disabled={meta.loading || googleLoading}
             >
               <AntDesign name="apple1" size={20} color={colors.white} />
               <Text style={styles.appleText}>{t('sign_in_apple')}</Text>
@@ -437,12 +441,18 @@ export function SignInScreen({ navigation }) {
           )}
 
           <TouchableOpacity
-            style={[styles.googleButton, meta.loading && { opacity: 0.6 }]}
+            style={[styles.googleButton, (meta.loading || googleLoading) && { opacity: 0.6 }]}
             onPress={handleGoogleSignIn}
-            disabled={meta.loading}
+            disabled={meta.loading || googleLoading}
           >
-            <GoogleSvg />
-            <Text style={styles.googleText}>{t('sign_in_google')}</Text>
+            {googleLoading ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <>
+                <GoogleSvg />
+                <Text style={styles.googleText}>{t('sign_in_google')}</Text>
+              </>
+            )}
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>

@@ -199,7 +199,7 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
           return {
             id: item.id?.toString() || item.appointmentID?.toString() || item.appointment_id?.toString() || index.toString(),
             kind: 'appointment',
-            state: item.state || item.appointment_state || item.appointmentState || t('pending'),
+            state:  item.appointment.status || t('pending'),
             date: formattedDate || item.date || item.appointment_date || '',
             paymentId: item.paymentId || item.payment_id || item.paymentID || item.id?.toString() || `PAY-${index}`,
             clinicImg: !!clinicImageUrl,

@@ -8,6 +8,7 @@ import {
   Platform,
   Keyboard,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { colors } from '../../../styles/colors';
 import { mvs } from '../../../config/metrices';
@@ -53,6 +54,7 @@ export function SignUpScreen({ navigation }) {
   const [emailError, setEmailError] = useState('');
   const [rememberError, setRememberError] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const phoneNumber = parsePhoneNumberFromString(
     phone,
@@ -120,7 +122,13 @@ export function SignUpScreen({ navigation }) {
         }
       } catch (error: any) {
         console.log('error', error);
-        Toast.error(error?.message || t('something_went_wrong'));
+        // For the phone (Firebase) flow, don't surface the raw Firebase error —
+        // show a friendly generic message instead.
+        if (selectedTab === 'phone') {
+          Toast.error(t('something_went_wrong'));
+        } else {
+          Toast.error(error?.message || t('something_went_wrong'));
+        }
       } finally {
         setLoading(false);
       }
@@ -128,7 +136,7 @@ export function SignUpScreen({ navigation }) {
   };
 
   const handleGoogleSignUp = async () => {
-    setLoading(true);
+    setGoogleLoading(true);
     try {
       const { accessToken } = await signInWithGoogle();
       if (!accessToken) throw new Error('No access token returned from Google');
@@ -164,7 +172,7 @@ export function SignUpScreen({ navigation }) {
       console.error('❌ [Google] Sign-up error:', error);
       Toast.error(errorMsg);
     } finally {
-      setLoading(false);
+      setGoogleLoading(false);
     }
   };
 
@@ -271,6 +279,7 @@ export function SignUpScreen({ navigation }) {
             title={t('sign_up')}
             onPress={handleSignUp}
             loading={loading}
+            disabled={googleLoading}
           />
 
           <View style={styles.signinRow}>
@@ -290,9 +299,9 @@ export function SignUpScreen({ navigation }) {
           {/* Apple Sign Up (only on iOS) */}
           {Platform.OS === 'ios' && (
             <TouchableOpacity
-              style={[styles.appleButton, loading && { opacity: 0.6 }]}
+              style={[styles.appleButton, (loading || googleLoading) && { opacity: 0.6 }]}
               onPress={() => console.log('Apple Sign Up')}
-              disabled={loading}
+              disabled={loading || googleLoading}
             >
               <AntDesign name="apple1" size={20} color={colors.white} />
               <Text style={styles.appleText}>{t('sign_up_apple')}</Text>
@@ -301,12 +310,18 @@ export function SignUpScreen({ navigation }) {
 
           {/* Google Sign Up */}
           <TouchableOpacity
-            style={[styles.googleButton, loading && { opacity: 0.6 }]}
+            style={[styles.googleButton, (loading || googleLoading) && { opacity: 0.6 }]}
             onPress={handleGoogleSignUp}
-            disabled={loading}
+            disabled={loading || googleLoading}
           >
-            <GoogleSvg />
-            <Text style={styles.googleText}>{t('sign_up_google')}</Text>
+            {googleLoading ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <>
+                <GoogleSvg />
+                <Text style={styles.googleText}>{t('sign_up_google')}</Text>
+              </>
+            )}
           </TouchableOpacity>
 
           {/* Terms & Conditions */}

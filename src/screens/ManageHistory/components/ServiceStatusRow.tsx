@@ -23,6 +23,11 @@ export const ServiceStatusRow: React.FC<ServiceStatusRowProps> = ({ item }) => {
     (typeof item.refundStatus === 'string' && /confirm|refunded/i.test(item.refundStatus)) ||
     /^refunded$/i.test(item.status)
   );
+
+  // Only surface the refunded-service count once the refund request has been approved.
+  const isRefundApproved = !isConsultation && item.kind === 'appointment' &&
+    typeof item.refundStatus === 'string' &&
+    /^(approved|confirm|confirmed|success|refunded)$/i.test(item.refundStatus.trim());
   const displayStatus = isRefunded
     ? 'Refunded'
     : item.kind === 'appointment' ? (item as any).paymentStatus || item.status : item.status;
@@ -48,21 +53,22 @@ export const ServiceStatusRow: React.FC<ServiceStatusRowProps> = ({ item }) => {
         </View>
       </View>
 
-      {/* Compact refund indicator shown only when refund status is Confirm */}
-      {hasRefundServices && item.kind === 'appointment' && isRefunded && (
-        <Text
-          style={{
-            fontSize: 12,
-            color: '#8e8e93',
-            marginTop: 6,
-            paddingHorizontal: 8,
-            paddingVertical: 2,
-            textAlign: 'center',
-          }}
-          numberOfLines={1}
-        >
-          {`No of Refunds: ${item.refundServiceCount}`}
-        </Text>
+      {/* Refund count is shown only once the refund request has been approved */}
+      {hasRefundServices && isRefundApproved && (
+        <View style={{ width: '100%', alignItems: 'center', marginTop: 6 }}>
+          <Text
+            style={{
+              fontSize: 12,
+              color: '#8e8e93',
+              paddingHorizontal: 8,
+              paddingVertical: 2,
+              textAlign: 'center',
+            }}
+            numberOfLines={1}
+          >
+            {`No of Refunds: ${item.refundServiceCount}`}
+          </Text>
+        </View>
       )}
     </>
   );

@@ -39,6 +39,7 @@
   "otp_sent_successfully": "OTP sent successfully",
   "otp_session_expired": "OTP session expired. Please try again.",
   "something_went_wrong": "Something went wrong",
+  "billing_generic_error": "Something went wrong. Please try again later.",
   "verifying": "Verifying…",
   "please_enter_valid_otp": "Please enter a valid OTP",
   "confirm": "Confirm",

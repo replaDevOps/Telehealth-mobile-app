@@ -39,6 +39,7 @@
   "otp_sent_successfully": "تم إرسال رمز التحقق بنجاح",
   "otp_session_expired": "انتهت صلاحية جلسة رمز التحقق. حاول مرة أخرى.",
   "something_went_wrong": "حدث خطأ ما",
+  "billing_generic_error": "حدث خطأ ما. يرجى المحاولة مرة أخرى لاحقًا.",
   "verifying": "يتم التحقق…",
   "please_enter_valid_otp": "الرجاء إدخال رمز OTP صالح",
   "confirm": "تأكيد",

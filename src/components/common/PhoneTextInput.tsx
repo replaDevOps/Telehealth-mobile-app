@@ -1,9 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
 import PhoneInput from 'react-native-phone-number-input';
+import parsePhoneNumberFromString, { CountryCode } from 'libphonenumber-js';
 
 import { mvs } from '../../config/metrices';
 import { colors } from '../../styles/colors';
+
+// The parent may hold the full international number (e.g. "+966501234567"),
+// but the input's text field should only show the national part — the dial
+// code is already displayed separately next to the flag.
+const toNationalNumber = (raw?: string, code?: string): string => {
+  if (!raw) return '';
+  const parsed = raw.trim().startsWith('+')
+    ? parsePhoneNumberFromString(raw.trim())
+    : parsePhoneNumberFromString(raw.trim(), code as CountryCode);
+  return parsed ? String(parsed.nationalNumber) : raw;
+};
 
 // ✅ Props Interface
 interface PhoneNumberInputProps {
@@ -49,10 +61,13 @@ const PhoneNumberInput: React.FC<PhoneNumberInputProps> = ({
 
   useEffect(() => {
     if (!hasBeenTouched) {
-      const phoneChanged = phone && phone !== value;
+      // Normalise to the national number so a persisted "+966..." value doesn't
+      // render the dial code twice (once in the field, once by the flag button).
+      const nationalPhone = toNationalNumber(phone, countryCode);
+      const phoneChanged = nationalPhone && nationalPhone !== value;
       const countryChanged = countryCode && countryCode !== selectedCountryCode;
 
-      if (phoneChanged) setValue(phone);
+      if (phoneChanged) setValue(nationalPhone);
       if (countryChanged) setSelectedCountryCode(countryCode);
       if (phoneChanged || countryChanged) setComponentKey(prev => prev + 1);
     }

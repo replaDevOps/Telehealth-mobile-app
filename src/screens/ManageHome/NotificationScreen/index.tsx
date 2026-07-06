@@ -195,6 +195,14 @@ export const NotificationScreen = () => {
 
       if (response.data?.success !== false) {
         Toast.success(t('review_submitted_successfully') || 'Review submitted successfully');
+        // Mark this clinic's notifications as reviewed so the button hides immediately
+        setNotifications(prev =>
+          prev.map(notif =>
+            String(notif.clinic_id) === String(clinicIdToRate)
+              ? { ...notif, isReview: true }
+              : notif,
+          ),
+        );
         setShowRating(false);
       } else {
         throw new Error(response.data?.message || 'Failed to submit review');

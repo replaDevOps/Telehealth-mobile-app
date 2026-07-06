@@ -210,8 +210,7 @@ export function ConsultationPayment({ navigation, route }) {
 
       // Check for success: false in response
       if (response.data?.success === false) {
-        const errorMessage = response.data?.message || t('failed_to_book_consultation') || 'Failed to book consultation';
-        Toastify.error(errorMessage);
+        Toastify.error(t('billing_generic_error') || 'Something went wrong. Please try again later.');
         setIsLoading(false);
         return;
       }
@@ -245,12 +244,7 @@ export function ConsultationPayment({ navigation, route }) {
       }
     } catch (error: any) {
       console.error('Error booking consultation:', error);
-      const errorMessage =
-        error?.response?.data?.message ||
-        error?.data?.message ||
-        error?.message ||
-        t('failed_to_book_consultation') || 'Failed to book consultation';
-      Toastify.error(errorMessage);
+      Toastify.error(t('billing_generic_error') || 'Something went wrong. Please try again later.');
       setIsLoading(false);
     }
   };

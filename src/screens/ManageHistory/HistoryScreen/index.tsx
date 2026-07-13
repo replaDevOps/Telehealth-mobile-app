@@ -213,6 +213,7 @@ export function HistoryScreen({ navigation }) {
       console.log('Payments response:', response.data);
 
       const responseData = response.data;
+      console.log(responseData)
 
       // Extract data array
       let apiPayments: any[] = [];

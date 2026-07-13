@@ -99,6 +99,21 @@ export function SignUpScreen({ navigation }) {
         setLoading(true);
 
         if (selectedTab === 'phone') {
+          // Backend validates the number for this flow via `type`.
+          // Only send the OTP when it responds success:true; otherwise it
+          // returns the reason (e.g. "Phone number is already registered").
+          const checkRes = await apiClient.post(API.AUTH.CHECK_PHONE_NO, {
+            phoneNo: phone.trim(),
+            type: 'register',
+          });
+          if (checkRes?.data?.success !== true) {
+            const msg = checkRes?.data?.message || t('something_went_wrong');
+            setPhoneError(msg);
+            Toast.error(msg);
+            setLoading(false);
+            return;
+          }
+
           console.log("formattedPhone",formattedPhone)
           const confirmation = await sendPhoneOtp(formattedPhone);
           setPhoneConfirmation(confirmation);
@@ -122,12 +137,20 @@ export function SignUpScreen({ navigation }) {
         }
       } catch (error: any) {
         console.log('error', error);
-        // For the phone (Firebase) flow, don't surface the raw Firebase error —
-        // show a friendly generic message instead.
+        // Backend errors (e.g. checkPhoneNo "Phone number is already registered")
+        // carry a user-friendly message — surface it. Raw Firebase errors don't,
+        // so fall back to a friendly generic message for those.
+        const backendMsg =
+          error?.response?.data?.message || error?.data?.message;
         if (selectedTab === 'phone') {
-          Toast.error(t('something_went_wrong'));
+          if (backendMsg) {
+            setPhoneError(backendMsg);
+            Toast.error(backendMsg);
+          } else {
+            Toast.error(t('something_went_wrong'));
+          }
         } else {
-          Toast.error(error?.message || t('something_went_wrong'));
+          Toast.error(backendMsg || error?.message || t('something_went_wrong'));
         }
       } finally {
         setLoading(false);

@@ -11,7 +11,7 @@ interface ServiceStatusRowProps {
 
 export const ServiceStatusRow: React.FC<ServiceStatusRowProps> = ({ item }) => {
   const { t } = useTranslation();
-  console.log(item.status)
+  console.log(item)
   const isConsultation = item.kind === 'consultation';
 
   const serviceValue = isConsultation ? item.serviceName : item.numberOfService;
@@ -24,10 +24,6 @@ export const ServiceStatusRow: React.FC<ServiceStatusRowProps> = ({ item }) => {
     /^refunded$/i.test(item.status)
   );
 
-  // Only surface the refunded-service count once the refund request has been approved.
-  const isRefundApproved = !isConsultation && item.kind === 'appointment' &&
-    typeof item.refundStatus === 'string' &&
-    /^(approved|confirm|confirmed|success|refunded)$/i.test(item.refundStatus.trim());
   const displayStatus = isRefunded
     ? 'Refunded'
     : item.kind === 'appointment' ? (item as any).paymentStatus || item.status : item.status;
@@ -53,8 +49,8 @@ export const ServiceStatusRow: React.FC<ServiceStatusRowProps> = ({ item }) => {
         </View>
       </View>
 
-      {/* Refund count is shown only once the refund request has been approved */}
-      {hasRefundServices && isRefundApproved && (
+      {/* Refund count is shown whenever there is at least one refunded service */}
+      {hasRefundServices && (
         <View style={{ width: '100%', alignItems: 'center', marginTop: 6 }}>
           <Text
             style={{

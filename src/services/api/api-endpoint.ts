@@ -6,6 +6,8 @@ export const API = {
     // EMAIL OTP
     SEND_OTP_EMAIL: '/patient-auth/send-otp-email',
     RESEND_OTP_EMAIL: '/patient-auth/resendEmailOpt',
+    // CHECK PHONE NUMBER REGISTRATION STATUS
+    CHECK_PHONE_NO: '/patient-auth/checkPhoneNo',
     // PHONE OTP
     SEND_OTP_PHONE: '/patient-auth/sendPhoneOtp',
     RESEND_OTP_PHONE: '/patient-auth/resendMobileOpt',

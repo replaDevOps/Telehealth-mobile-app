@@ -305,7 +305,7 @@ export const NotificationScreen = () => {
                 <Text style={styles.title}>{notification.title}</Text>
                 <Text style={styles.message}>{notification.message}</Text>
 
-                {notification.type === 'Appointment Booked' && notification.clinic_id && !notification.isReview && (
+                {notification.clinic_id && !notification.isReview && (
                   <TouchableOpacity
                     style={styles.giveReviewButton}
                     onPress={() => openRatingSheet(notification.clinic_id!)}

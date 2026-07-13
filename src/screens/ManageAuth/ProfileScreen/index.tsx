@@ -224,8 +224,9 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
             ...(token && { 'Authorization': `Bearer ${token}` }),
           },
         });
-
+        console.log('response',response)
         const data = await response.json();
+        console.log('Register API response:', data);
 
         if (!response.ok || data.success === false) {
           const errorMessage = data.message || data.data?.message || 'Registration failed';

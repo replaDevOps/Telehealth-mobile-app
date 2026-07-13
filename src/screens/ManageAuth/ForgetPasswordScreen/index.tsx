@@ -197,6 +197,27 @@ export function ForgetPasswordScreen({
                     email: email.trim(),
                   });
                 } else {
+                  // Backend validates the number for this flow via `type`.
+                  // Only send the OTP when it responds success:true; otherwise it
+                  // returns the reason (e.g. "Phone number is not registered").
+                  let checkData: any;
+                  try {
+                    const checkRes = await apiClient.post(API.AUTH.CHECK_PHONE_NO, {
+                      phoneNo: phone.trim(),
+                      type: 'forgot-password',
+                    });
+                    checkData = checkRes?.data;
+                  } catch (checkErr: any) {
+                    checkData = checkErr?.response?.data || checkErr?.data;
+                  }
+                  if (checkData?.success !== true) {
+                    const msg = checkData?.message || t('phone_not_registered');
+                    setPhoneError(msg);
+                    Toast.error(msg);
+                    setLoading(false);
+                    return;
+                  }
+
                   // Phone: verify via Firebase (same as registration)
                   const phoneNumber = parsePhoneNumberFromString(phone, countryCode as CountryCode);
                   const formattedPhone = phoneNumber
@@ -215,18 +236,16 @@ export function ForgetPasswordScreen({
                 }
               } catch (error: any) {
                 console.error('Forgot password error:', error);
-                const errorMsg =
-                  error?.response?.data?.message ||
-                  error?.data?.message ||
-                  error?.message ||
-                  'Failed to send OTP. Please try again.';
+                const genericMsg =
+                  t('something_went_wrong_try_later') ||
+                  'Something went wrong. Please try again later.';
 
-                Toast.error(errorMsg);
+                Toast.error(genericMsg);
 
                 if (selectedTab === 'email') {
-                  setEmailError(errorMsg);
+                  setEmailError(genericMsg);
                 } else {
-                  setPhoneError(errorMsg);
+                  setPhoneError(genericMsg);
                 }
               } finally {
                 setLoading(false);

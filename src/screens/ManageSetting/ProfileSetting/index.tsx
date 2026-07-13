@@ -32,7 +32,7 @@ import { Toast } from 'toastify-react-native';
 import { useAuthStore, useProfileStore } from '@store';
 import { RouteProp } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import parsePhoneNumberFromString from 'libphonenumber-js';
+import parsePhoneNumberFromString, { CountryCode } from 'libphonenumber-js';
 import { signOutGoogle } from '../../../services/firebase/googleAuth';
 
 const { height } = Dimensions.get('window');
@@ -211,9 +211,18 @@ export const ProfileSetting = ({ navigation, route }: { navigation: any; route?:
 
     // Prepare payload matching API requirements
     // Gender should be lowercase (API expects "male", "female", "other")
+
+    // Always send the phone in E.164 (with country code). state.phone may hold
+    // only the national number when the user didn't touch the phone field.
+    const parsedPhone = parsePhoneNumberFromString(
+      state.phone.trim(),
+      state.countryCode as CountryCode,
+    );
+    const fullPhone = parsedPhone ? parsedPhone.format('E.164') : state.phone.trim();
+
     const payload = {
       name: state.fullName.trim(),
-      phoneNo: state.phone.trim(),
+      phoneNo: fullPhone,
       email: state.email.trim(),
       age: state.age.trim(),
       gender: state.gender.toLowerCase(),

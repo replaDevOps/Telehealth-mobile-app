@@ -56,6 +56,42 @@
           ]
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:827261290955:android:e95dbec729389ee5984e4e",
+        "android_client_info": {
+          "package_name": "com.vena.patient"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "827261290955-i12opd83asbqhsvqjdoj9q98p4slpcjo.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBDmE9fQWTxT2t2OTNLIiwQg-u8BbLY0AY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "827261290955-i12opd83asbqhsvqjdoj9q98p4slpcjo.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "827261290955-42h0md1epmj6asmlpvb984ketdrt3u9k.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.telehealth"
+              }
+            }
+          ]
+        }
+      }
     }
   ],
   "configuration_version": "1"

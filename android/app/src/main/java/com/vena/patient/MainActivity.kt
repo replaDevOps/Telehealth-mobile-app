@@ -1,4 +1,4 @@
-package com.telehealth
+package com.vena.patient
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

@@ -7,13 +7,16 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
 import { mvs } from '@config/metrices';
 import { CustomButton } from '@components/common/CustomButton';
 import { Header2 } from '@components/common/Header2';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AntDesign from 'react-native-vector-icons/AntDesign';
-import { GoogleSvg, LogoSvg } from '@assets/icons';
+import { GoogleSvg } from '@assets/icons';
+import { LogoPng } from '@assets/images';
 import { CustomText } from '@components/common/CustomText';
 import PhoneNumberInput from '@components/common/PhoneTextInput';
 import { styles } from './style';
@@ -26,6 +29,8 @@ import { apiClient } from '@services/api/api-client';
 import { colors } from '../../../styles/colors';
 import { useAuthStore } from '@store';
 import { API } from '@services/api/api-endpoint';
+import { fcmService } from '../../../services/firebase/fcmService';
+import { signInWithGoogle, googleStatusCodes } from '../../../services/firebase/googleAuth';
 
 type TabType = 'email' | 'phone';
 
@@ -54,6 +59,8 @@ export function SignInScreen({ navigation }) {
     loading: false,
   });
 
+  const [googleLoading, setGoogleLoading] = useState(false);
+
   const formattedPhone = useMemo(() => {
     if (!form.phone || typeof form.phone !== 'string') {
       return '';
@@ -63,7 +70,7 @@ export function SignInScreen({ navigation }) {
     console.log('parsed', parsed);
     if (!parsed) return '';
 
-    return `${parsed.nationalNumber}`;
+    return parsed.format('E.164');
   }, [form.phone, meta.countryCode]);
 
   // Load saved credentials on mount if remember me was checked
@@ -164,7 +171,12 @@ export function SignInScreen({ navigation }) {
       const { data } = await apiClient.post(endpoint, payload);
       console.log('data', data);
       setAuth(data?.user);
-      
+
+      // Store FCM token in background after successful login
+      fcmService.initializeFcm().catch(err =>
+        console.warn('[FCM] Token store after login failed:', err),
+      );
+
       // Save credentials if remember me is checked
       if (meta.remember) {
         try {
@@ -226,21 +238,63 @@ export function SignInScreen({ navigation }) {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
+    try {
+      const { accessToken } = await signInWithGoogle();
+      if (!accessToken) throw new Error('No access token returned from Google');
+
+      const { data } = await apiClient.post(API.AUTH.LOGIN_GOOGLE, { accessToken });
+      console.log('✅ [Google] API response:', JSON.stringify(data, null, 2));
+      setAuth(data?.user);
+
+      fcmService.initializeFcm().catch(err =>
+        console.warn('[FCM] Token store after Google login failed:', err),
+      );
+
+      Toast.success(data?.message || 'Google sign-in successful');
+      setTimeout(() => {
+        if (data?.is_new_user) {
+          navigation.replace('Profile', {
+            name: data?.user?.name || data?.user?.fullName || '',
+            email: data?.user?.email || '',
+          });
+        } else {
+          navigation.replace('Main', { screen: 'Home' });
+        }
+      }, 500);
+    } catch (error: any) {
+      if (error?.code === googleStatusCodes.SIGN_IN_CANCELLED) {
+        return;
+      }
+      const errorMsg =
+        error?.response?.data?.data?.message ||
+        error?.response?.data?.message ||
+        error?.message ||
+        'Google sign-in failed';
+      console.error('❌ [Google] Sign-in error:', error);
+      Toast.error(errorMsg);
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.white }}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <Header2 title="" showLanguage={true} />
+        
         <ScrollView
           style={styles.container}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: mvs(30) }}
           keyboardShouldPersistTaps="handled"
         >
+          <Header2 title="" showLanguage={true} inScrollView={true} />
           <View style={styles.logoContainer}>
-            <LogoSvg />
+            <Image source={LogoPng} style={{ width: 300, height: 131, resizeMode: 'contain' }} />
           </View>
 
           <View style={{ ...styles.title }}>
@@ -256,7 +310,11 @@ export function SignInScreen({ navigation }) {
               <TouchableOpacity
                 key={type}
                 style={[styles.tabButton, tab === type && styles.activeTab]}
-                onPress={() => setTab(type)}
+                onPress={() => {
+                  setTab(type);
+                  // Clear all field errors when switching tabs
+                  setErrors({ email: '', phone: '', password: '' });
+                }}
               >
                 <Text
                   style={[styles.tabText, tab === type && styles.activeTabText]}
@@ -355,6 +413,7 @@ export function SignInScreen({ navigation }) {
             title={t('sign_in')}
             onPress={handleSignIn}
             loading={meta.loading}
+            disabled={googleLoading}
           />
 
           <View style={styles.signinRow}>
@@ -370,20 +429,30 @@ export function SignInScreen({ navigation }) {
             <View style={styles.line} />
           </View>
 
-          <TouchableOpacity
-            style={styles.appleButton}
-            onPress={() => console.log('Apple Sign In')}
-          >
-            <AntDesign name="apple1" size={20} color={colors.white} />
-            <Text style={styles.appleText}>{t('sign_in_apple')}</Text>
-          </TouchableOpacity>
+          {Platform.OS === 'ios' && (
+            <TouchableOpacity
+              style={[styles.appleButton, (meta.loading || googleLoading) && { opacity: 0.6 }]}
+              onPress={() => console.log('Apple Sign In')}
+              disabled={meta.loading || googleLoading}
+            >
+              <AntDesign name="apple1" size={20} color={colors.white} />
+              <Text style={styles.appleText}>{t('sign_in_apple')}</Text>
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity
-            style={styles.googleButton}
-            onPress={() => console.log('Google Sign In')}
+            style={[styles.googleButton, (meta.loading || googleLoading) && { opacity: 0.6 }]}
+            onPress={handleGoogleSignIn}
+            disabled={meta.loading || googleLoading}
           >
-            <GoogleSvg />
-            <Text style={styles.googleText}>{t('sign_in_google')}</Text>
+            {googleLoading ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <>
+                <GoogleSvg />
+                <Text style={styles.googleText}>{t('sign_in_google')}</Text>
+              </>
+            )}
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>

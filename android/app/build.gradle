@@ -2,6 +2,13 @@ apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 
+// Load release signing credentials from android/keystore.properties (gitignored).
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 /**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.
@@ -77,9 +84,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.telehealth"
+    namespace "com.vena.patient"
     defaultConfig {
-        applicationId "com.telehealth"
+        applicationId "com.vena.patient"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -92,17 +99,27 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        release {
+            if (keystoreProperties['storeFile']) {
+                storeFile file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+            }
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
+            manifestPlaceholders = [usesCleartextTraffic: "true"]
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            // Uses the release keystore when android/keystore.properties is present,
+            // otherwise falls back to debug signing (e.g. local dev without the keystore).
+            signingConfig keystoreProperties['storeFile'] ? signingConfigs.release : signingConfigs.debug
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+            manifestPlaceholders = [usesCleartextTraffic: "false"]
         }
     }
 }
@@ -119,3 +136,4 @@ dependencies {
 }
 
 apply from: "../../node_modules/react-native-vector-icons/fonts.gradle"
+apply plugin: 'com.google.gms.google-services'

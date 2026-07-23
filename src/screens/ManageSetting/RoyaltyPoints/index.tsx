@@ -7,16 +7,18 @@ import { useTranslation } from 'react-i18next';
 import { ClinicCard } from '../LoyaltyPointsDetails/components';
 import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
-import { RecommandImage } from '@assets/images';
 import { colors } from '../../../styles/colors';
 import { useFocusEffect } from '@react-navigation/native';
 import { RewardsMilestonesBottomSheet } from '@components/molecules';
 import { MILESTONETIERS } from '@constants';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export const RoyaltyPoints = ({ navigation }) => {
+  const inset = useSafeAreaInsets();
   const { t } = useTranslation();
   const [loyaltyPointsData, setLoyaltyPointsData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
@@ -24,10 +26,14 @@ export const RoyaltyPoints = ({ navigation }) => {
   const [hasMore, setHasMore] = useState(true);
   const recordsPerPage = 10;
 
-  const fetchLoyaltyPoints = async (pageNo: number = 1, append: boolean = false) => {
+  const fetchLoyaltyPoints = async (pageNo: number = 1, append: boolean = false, isRefresh: boolean = false) => {
     try {
       if (append) {
         setLoadingMore(true);
+      } else if (isRefresh) {
+        setRefreshing(true);
+        setCurrentPage(1);
+        setHasMore(true);
       } else {
         setLoading(true);
         setCurrentPage(1);
@@ -75,20 +81,29 @@ export const RoyaltyPoints = ({ navigation }) => {
       setHasMore(hasMoreData);
       
       if (responseData?.success !== false && clinicsList.length > 0) {
-        
+        const getCategories = (businessType: string | undefined): string[] => {
+          if (!businessType || typeof businessType !== 'string') return ['General'];
+          const trimmed = businessType.trim();
+          if (trimmed.toLowerCase() === 'both') return ['Dentistry', 'Dermatology'];
+          const capitalized = trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
+          return [capitalized];
+        };
+
         // Map API response to expected format
         const mappedData = clinicsList.map((item: any, index: number) => {
           const clinicId = item.clinicID?.toString() || item.clinic?.id?.toString() || index.toString();
           const clinicName = item.clinic?.clinicName || item.clinicName || 'Unknown Clinic';
           const points = item.total_loyalty_points || item.totalLoyaltyPoints || 0;
-          const image = item.clinic?.image 
-            ? { uri: item.clinic.image } 
-            : item.clinicImage 
+          const image = item.clinic?.image
+            ? { uri: item.clinic.image }
+            : item.clinicImage
             ? (typeof item.clinicImage === 'string' ? { uri: item.clinicImage } : item.clinicImage)
-            : RecommandImage;
-          const category = item.clinic?.category || item.category || 'General';
+            : null;
+          const businessType = item.clinic?.businessType || item.businessType;
+          const categories = getCategories(businessType);
+          const category = categories[0] ?? 'General';
           
-          console.log(`Mapped item ${index}:`, { clinicId, clinicName, points, category });
+          console.log(`Mapped item ${index}:`, { clinicId, clinicName, points, categories });
           
           return {
             id: clinicId,
@@ -97,6 +112,7 @@ export const RoyaltyPoints = ({ navigation }) => {
             points: points,
             image: image,
             category: category,
+            categories: categories,
           };
         });
 
@@ -129,6 +145,7 @@ export const RoyaltyPoints = ({ navigation }) => {
       }
     } finally {
       setLoading(false);
+      setRefreshing(false);
       setLoadingMore(false);
     }
   };
@@ -152,14 +169,14 @@ export const RoyaltyPoints = ({ navigation }) => {
       clinicName: item.clinicName,
       clinicImage: item.image,
       totalPoints: item.points,
-      category: item.category,
+      category: item.categories || item.category,
     });
   };
 
   const renderItem = ({ item }) => (
     <ClinicCard
       clinicImage={item.image}
-      category={item.category}
+      category={item.categories}
       clinicName={item.clinicName}
       totalPoints={item.points}
       handlePress={() => handlePointDetails(item)}
@@ -202,7 +219,7 @@ export const RoyaltyPoints = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container,{ paddingTop: inset.top }]}>
       <Header2 
         title={t('loyalty_points')}
         rightElement={
@@ -220,12 +237,12 @@ export const RoyaltyPoints = ({ navigation }) => {
           renderItem={renderItem}
           keyExtractor={item => item.id}
           contentContainerStyle={[
-            styles.listContainer,
+            // styles.listContainer,
             loyaltyPointsData.length === 0 && { flexGrow: 1, justifyContent: 'center' }
           ]}
           ListEmptyComponent={renderEmptyComponent}
-          refreshing={loading && loyaltyPointsData.length === 0}
-          onRefresh={() => fetchLoyaltyPoints(1, false)}
+          refreshing={refreshing}
+          onRefresh={() => fetchLoyaltyPoints(1, false, true)}
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
           ListFooterComponent={

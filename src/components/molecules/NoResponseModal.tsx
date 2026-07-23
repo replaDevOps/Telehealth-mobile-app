@@ -18,13 +18,11 @@ const MODAL_WIDTH = width * 0.85;
 interface NoResponseModalProps {
   visible: boolean;
   onClose: () => void;
-  onGetPrescription: () => void;
 }
 
 const NoResponseModal: React.FC<NoResponseModalProps> = ({
   visible,
   onClose,
-  onGetPrescription,
 }) => {
   const { t } = useTranslation();
   return (
@@ -42,7 +40,7 @@ const NoResponseModal: React.FC<NoResponseModalProps> = ({
           </TouchableOpacity>
 
           {/* Title */}
-          <Text style={styles.title}>{t('no_response')}</Text>
+          <Text style={styles.title}>{t('no_agent_accepted')}</Text>
 
           {/* Description */}
           <Text style={styles.description}>
@@ -51,16 +49,12 @@ const NoResponseModal: React.FC<NoResponseModalProps> = ({
 
           {/* Buttons */}
           <View style={styles.buttonRow}>
-            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-              <Text style={styles.closeButtonText}>{t('close')}</Text>
-            </TouchableOpacity>
-
             <TouchableOpacity
               style={styles.prescriptionButton}
-              onPress={onGetPrescription}
+              onPress={onClose}
             >
               <Text style={styles.prescriptionButtonText}>
-                {t('refund_payment')}
+                {t('ok')}
               </Text>
             </TouchableOpacity>
           </View>

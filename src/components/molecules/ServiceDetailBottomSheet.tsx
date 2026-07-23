@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -13,8 +13,12 @@ import { colors } from '../../styles/colors';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
 import { coinIcon } from '@assets/images';
+import { LoyaltyPSvg } from '@assets/icons';
 import { ActivityIndicator } from 'react-native-paper';
 import { useCart } from '../../context/CartContext';
+import { useNavigation } from '@react-navigation/native';
+import { Toast } from 'toastify-react-native';
+import { checkProfile } from '@utils/checkProfile';
 
 interface Service {
   id: string;
@@ -28,8 +32,11 @@ interface Service {
   procedure?: string;
   loyality?: boolean;
   bonusLoyalityPoints?: string;
+  totalLoyalityPoints?: string | number;
   devices?: any[];
   tags?: string[];
+  campaignDiscount?: number | string;
+  finalPrice?: number | string;
 }
 
 interface ServiceDetailBottomSheetProps {
@@ -53,28 +60,70 @@ export const ServiceDetailBottomSheet: React.FC<ServiceDetailBottomSheetProps> =
 }) => {
   const { t } = useTranslation();
   const { cartItems } = useCart();
-  console.log(service);
+  const navigation = useNavigation();
+  const [checkingProfileAdd, setCheckingProfileAdd] = useState(false);
+  const [checkingProfileCheckout, setCheckingProfileCheckout] = useState(false);
+
   if (!visible) return null;
 
-  const handleAddToCart = () => {
-    if (loadingState !== 'none' || !service || isInCart) return;
+  
+
+  const handleAddToCart = async () => {
+    if (isAddDisabled || !service) return;
+    try {
+      setCheckingProfileAdd(true);
+      const result = await checkProfile();
+      if (!result.ok) {
+        const msg = result.message || t('please_complete_profile') || 'Please complete your profile before adding to cart';
+        Toast.error(msg);
+        try {
+          const { navigateToProfileSetting } = require('@navigation/root-navigation');
+          navigateToProfileSetting();
+        } catch (e) {
+          navigation.navigate('Setting' as any, { screen: 'ProfileSetting' });
+        }
+        return;
+      }
+    } catch (err) {
+      console.warn('checkProfile helper failed, proceeding with add to cart:', err);
+    } finally {
+      setCheckingProfileAdd(false);
+    }
+
     onAddToCart(service);
   };
 
-  const handleCheckout = () => {
-    if (loadingState !== 'none' || !service) return;
-    if (isInCart) {
-      // If already in cart, just navigate
-      onCheckout(service);
-    } else {
-      onCheckout(service);
+  const handleCheckout = async () => {
+    if (isCheckoutDisabled || !service) return;
+    try {
+      setCheckingProfileCheckout(true);
+      const result = await checkProfile();
+      if (!result.ok) {
+        const msg = result.message || t('please_complete_profile') || 'Please complete your profile before checkout';
+        Toast.error(msg);
+        try {
+          const { navigateToProfileSetting } = require('@navigation/root-navigation');
+          navigateToProfileSetting();
+        } catch (e) {
+          navigation.navigate('Setting' as any, { screen: 'ProfileSetting' });
+        }
+        return;
+      }
+    } catch (err) {
+      console.warn('checkProfile helper failed, proceeding with checkout:', err);
+    } finally {
+      setCheckingProfileCheckout(false);
     }
+
+    onCheckout(service);
   };
 
   const isInCart = service ? cartItems.some(item => item.service.id === service.id) : false;
   const isAddingToCart = loadingState === 'adding_to_cart';
   const isCheckingOut = loadingState === 'checking_out';
   const isActionDisabled = loadingState !== 'none';
+  const isAddDisabled = isActionDisabled || checkingProfileAdd || isInCart;
+  const isCheckoutDisabled = isActionDisabled || checkingProfileCheckout;
 
   return (
     <Modal
@@ -117,39 +166,56 @@ export const ServiceDetailBottomSheet: React.FC<ServiceDetailBottomSheetProps> =
                 <View style={styles.serviceInfoContainter}>
                   <View style={styles.serviceInfo}>
                     <View style={styles.serviceTags}>
-                      <View style={styles.tag}>
-                        <Text style={styles.TypetagText}>{service.type}</Text>
-                      </View>
-                      <View style={styles.tag}>
-                        <Text style={styles.SGtagText}>{service.serviceGroup}</Text>
-                      </View>
+                      {!!service.type && (
+                        <View style={styles.tag}>
+                          <Text style={styles.TypetagText} numberOfLines={1} ellipsizeMode="tail">{service.type.charAt(0).toUpperCase() + service.type.slice(1).toLowerCase()}</Text>
+                        </View>
+                      )}
+                      {!!service.serviceGroup && (
+                        <View style={styles.tag}>
+                          <Text style={styles.SGtagText} numberOfLines={1} ellipsizeMode="tail">{service.serviceGroup.charAt(0).toUpperCase() + service.serviceGroup.slice(1).toLowerCase()}</Text>
+                        </View>
+                      )}
                     </View>
-                    <Text style={styles.price}>{service.price}</Text>
+                    {(() => {
+                      const disc = Number(service.campaignDiscount || 0);
+                      const hasDiscount = disc > 0 && service.finalPrice !== undefined && service.finalPrice !== null;
+                      if (!hasDiscount) {
+                        return <Text style={styles.price}>{service.price}</Text>;
+                      }
+                      return (
+                        <View style={{ alignItems: 'flex-end' }}>
+                          <Text style={styles.priceStrikethrough}>{service.price}</Text>
+                          <Text style={styles.price}>{`SAR ${parseFloat(String(service.finalPrice)).toFixed(2)}`}</Text>
+                          <Text style={styles.discountText}>{`-SAR ${disc.toFixed(2)}`}</Text>
+                        </View>
+                      );
+                    })()}
                   </View>
 
                   <View style={styles.serviceFooter}>
-                    <Text style={styles.serviceName}>{service.serviceName}</Text>
+                    <Text style={styles.serviceName} numberOfLines={1} ellipsizeMode="tail">{service.serviceName}</Text>
                     <View style={styles.durationContainer}>
                       <Ionicons
                         name="time-outline"
                         size={14}
                         color={colors.secondaryText}
                       />
-                      <Text style={styles.duration}>{service.duration}</Text>
+                      <Text style={styles.duration}>
+                        {service.duration ? (/min|m\b|hr|h\b/i.test(service.duration) ? service.duration : `${service.duration} min`) : ''}
+                      </Text>
                     </View>
                   </View>
                 </View>
 
-                <View style={{ flexDirection: 'row', gap: 20 }}>
-                  {service.loyality && service.bonusLoyalityPoints && (
-                    <View style={styles.pointTag}>
-                      <Image source={coinIcon} style={{ width: 20, height: 20 }} />
-                      <Text style={styles.pointTagText}>
-                        {t('earn_points', { points: service.bonusLoyalityPoints }) || `Earn ${service.bonusLoyalityPoints} loyalty points`}
-                      </Text>
-                    </View>
-                  )}
-                </View>
+                {(() => {
+                  const pts = service.totalLoyalityPoints ?? service.bonusLoyalityPoints;
+                  return pts && Number(pts) > 0 ? (
+                    <Text style={styles.loyaltyBadgeText}>
+                      {t('earn_points', { points: Math.round(Number(pts)) }) || `Earn ${Math.round(Number(pts))} loyalty points`}
+                    </Text>
+                  ) : null;
+                })()}
 
                 {/* Description Section */}
                 {service.description && (
@@ -177,13 +243,13 @@ export const ServiceDetailBottomSheet: React.FC<ServiceDetailBottomSheetProps> =
                 <TouchableOpacity
                   style={[
                     styles.addToCartButton,
-                    (isActionDisabled || isInCart) && styles.addToCartButtonDisabled
+                    isAddDisabled && styles.addToCartButtonDisabled
                   ]}
                   onPress={handleAddToCart}
                   activeOpacity={0.7}
-                  disabled={isActionDisabled || isInCart}
+                  disabled={isAddDisabled}
                 >
-                  {isAddingToCart ? (
+                  {(isAddingToCart || checkingProfileAdd) ? (
                     <ActivityIndicator size="small" color={colors.black} />
                   ) : (
                     <Text style={styles.addToCartText}>
@@ -195,13 +261,13 @@ export const ServiceDetailBottomSheet: React.FC<ServiceDetailBottomSheetProps> =
                 <TouchableOpacity
                   style={[
                     styles.checkoutButton,
-                    isActionDisabled && styles.addToCartButtonDisabled
+                    isCheckoutDisabled && styles.addToCartButtonDisabled
                   ]}
                   onPress={handleCheckout}
                   activeOpacity={0.7}
-                  disabled={isActionDisabled}
+                  disabled={isCheckoutDisabled}
                 >
-                  {isCheckingOut ? (
+                  {(isCheckingOut || checkingProfileCheckout) ? (
                     <ActivityIndicator size="small" color={colors.white} />
                   ) : (
                     <Text style={styles.checkoutText}>{t('checkout') || 'Checkout'}</Text>
@@ -216,6 +282,7 @@ export const ServiceDetailBottomSheet: React.FC<ServiceDetailBottomSheetProps> =
           )}
         </View>
       </View>
+        {/* (removed) full-screen loader — using button-level loaders for profile check */}
     </Modal>
   );
 };
@@ -281,22 +348,33 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 12,
   },
-  pointTag: {
-    backgroundColor: colors.lightYellow,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 10,
+  loyaltyBadge: {},
+  loyaltyBadgeText: {
+    marginTop: 8,
+    fontSize: 12,
+    color: '#CC9600',
+    fontWeight: '600',
   },
-  pointTagText: { color: colors.yellow, fontWeight: '600' },
+  coinWrapper: {},
+  coinImage: {},
 
   tagText: {
     fontSize: 12,
     color: colors.primary,
     fontWeight: '500',
+  },
+  priceStrikethrough: {
+    fontSize: 12,
+    color: colors.secondaryText || '#888',
+    textDecorationLine: 'line-through',
+    textAlign: 'right',
+  },
+  discountText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#16a34a',
+    textAlign: 'right',
+    marginTop: 2,
   },
   nameRow: {
     flexDirection: 'row',
@@ -390,22 +468,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
+    maxWidth: 120,
   },
   TypetagText: {
     fontSize: 11,
     color: colors.primary,
     fontWeight: '500',
+    flexShrink: 1,
   },
   SGtagText: {
     fontSize: 11,
     color: colors.text,
     fontWeight: '500',
+    flexShrink: 1,
   },
   serviceName: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700',
     color: colors.text,
-    marginBottom: 6,
+    marginBottom: 12,
+    flexShrink: 1,
   },
   serviceFooter: {
     flexDirection: 'row',
@@ -432,6 +514,12 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     color: colors.secondaryText,
+  },
+  profileCheckingOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
 });
 

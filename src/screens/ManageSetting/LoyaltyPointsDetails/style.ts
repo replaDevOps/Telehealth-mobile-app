@@ -5,7 +5,6 @@ export const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.white,
-    paddingTop: 50,
   },
   header: {
     marginTop: 20,
@@ -20,7 +19,7 @@ export const styles = StyleSheet.create({
   },
   card: {
     borderRadius: 12,
-    paddingVertical: 16,
+    paddingVertical: 4,
     marginBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -28,7 +27,7 @@ export const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
     gap: 10,
-    marginHorizontal: 20,
+    // marginHorizontal: 20,
   },
   leftSection: {
     flex: 1,
@@ -87,10 +86,18 @@ export const styles = StyleSheet.create({
     color: '#F44336',
   },
   price: {
-    fontSize: 15,
+    fontSize: 14,
     color: colors.primary,
-    fontWeight: 'bold',
+    fontWeight: '700',
+    // alignSelf: 'flex-end',
   },
+    expiryLabel: {
+      fontSize: 14,
+      color: '#8e8e93',
+      // marginLeft: 20,
+      // marginBottom: 8,
+      fontWeight: '500',
+    },
   rewardView: {
     width: 70,
     height: 70,

@@ -130,12 +130,15 @@ export const FAQs = ({ navigation }: { navigation: any }) => {
       <ScrollView
         style={styles.container}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: mvs(20) }}
+        contentContainerStyle={[
+          { paddingBottom: mvs(20) },
+          faqData.length === 0 && { flexGrow: 1, justifyContent: 'center' },
+        ]}
       >
         {faqData.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>
-              {t('no_faqs_found') || 'No FAQs available at the moment.'}
+              {t('no_faqs_found')}
             </Text>
           </View>
         ) : (

@@ -17,7 +17,7 @@ export const styles = StyleSheet.create({
     alignSelf: 'center',
     resizeMode: 'cover',
     position: 'relative',
-    bottom: mvs(50),
+    bottom: mvs(10),
   },
   title: {
     alignItems: 'center',
@@ -42,7 +42,7 @@ export const styles = StyleSheet.create({
   },
   languageRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     marginBottom: mvs(40),
     marginTop: mvs(30),
     marginHorizontal: mvs(20),
@@ -51,7 +51,8 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    width: '48%',
+    width: '46%',
+    marginHorizontal: mvs(6),
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.gray,
@@ -90,7 +91,7 @@ export const styles = StyleSheet.create({
   },
   button: {
     position: 'absolute',
-    bottom: mvs(40),
+    bottom: mvs(20),
     width: '100%',
     paddingHorizontal: mvs(20),
   },

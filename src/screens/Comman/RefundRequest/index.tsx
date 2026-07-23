@@ -9,15 +9,14 @@ import {
   Alert,
 } from 'react-native';
 import React, { useState } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Header2 } from '@components/common/Header2';
-import { useRoute, useNavigation } from '@react-navigation/native';
-import { RecommandImage } from '@assets/images';
+import ClinicAvatar from '@components/common/ClinicAvatar';
+import { useRoute, useNavigation, CommonActions, StackActions } from '@react-navigation/native';
 import { styles } from './style';
 import { colors } from '../../../styles/colors';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { CustomButton } from '@components/common/CustomButton';
-import { CheckBox } from '@rneui/base';
 import { SuccessMessageModal } from '@components/molecules';
 import { useTranslation } from 'react-i18next';
 import { apiClient } from '@services/api/api-client';
@@ -26,6 +25,7 @@ import { Toast } from 'toastify-react-native';
 
 export function RefundRequest() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const route = useRoute();
   const navigation = useNavigation<any>();
   const params = route.params as any;
@@ -52,7 +52,7 @@ export function RefundRequest() {
         id: clinicId || params.clinicID || params.clinicID || `clinic_${Date.now()}`,
         name: params.clinicName || businessInfo.businessName || '',
         location: params.clinicLocation || businessInfo.address || '',
-        image: params.image || RecommandImage,
+        image: params.image || undefined,
         specialty: businessInfo.specialization || 'General',
         rating: businessInfo.rating || 0,
       },
@@ -103,8 +103,9 @@ export function RefundRequest() {
       const responseData = response.data?.data || response.data;
 
       if (responseData?.status === true) {
+        console.log('Refund request submitted successfully:', responseData);
         // Set success message from API response
-        setSuccessMessage(responseData?.message || t('refund_request_sent_successfully') || 'Refund request sent successfully');
+        setSuccessMessage( t('refund_request_sent_successfully') || 'Refund request sent successfully');
         setShowSuccessModal(true);
       } else {
         throw new Error(responseData?.message || response.data?.message || t('failed_to_submit_refund') || 'Failed to submit refund request');
@@ -117,12 +118,26 @@ export function RefundRequest() {
     }
   };
 
+  const formatPrice = (price: any): string => {
+    const str = String(price ?? '').trim();
+    if (!str) return 'SAR 0.00';
+    if (/^SAR\s/i.test(str)) return str;
+    const num = parseFloat(str.replace(/[^0-9.-]+/g, ''));
+    return isNaN(num) ? `SAR ${str}` : `SAR ${num.toFixed(2)}`;
+  };
+
   const totalRefund =
     params.services
       ?.filter((s: any) => selectedServices.includes(s.id))
       .reduce(
-        (sum: number, s: any) =>
-          sum + parseFloat(s.price.replace(/[^0-9.-]+/g, '')),
+        (sum: number, s: any) => {
+          // Refund the actually-paid (final) amount when a campaign discount applied
+          const discount = Number(s.campaignDiscount || 0);
+          if (discount > 0 && s.finalPrice !== undefined && s.finalPrice !== null) {
+            return sum + Number(s.finalPrice);
+          }
+          return sum + parseFloat(String(s.price).replace(/[^0-9.-]+/g, ''));
+        },
         0,
       )
       .toFixed(2) || '0.00';
@@ -131,19 +146,23 @@ export function RefundRequest() {
     <>
       <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
         <StatusBar barStyle="dark-content" />
-        <Header2 title={t('refund_request') + ' ' + params.paymentId} />
+        <Header2 title={t('refund_request') } />
 
         {/* Fixed Clinic Info */}
         <View style={styles.clinicInfo}>
           <View style={styles.clinicLeft}>
-            <Image
-              source={params.image || RecommandImage}
-              style={styles.clinicImage}
-              resizeMode="cover"
-            />
-            <View>
-              <Text style={styles.clinicName}>{params.clinicName}</Text>
-              <Text style={styles.clinicLocation}>
+            {params.image ? (
+              <Image
+                source={params.image}
+                style={styles.clinicImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <ClinicAvatar name={params.clinicName} size={56} style={styles.clinicImage} />
+            )}
+            <View style={{ flex: 1, flexShrink: 1, marginRight: 8 }}>
+              <Text style={styles.clinicName} numberOfLines={1} ellipsizeMode="tail">{params.clinicName}</Text>
+              <Text style={styles.clinicLocation} numberOfLines={1} ellipsizeMode="tail">
                 {params.clinicLocation}
               </Text>
             </View>
@@ -151,6 +170,7 @@ export function RefundRequest() {
           <TouchableOpacity
             style={{
               ...styles.consultButton,
+              flexShrink: 0,
               backgroundColor: (params && (params.appointmentID || params.businessInfo)) ? colors.gray : colors.black,
             }}
             onPress={handleVisit}
@@ -168,9 +188,10 @@ export function RefundRequest() {
 
         {/* Scrollable Content */}
         <ScrollView
-          contentInsetAdjustmentBehavior="automatic"
+          // contentInsetAdjustmentBehavior="automatic"
           style={styles.container}
           showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 140 }}
         >
           <View style={styles.mainSection}>
             <Text style={{ fontWeight: '600', marginBottom: 12 }}>
@@ -179,25 +200,43 @@ export function RefundRequest() {
 
             {params.services?.map((service: any) => {
               const isChecked = selectedServices.includes(service.id);
+              const refundState = service.refundState || '';
+              // determine disabled: explicit flag, any refund-* field/sub-status present, or booked — all should be non-selectable
+              const svcStatusStr = (service.status || '').toString();
+              const svcRefundStatusStr = (service.refundStatus || service.refund_status || '').toString();
+              console.log(svcRefundStatusStr);
+              // Disable only when service is Booked or refundStatus is explicitly Pending / Confirm.
+              const refundStatusNormalized = (svcRefundStatusStr || '').trim().toLowerCase();
+              const isRefundStatusDisabled = /^(pending|confirm|confirmed|rejected|reject)$/i.test(refundStatusNormalized);
+              console.log(service)
 
+              // const isBooked = /booked/i.test(svcStatusStr);
+              // keep explicit `processed` check for fully processed refunds
+              const isRejected = /reject/i.test(svcStatusStr) || /reject/i.test(svcRefundStatusStr);
+              const isDisabled = !!service.disabled || isRefundStatusDisabled || isRejected || refundState === 'processed';
+              console.log(`Service ID ${service.id} - Disabled: ${isDisabled} (refundStatus: ${svcRefundStatusStr}, status: ${svcStatusStr}, refundState: ${refundState})`);
               return (
-                <View key={service.id} style={styles.serviceCard}>
+                <View key={service.id} style={[styles.serviceCard, isDisabled ? { opacity: 0.6 } : {}]}>
                   <View style={styles.serviceLeft}>
-                    <Image source={service.image} style={styles.serviceImage} />
+                    {service.image ? (
+                      <Image source={service.image} style={styles.serviceImage} />
+                    ) : (
+                      <ClinicAvatar name={service.name} size={56} style={styles.serviceImage as any} />
+                    )}
                     <View style={styles.serviceInfo}>
                       <View style={styles.serviceBadges}>
                         <View style={styles.categoryBadge}>
-                          <Text style={styles.categoryBadgeText}>
+                          <Text style={styles.categoryBadgeText} numberOfLines={1} ellipsizeMode="tail">
                             {service.category}
                           </Text>
                         </View>
                         <View style={styles.nameBadge}>
-                          <Text style={styles.nameBadgeText}>
+                          <Text style={styles.nameBadgeText} numberOfLines={1} ellipsizeMode="tail">
                             {service.categoryBadge}
                           </Text>
                         </View>
                       </View>
-                      <Text style={styles.serviceName}>{service.name}</Text>
+                      <Text style={styles.serviceName} numberOfLines={1} ellipsizeMode="tail">{service.name}</Text>
                       <View style={styles.durationContainer}>
                         <Ionicons
                           name="time-outline"
@@ -206,22 +245,47 @@ export function RefundRequest() {
                         />
                         <Text style={styles.duration}>{service.duration}</Text>
                       </View>
+
+                      {/* status moved to the right column for clearer layout */}
                     </View>
                   </View>
 
                   <View style={styles.serviceRight}>
-                    <CheckBox
-                      checked={isChecked}
-                      onPress={() => toggleService(service.id)}
-                      containerStyle={{
-                        backgroundColor: 'transparent',
-                        padding: 0,
-                        margin: 0,
-                      }}
-                      checkedColor={colors.primary}
-                      uncheckedColor="#ccc"
-                    />
-                    <Text style={styles.servicePrice}>{service.price}</Text>
+                    <TouchableOpacity
+                      onPress={() => !isDisabled && toggleService(service.id)}
+                      disabled={isDisabled}
+                      style={[styles.checkbox, isChecked && styles.checkboxChecked]}
+                    >
+                      {isChecked && (
+                        <Ionicons name="checkmark" size={14} color="#fff" />
+                      )}
+                    </TouchableOpacity>
+                    <View style={{ alignItems: 'flex-end' }}>
+                      {Number(service.campaignDiscount || 0) > 0 && service.finalPrice !== undefined && service.finalPrice !== null ? (
+                        <View style={{ alignItems: 'flex-end' }}>
+                          <Text style={[styles.servicePrice, { fontSize: 12, color: '#888', textDecorationLine: 'line-through', fontWeight: '400' }]}>
+                            {formatPrice(service.price)}
+                          </Text>
+                          <Text style={styles.servicePrice}>{formatPrice(service.finalPrice)}</Text>
+                          <Text style={{ fontSize: 11, fontWeight: '600', color: '#16a34a', marginTop: 2 }}>
+                            {`-SAR ${Number(service.campaignDiscount).toFixed(2)}`}
+                          </Text>
+                        </View>
+                      ) : (
+                        <Text style={styles.servicePrice}>{formatPrice(service.price)}</Text>
+                      )}
+                      {/* show refundStatus when status indicates a refund otherwise show status */}
+                      {(() => {
+                        const isRefund = typeof (service.status || '') === 'string' && /refund/i.test(service.status || '');
+                        const displayStatus = isRefund ? (service.status + " " + service.refundStatus) : service.status;
+                        return displayStatus ? (
+                          <Text style={{ fontSize: 12, color: '#112244', marginTop: 6 }} numberOfLines={2}>
+                            {displayStatus}
+                          </Text>
+                        ) : null;
+                      })()}
+                    
+                    </View>
                   </View>
                 </View>
               );
@@ -251,7 +315,7 @@ export function RefundRequest() {
                   padding: 16,
                   backgroundColor: '#f8f8f8',
                   borderRadius: 12,
-                  marginTop: 16,
+                  marginBottom: 16,
                 }}
               >
                 <View
@@ -291,7 +355,7 @@ export function RefundRequest() {
         </ScrollView>
 
         {/* Fixed Submit Button */}
-        <View style={styles.bottomButtonContainer}>
+        <View style={[styles.bottomButtonContainer, { bottom: insets.bottom }]}>
           <CustomButton
             title={t('submit_request')}
             onPress={handleSubmit}
@@ -305,7 +369,25 @@ export function RefundRequest() {
         visible={showSuccessModal}
         onClose={() => {
           setShowSuccessModal(false);
-          navigation.goBack();
+          // Pop back to HistoryScreen if it's in the stack, otherwise navigate to it
+          navigation.dispatch((state: any) => {
+            const routes = state.routes || [];
+            const idx = routes.findIndex((r: any) => r.name === 'HistoryScreen');
+            if (idx === -1) {
+              return CommonActions.navigate({
+                name: 'EntryPoint',
+                params: { screen: 'History', params: { screen: 'HistoryScreen' } },
+              });
+            }
+            const popCount = routes.length - 1 - idx;
+            if (popCount <= 0) {
+              return CommonActions.navigate({
+                name: 'EntryPoint',
+                params: { screen: 'History', params: { screen: 'HistoryScreen' } },
+              });
+            }
+            return StackActions.pop(popCount);
+          });
         }}
         title={t('refund_request')}
         description={successMessage || t('refund_request_sent_successfully') || 'Refund request sent successfully'}

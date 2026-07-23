@@ -181,11 +181,18 @@ export const styles = StyleSheet.create({
     backgroundColor: '#DACEFB',
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  clinicAvatarImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
   },
   clinicLogo: {
     textAlign: 'center',
     color: colors.primary,
-    fontSize: 10,
+    fontSize: 14,
+    fontWeight: '600',
   },
   doctorInfo: {
     flex: 1,
@@ -229,13 +236,13 @@ export const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 10,
     borderRadius: 8,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.white,
     alignItems: 'center',
   },
   viewChatButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.white,
+    color: colors.black,
   },
   paymentServiceHeader: {
     backgroundColor: colors.lightGray,
@@ -324,11 +331,13 @@ export const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.secondaryText,
     marginBottom: 4,
+    textAlign: 'center',
   },
   serviceValue: {
     fontSize: 14,
     fontWeight: '600',
     color: colors.text,
+    textAlign: 'center',
   },
   statusDivider: {
     width: 1,
@@ -339,7 +348,8 @@ export const styles = StyleSheet.create({
     //   right:20
   },
   statusInfo: {
-    alignItems: 'flex-end',
+    flex: 1,
+    alignItems: 'center',
   },
   noDoctorSection: {
     flexDirection: 'row',
@@ -376,10 +386,17 @@ export const styles = StyleSheet.create({
   statusLabel: {
     fontSize: 13,
     color: colors.secondaryText,
+    textAlign: 'center',
   },
   statusValue: {
     fontSize: 14,
     fontWeight: '600',
+    textAlign: 'center',
+  },
+  refundCountText: {
+    fontSize: 12,
+    color: colors.secondaryText,
+    marginTop: 4,
   },
   viewDetailsButton: {
     paddingVertical: 10,

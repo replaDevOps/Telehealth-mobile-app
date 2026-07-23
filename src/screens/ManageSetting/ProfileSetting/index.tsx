@@ -25,12 +25,15 @@ import { mvs } from '@config/metrices';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../../services/i18n';
 import { tryCatch } from '@utils';
+import citiesData from '@utils/cities-data.json';
 import { API } from '@services/api/api-endpoint';
 import { apiClient } from '@services/api/api-client';
 import { Toast } from 'toastify-react-native';
 import { useAuthStore, useProfileStore } from '@store';
 import { RouteProp } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import parsePhoneNumberFromString, { CountryCode } from 'libphonenumber-js';
+import { signOutGoogle } from '../../../services/firebase/googleAuth';
 
 const { height } = Dimensions.get('window');
 
@@ -47,6 +50,9 @@ type State = {
   language: string;
   notificationEnabled: boolean;
   deleteModalVisible: boolean;
+  nationalID: string;
+  nationality: string;
+  city: string;
 };
 
 const initialState: State = {
@@ -62,6 +68,9 @@ const initialState: State = {
   language: 'English',
   notificationEnabled: false,
   deleteModalVisible: false,
+  nationalID: '',
+  nationality: '',
+  city: '',
 };
 
 // Field mapping configuration: API field -> State field with optional transformer
@@ -69,6 +78,8 @@ const fieldMapping: Record<string, { stateKey: keyof State; transformer?: (value
   name: { stateKey: 'fullName' },
   phoneNo: { stateKey: 'phone' },
   email: { stateKey: 'email' },
+  nationalID: { stateKey: 'nationalID' },
+  IDnumber: { stateKey: 'nationalID' },
   age: { stateKey: 'age', transformer: (val) => String(val ?? '') },
   gender: { 
     stateKey: 'gender', 
@@ -90,22 +101,45 @@ const fieldMapping: Record<string, { stateKey: keyof State; transformer?: (value
       return val;
     }
   },
+  nationality: {
+    stateKey: 'nationality',
+    transformer: (val) => {
+      if (!val) return '';
+      const v = String(val).toLowerCase();
+      if (v.includes('non')) return 'Non-Saudi';
+      if (v.includes('saudi')) return 'Saudi';
+      return String(val);
+    }
+  },
+  city: { stateKey: 'city' },
 };
 
 // Helper function to map API data to state
 const mapProfileDataToState = (data: any): Partial<State> => {
   const mappedData: Partial<State> = {};
-  
+
   Object.keys(fieldMapping).forEach((apiKey) => {
     const mapping = fieldMapping[apiKey];
     const apiValue = data[apiKey];
-    
+
     if (mapping.transformer) {
       mappedData[mapping.stateKey] = mapping.transformer(apiValue);
     } else {
       mappedData[mapping.stateKey] = apiValue ?? '';
     }
   });
+
+  // Parse phone number to strip country code from the input value
+  const rawPhone = data.phoneNo;
+  if (rawPhone) {
+    const parsed = parsePhoneNumberFromString(
+      String(rawPhone).startsWith('+') ? String(rawPhone) : `+${rawPhone}`
+    );
+    if (parsed) {
+      mappedData.phone = parsed.nationalNumber;
+      mappedData.countryCode = parsed.country ?? '';
+    }
+  }
 
   return mappedData;
 };
@@ -177,15 +211,31 @@ export const ProfileSetting = ({ navigation, route }: { navigation: any; route?:
 
     // Prepare payload matching API requirements
     // Gender should be lowercase (API expects "male", "female", "other")
+
+    // Always send the phone in E.164 (with country code). state.phone may hold
+    // only the national number when the user didn't touch the phone field.
+    const parsedPhone = parsePhoneNumberFromString(
+      state.phone.trim(),
+      state.countryCode as CountryCode,
+    );
+    const fullPhone = parsedPhone ? parsedPhone.format('E.164') : state.phone.trim();
+
     const payload = {
       name: state.fullName.trim(),
-      phoneNo: state.phone.trim(),
+      phoneNo: fullPhone,
       email: state.email.trim(),
       age: state.age.trim(),
-      gender: state.gender.toLowerCase(), // Convert to lowercase for API
+      gender: state.gender.toLowerCase(),
       notificationStatus: state.notificationEnabled,
       language: state.language,
+      IDnumber: state.nationalID?.trim() || undefined,
+      nationality: state.nationality
+        ? (state.nationality === 'Non-Saudi' ? 'non_saudi' : state.nationality === 'Saudi' ? 'saudi' : state.nationality.toString().toLowerCase())
+        : undefined,
+      city: state.city?.trim() || undefined,
     };
+
+    console.log('[ProfileSetting] UPDATE_PROFILE payload:', JSON.stringify(payload, null, 2));
 
     console.log("🚀 ~ updateProfile ~ payload language:", payload.language);
 
@@ -251,6 +301,12 @@ export const ProfileSetting = ({ navigation, route }: { navigation: any; route?:
       return false;
     }
 
+    // If national ID / Iqama provided, ensure it's exactly 10 digits
+    if (state.nationalID && state.nationalID.replace(/[^0-9]/g, '').length !== 10) {
+      Alert.alert('Error', 'Iqama Number must be exactly 10 digits');
+      return false;
+    }
+
     return true;
   };
 
@@ -296,7 +352,8 @@ export const ProfileSetting = ({ navigation, route }: { navigation: any; route?:
       closeDeleteModal();
       
       // Logout and navigate to login
-      setTimeout(() => {
+      setTimeout(async () => {
+        try { await signOutGoogle(); } catch {}
         logout();
         navigation.replace('Auth', { screen: 'SignIn' });
       }, 1000);
@@ -384,6 +441,38 @@ export const ProfileSetting = ({ navigation, route }: { navigation: any; route?:
             value={state.age}
             onChangeText={(text) => dispatch({ age: text })}
             keyboardType="numeric"
+          />
+
+          <CustomTextInput
+            label={t('national_id') || 'National ID'}
+            placeholder={t('enter_national_id') || 'Enter National ID'}
+            value={state.nationalID}
+            onChangeText={(text) => {
+              // allow only digits and limit to 10 characters (Iqama)
+              const numeric = (text || '').replace(/[^0-9]/g, '').slice(0, 10);
+              dispatch({ nationalID: numeric });
+            }}
+            keyboardType="numeric"
+            maxLength={10}
+          />
+
+          <CustomDropdown
+            label={t('nationality') || 'Nationality'}
+            placeholder={t('select_nationality') || 'Select Nationality'}
+            value={state.nationality}
+            onValueChange={(text) => dispatch({ nationality: text })}
+            options={[
+              { label: 'Saudi', value: 'Saudi' },
+              { label: 'Non-Saudi', value: 'Non-Saudi' },
+            ]}
+          />
+
+          <CustomDropdown
+            label={t('city') || 'City'}
+            placeholder={t('select_city') || 'Select City'}
+            value={state.city}
+            onValueChange={(text) => dispatch({ city: text })}
+            options={citiesData.map((c: any) => ({ label: c.name, value: c.name }))}
           />
 
           {/* Password Manager */}

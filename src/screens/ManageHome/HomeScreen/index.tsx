@@ -1,11 +1,10 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { View, ScrollView, StyleSheet, StatusBar, ActivityIndicator, Text, Platform, PermissionsAndroid } from 'react-native';
+import { View, ScrollView, StyleSheet, StatusBar, ActivityIndicator, Text, Platform, PermissionsAndroid, RefreshControl } from 'react-native';
 import HomeHeader from '../../../components/molecules/HomeHeadder';
 import { colors } from '../../../styles/colors';
 import { mvs } from '../../../config/metrices';
 import RecommendedClinics from '../../../components/molecules/RecommendedClinics';
 import NearbyClinics from '../../../components/molecules/ClinicListItem';
-import { RecommandImage } from '@assets/images';
 import { useTranslation } from 'react-i18next';
 import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
@@ -29,7 +28,7 @@ export const HomeScreen = ({ navigation }) => {
   const { t } = useTranslation();
   const { cartCount } = useCartCount();
   const { notificationCount } = useNotificationCount();
-  const { location } = useLocationStore();
+  const { location, isLoading: isLocationLoading, fetchLocation } = useLocationStore();
   const [recommendedClinics, setRecommendedClinics] = useState<Clinic[]>([]);
   const [nearbyClinics, setNearbyClinics] = useState<Clinic[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,18 +36,23 @@ export const HomeScreen = ({ navigation }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
   const [hasAudioPermission, setHasAudioPermission] = useState(false);
   const [hasVideoPermission, setHasVideoPermission] = useState(false);
-  
+
   // Refs for pagination and preventing stale closures
-  const isInitialMountRef = useRef(true);
+  const isInitialFetchDoneRef = useRef(false);
+  const locationFetchStartedRef = useRef(false);
   const isLoadingMoreRef = useRef(false);
   const currentSearchQueryRef = useRef('');
   const currentLocationRef = useRef<{ lat: number; long: number } | null>(null);
+  const prevLocationRef = useRef<typeof location | null>(null);
   const recordsPerPage = 10;
 
   // Transform API response to Clinic format
   const transformClinicsData = (apiClinics: ClinicApiResponse[]): Clinic[] => {
+    console.log('apiClinics', apiClinics);
+
     return apiClinics.map((clinic): Clinic => {
       // Use clinicName (not name) for the card title
       const clinicName = clinic.clinicName || clinic.name || 'Clinic';
@@ -64,8 +68,9 @@ export const HomeScreen = ({ navigation }) => {
         : (businessType || 'General');
       const rating = parseFloat(clinic.avgRating) || 0;
 
-      // Use cover image, logo, or default image
-      let image: { uri: string } | number = RecommandImage;
+      // Use cover image or logo when available; leave undefined otherwise so
+      // the card falls back to ClinicAvatar (initials) instead of a dummy image.
+      let image: { uri: string } | undefined;
       if (clinic.details?.coverImage) {
         image = { uri: clinic.details.coverImage };
       } else if (clinic.details?.logo) {
@@ -79,25 +84,29 @@ export const HomeScreen = ({ navigation }) => {
         rating: rating,
         location: location,
         image: image,
-        isFeatured: clinic.is_featured === true,
+        isFeatured: !!clinic.is_featured,
       };
     });
   };
 
   // Fetch clinics function
   const fetchClinics = useCallback(async (
-    lat?: number, 
-    long?: number, 
-    pageNo: number = 1, 
-    recordsPerPage: number = 10, 
-    searchName: string = '', 
-    append: boolean = false
+    lat?: number,
+    long?: number,
+    pageNo: number = 1,
+    recordsPerPage: number = 10,
+    searchName: string = '',
+    append: boolean = false,
+    showCenterLoader: boolean = true
   ) => {
     try {
       if (append) {
         setLoadingMore(true);
       } else {
-        setLoading(true);
+        // Only show the center loading indicator when requested
+        if (showCenterLoader) {
+          setLoading(true);
+        }
         setLoadingMore(false);
         setCurrentPage(1);
         setHasMore(true);
@@ -108,18 +117,18 @@ export const HomeScreen = ({ navigation }) => {
         pageNo: pageNo,
         recordsPerPage: recordsPerPage,
       };
-      
+
       // Only include lat and long if they are provided
-      // if (lat !== undefined && long !== undefined) {
-      //   params.lat = lat.toString();
-      //   params.long = long.toString();
-      // }
-      
+      if (lat !== undefined && long !== undefined) {
+        params.lat = lat.toString();
+        params.long = long.toString();
+      }
+
       const response = await apiClient.get(API.CLINIC.GET_CLINICS, {
         params: params,
       });
       console.log('response', response.data);
-      
+
       if (response.data.success && response.data.data) {
         const clinics = transformClinicsData(response.data.data);
 
@@ -132,14 +141,14 @@ export const HomeScreen = ({ navigation }) => {
         if (append) {
           // Append to existing clinics
           setRecommendedClinics(prev => {
-            const newFeatured = clinics.filter(clinic => clinic.isFeatured === true);
+            const newFeatured = clinics.filter(clinic => clinic.isFeatured);
             // Avoid duplicates by checking IDs
             const existingIds = new Set(prev.map(c => c.id));
             const uniqueNew = newFeatured.filter(c => !existingIds.has(c.id));
             return [...prev, ...uniqueNew];
           });
           setNearbyClinics(prev => {
-            const newNearby = clinics.filter(clinic => clinic.isFeatured !== true);
+            const newNearby = clinics.filter(clinic => !clinic.isFeatured);
             // Avoid duplicates
             const existingIds = new Set(prev.map(c => c.id));
             const uniqueNew = newNearby.filter(c => !existingIds.has(c.id));
@@ -147,8 +156,8 @@ export const HomeScreen = ({ navigation }) => {
           });
         } else {
           // Replace existing clinics
-          const featured = clinics.filter(clinic => clinic.isFeatured === true);
-          const nearby = clinics.filter(clinic => clinic.isFeatured !== true);
+          const featured = clinics.filter(clinic => clinic.isFeatured);
+          const nearby = clinics.filter(clinic => !clinic.isFeatured);
           setRecommendedClinics(featured);
           setNearbyClinics(nearby);
         }
@@ -174,33 +183,52 @@ export const HomeScreen = ({ navigation }) => {
     }
   }, [recordsPerPage]);
 
-  // Request permissions on mount
+  // Request permissions and ensure location fetch is running (in background)
   useEffect(() => {
     requestPermissions();
-  }, []);
+    fetchLocation(); // Runs in background; no-op if already loading
+  }, [fetchLocation]);
 
-  // Fetch clinics when component mounts if location is available
+  // Wait for location to resolve, then make the initial API call
   useEffect(() => {
-    console.log('Location:', location);
-    if (isInitialMountRef.current) {
-      // Initialize refs
-      currentSearchQueryRef.current = searchQuery;
-      if (location) {
-        currentLocationRef.current = { lat: location.lat, long: location.long };
-        fetchClinics(location.lat, location.long, 1, recordsPerPage, searchQuery, false);
-      } else {
-        currentLocationRef.current = null;
-        fetchClinics(undefined, undefined, 1, recordsPerPage, searchQuery, false);
-      }
-      isInitialMountRef.current = false;
+    if (isLocationLoading) {
+      // Mark that location loading has started so we know when it resolves
+      locationFetchStartedRef.current = true;
+      return;
+    }
+
+    // Don't fire on the very first render before fetchLocation() has started
+    if (!locationFetchStartedRef.current) return;
+
+    // Only do this once
+    if (isInitialFetchDoneRef.current) return;
+    isInitialFetchDoneRef.current = true;
+
+    console.log('Location resolved:', location);
+    currentSearchQueryRef.current = searchQuery;
+    prevLocationRef.current = location || null;
+
+    if (location) {
+      currentLocationRef.current = { lat: location.lat, long: location.long };
+      fetchClinics(location.lat, location.long, 1, recordsPerPage, searchQuery, false);
+    } else {
+      currentLocationRef.current = null;
+      fetchClinics(undefined, undefined, 1, recordsPerPage, searchQuery, false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run on mount
+  }, [isLocationLoading]);
 
   // Refetch when search query or location changes (with debounce)
   useEffect(() => {
-    // Skip on initial mount (handled by initial fetch useEffect)
-    if (isInitialMountRef.current) {
+    // Skip until the initial fetch has been done
+    if (!isInitialFetchDoneRef.current) {
+      return;
+    }
+
+    // If location has just become available (null -> defined) after initial mount,
+    // skip this automatic refetch to avoid duplicate API call — initial fetch is sufficient.
+    if (!prevLocationRef.current && location) {
+      prevLocationRef.current = location;
       return;
     }
 
@@ -214,6 +242,9 @@ export const HomeScreen = ({ navigation }) => {
     } else {
       currentLocationRef.current = null;
     }
+
+    // store current location for subsequent comparisons
+    prevLocationRef.current = location || null;
 
     // Clear data immediately to prevent flickering
     setRecommendedClinics([]);
@@ -301,6 +332,20 @@ export const HomeScreen = ({ navigation }) => {
     setSearchQuery(text);
   };
 
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    setCurrentPage(1);
+    setHasMore(true);
+
+    if (location) {
+      await fetchClinics(location.lat, location.long, 1, recordsPerPage, searchQuery, false, false);
+    } else {
+      await fetchClinics(undefined, undefined, 1, recordsPerPage, searchQuery, false, false);
+    }
+
+    setRefreshing(false);
+  }, [location, searchQuery, fetchClinics, recordsPerPage]);
+
   const handleSLPress = () => {
     navigation.navigate('SelectLocation');
   };
@@ -318,7 +363,7 @@ export const HomeScreen = ({ navigation }) => {
 
     isLoadingMoreRef.current = true;
     const nextPage = currentPage + 1;
-    
+
     if (latestLocation) {
       fetchClinics(latestLocation.lat, latestLocation.long, nextPage, recordsPerPage, latestSearchQuery, true);
     } else {
@@ -351,6 +396,7 @@ export const HomeScreen = ({ navigation }) => {
       <StatusBar barStyle="light-content" />
       <HomeHeader
         location={location?.locationText}
+        isLocationLoading={isLocationLoading}
         onLocationPress={handleLocationPress}
         onCartPress={handleCartPress}
         onNotificationPress={handleNotificationPress}
@@ -363,20 +409,50 @@ export const HomeScreen = ({ navigation }) => {
       />
 
       {loading ? (
-        <View style={styles.loadingContainer}>
+        <ScrollView
+          style={styles.content}
+          contentContainerStyle={styles.loadingContainer}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={['#7625D7']}
+              tintColor="#7625D7"
+            />
+          }
+        >
           <ActivityIndicator size="large" color="#7625D7" />
-        </View>
+        </ScrollView>
       ) : recommendedClinics.length === 0 && nearbyClinics.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyTitle}>{t('no_clinics_found')}</Text>
-          <Text style={styles.emptyMessage}>{t('no_clinics_message')}</Text>
-        </View>
+        <ScrollView
+          style={styles.content}
+          contentContainerStyle={styles.emptyContainer}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={['#7625D7']}
+              tintColor="#7625D7"
+            />
+          }
+        >
+          <Text style={styles.emptyTitle}>{t('no_nearby_clinics_found')}</Text>
+          <Text style={styles.emptyMessage}>{t('no_nearby_clinics_message')}</Text>
+        </ScrollView>
       ) : (
-        <ScrollView 
+        <ScrollView
           style={styles.content}
           onScroll={handleScroll}
           scrollEventThrottle={16}
           onMomentumScrollEnd={handleScroll}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={['#7625D7']}
+              tintColor="#7625D7"
+            />
+          }
         >
           {recommendedClinics.length > 0 && (
             <RecommendedClinics
@@ -423,12 +499,12 @@ const styles = StyleSheet.create({
     color: colors.black,
   },
   loadingContainer: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   emptyContainer: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: mvs(30),

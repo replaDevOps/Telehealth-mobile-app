@@ -10,11 +10,12 @@ import {
 } from '@components/molecules';
 import { ClinicInfo } from '@components/molecules/ClinicInfo';
 import { colors } from '../../../styles/colors';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, TouchableOpacity, Text, ActivityIndicator, Platform, PermissionsAndroid, RefreshControl, KeyboardAvoidingView } from 'react-native';
+import { View, ScrollView, TouchableOpacity, Text, ActivityIndicator, Platform, PermissionsAndroid, RefreshControl, Image, KeyboardAvoidingView, Keyboard } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { RecommandImage } from '@assets/images';
-import AboutClinic from '@components/molecules/AboutCard';
 import ConsultDoctorBottomSheet from '@components/molecules/ConsultDoctorBottomSheet';
 import { styles } from './style';
 import { useCart } from '@context/CartContext';
@@ -29,6 +30,7 @@ import { API } from '@services/api/api-endpoint';
 import { ClinicDetailResponse, ClinicService, ClinicReview, ClinicDescriptionResponse, ClinicDevice, DeviceDetailResponse, ServiceFilterOption } from '../../../types/clinic.types';
 import { Toast } from 'toastify-react-native';
 import { translateCityToEnglish } from '../../../utils/cityTranslator';
+import { showLocationSettingsAlert, handleLocationError } from '../../../utils/locationUtils';
 
 // Define types
 interface Review {
@@ -46,6 +48,7 @@ interface SortOption {
 
 export const ClinicDetailScreen = ({ navigation, route }) => {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { clinic } = route.params;
   const { addToCart, cartItems } = useCart();
   const { triggerRefresh, incrementCartCount } = useCartCountContext();
@@ -64,6 +67,9 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
   const [sortOption, setSortOption] = useState('by_date');
   const [sortedReviews, setSortedReviews] = useState<Review[]>([]);
   const [isFocus, setIsFocus] = useState(false);
+  const [flexToggle, setFlexToggle] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
+  const [chatButtonHeight, setChatButtonHeight] = useState<number>(0);
 
   // API data states
   const [clinicDetail, setClinicDetail] = useState<ClinicDetailResponse | null>(null);
@@ -72,6 +78,19 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
   const [services, setServices] = useState<ClinicService[]>([]);
   const [reviews, setReviews] = useState<ClinicReview[]>([]);
   const [serviceFilters, setServiceFilters] = useState<ServiceFilterOption[]>([]);
+  const [servicesPage, setServicesPage] = useState<number>(1);
+  const [servicesPerPage] = useState<number>(10);
+  const [servicesTotal, setServicesTotal] = useState<number | null>(null);
+  const [loadingServicesPage, setLoadingServicesPage] = useState(false);
+  const [reviewsPage, setReviewsPage] = useState<number>(1);
+  const [reviewsPerPage] = useState<number>(10);
+  const [reviewsTotal, setReviewsTotal] = useState<number | null>(null);
+  const [loadingReviewsPage, setLoadingReviewsPage] = useState(false);
+  const [devicesPage, setDevicesPage] = useState<number>(1);
+  const [devicesPerPage] = useState<number>(10);
+  const [devicesTotal, setDevicesTotal] = useState<number | null>(null);
+  const [devicesNextPageUrl, setDevicesNextPageUrl] = useState<string | null>(null);
+  const [loadingDevicesPage, setLoadingDevicesPage] = useState(false);
   const [loading, setLoading] = useState(false); // Start with false to show UI immediately
   const [loadingServices, setLoadingServices] = useState(false);
   const [loadingReviews, setLoadingReviews] = useState(false);
@@ -122,13 +141,39 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     }
   }, [activeTab, clinicID]);
 
-  // Refetch services when search query changes (debounced)
   useEffect(() => {
-    if (activeTab === t('services') && clinicID && services.length > 0) {
-      // Only filter locally if we already have services loaded
-      // Don't refetch on every keystroke
+    const keyboardShowListener = Keyboard.addListener('keyboardDidShow', (e: any) => {
+      setFlexToggle(false);
+      const h = e?.endCoordinates?.height || 0;
+      setKeyboardHeight(h);
+    });
+
+    const keyboardHideListener = Keyboard.addListener('keyboardDidHide', () => {
+      setFlexToggle(true);
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      keyboardShowListener.remove();
+      keyboardHideListener.remove();
+    };
+  }, []);
+
+  // Refetch services from server when search query changes (debounced)
+  useEffect(() => {
+    if (activeTab === t('services') && clinicID) {
+      const timeoutId = setTimeout(() => {
+        // Reset pagination and fetch first page from server to support server-side search
+        setServices([]);
+        setServicesPage(1);
+        setServicesTotal(null);
+        fetchClinicServices(1, servicesPerPage);
+      }, 400);
+
+      return () => clearTimeout(timeoutId);
     }
-  }, [searchQuery, activeTab]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, activeTab, clinicID]);
 
   // Remove client-side sorting since we're using API sorting
   // useEffect(() => {
@@ -141,7 +186,12 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     if (!clinicID) return;
 
     try {
-      setLoadingDescription(true);
+       
+      if (pageNo === 1) {
+        setLoadingDescription(true);
+      } else {
+        setLoadingDevicesPage(true);
+      }
       const response = await apiClient.get(API.CLINIC.GET_CLINIC_DESCRIPTION, {
         params: {
           clinicID: clinicID.toString(),
@@ -153,28 +203,60 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       // API response structure with pagination:
       // {
       //   success: true,
-      //   total: 3,
-      //   currentPage: 2,
-      //   perPage: 1,
+      //   totalRecords: 13,
+      //   currentPage: 1,
+      //   perPage: 10,
       //   nextPageUrl: "...",
-      //   data: {...}
+      //   previousPageUrl: null,
+      //   data: {...},
+      //   devices: [...]
       // }
       const responseData = response.data;
 
       // Extract data - description might be an object, not array
       const descriptionData = responseData?.data || responseData;
 
+      // Determine total count for devices and nextPageUrl
+      const totalCount = responseData?.totalRecords || responseData?.total || responseData?.totalCount || null;
+      const nextPageUrl = responseData?.nextPageUrl || null;
+      console.log('fetchClinicDescription - totalCount:', responseData);
+      if (totalCount !== null) {
+        setDevicesTotal(Number(totalCount));
+      }
+      setDevicesNextPageUrl(nextPageUrl);
+
       if (responseData?.success !== false && descriptionData) {
-        setClinicDescription({
-          data: descriptionData,
-          devices: responseData.devices || [],
-        });
-        // Set devices from description response (filter only active)
+        // Only update description data on first page
+        if (pageNo === 1) {
+          setClinicDescription({
+            data: descriptionData,
+            devices: responseData.devices || [],
+          });
+        }
+      
+        // Handle devices pagination - filter only active
         if (response.data.devices && Array.isArray(response.data.devices)) {
           const activeDevices = response.data.devices.filter(
             (device: ClinicDevice) => device.status === 'active'
           );
-          setDevices(activeDevices);
+
+          // Append or replace based on page
+          if (pageNo > 1) {
+            setDevices(prev => {
+              const combined = [...prev, ...activeDevices];
+              // De-duplicate by id
+              const uniq = Array.from(new Map(combined.map(d => [String(d.id), d])).values());
+              return uniq;
+            });
+            setDevicesPage(pageNo);
+          } else {
+            setDevices(activeDevices);
+            setDevicesPage(1);
+          }
+        } else if (pageNo === 1) {
+          // No devices on first page
+          setDevices([]);
+          setDevicesTotal(0);
         }
       }
     } catch (error: any) {
@@ -182,6 +264,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       Toast.error(error.message || 'Failed to fetch clinic description');
     } finally {
       setLoadingDescription(false);
+      setLoadingDevicesPage(false);
     }
   };
 
@@ -195,13 +278,11 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
           PermissionsAndroid.PERMISSIONS.RECORD_AUDIO
         );
 
-        console.log('📱 [ClinicDetail] Camera Permission:', cameraStatus);
-        console.log('📱 [ClinicDetail] Audio Permission:', audioStatus);
 
         setHasAudioPermission(audioStatus);
         setHasVideoPermission(cameraStatus && audioStatus);
       } catch (err) {
-        console.warn('📱 [ClinicDetail] Error checking permissions:', err);
+        // console.warn('📱 [ClinicDetail] Error checking permissions:', err);
         setHasAudioPermission(false);
         setHasVideoPermission(false);
       }
@@ -221,8 +302,11 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
         if (granted === PermissionsAndroid.RESULTS.GRANTED) {
           getCurrentLocationAndFetch();
         } else {
-          // Use default location if permission denied
           fetchClinicDetails(24.7136, 46.6753);
+          showLocationSettingsAlert({
+            title: 'Location Permission',
+            message: 'Location access is needed to show distance to the clinic. Would you like to open settings to enable it?',
+          });
         }
       } else {
         Geolocation.requestAuthorization();
@@ -231,6 +315,10 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     } catch (err) {
       console.warn('Location permission error:', err);
       fetchClinicDetails(24.7136, 46.6753);
+      showLocationSettingsAlert({
+        title: 'Location Permission',
+        message: 'Location access is needed. Would you like to open settings to enable it?',
+      });
     }
   };
 
@@ -245,7 +333,11 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       },
       error => {
         console.warn('Error getting location:', error);
-        // Keep using default location, no need to refetch
+        handleLocationError(error, {
+          title: 'Location Not Available',
+          message: 'Please enable location services to see distance to the clinic. Would you like to open settings?',
+          openLocationSettings: true,
+        });
       },
       { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 } // Reduced timeout and use cached location
     );
@@ -267,6 +359,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       }
 
       // Make API calls in parallel for better performance
+      console.log('Fetching clinic details with location:', { lat, long });
       const [detailsResponse, descriptionResponse] = await Promise.all([
         apiClient.get(API.CLINIC.GET_CLINIC_DETAILS, {
           params: {
@@ -283,18 +376,16 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
           },
         }),
       ]);
-
       if (detailsResponse.data.success && detailsResponse.data.data) {
-        console.log('Clinic details fetched:', detailsResponse.data.data);
         setClinicDetail(detailsResponse.data.data);
       }
 
       // Extract description data (might be nested in pagination response)
       const descResponseData = descriptionResponse.data;
       const descriptionData = descResponseData?.data || descResponseData;
-
+      const nextPageUrl = descResponseData?.nextPageUrl || null;
+      setDevicesNextPageUrl(nextPageUrl);
       if (descResponseData?.success !== false && descriptionData) {
-        console.log('Clinic description fetched:', descriptionData);
         setClinicDescription({
           data: descriptionData,
           devices: descResponseData.devices || [],
@@ -370,10 +461,14 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     if (!clinicID) return;
 
     try {
-      setLoadingServices(true);
+      if (pageNo === 1) {
+        setLoadingServices(true);
+      } else {
+        setLoadingServicesPage(true);
+      }
       const response = await apiClient.get(API.CLINIC.GET_CLINIC_SERVICES, {
         params: {
-          name: searchQuery || '',
+          name: searchQuery.trim() || '',
           clinicID: clinicID.toString(),
           serviceType: '',
           groupIDs: [],
@@ -382,19 +477,52 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
           recordsPerPage: recordsPerPage,
         },
       });
+      console.log('fetchClinicServices response:', response.data);
+      // Extract data array and pagination info
+      const responseData = response.data;
+      let servicesList: any[] = [];
+      if (Array.isArray(responseData)) {
+        servicesList = responseData;
+      } else if (Array.isArray(responseData?.data)) {
+        servicesList = responseData.data;
+      }
 
-      if (response.data.success && response.data.data) {
+      // Determine total count from common possible fields
+      const totalCount = responseData?.total || responseData?.totalRecords || responseData?.totalCount || responseData?.totalItems || null;
+      if (totalCount !== null) {
+        setServicesTotal(Number(totalCount));
+      }
+
+      if (responseData?.success !== false && servicesList.length > 0) {
         // Filter only active services
-        const activeServices = response.data.data.filter(
+        const activeServices = servicesList.filter(
           (service: ClinicService) => service.status === 'Active'
         );
-        setServices(activeServices);
+
+        // Append or replace based on page
+        if (pageNo > 1) {
+          setServices(prev => {
+            const combined = [...prev, ...activeServices];
+            // De-duplicate by id
+            const uniq = Array.from(new Map(combined.map(s => [String(s.id), s])).values());
+            return uniq;
+          });
+          setServicesPage(pageNo);
+        } else {
+          setServices(activeServices);
+          setServicesPage(1);
+        }
+      } else if (responseData?.success !== false && servicesList.length === 0 && pageNo === 1) {
+        // No services on first page
+        setServices([]);
+        setServicesTotal(0);
       }
     } catch (error: any) {
       console.error('Error fetching clinic services:', error);
       Toast.error(error.message || 'Failed to fetch clinic services');
     } finally {
       setLoadingServices(false);
+      setLoadingServicesPage(false);
     }
   };
 
@@ -402,7 +530,11 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     if (!clinicID) return;
 
     try {
-      setLoadingReviews(true);
+      if (pageNo === 1) {
+        setLoadingReviews(true);
+      } else {
+        setLoadingReviewsPage(true);
+      }
       const response = await apiClient.get(API.CLINIC.GET_CLINIC_REVIEWS, {
         params: {
           clinicID: clinicID.toString(),
@@ -431,14 +563,37 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
         reviewsList = responseData.data;
       }
 
+      // Determine total count
+      const totalCount = responseData?.total || responseData?.totalRecords || responseData?.totalCount || responseData?.totalItems || null;
+      if (totalCount !== null) {
+        setReviewsTotal(Number(totalCount));
+      }
+
       if (responseData?.success !== false && reviewsList.length > 0) {
-        setReviews(reviewsList);
+        // Append or replace based on page
+        if (pageNo > 1) {
+          setReviews(prev => {
+            const combined = [...prev, ...reviewsList];
+            // De-duplicate by id
+            const uniq = Array.from(new Map(combined.map(r => [String(r.id), r])).values());
+            return uniq;
+          });
+          setReviewsPage(pageNo);
+        } else {
+          setReviews(reviewsList);
+          setReviewsPage(1);
+        }
+      } else if (responseData?.success !== false && reviewsList.length === 0 && pageNo === 1) {
+        // No reviews on first page
+        setReviews([]);
+        setReviewsTotal(0);
       }
     } catch (error: any) {
       console.error('Error fetching clinic reviews:', error);
       Toast.error(error.message || 'Failed to fetch clinic reviews');
     } finally {
       setLoadingReviews(false);
+      setLoadingReviewsPage(false);
     }
   };
 
@@ -451,7 +606,6 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       } catch {
         tags = [];
       }
-
       return {
         id: service.id.toString(),
         image: service.image ? { uri: service.image } : RecommandImage,
@@ -461,12 +615,15 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
         serviceGroup: service.group?.name || 'Group',
         serviceName: service.name,
         price: `SAR ${parseFloat(service.price).toFixed(2)}`,
+        campaignDiscount: (service as any).campaignDiscount,
+        finalPrice: (service as any).finalPrice,
         duration: `${service.duration} ${t('minutes')}`,
         description: service.description || '',
         procedure: service.procedure || '',
         // Additional data for detail view
         loyality: service.loyality,
-        bonusLoyalityPoints: service.bonusLoyalityPoints,
+        bonusLoyalityPoints: (service as any).bonusLoyalityPoints,
+        totalLoyalityPoints: (service as any).totalLoyaltyPoints,
         devices: service.devices || [],
         tags: tags,
         groupID: service.groupID,
@@ -538,16 +695,48 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
         orderBy = 'recent';
     }
 
-    // Fetch reviews with new sort order from API
-    fetchClinicReviews(orderBy);
+    // Reset reviews and fetch from first page with new sort order
+    setReviews([]);
+    setReviewsPage(1);
+    setReviewsTotal(null);
+    fetchClinicReviews(orderBy, 1, reviewsPerPage);
   };
 
   const handleApplyFilters = (filters: any) => {
-    console.log('Applied filters:', filters);
     setAppliedFilters(filters);
     setFilterVisible(false);
-    // Apply filters to services - refetch services with the filter parameters
+    // Reset services and fetch filtered results from first page
+    setServices([]);
+    setServicesPage(1);
+    setServicesTotal(null);
     fetchClinicServicesWithFilters(filters);
+  };
+
+  const loadMoreServices = () => {
+    if (loadingServices || loadingServicesPage) return;
+    // If we already know total and have all services, skip
+    if (servicesTotal !== null && services.length >= servicesTotal) return;
+    fetchClinicServices(servicesPage + 1, servicesPerPage);
+
+  };
+
+  const loadMoreReviews = () => {
+    if (loadingReviews || loadingReviewsPage) return;
+    // If we already know total and have all reviews, skip
+    if (reviewsTotal !== null && reviews.length >= reviewsTotal) return;
+    // Get current sort order
+    let orderBy = 'recent';
+    if (sortOption === 'by_rating') {
+      orderBy = 'rating';
+    }
+    fetchClinicReviews(orderBy, reviewsPage + 1, reviewsPerPage);
+  };
+
+  const loadMoreDevices = () => {
+    if (loadingDescription || loadingDevicesPage) return;
+    // Check if there's a next page URL - if null, no more data
+    if (!devicesNextPageUrl) return;
+    fetchClinicDescription(devicesPage + 1, devicesPerPage);
   };
 
   const fetchClinicServicesWithFilters = async (filters: any) => {
@@ -558,7 +747,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
 
       // Build params for service API
       const params: any = {
-        name: searchQuery || '',
+        name: searchQuery.trim() || '',
         clinicID: clinicID.toString(),
         serviceType: '',
       };
@@ -580,20 +769,20 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
         params.groupIDs = selectedGroupIds;
       }
 
-      // Add selected service IDs as serviceNames array
-      // The API expects serviceNames as an array of service IDs
-      const selectedServiceIds = Object.keys(filters.serviceNames || {})
-        .filter(key => filters.serviceNames[Number(key)])
-        .map(key => Number(key));
-      if (selectedServiceIds.length > 0) {
-        params.serviceNames = selectedServiceIds;
+      // API expects serviceNames as an array of service names (strings), not IDs
+      const selectedNames = filters.selectedServiceNames || [];
+      if (selectedNames.length > 0) {
+        params.serviceNames = selectedNames;
       }
 
+      // Reset to first page when applying filters
+      const pageNo = 1;
+      console.log('Fetching services with filters:', params);
       const response = await apiClient.get(API.CLINIC.GET_CLINIC_SERVICES, {
         params: {
           ...params,
-          pageNo: 1,
-          recordsPerPage: 10,
+          pageNo: pageNo,
+          recordsPerPage: servicesPerPage,
         },
       });
 
@@ -606,6 +795,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       //   nextPageUrl: "...",
       //   data: [...]
       // }
+      console.log('Filtered services response:', response.data);
       const responseData = response.data;
 
       // Extract data array
@@ -616,12 +806,15 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
         servicesList = responseData.data;
       }
 
-      if (responseData?.success !== false && servicesList.length > 0) {
+      if (responseData?.success !== false) {
         // Filter only active services
         const activeServices = servicesList.filter(
           (service: ClinicService) => service.status === 'Active'
         );
         setServices(activeServices);
+        setServicesPage(1);
+        const totalCount = responseData?.total || responseData?.totalRecords || responseData?.totalCount || responseData?.totalItems || null;
+        if (totalCount !== null) setServicesTotal(Number(totalCount));
       }
     } catch (error: any) {
       console.error('Error fetching filtered clinic services:', error);
@@ -632,7 +825,6 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
   };
 
   const handleConsultPress = () => {
-    console.log('Consult now pressed');
     setShowBottomSheet(true);
   };
 
@@ -666,7 +858,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
         } catch {
           tags = [];
         }
-
+        console.log('Fetched service details:', serviceDetail);
         const transformedService = {
           id: serviceDetail.id.toString(),
           image: serviceDetail.image ? { uri: serviceDetail.image } : RecommandImage,
@@ -676,11 +868,14 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
           serviceGroup: serviceDetail.group?.name || 'Group',
           serviceName: serviceDetail.name,
           price: `SAR ${parseFloat(serviceDetail.price).toFixed(2)}`,
+          campaignDiscount: (serviceDetail as any).campaignDiscount,
+          finalPrice: (serviceDetail as any).finalPrice,
           duration: `${serviceDetail.duration} ${t('minutes')}`,
           description: serviceDetail.description || '',
           procedure: serviceDetail.procedure || '',
           loyality: serviceDetail.loyality,
-          bonusLoyalityPoints: serviceDetail.bonusLoyalityPoints,
+          bonusLoyalityPoints: (serviceDetail as any).bonusLoyalityPoints,
+          totalLoyalityPoints: (serviceDetail as any).totalLoyaltyPoints,
           devices: serviceDetail.devices || [],
           tags: tags,
           groupID: serviceDetail.groupID,
@@ -701,9 +896,35 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     }
   };
 
-  const handleChatPress = () => {
-    console.log('Chat with Vena AI pressed');
-    navigation.navigate('ChatOnboarding');
+  const handleChatPress = async () => {
+    // Block while detail/description are still loading; sending undefined name
+    // and location would create a chat session with empty clinic context.
+    if (loading || loadingDescription || !clinicDetail) {
+      Toast.info(t('loading') || 'Loading clinic details...');
+      return;
+    }
+
+    const seen = await AsyncStorage.getItem('vena_ai_onboarding_seen');
+    if (seen) {
+      navigation.navigate('ChatScreen', {
+        chatType: 'ai',
+        clinicInfo: {
+          id: clinicID,
+          name: clinicName,
+          location: clinicLocation || 'No location',
+          image: clinicImage,
+        },
+      });
+    } else {
+      navigation.navigate('ChatOnboarding', {
+        clinicInfo: {
+          id: clinicID,
+          name: clinicName,
+          location: clinicLocation,
+          image: clinicLogo || clinicImage,
+        },
+      });
+    }
   };
 
   const handleAddToCart = async (service: any, shouldNavigate: boolean = false) => {
@@ -744,24 +965,12 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
         return;
       }
 
-      console.log(`➕ [${requestId}] START addToCart API Call`);
-      console.log(`➕ [${requestId}] Endpoint: ${API.CART.ADD_TO_CART}`);
-      console.log(`➕ [${requestId}] Method: POST`);
-      console.log(`➕ [${requestId}] Payload: { serviceID: ${serviceID} }`);
-      console.log(`➕ [${requestId}] Timestamp: ${new Date().toISOString()}`);
 
       // Call API to add service to cart
       const response = await apiClient.post(API.CART.ADD_TO_CART, {
         serviceID: serviceID,
       });
 
-      const endTime = Date.now();
-      const duration = endTime - startTime;
-
-      console.log(`➕ [${requestId}] ✅ SUCCESS - addToCart`);
-      console.log(`➕ [${requestId}] Duration: ${duration}ms (${(duration / 1000).toFixed(2)}s)`);
-      console.log(`➕ [${requestId}] Response Status: ${response.status}`);
-      console.log(`➕ [${requestId}] Response Data:`, response.data);
 
       // Check if API returned success: false (even with 200 status)
       if (response.data?.success === false) {
@@ -782,7 +991,8 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
           specialty: clinic.specialty,
           rating: clinic.rating,
         },
-      };
+      };  
+      console.log(cartItem)
 
       addToCart(cartItem);
 
@@ -801,23 +1011,12 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
         navigation.navigate('CartScreen');
       }
     } catch (error: any) {
-      const endTime = Date.now();
-      const duration = endTime - startTime;
-
-      console.error(`➕ [${requestId}] ❌ ERROR - addToCart`);
-      console.error(`➕ [${requestId}] Duration: ${duration}ms (${(duration / 1000).toFixed(2)}s)`);
-      console.error(`➕ [${requestId}] Error:`, error);
-      console.error(`➕ [${requestId}] Error Message:`, error?.message);
-      console.error(`➕ [${requestId}] Error Response:`, error?.response?.data);
-      console.error(`➕ [${requestId}] Error Status:`, error?.response?.status);
 
       const errorMessage = error?.message || error?.response?.data?.message || 'Failed to add service to cart';
       Toast.error(errorMessage);
     } finally {
-      setLoadingAddToCart(false);
-      setLoadingCheckout(false);
-      const totalDuration = Date.now() - startTime;
-      console.log(`➕ [${requestId}] 🏁 COMPLETE - Total time: ${totalDuration}ms`);
+        setLoadingAddToCart(false);
+        setLoadingCheckout(false);
     }
   };
 
@@ -899,8 +1098,8 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
 
   // Get clinic data from API or fallback to route params
   const displayClinic = clinicDetail || {
-    name: clinic?.name,
-    clinicName: clinic?.name,
+    // name: clinic?.name,
+    clinicName: clinic?.clinicName,
     businessType: clinic?.specialty,
     avgRating: clinic?.rating?.toString() || '0',
     details: {
@@ -932,13 +1131,15 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       ? `${(clinicDetail.distance).toFixed(1)}km`
       : '--km';
 
+  // Prefer real images; fall back to undefined (no image) instead of a dummy
+  // so the header renders its solid color background rather than a placeholder.
   const clinicImage = clinicDescriptionData?.coverImage
     ? { uri: clinicDescriptionData.coverImage }
     : clinicDetail?.details?.coverImage
       ? { uri: clinicDetail.details.coverImage }
-      : clinicDetail?.details?.logo
-        ? { uri: clinicDetail.details.logo }
-        : (typeof clinic?.image === 'string' && clinic.image ? { uri: clinic.image } : (clinic?.image || RecommandImage));
+      : (typeof clinic?.image === 'string' && clinic.image)
+        ? { uri: clinic.image }
+        : (clinic?.image && typeof clinic.image !== 'string' ? clinic.image : undefined);
 
   const clinicLogo = clinicDescriptionData?.logo
     ? { uri: clinicDescriptionData.logo }
@@ -946,13 +1147,16 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       ? { uri: clinicDetail.details.logo }
       : null;
 
-  // Transform services for display
+  // Transform services for display (do not apply client-side filtering;
+  // server provides filtered/paginated results)
   const transformedServices = transformServices(services);
-  const filteredServices = transformedServices.filter(service =>
-    service.serviceName.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredServices = transformedServices;
 
-  // Transform devices from API to match AboutClinic component format
+  const hasMoreServices = servicesTotal !== null ? services.length < servicesTotal : false;
+  const hasMoreReviews = reviewsTotal !== null ? reviews.length < reviewsTotal : false;
+  const hasMoreDevices = devicesNextPageUrl !== null;
+  // console.log('📱 [ClinicDetail] hasMoreDevices:', hasMoreDevices, 'nextPageUrl:', devicesNextPageUrl);
+  // Transform devices from API to match Abou tClinic component format 
   const transformDevices = (apiDevices: ClinicDevice[]) => {
     if (!apiDevices || !Array.isArray(apiDevices)) {
       return [];
@@ -997,10 +1201,22 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
   // Don't block UI with full loading screen - show content immediately with route params
   // Individual sections will show their own loading states
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      style={
+        flexToggle
+          ? [{ flexGrow: 1 }, styles.container]
+          : [{ flex: 1 }, styles.container]
+      }
+      enabled={!flexToggle}
+    >
       <ScrollView
         style={styles.scrollView}
+        contentContainerStyle={{ paddingBottom: Math.max(chatButtonHeight + keyboardHeight + 24, 24) }}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -1045,21 +1261,15 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
             <Text style={styles.sectionTitle}>{t('all_services')}</Text>
 
             {/* Search Bar */}
-            <KeyboardAvoidingView
-              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-              keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
-              style={{ width: '100%' }}
-            >
-              <SearchServicesBar
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                onFilterPress={handleFilterPress}
-                placeholder={t('search_services')}
-              />
-            </KeyboardAvoidingView>
+            <SearchServicesBar
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              onFilterPress={handleFilterPress}
+              placeholder={t('search_services')}
+            />
 
             {/* Services List */}
-            {loadingServices ? (
+            {loadingServices && !refreshing ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#7625D7" />
               </View>
@@ -1077,8 +1287,27 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
                     description={service.description}
                     procedure={service.procedure}
                     onPress={() => handleServicePress(service)}
+                    bonusLoyalityPoints={service.totalLoyalityPoints ?? service.bonusLoyalityPoints}
+                    campaignDiscount={service.campaignDiscount}
+                    finalPrice={service.finalPrice}
                   />
                 ))}
+
+                {/* Load more control for paginated services */}
+                {hasMoreServices && (
+                  <View style={{ width: '100%', alignItems: 'center',paddingTop: 6 }}>
+                    {loadingServicesPage && !refreshing ? (
+                      <ActivityIndicator size="small" color="#7625D7" />
+                    ) : (
+                      <TouchableOpacity
+                        onPress={loadMoreServices}
+                        style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, backgroundColor: '#efefef' }}
+                      >
+                        <Text style={{ color: '#333' }}>Load More</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
               </View>
             ) : (
               <View style={styles.emptyContainer}>
@@ -1114,7 +1343,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
             </View>
 
             {/* Reviews List */}
-            {loadingReviews ? (
+            {loadingReviews && !refreshing ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#7625D7" />
               </View>
@@ -1132,6 +1361,22 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
                     }
                   />
                 ))}
+
+                {/* Load more control for paginated reviews */}
+                {hasMoreReviews && (
+                   <View style={{ width: '100%', alignItems: 'center',paddingTop: 6 }}>
+                    {loadingReviewsPage && !refreshing ? (
+                      <ActivityIndicator size="small" color="#7625D7" />
+                    ) : (
+                      <TouchableOpacity
+                        onPress={loadMoreReviews}
+                        style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, backgroundColor: '#efefef' }}
+                      >
+                        <Text style={{ color: '#333' }}>Load More</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
               </View>
             ) : (
               <View style={styles.emptyContainer}>
@@ -1142,25 +1387,107 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
         )}
 
         {activeTab === t('about') && (
-          <AboutClinic
-            description={aboutData.description}
-            devices={aboutData.devices}
-            onDevicePress={handleDevicePress}
-          />
+          <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
+            {/* Description Section */}
+            <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 12 }}>
+              {t('description')}
+            </Text>
+            <Text style={{ fontSize: 14, lineHeight: 22, color: colors.text, marginBottom: 8 }}>
+              {aboutData.description}
+            </Text>
+
+            {/* Devices Section */}
+            <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.text, marginTop: 24, marginBottom: 12 }}>
+              {t('devices')}
+            </Text>
+
+            {loadingDescription && !refreshing ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#7625D7" />
+              </View>
+            ) : aboutData.devices.length > 0 ? (
+              <View style={{ flexDirection: 'column', gap: 12 }}>
+                {aboutData.devices.map(device => (
+                  <TouchableOpacity
+                    key={device.id}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      backgroundColor: '#fff',
+                      borderRadius: 12,
+                      padding: 10,
+                      borderBottomWidth: 1,
+                      borderColor: colors.border,
+                    }}
+                    onPress={() => handleDevicePress(device)}
+                  >
+                    <Image source={device.image} style={{ width: 50, height: 50, borderRadius: 8, marginRight: 10 }} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: colors.text, marginBottom: 4 }} numberOfLines={1}>
+                        {device.title}
+                      </Text>
+                      <Text style={{ fontSize: 12, color: colors.secondaryText, marginBottom: 6 }} numberOfLines={2}>
+                        {device.note}
+                      </Text>
+                      {device.badge && Object.keys(device.badge).length > 0 && (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <Text style={{ color: colors.text, fontSize: 11, fontWeight: '600', backgroundColor: colors.lightGray, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
+                            {Object.values(device.badge)[0]}
+                          </Text>
+                          {Object.keys(device.badge).length > 1 && (
+                            <View style={{ backgroundColor: colors.lightGray, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 }}>
+                              <Text style={{ color: colors.text, fontSize: 11, fontWeight: '600' }}>
+                                +{Object.keys(device.badge).length - 1}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                ))}
+
+                {/* Load more control for paginated devices */}
+                {hasMoreDevices ? (
+                  <View style={{ width: '100%', alignItems: 'center',paddingTop: 6 }}>
+                    {loadingDevicesPage && !refreshing ? (
+                      <ActivityIndicator size="small" color="#7625D7" />
+                    ) : (
+                      <TouchableOpacity
+                        onPress={loadMoreDevices}
+                        style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, backgroundColor: '#efefef' }}
+                      >
+                        <Text style={{ color: '#333' }}>Load More</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ):(<View style={{height: "10%"}}/>)}
+              </View>
+            ) : (
+              <Text style={{ fontSize: 14, color: colors.secondaryText, textAlign: 'center', paddingVertical: 20 }}>
+                No devices available
+              </Text>
+            )}
+          </View>
         )}
       </ScrollView>
 
-      {/* Chat with Vena AI Button */}
-      <View style={styles.chatButtonContainer}>
-        <TouchableOpacity
-          style={styles.chatButton}
-          onPress={handleChatPress}
-          activeOpacity={0.8}
+      {/* Chat with Vena AI Button - hide when keyboard is open */}
+      {keyboardHeight === 0 && (
+        <View
+          style={[styles.chatButtonContainer, { bottom: 0, paddingBottom: 20 + insets.bottom }]}
+          onLayout={(e) => setChatButtonHeight(e.nativeEvent.layout.height)}
         >
-          <Text style={styles.chatButtonText}>{t('chat_with_vena_ai')}</Text>
-          <Ionicons name="sparkles" size={20} color={colors.white} />
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity
+            style={styles.chatButton}
+            onPress={handleChatPress}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.chatButtonText}>{t('chat_with_vena_ai')}</Text>
+            <Ionicons name="sparkles" size={20} color={colors.white} />
+          </TouchableOpacity>
+        </View>
+      )}
 
       <FilterBottomSheet
         visible={filterVisible}
@@ -1197,6 +1524,6 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
         hasAudioPermission={hasAudioPermission}
         hasVideoPermission={hasVideoPermission}
       />
-    </View>
+    </KeyboardAvoidingView>
   );
 };

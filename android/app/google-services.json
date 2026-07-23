@@ -1,0 +1,98 @@
+{
+  "project_info": {
+    "project_number": "827261290955",
+    "project_id": "vena-telehealth",
+    "storage_bucket": "vena-telehealth.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:827261290955:android:05a69cffac053769984e4e",
+        "android_client_info": {
+          "package_name": "com.telehealth"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "827261290955-du1un8fna849uj5p7tifrjosrr9u6vd1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.telehealth",
+            "certificate_hash": "3c2fe04ec8605608e04996eeeb8f3024d4b8ebbe"
+          }
+        },
+        {
+          "client_id": "827261290955-th1ppf9irisnrc2p3gdh88dd339o6rj9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.telehealth",
+            "certificate_hash": "0fa541dd8bbde28378d9f99fe1968f838d9b4424"
+          }
+        },
+        {
+          "client_id": "827261290955-i12opd83asbqhsvqjdoj9q98p4slpcjo.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBDmE9fQWTxT2t2OTNLIiwQg-u8BbLY0AY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "827261290955-i12opd83asbqhsvqjdoj9q98p4slpcjo.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "827261290955-42h0md1epmj6asmlpvb984ketdrt3u9k.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.telehealth"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:827261290955:android:e95dbec729389ee5984e4e",
+        "android_client_info": {
+          "package_name": "com.vena.patient"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "827261290955-i12opd83asbqhsvqjdoj9q98p4slpcjo.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBDmE9fQWTxT2t2OTNLIiwQg-u8BbLY0AY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "827261290955-i12opd83asbqhsvqjdoj9q98p4slpcjo.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "827261290955-42h0md1epmj6asmlpvb984ketdrt3u9k.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.telehealth"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

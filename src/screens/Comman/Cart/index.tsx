@@ -1,4 +1,5 @@
 import { RecommandImage } from '@assets/images';
+import ClinicAvatar from '@components/common/ClinicAvatar';
 import { Header2 } from '@components/common/Header2';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
@@ -25,7 +26,7 @@ import Geolocation from '@react-native-community/geolocation';
 import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
 import { Toast } from 'toastify-react-native';
-import { LoyaltyPSvg } from '@assets/icons';
+import { coinIcon } from '@assets/images';
 import { useFocusEffect } from '@react-navigation/native';
 
 export function CartScreen({ navigation }) {
@@ -123,6 +124,7 @@ export function CartScreen({ navigation }) {
   };
 
   const transformCartData = useCallback((apiData: any): any[] => {
+    console.log('Transforming API data for cart UI', apiData);
     // Transform API response structure to match UI
     // API response: { data: [{ clinicID, clinicName, distance_km, totalPrice, totalLoyaltyPoints, items: [...], suggestedServices: [...] }] }
     if (Array.isArray(apiData)) {
@@ -130,22 +132,32 @@ export function CartScreen({ navigation }) {
         clinic: {
           id: clinicGroup.clinicID,
           name: clinicGroup.clinicName,
-          location: '', // Not provided in API response
-          image: RecommandImage, // Not provided in API response
+          // Prefer explicit address from API if provided, otherwise fall back to existing location or empty string
+          address: clinicGroup?.clinic?.address || clinicGroup?.address || '',
+          location: clinicGroup?.clinic?.address || clinicGroup?.address || clinicGroup.clinicName || '',
+          // Prefer real clinic image when the API provides one, otherwise leave
+          // undefined so the card falls back to ClinicAvatar (initials).
+          image: clinicGroup.logo ? { uri: clinicGroup.logo } : undefined,
           distance: clinicGroup.distance_km
             ? `${parseFloat(clinicGroup.distance_km.toString()).toFixed(1)}km`
             : null,
         },
         totalPrice: clinicGroup.totalPrice,
+        servicePrice: clinicGroup.servicePrice,
+        campaignDiscount: Number(clinicGroup.campaignDiscount || 0),
         totalLoyaltyPoints: clinicGroup.totalLoyaltyPoints,
+        clinicLoyaltyPoints: clinicGroup.clinicLoyaltyPoints, // For displaying loyalty points at clinic level
         services: (clinicGroup.items || []).map((item: any) => ({
           id: item.serviceID,
           cartID: item.cartID, // Keep cartID for removal
           image: item.image ? { uri: item.image } : RecommandImage,
-          type: 'General', // Not provided in API response, using default
+          type: item.serviceType || 'General', // Not provided in API response, using default
           serviceGroup: item.group?.groupName || 'Group',
           serviceName: item.serviceName,
           price: item.price ? `SAR ${parseFloat(item.price).toFixed(2)}` : 'SAR 0.00',
+          rawPrice: Number(item.price || 0),
+          campaignDiscount: Number(item.campaignDiscount || 0),
+          finalPrice: item.finalPrice !== undefined && item.finalPrice !== null ? Number(item.finalPrice) : null,
           duration: item.duration ? `${item.duration} ${t('minutes') || 'minutes'}` : '0 minutes',
           loyaltyPoints: item.loyaltyPoints,
         })),
@@ -154,10 +166,12 @@ export function CartScreen({ navigation }) {
           serviceID: service.id, // Keep serviceID for adding to cart
           clinicID: service.clinicID,
           image: service.image ? { uri: service.image } : RecommandImage,
-          type: service.serviceType || 'General',
+          type: service.serviceType || '',
           serviceGroup: service.group?.name || 'Group',
           serviceName: service.name,
           price: service.price ? `SAR ${parseFloat(service.price).toFixed(2)}` : 'SAR 0.00',
+          campaignDiscount: Number(service.campaignDiscount || 0),
+          finalPrice: service.finalPrice !== undefined && service.finalPrice !== null ? Number(service.finalPrice) : null,
           duration: service.duration ? `${service.duration} ${t('minutes') || 'minutes'}` : '0 minutes',
           loyaltyPoints: service.bonusLoyalityPoints || '0',
           description: service.description,
@@ -169,6 +183,38 @@ export function CartScreen({ navigation }) {
 
     return [];
   }, [t]);
+
+  const fetchClinicLogos = useCallback(async (data: any[]) => {
+    const updates = await Promise.all(
+      data.map(async (group) => {
+        if (group.clinic.image) return null; // already have image, skip
+        try {
+          const res = await apiClient.get(API.CLINIC.GET_CLINIC_DESCRIPTION, {
+            params: { clinicID: group.clinic.id },
+          });
+          const d = res.data?.data;
+          const image = d?.logo
+            ? { uri: d.logo }
+            : d?.coverImage
+              ? { uri: d.coverImage }
+              : null;
+          return image ? { clinicId: group.clinic.id, image } : null;
+        } catch {
+          return null;
+        }
+      })
+    );
+    const imageMap: Record<string, any> = {};
+    updates.forEach(u => { if (u) imageMap[u.clinicId] = u.image; });
+    if (Object.keys(imageMap).length === 0) return;
+    setCartData(prev =>
+      prev.map(group =>
+        imageMap[group.clinic.id]
+          ? { ...group, clinic: { ...group.clinic, image: imageMap[group.clinic.id] } }
+          : group
+      )
+    );
+  }, []);
 
   const fetchCartDetails = useCallback(async (lat: number, long: number, isInitialLoad: boolean = true, forceRefresh: boolean = false) => {
     // Request deduplication - prevent multiple simultaneous calls
@@ -206,11 +252,6 @@ export function CartScreen({ navigation }) {
     const startTime = Date.now();
     const requestId = `CART_${startTime}`;
 
-    console.log(`🛒 [${requestId}] START fetchCartDetails API Call`);
-    console.log(`🛒 [${requestId}] Endpoint: ${API.CART.VIEW_CART_DETAILS}`);
-    console.log(`🛒 [${requestId}] Params: lat=${lat}, long=${long}`);
-    console.log(`🛒 [${requestId}] Initial Load: ${isInitialLoad}`);
-    console.log(`🛒 [${requestId}] Timestamp: ${new Date().toISOString()}`);
 
     try {
       if (isInitialLoad) {
@@ -230,15 +271,8 @@ export function CartScreen({ navigation }) {
       }
 
       const response = await apiClient.get(API.CART.VIEW_CART_DETAILS, requestConfig);
-
-      const endTime = Date.now();
-      const duration = endTime - startTime;
-
-      console.log(`🛒 [${requestId}] ✅ SUCCESS - fetchCartDetails`);
-      console.log(`🛒 [${requestId}] Duration: ${duration}ms (${(duration / 1000).toFixed(2)}s)`);
-      console.log(`🛒 [${requestId}] Response Status: ${response.status}`);
-      console.log(`🛒 [${requestId}] Response Data:`, response.data);
-      console.log(`🛒 [${requestId}] Response Size: ~${JSON.stringify(response.data).length} bytes`);
+      console.log(`🛒 [${requestId}] API response received`, response.data);
+     
 
       // Check if request was aborted
       if (abortController && abortController.signal.aborted) {
@@ -250,10 +284,13 @@ export function CartScreen({ navigation }) {
         console.log(`🛒 [${requestId}] Response Data:`, response.data.data);
         // Transform API response to match UI structure
         const transformedData = transformCartData(response.data.data);
+        console.log(`🛒 [${requestId}] Transformed Cart Data:`, transformedData);
         setCartData(transformedData);
         // Store grand totals from API response
         setGrandTotalPrice(response.data.grandTotalPrice || 0);
         setGrandTotalLoyaltyPoints(response.data.grandTotalLoyaltyPoints || 0);
+        // Fetch clinic logos for clinics that don't have an image yet
+        fetchClinicLogos(transformedData);
       } else {
         setCartData([]);
         setGrandTotalPrice(0);
@@ -272,12 +309,7 @@ export function CartScreen({ navigation }) {
       const endTime = Date.now();
       const duration = endTime - startTime;
 
-      console.error(`🛒 [${requestId}] ❌ ERROR - fetchCartDetails`);
-      console.error(`🛒 [${requestId}] Duration: ${duration}ms (${(duration / 1000).toFixed(2)}s)`);
-      console.error(`🛒 [${requestId}] Error:`, error);
-      console.error(`🛒 [${requestId}] Error Message:`, error?.message);
-      console.error(`🛒 [${requestId}] Error Response:`, error?.response?.data);
-      console.error(`🛒 [${requestId}] Error Status:`, error?.response?.status);
+     
 
       Toast.error(error.message || 'Failed to fetch cart details');
       setCartData([]);
@@ -325,6 +357,21 @@ export function CartScreen({ navigation }) {
     return `SAR ${total.toFixed(2)}`;
   };
 
+  const calculateGroupDiscount = (clinicGroup: any) => {
+    return (clinicGroup.services || []).reduce((sum: number, service: any) => {
+      return sum + Number(service.campaignDiscount || 0);
+    }, 0);
+  };
+
+  const calculateGroupFinalTotal = (clinicGroup: any) => {
+    return (clinicGroup.services || []).reduce((sum: number, service: any) => {
+      const finalP = service.finalPrice !== null && service.finalPrice !== undefined
+        ? Number(service.finalPrice)
+        : Number(service.rawPrice || 0);
+      return sum + finalP;
+    }, 0);
+  };
+
   const handleRemoveService = async (service: any) => {
     // Check if cartID is available
     if (!service.cartID) {
@@ -339,12 +386,6 @@ export function CartScreen({ navigation }) {
     const requestId = `REMOVE_${startTime}`;
     const endpoint = `${API.CART.REMOVE_FROM_CART}/${cartID}`;
 
-    console.log(`🗑️ [${requestId}] START removeFromCart API Call`);
-    console.log(`🗑️ [${requestId}] Endpoint: ${endpoint}`);
-    console.log(`🗑️ [${requestId}] CartID: ${cartID}`);
-    console.log(`🗑️ [${requestId}] Method: DELETE`);
-    console.log(`🗑️ [${requestId}] Timestamp: ${new Date().toISOString()}`);
-
     try {
       // Call DELETE API to remove item from cart
       const response = await apiClient.delete(endpoint);
@@ -352,10 +393,6 @@ export function CartScreen({ navigation }) {
       const endTime = Date.now();
       const duration = endTime - startTime;
 
-      console.log(`🗑️ [${requestId}] ✅ SUCCESS - removeFromCart`);
-      console.log(`🗑️ [${requestId}] Duration: ${duration}ms (${(duration / 1000).toFixed(2)}s)`);
-      console.log(`🗑️ [${requestId}] Response Status: ${response.status}`);
-      console.log(`🗑️ [${requestId}] Response Data:`, response.data);
 
       if (response.data?.success === false) {
         const errorMessage = response.data?.message || 'Failed to remove item from cart';
@@ -384,15 +421,6 @@ export function CartScreen({ navigation }) {
         await fetchCartDetails(userLocation.lat, userLocation.long, false, true);
       }
     } catch (error: any) {
-      const endTime = Date.now();
-      const duration = endTime - startTime;
-
-      console.error(`🗑️ [${requestId}] ❌ ERROR - removeFromCart`);
-      console.error(`🗑️ [${requestId}] Duration: ${duration}ms (${(duration / 1000).toFixed(2)}s)`);
-      console.error(`🗑️ [${requestId}] Error:`, error);
-      console.error(`🗑️ [${requestId}] Error Message:`, error?.message);
-      console.error(`🗑️ [${requestId}] Error Response:`, error?.response?.data);
-      console.error(`🗑️ [${requestId}] Error Status:`, error?.response?.status);
 
       const errorMessage = error?.response?.data?.message || error?.message || 'Failed to remove item from cart';
       Toast.error(errorMessage);
@@ -407,13 +435,17 @@ export function CartScreen({ navigation }) {
     // Navigate to checkout screen with clinic data
     const checkoutServices = clinicGroup.services.map(service => ({
       service: service,
-      clinic: clinicGroup.clinic,
+      clinic: { ...clinicGroup.clinic, clinicLoyaltyPoints: clinicGroup.clinicLoyaltyPoints },
     }));
 
     navigation.navigate('CheckoutScreen', {
       services: checkoutServices,
       fromCart: true,
       totalLoyaltyPoints: clinicGroup.totalLoyaltyPoints,
+      clinicLoyaltyPoints: clinicGroup.clinicLoyaltyPoints,
+      groupServicePrice: Number(clinicGroup.servicePrice || 0),
+      groupCampaignDiscount: Number(clinicGroup.campaignDiscount || 0),
+      groupTotalPrice: Number(clinicGroup.totalPrice || 0),
     });
   };
 
@@ -429,11 +461,7 @@ export function CartScreen({ navigation }) {
     const startTime = Date.now();
     const requestId = `ADD_SUGGESTED_${startTime}`;
 
-    console.log(`➕ [${requestId}] START addSuggestedToCart API Call`);
-    console.log(`➕ [${requestId}] Endpoint: ${API.CART.ADD_TO_CART}`);
-    console.log(`➕ [${requestId}] Method: POST`);
-    console.log(`➕ [${requestId}] Payload: { serviceID: ${serviceID} }`);
-    console.log(`➕ [${requestId}] Timestamp: ${new Date().toISOString()}`);
+   
 
     try {
       // Call API to add service to cart
@@ -444,10 +472,7 @@ export function CartScreen({ navigation }) {
       const endTime = Date.now();
       const duration = endTime - startTime;
 
-      console.log(`➕ [${requestId}] ✅ SUCCESS - addSuggestedToCart`);
-      console.log(`➕ [${requestId}] Duration: ${duration}ms (${(duration / 1000).toFixed(2)}s)`);
-      console.log(`➕ [${requestId}] Response Status: ${response.status}`);
-      console.log(`➕ [${requestId}] Response Data:`, response.data);
+    
 
       if (response.data?.success === false) {
         const errorMessage = response.data?.message || 'Failed to add service to cart';
@@ -455,12 +480,16 @@ export function CartScreen({ navigation }) {
         return;
       }
 
+      console.log("Adding to cart",{
+        service: service,
+        clinic: clinic,
+      })
       // Add to local cart context for immediate UI update
       addToCart({
         service: service,
         clinic: clinic,
       });
-
+      
       // Show success message
       const successMessage = response.data?.message || response.data?.data?.message || 'Service added to cart successfully';
       Toast.success(successMessage);
@@ -479,14 +508,6 @@ export function CartScreen({ navigation }) {
         await fetchCartDetails(24.7136, 46.6753, false, true);
       }
     } catch (error: any) {
-      const endTime = Date.now();
-      const duration = endTime - startTime;
-
-      console.error(`➕ [${requestId}] ❌ ERROR - addSuggestedToCart`);
-      console.error(`➕ [${requestId}] Duration: ${duration}ms (${(duration / 1000).toFixed(2)}s)`);
-      console.error(`➕ [${requestId}] Error:`, error);
-      console.error(`➕ [${requestId}] Error Message:`, error?.message);
-      console.error(`➕ [${requestId}] Error Response:`, error?.response?.data);
 
       const errorMessage = error?.response?.data?.message || error?.message || 'Failed to add service to cart';
       Toast.error(errorMessage);
@@ -545,128 +566,136 @@ export function CartScreen({ navigation }) {
           <View key={clinicGroup.clinic.id} style={styles.clinicSection}>
             {/* Clinic Info */}
             <View style={styles.clinicCard}>
-              <Image
-                source={clinicGroup.clinic.image || RecommandImage}
-                resizeMode="cover"
-                style={styles.clinicImage}
-              />
+              {clinicGroup.clinic.image ? (
+                <Image
+                  source={clinicGroup.clinic.image}
+                  resizeMode="cover"
+                  style={styles.clinicImage}
+                />
+              ) : (
+                <ClinicAvatar name={clinicGroup.clinic.name} size={56} style={styles.clinicImage} />
+              )}
               <View style={styles.clinicInfo}>
-                <Text style={styles.clinicName}>{clinicGroup.clinic.name}</Text>
-                <Text style={styles.clinicLocation}>
-                  {clinicGroup.clinic.distance || ''}
+                <Text style={styles.clinicName} numberOfLines={1} ellipsizeMode="tail">{clinicGroup.clinic.name}</Text>
+                
+                <Text style={styles.clinicLocation} numberOfLines={1} ellipsizeMode="tail">
+                  {clinicGroup.clinic.address || clinicGroup.clinic.location || ''}{clinicGroup.clinic.distance ? `, ${clinicGroup.clinic.distance}` : ''}
                 </Text>
+
+                <View style={styles.clinicPointsContainer}>
+                  <View style={styles.coinWrapper}>
+                    <Image source={coinIcon} style={styles.coinImage} />
+                  </View>
+                  <Text style={styles.clinicPointsText}>{Math.round(Number(clinicGroup.clinicLoyaltyPoints || 0))}</Text>
+                </View>
+                
               </View>
             </View>
 
             {/* Services in Cart */}
             {clinicGroup.services.map(service => (
               <View key={service.cartID} style={styles.serviceCard}>
-                <Image source={service.image} style={styles.serviceImage} />
-                <View style={styles.serviceContent}>
-                  <View style={styles.serviceHeader}>
-                    <View style={styles.serviceBadges}>
-                      <View style={styles.categoryBadge}>
-                        <Text style={styles.categoryBadgeText}>
-                          {service.type}
-                        </Text>
-                      </View>
-                      <View style={styles.nameBadge}>
-                        <Text style={styles.nameBadgeText}>
-                          {service.serviceGroup}
-                        </Text>
-                      </View>
-                    </View>
-                    <TouchableOpacity
-                      style={styles.removeButton}
-                      onPress={() => handleRemoveService(service)}
-                      disabled={removingCartId === service.cartID}
-                      activeOpacity={0.7}
-                    >
-                      <View style={styles.removeCircle}>
-                        {removingCartId === service.cartID ? (
-                          <ActivityIndicator size="small" color={colors.white} />
-                        ) : (
-                          <Text style={styles.removeIcon}>×</Text>
-                        )}
-                      </View>
-                    </TouchableOpacity>
+                {/* Remove button - top right */}
+                <TouchableOpacity
+                  style={styles.removeButton}
+                  onPress={() => handleRemoveService(service)}
+                  disabled={removingCartId === service.cartID}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.removeCircle}>
+                    {removingCartId === service.cartID ? (
+                      <ActivityIndicator size="small" color={colors.white} />
+                    ) : (
+                      <Ionicons name="close" size={16} color={colors.white} />
+                    )}
                   </View>
-                  <Text style={styles.serviceName}>{service.serviceName}</Text>
-                  <View style={styles.serviceFooter}>
-                    <View style={styles.durationContainer}>
-                      <Ionicons
-                        name="time-outline"
-                        size={18}
-                        color={colors.secondaryText}
-                      />
-                      <Text style={styles.duration}>{service.duration}</Text>
+                </TouchableOpacity>
+
+                <View style={styles.cardHeader}>
+                  <View style={styles.serviceBadges}>
+                    <View style={styles.categoryBadge}>
+                      <Text style={styles.categoryBadgeText} numberOfLines={1} ellipsizeMode="tail">{service.type}</Text>
                     </View>
-                    <Text style={styles.servicePrice}>{service.price}</Text>
+                    <View style={styles.nameBadge}>
+                      <Text style={styles.nameBadgeText} numberOfLines={1} ellipsizeMode="tail">{service.serviceGroup}</Text>
+                    </View>
                   </View>
-                  {/* Loyalty badge per service */}
-                  {service.loyaltyPoints && Number(service.loyaltyPoints) > 0 && (
-                    <View style={styles.loyaltyBadge}>
-                      <LoyaltyPSvg width={18} height={18} />
+                </View>
+
+                <View style={styles.cardBody}>
+                  <Image source={service.image} style={styles.serviceImage} />
+                  <View style={styles.serviceContent}>
+                    <Text style={styles.serviceName} numberOfLines={1} ellipsizeMode="tail">{service.serviceName}</Text>
+                    <View style={styles.serviceFooter}>
+                      <View style={styles.durationContainer}>
+                        <Ionicons
+                          name="time-outline"
+                          size={18}
+                          color={colors.secondaryText}
+                        />
+                        <Text style={styles.duration}>{service.duration}</Text>
+                      </View>
+                      {Number(service.campaignDiscount || 0) > 0 && service.finalPrice !== null ? (
+                        <View style={{ alignItems: 'flex-end' }}>
+                          <Text style={[styles.servicePrice, { fontSize: 12, color: '#888', textDecorationLine: 'line-through', fontWeight: '400' }]}>{service.price}</Text>
+                          <Text style={styles.servicePrice}>{`SAR ${Number(service.finalPrice).toFixed(2)}`}</Text>
+                          <Text style={{ fontSize: 11, fontWeight: '600', color: '#16a34a', marginTop: 2 }}>
+                            {`-SAR ${Number(service.campaignDiscount).toFixed(2)}`}
+                          </Text>
+                        </View>
+                      ) : (
+                        <Text style={styles.servicePrice}>{service.price}</Text>
+                      )}
+                    </View>
+                    {/* Loyalty badge per service */}
+                    {service.loyaltyPoints && Number(service.loyaltyPoints) > 0 && (
                       <Text style={styles.loyaltyBadgeText}>
                         {`Earn ${Math.round(Number(service.loyaltyPoints))} loyalty points`}
                       </Text>
-                    </View>
-                  )}
+                    )}
+                  </View>
                 </View>
               </View>
             ))}
 
-            {/* Suggested Services Section */}
+            {/* Subtotal */}
+            <View style={styles.subtotalContainer}>
+              <Text style={styles.subtotalLabel}>{t('subtotal')}</Text>
+              <Text style={styles.subtotalValue}>
+                {calculateSubtotal(clinicGroup)}
+              </Text>
+            </View>
+            {calculateGroupDiscount(clinicGroup) > 0 && (
+              <>
+                <View style={[styles.subtotalContainer, { borderTopWidth: 0, paddingVertical: 6 }]}>
+                  <Text style={styles.subtotalLabel}>{t('discount') || 'Discount'}</Text>
+                  <Text style={[styles.subtotalValue, { color: '#16a34a' }]}>
+                    {`-SAR ${calculateGroupDiscount(clinicGroup).toFixed(2)}`}
+                  </Text>
+                </View>
+                <View style={[styles.subtotalContainer, { borderTopWidth: 0, paddingVertical: 6 }]}>
+                  <Text style={[styles.subtotalLabel, { fontWeight: '700' }]}>{t('total') || 'Total'}</Text>
+                  <Text style={styles.subtotalValue}>
+                    {`SAR ${calculateGroupFinalTotal(clinicGroup).toFixed(2)}`}
+                  </Text>
+                </View>
+              </>
+            )}
+            <CustomButton
+              title={t('continue_to_checkout')}
+              onPress={() => handleCheckout(clinicGroup)}
+            />
+
+            <Text style={styles.taxNote}>{t('taxes_calculated_at_checkout')}</Text>
+
+            {/* Suggested Services Section (moved below checkout) */}
             {getSuggestedServices(clinicGroup.clinic.id).length > 0 && (
               <View style={styles.suggestedSection}>
                 <Text style={styles.suggestedTitle}>{t('suggested_services')}</Text>
 
                 {getSuggestedServices(clinicGroup.clinic.id).map(service => (
                   <View key={service.id} style={styles.suggestedServiceCard}>
-                    <Image source={service.image} style={styles.serviceImage} />
-                    <View style={styles.serviceContent}>
-                      <View style={styles.serviceBadges}>
-                        <View style={styles.categoryBadge}>
-                          <Text style={styles.categoryBadgeText}>
-                            {service.type}
-                          </Text>
-                        </View>
-                        <View style={styles.nameBadge}>
-                          <Text style={styles.nameBadgeText}>
-                            {service.serviceGroup}
-                          </Text>
-                        </View>
-                      </View>
-                      <Text style={styles.serviceName}>
-                        {service.serviceName}
-                      </Text>
-                      <View style={styles.serviceFooter}>
-                        <View style={styles.durationContainer}>
-                          <Ionicons
-                            name="time-outline"
-                            size={18}
-                            color={colors.secondaryText}
-                          />
-                          <Text style={styles.duration}>
-                            {service.duration}
-                          </Text>
-                        </View>
-                        <View style={styles.suggestedPriceContainer}>
-                          <Text style={styles.servicePrice}>
-                            {service.price}
-                          </Text>
-                        </View>
-                      </View>
-                      {/* Loyalty badge for suggested service */}
-                      {service.loyaltyPoints && Number(service.loyaltyPoints) > 0 && (
-                        <View style={styles.loyaltyBadge}>
-                          <LoyaltyPSvg width={18} height={18} />
-                          <Text style={styles.loyaltyBadgeText}>
-                            {`Earn ${Math.round(Number(service.loyaltyPoints))} loyalty points`}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
+                    {/* Add to cart button - top right */}
                     <TouchableOpacity
                       onPress={() =>
                         handleAddSuggestedService(service, clinicGroup.clinic)
@@ -681,43 +710,82 @@ export function CartScreen({ navigation }) {
                       {addingServiceId === service.serviceID ? (
                         <ActivityIndicator size="small" color={colors.primary} />
                       ) : isServiceInCart(service.serviceID) ? (
-                        <Ionicons name="checkmark-circle" size={20} color={colors.white} />
+                        <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
                       ) : (
-                        <Text style={styles.addSuggestedButtonText}>
-                          {t('add') || 'Add'}
-                        </Text>
+                        <View style={styles.cartIconContainer}>
+                          <Ionicons name="cart-outline" size={20} color={colors.primary} />
+                          <View style={styles.plusBadge}>
+                            <Ionicons name="add" size={12} color={colors.white} />
+                          </View>
+                        </View>
                       )}
                     </TouchableOpacity>
+
+                    <View style={styles.cardHeader}>
+                        <View style={styles.serviceBadges}>
+                          <View style={styles.categoryBadge}>
+                            <Text style={[styles.categoryBadgeText]} numberOfLines={1} ellipsizeMode="tail" >{service.type}</Text>
+                          </View>
+                          <View style={styles.nameBadge}>
+                            <Text style={styles.nameBadgeText} numberOfLines={1} ellipsizeMode="tail">{service.serviceGroup}</Text>
+                          </View>
+                        </View>
+                    </View>
+
+                    <View style={styles.cardBody}>
+                      <Image source={service.image} style={styles.serviceImage} />
+                      <View style={styles.serviceContent}>
+                        <Text style={styles.serviceName} numberOfLines={1} ellipsizeMode="tail">
+                          {service.serviceName}
+                        </Text>
+                        <View style={styles.serviceFooter}>
+                          <View style={styles.durationContainer}>
+                            <Ionicons
+                              name="time-outline"
+                              size={18}
+                              color={colors.secondaryText}
+                            />
+                            <Text style={styles.duration}>
+                              {service.duration}
+                            </Text>
+                          </View>
+                          <View style={styles.suggestedPriceContainer}>
+                            {Number(service.campaignDiscount || 0) > 0 && service.finalPrice !== null ? (
+                              <View style={{ alignItems: 'flex-end' }}>
+                                <Text style={[styles.servicePrice, { fontSize: 12, color: '#888', textDecorationLine: 'line-through', fontWeight: '400' }]}>
+                                  {service.price}
+                                </Text>
+                                <Text style={styles.servicePrice}>
+                                  {`SAR ${Number(service.finalPrice).toFixed(2)}`}
+                                </Text>
+                                <Text style={{ fontSize: 11, fontWeight: '600', color: '#16a34a', marginTop: 2 }}>
+                                  {`-SAR ${Number(service.campaignDiscount).toFixed(2)}`}
+                                </Text>
+                              </View>
+                            ) : (
+                              <Text style={styles.servicePrice}>
+                                {service.price}
+                              </Text>
+                            )}
+                          </View>
+                        </View>
+                        {/* Loyalty badge for suggested service */}
+                        {service.loyaltyPoints && Number(service.loyaltyPoints) > 0 && (
+                          <View style={styles.loyaltyBadge}>
+                            <View style={styles.coinWrapper}>
+                              <Image source={coinIcon} style={styles.coinImage} />
+                            </View>
+                            <Text style={styles.loyaltyBadgeText}>
+                              {`Earn ${Math.round(Number(service.loyaltyPoints))} loyalty points`}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    </View>
                   </View>
                 ))}
               </View>
             )}
-
-            {/* Subtotal */}
-            <View style={styles.subtotalContainer}>
-              <Text style={styles.subtotalLabel}>{t('subtotal')}</Text>
-              <Text style={styles.subtotalValue}>
-                {calculateSubtotal(clinicGroup)}
-              </Text>
-            </View>
-            {/* Clinic loyalty total */}
-            {/* {clinicGroup.totalLoyaltyPoints !== undefined && Number(clinicGroup.totalLoyaltyPoints) > 0 && (
-              <View style={{ marginTop: 8, marginBottom: 8, marginLeft: 8 }}>
-                <View style={{ backgroundColor: '#FFF7E6', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center' }}>
-                  <LoyaltyPSvg width={18} height={18} />
-                  <Text style={{ marginLeft: 8, color: '#B06B00', fontWeight: '600' }}>
-                    {`Earn ${Math.round(Number(clinicGroup.totalLoyaltyPoints))} loyalty points`}
-                  </Text>
-                </View>
-              </View>
-            )} */}
-
-            <CustomButton
-              title={t('continue_to_checkout')}
-              onPress={() => handleCheckout(clinicGroup)}
-            />
-
-            <Text style={styles.taxNote}>{t('taxes_calculated_at_checkout')}</Text>
           </View>
         ))}
 

@@ -46,6 +46,8 @@ export function useBackgroundTimer({
   const startTimestampRef = useRef<number | null>(null);
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Background timer ref (from react-native-background-timer) if available
+  const backgroundIntervalRef = useRef<number | null>(null);
   const hasEndedRef = useRef(false);
 
   // Calculate remaining time based on start timestamp
@@ -74,26 +76,76 @@ export function useBackgroundTimer({
 
   // Handle app state changes (background/foreground)
   useEffect(() => {
+    // Attempt to load a native background timer if available (optional dependency)
+    let BackgroundTimer: any = null;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      BackgroundTimer = require('react-native-background-timer');
+    } catch (e) {
+      BackgroundTimer = null;
+    }
+
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
       const previousState = appStateRef.current;
       appStateRef.current = nextAppState;
 
-      // When app comes back to foreground, recalculate remaining time
+      // When app goes to background, start a background interval if available
+      if (
+        previousState === 'active' &&
+        nextAppState.match(/inactive|background/) &&
+        isActive &&
+        startTimestampRef.current
+      ) {
+        if (BackgroundTimer && typeof BackgroundTimer.setInterval === 'function') {
+          // Clear any previous background interval
+          if (backgroundIntervalRef.current) {
+            try { BackgroundTimer.clearInterval(backgroundIntervalRef.current); } catch (e) {}
+            backgroundIntervalRef.current = null;
+          }
+
+          // Use a 1s interval to keep tracking elapsed time while backgrounded.
+          // NOTE: Do NOT call onTimeUp or set hasEndedRef here — React state
+          // updates won't render while the app is in the background. The
+          // foreground handler below will fire the callback when the user
+          // returns to the app.
+          backgroundIntervalRef.current = BackgroundTimer.setInterval(() => {
+            const remaining = calculateRemainingTime();
+            setRemainingSeconds(remaining);
+
+            // Stop ticking once we've hit zero — callback is handled on foreground return
+            if (remaining <= 0) {
+              try { BackgroundTimer.clearInterval(backgroundIntervalRef.current); } catch (e) {}
+              backgroundIntervalRef.current = null;
+            }
+          }, 1000);
+        }
+      }
+
+      // When app comes back to foreground, stop background interval and recalculate remaining time
       if (
         previousState.match(/inactive|background/) &&
         nextAppState === 'active' &&
         isActive &&
         startTimestampRef.current
       ) {
+        // Clear background interval if we created one
+        if (backgroundIntervalRef.current && BackgroundTimer && typeof BackgroundTimer.clearInterval === 'function') {
+          try { BackgroundTimer.clearInterval(backgroundIntervalRef.current); } catch (e) {}
+          backgroundIntervalRef.current = null;
+        }
+
         console.log('⏰ [useBackgroundTimer] App returned to foreground, recalculating time');
         const remaining = calculateRemainingTime();
         setRemainingSeconds(remaining);
-        
-        // Check if time is up
-        if (remaining <= 0 && !hasEndedRef.current) {
-          hasEndedRef.current = true;
+
+        // Fire onTimeUp when time is up. Always call here even if hasEndedRef
+        // was set by a background interval, because React state updates made
+        // while the app was in the background may not have rendered.
+        if (remaining <= 0) {
+          if (!hasEndedRef.current) {
+            hasEndedRef.current = true;
+          }
           console.log('⏰ [useBackgroundTimer] Time is up after returning from background');
-          // Use the ref version if available, otherwise fall back to the prop
           const callback = onTimeUpRef?.current || onTimeUp;
           callback?.();
         }
@@ -103,6 +155,12 @@ export function useBackgroundTimer({
     const subscription = AppState.addEventListener('change', handleAppStateChange);
 
     return () => {
+      // Clear any background interval on cleanup
+      try {
+        if (backgroundIntervalRef.current && BackgroundTimer && typeof BackgroundTimer.clearInterval === 'function') {
+          BackgroundTimer.clearInterval(backgroundIntervalRef.current);
+        }
+      } catch (e) {}
       subscription.remove();
     };
   }, [isActive, calculateRemainingTime, onTimeUp, onTimeUpRef]);

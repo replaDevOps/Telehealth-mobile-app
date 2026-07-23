@@ -6,6 +6,7 @@ import { PaymentHeader } from './PaymentHeader';
 import { PaymentDoctorSection } from './PaymentDoctorSection';
 import { ServiceStatusRow } from './ServiceStatusRow';
 import { styles } from '../style';
+import { formatDateLocal } from '../utils/format';
 
 interface ServiceDetail {
   id: number;
@@ -33,6 +34,7 @@ interface PaymentConsultationItem {
   price: string;
   status: string;
   statusColor: string;
+  refundServiceCount?: number;
 }
 
 interface PaymentAppointmentItem {
@@ -41,6 +43,7 @@ interface PaymentAppointmentItem {
   date: string;
   paymentId: string;
   clinicImg?: boolean;
+  clinicImage?: string;
   clinicName: string;
   clinicLocation: string;
   numberOfService: string;
@@ -48,6 +51,15 @@ interface PaymentAppointmentItem {
   status: string;
   statusColor: string;
   services: ServiceDetail[];
+  refundServiceCount?: number;
+  refundServices?: Array<{
+    id: number;
+    appointmentID: number;
+    status: string;
+    serviceID: number;
+  }>;
+  refundStatus?: string;
+  refundStatusColor?: string;
 }
 
 export type PaymentItem = PaymentConsultationItem | PaymentAppointmentItem;
@@ -63,31 +75,16 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
 }) => {
   const { t } = useTranslation();
 
-  // Format date from ISO string to readable format (YYYY-MM-DD)
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return '';
-    try {
-      const date = new Date(dateStr);
-      // Format as "YYYY-MM-DD"
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    } catch (e) {
-      return dateStr;
-    }
-  };
-
   return (
     <View style={[styles.card, { paddingHorizontal: 0 }]}>
-      <Text style={styles.dateText}>{formatDate(item.date)}</Text>
+      <Text style={styles.dateText}>{formatDateLocal(item.date)}</Text>
 
       <View style={styles.cardContainer}>
         <PaymentHeader item={item} />
 
         <View style={styles.paymentDoctorRow}>
           <PaymentDoctorSection item={item} />
-          <Text style={styles.paymentPrice}>{"Sar " + item.price}</Text>
+          <Text style={styles.paymentPrice}>{"SAR " + item.price}</Text>
         </View>
 
         <ServiceStatusRow item={item} />

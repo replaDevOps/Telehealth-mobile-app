@@ -1,9 +1,9 @@
 import { Header2 } from '@components/common/Header2';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { View, Text, FlatList, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { mvs } from '@config/metrices';
-import { coinIcon, RecommandImage } from '@assets/images';
+import { coinIcon } from '@assets/images';
 import { useTranslation } from 'react-i18next';
 import { styles } from './style';
 import { RewardSvg } from '@assets/icons';
@@ -17,6 +17,7 @@ import { ClinicCard } from './components';
 import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
 import { colors } from '../../../styles/colors';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type PointsTab = 'earned' | 'used';
 
@@ -37,7 +38,7 @@ export const LoyaltyPointsDetails = () => {
   const {
     clinicId = '',
     clinicName = 'Unknown Clinic',
-    clinicImage = RecommandImage,
+    clinicImage = null,
     totalPoints = 0,
     category = 'Clinic',
   } = params;
@@ -51,7 +52,8 @@ export const LoyaltyPointsDetails = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const recordsPerPage = 10;
-
+  const inset = useSafeAreaInsets();
+  const fetchIdRef = useRef(0);
   const handleClaim = (tierName: string) => {
     console.log(`Claiming reward for ${tierName}`);
   };
@@ -62,6 +64,8 @@ export const LoyaltyPointsDetails = () => {
       return;
     }
 
+    const requestId = ++fetchIdRef.current;
+
     try {
       if (append) {
         setLoadingMore(true);
@@ -71,11 +75,11 @@ export const LoyaltyPointsDetails = () => {
         setHasMore(true);
       }
       setError(null);
-      
-      const endpoint = activeTab === 'earned' 
+
+      const endpoint = activeTab === 'earned'
         ? API.SETTINGS.LOYALTY_POINTS_EARNED
         : API.SETTINGS.LOYALTY_POINTS_USED;
-      
+
       const response = await apiClient.get(endpoint, {
         params: {
           clinicID: clinicId,
@@ -83,8 +87,8 @@ export const LoyaltyPointsDetails = () => {
           recordsPerPage: recordsPerPage,
         },
       });
-      console.log("🚀 ~ fetchTransactions ~ response:",endpoint, response);
-      
+      console.log("🚀 ~ fetchTransactions ~ response:", endpoint, response);
+
       // API response structure with pagination:
       // {
       //   success: true,
@@ -96,7 +100,7 @@ export const LoyaltyPointsDetails = () => {
       //   data: [...]
       // }
       const responseData = response.data;
-      
+
       // Extract data array
       let transactionsList: any[] = [];
       if (Array.isArray(responseData)) {
@@ -108,21 +112,27 @@ export const LoyaltyPointsDetails = () => {
       } else if (Array.isArray(responseData?.points)) {
         transactionsList = responseData.points;
       }
-        
-        console.log('🚀 ~ fetchTransactions ~ transactionsList:', transactionsList);
-        
-        // Check if there's more data using nextPageUrl from backend
-        const hasMoreData = !!(responseData?.nextPageUrl);
-        setHasMore(hasMoreData);
-        
-        if (responseData?.success !== false && transactionsList.length > 0) {
-        
+
+      console.log('🚀 ~ fetchTransactions ~ transactionsList:', transactionsList);
+
+      // Ignore response if a newer fetch started
+      if (requestId !== fetchIdRef.current) {
+        console.log('Ignored stale response for request', requestId);
+        return;
+      }
+
+      // Check if there's more data using nextPageUrl from backend
+      const hasMoreData = !!(responseData?.nextPageUrl);
+      setHasMore(hasMoreData);
+
+      if (responseData?.success !== false && transactionsList.length > 0) {
+
         // Map API response to expected format
         const mappedTransactions = transactionsList.map((item: any, index: number) => {
           // Format date from ISO string to readable format
           let formattedDate = '';
-          if (item.expiry_date || item.date || item.created_at || item.createdAt) {
-            const dateStr = item.expiry_date || item.date || item.created_at || item.createdAt;
+          if (item.used_date || item.expiry_date || item.date || item.created_at || item.createdAt) {
+            const dateStr = item.used_date || item.expiry_date || item.date || item.created_at || item.createdAt;
             try {
               const date = new Date(dateStr);
               formattedDate = date.toLocaleDateString('en-GB', {
@@ -135,27 +145,46 @@ export const LoyaltyPointsDetails = () => {
             }
           }
 
+          // convert expiry date (UTC) to local formatted date
+          let formattedExpiry = '';
+          const expiryRaw = item.expiry_date || item.expiryDate || null;
+          if (expiryRaw) {
+            try {
+              const d = new Date(expiryRaw);
+              formattedExpiry = d.toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+              });
+            } catch (e) {
+              formattedExpiry = expiryRaw;
+            }
+          }
+
           return {
             id: item.id?.toString() || item.transactionID?.toString() || index.toString(),
-            serviceName: item.service_name || item.serviceName || item.service?.name || item.name || 'Service',
+            serviceName: item.service_name || item.serviceName || item.service?.name || item.name || '',
             serviceImage: item.service_image || item.serviceImage || item.image || null,
             transactionId: item.transactionId || item.transactionID || item.id?.toString() || `TXN-${index}`,
             points: item.loyalty_points || item.points || item.loyaltyPoints || item.totalPoints || 0,
-            price: item.price || item.amount || item.totalAmount || '0 SAR',
+            amount: item.amount ? `SAR ${parseFloat(item.amount).toFixed(2)}` : '',
+            // expiryDate will be a formatted local date string (or null)
+            expiryDate: formattedExpiry || null,
             isUsed: activeTab === 'used',
             date: formattedDate || item.date || item.created_at || item.createdAt || '',
-            expiryDate: item.expiry_date || item.expiryDate || null,
+            // keep raw expiry as a fallback if needed
+            expiryDateRaw: expiryRaw,
           };
         });
-        
+
         console.log('🚀 ~ fetchTransactions ~ mappedTransactions:', mappedTransactions);
-        
+
         if (append) {
           setTransactions(prev => [...prev, ...mappedTransactions]);
         } else {
           setTransactions(mappedTransactions);
         }
-        
+
         // Update current page from backend response
         if (responseData?.currentPage) {
           setCurrentPage(responseData.currentPage);
@@ -169,6 +198,10 @@ export const LoyaltyPointsDetails = () => {
         setHasMore(false);
       }
     } catch (error: any) {
+      if (requestId !== fetchIdRef.current) {
+        // stale or aborted request
+        return;
+      }
       console.error(`Error fetching ${activeTab} points:`, error);
       setError(error?.response?.data?.message || error?.message || t('failed_to_load_points') || 'Failed to load points');
       if (!append) {
@@ -186,11 +219,7 @@ export const LoyaltyPointsDetails = () => {
     }
   };
 
-  // Fetch data when tab changes or screen comes into focus
-  useEffect(() => {
-    fetchTransactions(1, false);
-  }, [activeTab, clinicId]);
-
+  // Fetch on mount, tab change, and screen re-focus — single source of truth
   useFocusEffect(
     useCallback(() => {
       fetchTransactions(1, false);
@@ -202,33 +231,54 @@ export const LoyaltyPointsDetails = () => {
     { key: 'used', label: t('points_used') },
   ];
 
-  const renderItem = ({ item }) => (
-    <View style={styles.card}>
-      <View style={styles.leftSection}>
-        <Text style={styles.centerName}>{item.serviceName}</Text>
-        <Text style={styles.transactionId}>{item.transactionId}</Text>
-      </View>
+  const handleTabChange = (tab: PointsTab) => {
+    // keep previous data visible while loading to avoid empty flash;
+    // reset pagination and start loading for new tab
+    setError(null);
+    setHasMore(true);
+    setCurrentPage(1);
+    setLoading(true);
+    setActiveTab(tab);
+  };
 
-      <View style={styles.rightSection}>
-        <View style={styles.pointsContainer}>
-          <Image source={coinIcon} style={{ width: 16, height: 16 }} />
-          <Text
-            style={[
-              styles.points,
-              item.isUsed ? styles.negativePoints : styles.positivePoints,
-            ]}
-          >
-            {item.isUsed ? '-' : '+'}
-            {item.points} <Text style={styles.pointsText}>{t('point')}</Text>
+  const renderItem = ({ item }) => (
+    <View style={{paddingTop: 2}}>
+      {item.expiryDate ? (
+        <Text style={styles.expiryLabel}>{`Expiry date ${item.expiryDate}`}</Text>
+      ) : null}
+
+      <View style={styles.card}>
+        <View style={styles.leftSection}>
+          <Text style={styles.centerName}>
+            {item.isUsed ? `#${item.transactionId}` : item.serviceName}
           </Text>
+          <Text style={styles.transactionId}>{`Appointment ID: #${item.transactionId}`}</Text>
+          <Text style={styles.transactionId}>{item.date}</Text>
         </View>
-        <Text style={styles.price}>{item.price}</Text>
+
+        <View style={styles.rightSection}>
+          <View style={styles.pointsContainer}>
+            <Image source={coinIcon} style={{ width: 16, height: 16 }} />
+            <Text
+              style={[
+                styles.points,
+                item.isUsed ? styles.negativePoints : styles.positivePoints,
+              ]}
+            >
+              {item.isUsed ? '-' : '+'}
+              {item.points} <Text style={styles.pointsText}>{t('point')}</Text>
+            </Text>
+          </View>
+          {item.amount ? (
+            <Text style={styles.price}>{item.amount}</Text>
+          ) : null}
+        </View>
       </View>
     </View>
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: inset.top }]}>
       <Header2 title={t('history')} />
 
       <ClinicCard
@@ -241,22 +291,27 @@ export const LoyaltyPointsDetails = () => {
       <GenericTabs
         tabs={pointsTabs}
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={handleTabChange}
         translateLabels={true}
       />
 
-      <View style={{ flex: 1, paddingHorizontal: 20, marginTop: mvs(20) }}>
+      <View style={{ flex: 1, marginTop: mvs(20) }}>
         {loading ? (
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 100 }}>
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
             <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={{ marginTop: 16, color: colors.secondaryText }}>
-              {t('loading') || 'Loading...'}
-            </Text>
           </View>
         ) : error ? (
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 100, paddingHorizontal: 20 }}>
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 }}>
             <Text style={{ color: colors.red, textAlign: 'center' }}>
               {error}
+            </Text>
+          </View>
+        ) : transactions.length === 0 ? (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 }}>
+            <Text style={{ textAlign: 'center', color: '#666' }}>
+              {activeTab === 'earned'
+                ? t('no_points_earned_yet')
+                : t('no_points_used_yet')}
             </Text>
           </View>
         ) : (
@@ -265,20 +320,13 @@ export const LoyaltyPointsDetails = () => {
             renderItem={renderItem}
             keyExtractor={item => item.id}
             contentContainerStyle={styles.listContainer}
-            ListEmptyComponent={
-              <Text style={{ textAlign: 'center', marginTop: 20, color: '#666' }}>
-                {activeTab === 'earned'
-                  ? t('no_points_earned_yet') || 'No points earned yet'
-                  : t('no_points_used_yet') || 'No points used yet'}
-              </Text>
-            }
             refreshing={loading && transactions.length === 0}
             onRefresh={() => fetchTransactions(1, false)}
             onEndReached={loadMore}
             onEndReachedThreshold={0.5}
             ListFooterComponent={
               loadingMore ? (
-                <View style={{ paddingVertical: 20 }}>
+                <View style={{ paddingVertical: 20, alignItems: 'center' }}>
                   <ActivityIndicator size="small" color={colors.primary} />
                 </View>
               ) : null

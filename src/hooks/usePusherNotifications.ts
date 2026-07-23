@@ -54,7 +54,7 @@ export const usePusherNotifications = () => {
     // Handler for notification-send event
     const handleNotification = async (data: any) => {
       console.log('Notification received:', data);
-      
+
       // Refresh notifications from API
       try {
         const { refreshNotifications } = useNotificationStore.getState();
@@ -63,42 +63,37 @@ export const usePusherNotifications = () => {
       } catch (error) {
         console.error('❌ Error refreshing notifications:', error);
       }
-      
+
       // Show toast notification - ensure we extract a string value
       let notificationMessage = 'New notification received';
-      
+
       if (typeof data === 'string') {
         notificationMessage = data;
       } else if (data && typeof data === 'object') {
         // Extract string from various possible fields
-        notificationMessage = 
-          data?.description || 
-          data?.message || 
-          data?.title || 
-          data?.body || 
-          data?.type ||
-          (data?.notification ? (typeof data.notification === 'string' ? data.notification : data.notification?.description || data.notification?.message || data.notification?.title) : null) ||
+        notificationMessage =
+
           'New notification received';
       }
-      
+
       // Ensure it's a string, not an object
       if (typeof notificationMessage !== 'string') {
         notificationMessage = JSON.stringify(notificationMessage);
       }
-      
+
       Toast.info(notificationMessage);
     };
 
     // Handler for consultation-patient event (when doctor accepts consultation)
     const handleConsultationUpdate = (data: any) => {
       console.log('📞 [Pusher] Consultation update received:', JSON.stringify(data, null, 2));
-      
+
       // Extract consultation data - handle multiple formats:
       // 1. data.consultation (wrapped)
       // 2. data.message (consultation in message field)
       // 3. data (direct consultation object)
       const consultation = data?.consultation || data?.message || data;
-      
+
       console.log('📞 [Pusher] Extracted consultation object:', JSON.stringify(consultation, null, 2));
       console.log('📞 [Pusher] Validation checks:', {
         hasConsultation: !!consultation,
@@ -108,7 +103,7 @@ export const usePusherNotifications = () => {
         consultationType: consultation?.type,
         consultationStatus: consultation?.status,
       });
-      
+
       // Ensure we have a valid consultation object
       if (!consultation || typeof consultation !== 'object' || !consultation.id) {
         console.warn('❌ [Pusher] Invalid consultation data - returning early. Data:', JSON.stringify(data, null, 2));
@@ -117,13 +112,13 @@ export const usePusherNotifications = () => {
         Toast.info(safeMessage);
         return;
       }
-      
+
       // Check if consultation was accepted or is pending (for Chat type, navigate when pending)
       const consultationStatus = consultation?.status || data?.status;
       const isAccepted = consultationStatus === 'Accepted' || consultationStatus === 'accepted';
       const isPending = consultationStatus === 'Pending' || consultationStatus === 'pending';
       const consultationType = consultation?.type || data?.type || 'Chat';
-      
+
       console.log('📞 [Pusher] Navigation decision:', {
         consultationStatus,
         isAccepted,
@@ -131,20 +126,20 @@ export const usePusherNotifications = () => {
         consultationType,
         shouldNavigateLogic: `isPending=${isPending} || isAccepted=${isAccepted}`,
       });
-      
+
       // Navigate when:
       // 1. Status is "Accepted" (explicitly accepted)
       // 2. Status is "Pending" (doctor has accepted, consultation is ready to start)
       // Note: Backend sends "Pending" status after doctor accepts for all consultation types
       const shouldNavigate = isPending || isAccepted;
-      
+
       console.log('📞 [Pusher] Should navigate?', shouldNavigate);
-      
+
       if (shouldNavigate) {
         const consultationID = consultation?.id || data?.consultationID || data?.id;
         const doctorData = consultation?.doctor || data?.doctor;
         const clinicData = consultation?.clinic || data?.clinic;
-        
+
         console.log('✅ [Pusher] Consultation ready! Navigating...', {
           consultationID,
           consultationType,
@@ -152,13 +147,13 @@ export const usePusherNotifications = () => {
           doctorData,
           clinicData,
         });
-        
+
         // Show success toast
-        const toastMessage = isAccepted 
-          ? 'Doctor has accepted your consultation request'
+        const toastMessage = isAccepted
+          ? 'Your consultation request has been accepted'
           : 'Your consultation is ready';
         Toast.success(toastMessage);
-        
+
         // Navigate based on consultation type
         setTimeout(() => {
           if (navigationRef.isReady()) {
@@ -188,7 +183,7 @@ export const usePusherNotifications = () => {
                 // Navigate to AudioConsultation for audio consultations
                 const currentPatientID = (auth as any)?.user?.id || (auth as any)?.id;
                 const userId = currentPatientID ? `patient_${currentPatientID}` : `patient_${Date.now()}`;
-                
+
                 console.log('🎤 [Pusher] Navigating to AudioConsultation with params:', {
                   consultationId: `consultation_${consultationID}`,
                   userId,
@@ -198,7 +193,7 @@ export const usePusherNotifications = () => {
                     name: doctorData?.name || 'Doctor',
                   },
                 });
-                
+
                 (navigationRef as any).navigate('Main', {
                   screen: 'AudioConsultation',
                   params: {
@@ -217,7 +212,7 @@ export const usePusherNotifications = () => {
                 // Navigate to VideoConsultation for video consultations
                 const currentPatientID = (auth as any)?.user?.id || (auth as any)?.id;
                 const userId = currentPatientID ? `patient_${currentPatientID}` : `patient_${Date.now()}`;
-                
+
                 console.log('📹 [Pusher] Navigating to VideoConsultation with params:', {
                   consultationId: `consultation_${consultationID}`,
                   userId,
@@ -227,7 +222,7 @@ export const usePusherNotifications = () => {
                     name: doctorData?.name || 'Doctor',
                   },
                 });
-                
+
                 (navigationRef as any).navigate('Main', {
                   screen: 'VideoConsultation',
                   params: {
@@ -276,28 +271,28 @@ export const usePusherNotifications = () => {
           isPending,
           shouldNavigate,
         });
-        
+
         // Other consultation updates - ensure we extract a string, not an object
         let consultationMessage = 'Consultation update received';
-        
+
         if (typeof data === 'string') {
           consultationMessage = data;
         } else if (data && typeof data === 'object') {
           // Extract string from various possible fields
-          consultationMessage = 
-            data?.message || 
+          consultationMessage =
+            data?.message ||
             data?.description ||
-            (consultation?.status ? `Consultation ${consultation.status}` : null) || 
+            (consultation?.status ? `Consultation ${consultation.status}` : null) ||
             (data?.status ? `Consultation ${data.status}` : null) ||
             'Consultation update received';
         }
-        
+
         // Ensure it's a string, not an object
         if (typeof consultationMessage !== 'string') {
           consultationMessage = JSON.stringify(consultationMessage);
         }
-        
-        Toast.info(consultationMessage);
+
+        // Toast.info(consultationMessage);
       }
     };
 

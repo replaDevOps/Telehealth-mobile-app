@@ -74,7 +74,7 @@ export function VideoConsultation({ navigation, route }) {
   const handleGetPrescription = () => {
     setModalVisible(false);
     console.log('User wants to get the prescription for consultation:', consultationID);
-    navigation.navigate('PrescriptionScreen', {
+    navigation.replace('PrescriptionScreen', {
       consultationID: consultationID,
     });
   };
@@ -407,6 +407,7 @@ export function VideoConsultation({ navigation, route }) {
         visible={modalVisible}
         onClose={handleClose}
         onGetPrescription={handleGetPrescription}
+        hasPrescription={true}
       />
     </View>
   );

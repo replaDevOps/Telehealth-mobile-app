@@ -1,13 +1,16 @@
 import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, Animated, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, Animated, ActivityIndicator, Image } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { mvs } from '../../config/metrices';
-import LogoSvg from '../../assets/icons/LogoSvg';
+import { LogoPng } from '../../assets/images';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { colors } from '../../styles/colors';
 import { useAuthStore, useProfileStore, useLocationStore } from '@store';
 import i18n from '../../services/i18n';
+import { fcmService } from '../../services/firebase/fcmService';
+import { useTranslation } from 'react-i18next';
+import { Toast } from 'toastify-react-native';
 
 type SplashScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -18,6 +21,7 @@ type Props = {
 export const SplashScreen: React.FC<Props> = ({ navigation }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const hasNavigatedRef = useRef(false);
+  const { t } = useTranslation();
   const { auth } = useAuthStore();
   console.log('auth', auth);
   const { fetchProfile } = useProfileStore();
@@ -30,8 +34,12 @@ export const SplashScreen: React.FC<Props> = ({ navigation }) => {
         return;
       }
       try {
-        const selectedLanguage = await AsyncStorage.getItem('selectedLanguage');
-        
+        const selectedLanguageRaw = await AsyncStorage.getItem('selectedLanguage');
+        // storeData() JSON.stringifies the value, so strip surrounding quotes if present
+        const selectedLanguage = selectedLanguageRaw
+          ? selectedLanguageRaw.replace(/^"|"$/g, '')
+          : null;
+
         // Initialize i18n with the saved language
         if (selectedLanguage) {
           await i18n.changeLanguage(selectedLanguage);
@@ -44,27 +52,27 @@ export const SplashScreen: React.FC<Props> = ({ navigation }) => {
         // Create a promise that resolves after minimum splash duration (2 seconds for animation)
         const minSplashDuration = new Promise(resolve => setTimeout(resolve, 2000));
 
-        // Fetch location and wait for it to complete
-        // This ensures location is ready when we navigate to Home
-        const locationPromise = fetchLocation().catch(err => {
+        // Start location fetch in background - don't block navigation
+        // Location will load on Home screen with a loader
+        fetchLocation().catch(err => {
           console.warn('⚠️ Location fetch failed in Splash Screen:', err);
-          // Continue navigation even if location fetch fails
         });
 
-        // Wait for both location fetch AND minimum splash duration
-        // This ensures we don't navigate before location is fetched
-        await Promise.all([locationPromise, minSplashDuration]);
-
-        console.log('✅ Location fetched successfully in Splash Screen');
+        // Only wait for minimum splash duration - navigate quickly
+        await minSplashDuration;
 
         // Get current auth state directly from store to avoid stale closure values
         // This is important because Zustand persistence hydrates asynchronously
         const currentAuth = useAuthStore.getState().auth;
         console.log('Current auth from store:', currentAuth);
 
-        // If user is authenticated, fetch profile data once on app start
+        // If user is authenticated, fetch profile data and refresh FCM token
         if (currentAuth?.token) {
           fetchProfile();
+          // Refresh FCM token in background — no need to await
+          fcmService.initializeFcm().catch(err =>
+            console.warn('[FCM] Background token refresh failed:', err),
+          );
         }
 
         // Prevent multiple navigations
@@ -75,12 +83,11 @@ export const SplashScreen: React.FC<Props> = ({ navigation }) => {
 
         // Navigate after both location is fetched and minimum duration has passed
         if (!selectedLanguage) {
+          Toast.info(t('please_select_language'));
           navigation.replace('Auth', { screen: 'LanguageSelection' });
         } else if (currentAuth?.token) {
-          console.log(currentAuth, "Called Sign");
-          navigation.replace('Main', { screen: 'Home' });
+          navigation.replace('Main', { screen: 'EntryPoint' });
         } else {
-          console.log(currentAuth, "Called Sign");
           navigation.replace('Auth', { screen: 'SignIn' });
         }
       } catch (error) {
@@ -100,8 +107,8 @@ export const SplashScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <View style={styles.logoContainer}>
-      <Animated.View style={{ opacity: fadeAnim }}>
-        <LogoSvg width={mvs(250)} height={mvs(200)} />
+      <Animated.View style={{ opacity: fadeAnim, alignItems: 'center', justifyContent: 'center', width: '100%'}}>
+        <Image source={LogoPng} style={{ width: 300, height: 131, resizeMode: 'contain' }} />
       </Animated.View>
       <ActivityIndicator
         size="large"

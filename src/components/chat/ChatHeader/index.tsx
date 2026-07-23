@@ -11,6 +11,7 @@ interface ChatHeaderProps {
   chatType: 'ai' | 'doctor';
   doctorInfo: DoctorInfo;
   consultationTime: string;
+  consultationElapsed?: string | null;
   fromHistory: boolean;
   handleGoBack: () => void;
   handleEndConsultation: () => void;
@@ -28,40 +29,51 @@ interface ChatHeaderProps {
     type?: string;
     code?: string;
   } | null;
+  consultationEnded?: boolean;
+  consultationDuration?: string | null;
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
   chatType,
   doctorInfo,
   consultationTime,
+  consultationElapsed = null,
   fromHistory,
   handleGoBack,
   handleEndConsultation,
   handleCart,
   isConsultationActive = false,
   consultationData,
+  consultationEnded = false,
+  consultationDuration = null,
 }) => {
   const { cartCount } = useCartCount();
-  
+
   // Extract doctor and service info from consultation data
-  const doctorName = consultationData?.doctor?.name || doctorInfo.name;
   const serviceName = consultationData?.service?.name || '';
   const consultationType = consultationData?.type || '';
   const consultationCode = consultationData?.code || '';
-  const serviceDuration = consultationData?.service?.duration;
-  
+
   // Build subtitle: Show countdown timer when consultation is active, otherwise show service info
   const buildSubtitle = () => {
     // When consultation is active, always show the countdown timer
     if (isConsultationActive && !fromHistory) {
-      return consultationTime; // This is the formatted countdown timer (MM:SS)
+      // Show both countdown timer and elapsed duration when available
+      return consultationElapsed
+        ? `${consultationTime}`
+        : consultationTime;
     }
-    
+
+    // When consultation has ended, show the total consultation duration instead of service info
+    if (consultationEnded && consultationDuration) {
+      return consultationDuration;
+    }
+
     // When viewing history, show service info
     if (!consultationData) {
-      return doctorInfo.serviceName || consultationTime;
+      return doctorInfo.serviceName || '';
     }
-    
+
     const parts: string[] = [];
     // Add code if available
     if (consultationCode) {
@@ -75,14 +87,14 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
     if (consultationType) {
       parts.push(consultationType);
     }
-    // // Add duration if available
-    // if (serviceDuration) {
-    //   parts.push(`${serviceDuration} min`);
-    // }
-    
-    return parts.length > 0 ? parts.join(' | ') : (doctorInfo.serviceName || consultationTime);
+    const duration = (consultationData as any)?.duration || consultationData?.service?.duration;
+    if (duration) {
+      parts.push(String(duration));
+    }
+
+    return parts.length > 0 ? parts.join(' | ') : (doctorInfo.serviceName || '');
   };
-  
+
   return chatType === 'ai' ? (
     <Header2 title="Chat" showCart logo HandleCart={handleCart} cartCount={cartCount} />
   ) : (
@@ -91,9 +103,11 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         <Ionicons name="chevron-back" size={24} color={colors.text} />
       </TouchableOpacity>
 
-      <View style={styles.doctorHeaderCenter}>
-        <Text style={styles.doctorName}>{doctorName}</Text>
-        <Text style={styles.consultationTime}>
+      <View style={styles.doctorHeaderCenter} pointerEvents="none">
+        <Text style={styles.doctorName} numberOfLines={1} ellipsizeMode="tail">
+          {doctorInfo.name}
+        </Text>
+        <Text style={styles.consultationTime} numberOfLines={1} ellipsizeMode="tail">
           {buildSubtitle()}
         </Text>
       </View>

@@ -23,10 +23,10 @@ import {
   ChangePassword,
   FAQs,
   LoyaltyPointsDetails,
-  ProfileSetting,
   RefundRequest2,
   RoyaltyPoints,
   SettingScreen,
+  ProfileSetting,
 } from '@screens/ManageSetting';
 import {
   CardDetails,
@@ -35,6 +35,7 @@ import {
   PrescriptionScreen,
   CartScreen,
   RefundPolicy,
+  PolicyScreen,
 } from '@screens/Comman';
 
 export type MainStackParamList = {
@@ -52,6 +53,7 @@ export type MainStackParamList = {
   ChatOnboarding: undefined;
   ConsultationPayment: undefined;
   RefundPolicy: undefined;
+  PolicyScreen: { type: 'privacy' | 'terms' };
   HomeScreen: undefined;
   NearbyClinics: undefined;
   SelectLocation: undefined;
@@ -119,6 +121,7 @@ export const MainNavigator = () => {
         }}
       />
       <Stack.Screen name="RefundPolicy" component={RefundPolicy} />
+      <Stack.Screen name="PolicyScreen" component={PolicyScreen} />
     </Stack.Navigator>
   );
 };
@@ -162,6 +165,7 @@ export const SettingNavigator = () => {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="SettingScreen" component={SettingScreen} />
       <Stack.Screen name="ProfileSetting" component={ProfileSetting} />
+      {/* ProfileSetting is registered inside SettingNavigator to avoid duplicate route names */}
       <Stack.Screen name="ChangePassword" component={ChangePassword} />
       <Stack.Screen name="FAQs" component={FAQs} />
       <Stack.Screen name="RefundRequest2" component={RefundRequest2} />

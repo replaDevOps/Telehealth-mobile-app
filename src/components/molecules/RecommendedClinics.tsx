@@ -186,13 +186,13 @@ const styles = StyleSheet.create({
   },
   chipsContainer: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 3,
     flex: 1,
     flexWrap: 'wrap',
     alignItems: 'center',
   },
   specialtyText: {
-    fontSize: 14,
+    fontSize: 10,
     fontWeight: '500',
     color: colors.primary,
     backgroundColor: colors.white,

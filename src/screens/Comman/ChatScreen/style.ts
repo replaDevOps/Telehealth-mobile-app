@@ -8,6 +8,20 @@ export const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#fff',
       },
+      keyboardView: {
+        flex: 1,
+        minHeight: 0,
+        backgroundColor: '#fff',
+      },
+      content: {
+        flex: 1,
+        minHeight: 0,
+      },
+      inputWrapper: {
+        backgroundColor: '#fff',
+        borderTopWidth: 1,
+        borderTopColor: '#f0f0f0',
+      },
       clinicInfo: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -22,12 +36,16 @@ export const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         flex: 1,
+        marginRight: 8,
+      },
+      clinicTextWrapper: {
+        flex: 1,
       },
       clinicImage: {
         width: 48,
         height: 48,
         backgroundColor: '#e5e7eb',
-        borderRadius: 8,
+        borderRadius: 24,
         marginRight: 12,
       },
       clinicName: {
@@ -39,6 +57,7 @@ export const styles = StyleSheet.create({
         fontSize: 11,
         color: '#6b7280',
         marginTop: 2,
+        flexShrink: 1,
       },
       consultButton: {
         backgroundColor: colors.black,

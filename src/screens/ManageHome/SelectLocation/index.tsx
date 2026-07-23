@@ -1,4 +1,4 @@
-import { View, Text, ActivityIndicator, PermissionsAndroid, Platform, Alert, TextInput, TouchableOpacity, FlatList, Modal, Image } from 'react-native';
+import { View, Text, ActivityIndicator, PermissionsAndroid, Platform, TextInput, TouchableOpacity, Modal, Image, ScrollView, Dimensions } from 'react-native';
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { Header2 } from '../../../components/common/Header2';
@@ -7,23 +7,63 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import Geolocation from '@react-native-community/geolocation';
 import { Toast } from 'toastify-react-native';
-import { searchPlaces, getPlaceDetails, PlacePrediction, reverseGeocode } from '../../../services/api/googlePlacesService';
+import { reverseGeocode, searchPlaces, getPlaceDetails, PlacePrediction } from '../../../services/api/googlePlacesService';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { colors } from '../../../styles/colors';
 import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
 import { ClinicApiResponse } from '../../../types/clinic.types';
-import { ClinicProfile } from '@assets/images';
+import { ClinicProfile, Marker_Pin } from '@assets/images';
+import { showLocationSettingsAlert, handleLocationError } from '../../../utils/locationUtils';
+import { useLocationStore } from '@store';
+import { useFocusEffect } from '@react-navigation/native';
+
+const DEFAULT_REGION: Region = {
+  latitude: Number(24.7136),
+  longitude: Number(46.6753),
+  latitudeDelta: Number(0.0922),
+  longitudeDelta: Number(0.0421),
+};
+
+// Start with tracksViewChanges=true so the child Image is composited into the
+// native marker bitmap on Android, then flip to false on load to avoid redrawing
+// every frame.
+const ClinicMarker = ({
+  coordinates,
+  isSelected,
+  zIndex,
+  onPress,
+}: {
+  coordinates: { latitude: number; longitude: number };
+  isSelected: boolean;
+  zIndex: number;
+  onPress: () => void;
+}) => {
+  const [tracksChanges, setTracksChanges] = React.useState(true);
+
+  return (
+    <Marker
+      coordinate={coordinates}
+      tracksViewChanges={tracksChanges}
+      zIndex={isSelected ? 1000 : zIndex}
+      stopPropagation
+      onPress={onPress}
+    >
+      <Image
+        source={Marker_Pin}
+        style={{ width: 36, height: 44 }}
+        resizeMode="contain"
+        onLoad={() => setTracksChanges(false)}
+      />
+    </Marker>
+  );
+};
 
 export const SelectLocation = ({ navigation }: any) => {
   const { t } = useTranslation();
+  const { fetchLocation: fetchStoreLocation } = useLocationStore();
   const mapRef = useRef<MapView>(null);
-  const [region, setRegion] = useState<Region>({
-    latitude: Number(24.7136),
-    longitude: Number(46.6753),
-    latitudeDelta: Number(0.0922),
-    longitudeDelta: Number(0.0421),
-  });
+  const [region, setRegion] = useState<Region>(DEFAULT_REGION);
   const [selectedLocation, setSelectedLocation] = useState<{
     latitude: number;
     longitude: number;
@@ -31,14 +71,14 @@ export const SelectLocation = ({ navigation }: any) => {
   } | null>(null);
   const [locationLoading, setLocationLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<PlacePrediction[]>([]);
   const [clinicSearchResults, setClinicSearchResults] = useState<ClinicApiResponse[]>([]);
+  const [placeSearchResults, setPlaceSearchResults] = useState<PlacePrediction[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
-  
+
   // Ref to track when a place is being selected (to skip search)
   const isSelectingPlace = useRef(false);
-  
+
   // Clinic states
   const [clinics, setClinics] = useState<ClinicApiResponse[]>([]);
   const [clinicsLoading, setClinicsLoading] = useState(false);
@@ -46,7 +86,13 @@ export const SelectLocation = ({ navigation }: any) => {
   const [selectedPoint, setSelectedPoint] = useState<{ x: number; y: number } | null>(null);
 
   const cardWidth = 260;
-  const cardApproxHeight = 190;
+  // Conservative starting estimate: real measured heights for clinics with
+  // 2-line names land around 270–290px. Using a generous default keeps the
+  // initial pan calculation from undershooting and forcing a flip-below.
+  const cardApproxHeight = 290;
+  const [cardHeight, setCardHeight] = useState<number>(cardApproxHeight);
+  const [bottomContainerHeight, setBottomContainerHeight] = useState<number>(0);
+  const [mapAreaHeight, setMapAreaHeight] = useState<number>(() => Dimensions.get('window').height);
 
   const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 
@@ -57,8 +103,9 @@ export const SelectLocation = ({ navigation }: any) => {
     setSelectedClinic(null);
     setSelectedPoint(null);
     setClinicsLoading(true);
-    
+
     try {
+      console.log('Fetching clinics for coordinates:', { lat, lng }); // Debug log
       const response = await apiClient.get(API.CLINIC.GET_CLINICS, {
         params: {
           name: '',
@@ -66,8 +113,10 @@ export const SelectLocation = ({ navigation }: any) => {
           long: lng.toString(),
           pageNo: 1,
           recordsPerPage: 20,
+          sendFrom: 'map',
         },
       });
+      console.log('Clinics API response:', response.data); // Debug log
 
       if (response.data.success && response.data.data) {
         const validClinics = response.data.data.filter(
@@ -89,23 +138,23 @@ export const SelectLocation = ({ navigation }: any) => {
   // Get offset coordinates for overlapping markers
   const getOffsetCoordinates = useCallback((clinic: ClinicApiResponse) => {
     if (!clinic.details?.lat || !clinic.details?.long) return null;
-    
-    let lat = typeof clinic.details.lat === 'string' 
-      ? parseFloat(clinic.details.lat) 
+
+    let lat = typeof clinic.details.lat === 'string'
+      ? parseFloat(clinic.details.lat)
       : Number(clinic.details.lat);
-    let lng = typeof clinic.details.long === 'string' 
-      ? parseFloat(clinic.details.long) 
+    let lng = typeof clinic.details.long === 'string'
+      ? parseFloat(clinic.details.long)
       : Number(clinic.details.long);
-    
+
     if (isNaN(lat) || isNaN(lng)) return null;
-    
+
     const sameLocationClinics = clinics.filter((c) => {
       if (!c.details?.lat || !c.details?.long) return false;
       const cLat = typeof c.details.lat === 'string' ? parseFloat(c.details.lat) : Number(c.details.lat);
       const cLng = typeof c.details.long === 'string' ? parseFloat(c.details.long) : Number(c.details.long);
       return Math.abs(cLat - lat) < 0.0001 && Math.abs(cLng - lng) < 0.0001;
     });
-    
+
     if (sameLocationClinics.length > 1) {
       const myIndex = sameLocationClinics.findIndex(c => c.clinicID === clinic.clinicID);
       if (myIndex > 0) {
@@ -115,7 +164,7 @@ export const SelectLocation = ({ navigation }: any) => {
         lng += offsetAmount * Math.sin(angle);
       }
     }
-    
+
     return { latitude: lat, longitude: lng };
   }, [clinics]);
 
@@ -141,16 +190,61 @@ export const SelectLocation = ({ navigation }: any) => {
     [getOffsetCoordinates]
   );
 
-  const handleClinicMarkerPress = (clinic: ClinicApiResponse) => {
+  const handleClinicMarkerPress = async (clinic: ClinicApiResponse) => {
     setSelectedClinic(clinic);
-    updateSelectedPoint(clinic);
+
+    const coords = getOffsetCoordinates(clinic);
+    if (!coords || !mapRef.current) {
+      updateSelectedPoint(clinic);
+      return;
+    }
+
+    try {
+      const point = await mapRef.current.pointForCoordinate(coords);
+      // Minimum y where the pin can sit so the card fits above it.
+      const gap = 12;
+      const minPinY = cardHeight + gap + 12;
+      if (point.y >= minPinY) {
+        setSelectedPoint({ x: point.x, y: point.y });
+        return;
+      }
+
+      // Pan the map so the pin moves down to minPinY. Increasing the camera's
+      // latitude shifts the visible content south on screen, moving the pin
+      // toward the bottom of the view.
+      const deltaPx = minPinY - point.y;
+      const latPerPx = region.latitudeDelta / mapAreaHeight;
+      const newRegion: Region = {
+        latitude: region.latitude + deltaPx * latPerPx,
+        longitude: region.longitude,
+        latitudeDelta: region.latitudeDelta,
+        longitudeDelta: region.longitudeDelta,
+      };
+      // Hide the card while the map pans so it doesn't flash at the old position.
+      setSelectedPoint(null);
+      mapRef.current.animateToRegion(newRegion, 300);
+
+      // After the pan completes, recompute the pin's screen point so the
+      // card lines up with the new pin position.
+      setTimeout(async () => {
+        if (!mapRef.current) return;
+        try {
+          const next = await mapRef.current.pointForCoordinate(coords);
+          setSelectedPoint({ x: next.x, y: next.y });
+        } catch {
+          updateSelectedPoint(clinic);
+        }
+      }, 320);
+    } catch {
+      updateSelectedPoint(clinic);
+    }
   };
 
   const handleCardPress = () => {
     if (selectedClinic) {
-      navigation.navigate('ClinicDetail', { 
-        clinic: selectedClinic, 
-        clinicID: selectedClinic.clinicID 
+      navigation.navigate('ClinicDetail', {
+        clinic: selectedClinic,
+        clinicID: selectedClinic.clinicID
       });
     }
   };
@@ -164,22 +258,29 @@ export const SelectLocation = ({ navigation }: any) => {
 
   const cardPosition = useMemo(() => {
     if (!selectedPoint) return null;
+    const gap = 12;
+    // The card lives inside the map-area view. Its bottom must clear the
+    // bottom panel that overlays from the screen's bottom edge.
+    const maxBottom = mapAreaHeight - bottomContainerHeight - 12;
     const left = clamp(selectedPoint.x - cardWidth / 2, 12, 9999);
-    const top = clamp(selectedPoint.y - cardApproxHeight - 18, 12, 9999);
+    // Always position above the pin. handleClinicMarkerPress pans the map
+    // when needed to ensure there's room above; if for some edge case the
+    // value still goes negative, the clamp keeps the card on screen.
+    const top = clamp(selectedPoint.y - cardHeight - gap, 12, maxBottom - cardHeight);
     const pointerLeft = clamp(selectedPoint.x - left - 10, 12, cardWidth - 32);
     return { left, top, pointerLeft };
-  }, [selectedPoint]);
+  }, [selectedPoint, cardHeight, mapAreaHeight, bottomContainerHeight]);
 
   const getCurrentLocation = useCallback(() => {
     setLocationLoading(true);
     Geolocation.getCurrentPosition(
       position => {
         const { latitude, longitude } = position.coords;
-        
+
         // Ensure coordinates are numbers (convert from string if needed)
         const lat = typeof latitude === 'string' ? parseFloat(latitude) : Number(latitude);
         const lng = typeof longitude === 'string' ? parseFloat(longitude) : Number(longitude);
-        
+
         // Validate coordinates are valid numbers
         if (isNaN(lat) || isNaN(lng)) {
           console.warn('Invalid coordinates from Geolocation:', { latitude, longitude });
@@ -187,28 +288,28 @@ export const SelectLocation = ({ navigation }: any) => {
           Toast.error('Invalid location coordinates');
           return;
         }
-        
+
         const newRegion = {
           latitude: Number(lat),
           longitude: Number(lng),
           latitudeDelta: Number(0.0922),
           longitudeDelta: Number(0.0421),
         };
-        
+
         // Update region state
         setRegion(newRegion);
-        
+
         // Animate map to current location
         if (mapRef.current) {
           mapRef.current.animateToRegion(newRegion, 1000);
         }
-        
+
         // Update selected location
-        setSelectedLocation({ 
-          latitude: Number(lat), 
-          longitude: Number(lng) 
+        setSelectedLocation({
+          latitude: Number(lat),
+          longitude: Number(lng)
         });
-        
+
         setLocationLoading(false);
         // Fetch clinics for current location
         fetchClinics(lat, lng);
@@ -216,7 +317,11 @@ export const SelectLocation = ({ navigation }: any) => {
       error => {
         console.warn('Error getting location:', error);
         setLocationLoading(false);
-        Toast.error('Failed to get your location');
+        handleLocationError(error, {
+          title: 'Location Not Available',
+          message: 'Please enable location services to get your location. Would you like to open settings?',
+          openLocationSettings: true,
+        });
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
     );
@@ -239,7 +344,10 @@ export const SelectLocation = ({ navigation }: any) => {
           getCurrentLocation();
         } else {
           setLocationLoading(false);
-          Alert.alert('Permission Denied', 'Location permission is recommended to select your location.');
+          showLocationSettingsAlert({
+            title: 'Location Permission',
+            message: 'Location access is needed to help you select a location. Would you like to open settings to enable it?',
+          });
         }
       } catch (err) {
         console.warn(err);
@@ -252,12 +360,43 @@ export const SelectLocation = ({ navigation }: any) => {
     }
   }, [getCurrentLocation]);
 
+  // Apply store location immediately so we don't show Riyadh when we already have user location
+  const applyStoreLocationIfAvailable = useCallback(() => {
+    const loc = useLocationStore.getState().location;
+    if (loc && typeof loc.lat === 'number' && typeof loc.long === 'number' && !isNaN(loc.lat) && !isNaN(loc.long)) {
+      const newRegion: Region = {
+        latitude: loc.lat,
+        longitude: loc.long,
+        latitudeDelta: Number(0.0922),
+        longitudeDelta: Number(0.0421),
+      };
+      setRegion(newRegion);
+      setSelectedLocation({ latitude: loc.lat, longitude: loc.long });
+      setLocationLoading(false);
+      fetchClinics(loc.lat, loc.long);
+      if (mapRef.current) {
+        mapRef.current.animateToRegion(newRegion, 500);
+      }
+      return true;
+    }
+    return false;
+  }, [fetchClinics]);
+
+  // On focus: use store location first, then ensure we have permission and try fresh location
+  useFocusEffect(
+    useCallback(() => {
+      const hadStoreLocation = applyStoreLocationIfAvailable();
+      const timer = setTimeout(() => {
+        requestLocationPermission();
+      }, hadStoreLocation ? 50 : 100);
+      return () => clearTimeout(timer);
+    }, [applyStoreLocationIfAvailable, requestLocationPermission])
+  );
+
+  // Trigger store fetch in background so we have location when user opens map
   useEffect(() => {
-    const timer = setTimeout(() => {
-      requestLocationPermission();
-    }, 100);
-    return () => clearTimeout(timer);
-  }, [requestLocationPermission]);
+    fetchStoreLocation();
+  }, [fetchStoreLocation]);
 
   // Handle region change - keep card anchored while panning/zooming
   const handleRegionChangeComplete = useCallback((newRegion: Region) => {
@@ -275,29 +414,29 @@ export const SelectLocation = ({ navigation }: any) => {
 
   const handleMapPress = async (event: any) => {
     const { latitude, longitude } = event.nativeEvent.coordinate;
-    
+
     // Ensure coordinates are numbers (convert from string if needed)
     const lat = typeof latitude === 'string' ? parseFloat(latitude) : Number(latitude);
     const lng = typeof longitude === 'string' ? parseFloat(longitude) : Number(longitude);
-    
+
     // Validate coordinates are valid numbers
     if (isNaN(lat) || isNaN(lng)) {
       Toast.error('Invalid location coordinates');
       return;
     }
-    
+
     // Clear selected clinic
     setSelectedClinic(null);
-    
+
     // Reverse geocode to get address (don't block UI)
     reverseGeocode(lat, lng).then(address => {
-      setSelectedLocation({ 
-        latitude: Number(lat), 
-        longitude: Number(lng), 
-        address: address || undefined 
+      setSelectedLocation({
+        latitude: Number(lat),
+        longitude: Number(lng),
+        address: address || undefined
       });
     });
-    
+
     // Fetch clinics for new location
     fetchClinics(lat, lng);
   };
@@ -312,6 +451,7 @@ export const SelectLocation = ({ navigation }: any) => {
           long: lng.toString(),
           pageNo: 1,
           recordsPerPage: 10,
+          sendFrom: 'map',
         },
       });
 
@@ -334,7 +474,7 @@ export const SelectLocation = ({ navigation }: any) => {
   // Zoom map to fit clinic markers
   const zoomToFitClinics = useCallback((clinicList: ClinicApiResponse[]) => {
     if (!mapRef.current || clinicList.length === 0) return;
-    
+
     const coordinates = clinicList
       .filter(c => c.details?.lat && c.details?.long)
       .map(c => ({
@@ -342,7 +482,7 @@ export const SelectLocation = ({ navigation }: any) => {
         longitude: typeof c.details!.long === 'string' ? parseFloat(c.details!.long) : Number(c.details!.long),
       }))
       .filter(c => !isNaN(c.latitude) && !isNaN(c.longitude));
-    
+
     if (coordinates.length === 1) {
       // Single clinic - zoom to it
       mapRef.current.animateToRegion({
@@ -366,12 +506,12 @@ export const SelectLocation = ({ navigation }: any) => {
       isSelectingPlace.current = false;
       return;
     }
-    
+
     const timeoutId = setTimeout(async () => {
       // Handle empty query
       if (!searchQuery || searchQuery.trim().length === 0) {
-        setSearchResults([]);
         setClinicSearchResults([]);
+        setPlaceSearchResults([]);
         setShowSearchResults(false);
         // Reload clinics for current location when search is cleared
         if (selectedLocation) {
@@ -386,31 +526,35 @@ export const SelectLocation = ({ navigation }: any) => {
       try {
         // Capture current region value at the time of search
         const currentRegion = region;
-        const location = currentRegion ? { lat: currentRegion.latitude, lng: currentRegion.longitude } : undefined;
-        
-        // Search both places and clinics in parallel
+
+        // Search both places (addresses/locations) and clinics in parallel
         const [placeResults, clinicResults] = await Promise.all([
-          searchPlaces(searchQuery, location),
+          searchPlaces(searchQuery, { lat: currentRegion.latitude, lng: currentRegion.longitude }),
           searchClinicsByName(searchQuery, currentRegion.latitude, currentRegion.longitude)
         ]);
-        
-        // Store clinic search results for the modal
-        setClinicSearchResults(clinicResults);
-        
-        // Update clinics on map with search results
-        if (clinicResults.length > 0) {
+
+        // Update place search results
+        if (placeResults && placeResults.length > 0) {
+          setPlaceSearchResults(placeResults);
+        } else {
+          setPlaceSearchResults([]);
+        }
+
+        // Update clinic search results
+        if (clinicResults && clinicResults.length > 0) {
+          setClinicSearchResults(clinicResults);
+          // Show matching clinics on the map
           setClinics(clinicResults);
           setSelectedClinic(null);
-          // Zoom to show all matching clinics
           setTimeout(() => zoomToFitClinics(clinicResults), 100);
+        } else {
+          setClinicSearchResults([]);
         }
-        
-        setSearchResults(placeResults);
       } catch (error) {
         console.error('Search error:', error);
         Toast.error('Failed to search');
-        setSearchResults([]);
         setClinicSearchResults([]);
+        setPlaceSearchResults([]);
       } finally {
         setIsSearching(false);
       }
@@ -422,56 +566,50 @@ export const SelectLocation = ({ navigation }: any) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery]); // Only depend on searchQuery to avoid re-running on region changes
 
+  // Handle place/location selection from search results
   const handlePlaceSelect = async (place: PlacePrediction) => {
     // Set flag to skip search when updating searchQuery
     isSelectingPlace.current = true;
-    
-    setIsSearching(true);
+
     setShowSearchResults(false);
     setSearchQuery(place.description);
     setSelectedClinic(null);
+    setClinicSearchResults([]);
+    setPlaceSearchResults([]);
 
-    try {
-      const details = await getPlaceDetails(place.place_id);
-      
-      if (details && details.geometry && details.geometry.location) {
-        // Ensure coordinates are numbers (convert from string if needed)
-        const lat = typeof details.geometry.location.lat === 'string' 
-          ? parseFloat(details.geometry.location.lat) 
-          : Number(details.geometry.location.lat);
-        const lng = typeof details.geometry.location.lng === 'string' 
-          ? parseFloat(details.geometry.location.lng) 
-          : Number(details.geometry.location.lng);
-        
-        // Validate coordinates are valid numbers
-        if (isNaN(lat) || isNaN(lng)) {
-          throw new Error('Invalid coordinates');
-        }
-        
-        const newRegion = {
-          latitude: Number(lat),
-          longitude: Number(lng),
-          latitudeDelta: Number(0.0922),
-          longitudeDelta: Number(0.0421),
-        };
-        
-        setRegion(newRegion);
+    // Get place details (coordinates)
+    const placeDetails = await getPlaceDetails(place.place_id);
+
+    if (placeDetails && placeDetails.geometry?.location) {
+      const lat = placeDetails.geometry.location.lat;
+      const lng = placeDetails.geometry.location.lng;
+
+      if (!isNaN(lat) && !isNaN(lng)) {
+        // Update selected location
         setSelectedLocation({
-          latitude: Number(lat),
-          longitude: Number(lng),
-          address: details.formatted_address,
+          latitude: lat,
+          longitude: lng,
+          address: placeDetails.formatted_address,
         });
-        
-        // Fetch clinics for selected location
+
+        // Update map region
+        const newRegion = {
+          latitude: lat,
+          longitude: lng,
+          latitudeDelta: 0.02,
+          longitudeDelta: 0.02,
+        };
+        setRegion(newRegion);
+
+        if (mapRef.current) {
+          mapRef.current.animateToRegion(newRegion, 500);
+        }
+
+        // Fetch clinics near this location
         fetchClinics(lat, lng);
-      } else {
-        Toast.error('Failed to get location details');
       }
-    } catch (error) {
-      console.error('Error getting place details:', error);
+    } else {
       Toast.error('Failed to get location details');
-    } finally {
-      setIsSearching(false);
     }
   };
 
@@ -479,25 +617,25 @@ export const SelectLocation = ({ navigation }: any) => {
   const handleClinicSelect = (clinic: ClinicApiResponse) => {
     // Set flag to skip search when updating searchQuery
     isSelectingPlace.current = true;
-    
+
     setShowSearchResults(false);
     setSearchQuery(clinic.clinicName || clinic.name || '');
     setSelectedClinic(null);
     setClinicSearchResults([]);
-    
+
     // Get clinic coordinates
     if (clinic.details?.lat && clinic.details?.long) {
-      const lat = typeof clinic.details.lat === 'string' 
-        ? parseFloat(clinic.details.lat) 
+      const lat = typeof clinic.details.lat === 'string'
+        ? parseFloat(clinic.details.lat)
         : Number(clinic.details.lat);
-      const lng = typeof clinic.details.long === 'string' 
-        ? parseFloat(clinic.details.long) 
+      const lng = typeof clinic.details.long === 'string'
+        ? parseFloat(clinic.details.long)
         : Number(clinic.details.long);
-      
+
       if (!isNaN(lat) && !isNaN(lng)) {
         // Show only this clinic on map
         setClinics([clinic]);
-        
+
         // Zoom to clinic
         const newRegion = {
           latitude: lat,
@@ -506,11 +644,11 @@ export const SelectLocation = ({ navigation }: any) => {
           longitudeDelta: 0.02,
         };
         setRegion(newRegion);
-        
+
         if (mapRef.current) {
           mapRef.current.animateToRegion(newRegion, 500);
         }
-        
+
         // Auto-select this clinic to show card
         setTimeout(() => {
           handleClinicMarkerPress(clinic);
@@ -518,6 +656,27 @@ export const SelectLocation = ({ navigation }: any) => {
       }
     }
   };
+
+  // Render place search result item
+  const renderPlaceSearchResult = ({ item }: { item: PlacePrediction }) => (
+    <TouchableOpacity
+      style={styles.searchResultItem}
+      onPress={() => handlePlaceSelect(item)}
+      activeOpacity={0.7}
+    >
+      <View style={styles.placeResultIcon}>
+        <Ionicons name="location" size={16} color="white" />
+      </View>
+      <View style={styles.searchResultText}>
+        <Text style={styles.searchResultMainText}>
+          {item.structured_formatting?.main_text || item.description}
+        </Text>
+        <Text style={styles.searchResultSecondaryText}>
+          {item.structured_formatting?.secondary_text || ''}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
 
   // Render clinic search result item
   const renderClinicSearchResult = ({ item }: { item: ClinicApiResponse }) => (
@@ -531,7 +690,7 @@ export const SelectLocation = ({ navigation }: any) => {
       </View>
       <View style={styles.searchResultText}>
         <Text style={styles.searchResultMainText}>
-          {item.clinicName || item.details?.businessName || item.name}
+          {item.details?.businessName || item.clinicName || ''}
         </Text>
         <Text style={styles.searchResultSecondaryText}>
           {item.businessType} • ⭐ {parseFloat(item.avgRating).toFixed(1)}
@@ -541,46 +700,25 @@ export const SelectLocation = ({ navigation }: any) => {
     </TouchableOpacity>
   );
 
-  // Render place search result item
-  const renderSearchResult = ({ item }: { item: PlacePrediction }) => (
-    <TouchableOpacity
-      style={styles.searchResultItem}
-      onPress={() => handlePlaceSelect(item)}
-      activeOpacity={0.7}
-    >
-      <Ionicons name="location" size={20} color={colors.primary} style={styles.searchResultIcon} />
-      <View style={styles.searchResultText}>
-        <Text style={styles.searchResultMainText}>
-          {item.structured_formatting?.main_text || item.description.split(',')[0]}
-        </Text>
-        {item.structured_formatting?.secondary_text && (
-          <Text style={styles.searchResultSecondaryText}>
-            {item.structured_formatting.secondary_text}
-          </Text>
-        )}
-      </View>
-    </TouchableOpacity>
-  );
-
   // Compute marker coordinate with proper type conversion
   const markerCoordinate = useMemo(() => {
     if (!selectedLocation || selectedLocation.latitude == null || selectedLocation.longitude == null) {
       return null;
     }
-    
+
     // Convert coordinates to numbers (defensive check)
-    const lat = typeof selectedLocation.latitude === 'number' 
-      ? selectedLocation.latitude 
+    const lat = typeof selectedLocation.latitude === 'number'
+      ? selectedLocation.latitude
       : parseFloat(String(selectedLocation.latitude));
-    const lng = typeof selectedLocation.longitude === 'number' 
-      ? selectedLocation.longitude 
+    const lng = typeof selectedLocation.longitude === 'number'
+      ? selectedLocation.longitude
       : parseFloat(String(selectedLocation.longitude));
-    
+
     // Validate coordinates are valid numbers
     if (isNaN(lat) || isNaN(lng)) {
       return null;
     }
-    
+
     return {
       latitude: lat,
       longitude: lng,
@@ -590,7 +728,7 @@ export const SelectLocation = ({ navigation }: any) => {
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <Header2 title={t('select_location')} />
-      
+
       {/* Search Bar */}
       <View style={styles.searchRow}>
         <View style={styles.searchContainer}>
@@ -611,7 +749,8 @@ export const SelectLocation = ({ navigation }: any) => {
             <TouchableOpacity
               onPress={() => {
                 setSearchQuery('');
-                setSearchResults([]);
+                setPlaceSearchResults([]);
+                setClinicSearchResults([]);
                 setShowSearchResults(false);
               }}
               style={styles.clearButton}
@@ -624,7 +763,7 @@ export const SelectLocation = ({ navigation }: any) => {
 
       {/* Search Results Modal */}
       <Modal
-        visible={showSearchResults && (searchResults.length > 0 || clinicSearchResults.length > 0 || isSearching)}
+        visible={showSearchResults && (placeSearchResults.length > 0 || clinicSearchResults.length > 0 || isSearching)}
         transparent
         animationType="slide"
         onRequestClose={() => setShowSearchResults(false)}
@@ -651,43 +790,55 @@ export const SelectLocation = ({ navigation }: any) => {
                 <Text style={styles.searchLoadingText}>{t('searching')}</Text>
               </View>
             ) : (
-              <FlatList
-                data={[
-                  // Clinic results first
-                  ...clinicSearchResults.map(clinic => ({ type: 'clinic' as const, data: clinic })),
-                  // Then place results
-                  ...searchResults.map(place => ({ type: 'place' as const, data: place })),
-                ]}
-                renderItem={({ item }) => 
-                  item.type === 'clinic' 
-                    ? renderClinicSearchResult({ item: item.data as ClinicApiResponse })
-                    : renderSearchResult({ item: item.data as PlacePrediction })
-                }
-                keyExtractor={(item) => 
-                  item.type === 'clinic' 
-                    ? `clinic-${(item.data as ClinicApiResponse).clinicID}` 
-                    : `place-${(item.data as PlacePrediction).place_id}`
-                }
-                keyboardShouldPersistTaps="handled"
-                ListHeaderComponent={
-                  clinicSearchResults.length > 0 ? (
+              <ScrollView keyboardShouldPersistTaps="handled">
+                {/* Places Section */}
+                {placeSearchResults.length > 0 && (
+                  <>
+                    <View style={styles.sectionHeader}>
+                      <Ionicons name="location" size={16} color={colors.primary} />
+                      <Text style={styles.sectionHeaderText}>{t('places') || 'Places'} ({placeSearchResults.length})</Text>
+                    </View>
+                    {placeSearchResults.map((place) => (
+                      <View key={place.place_id}>
+                        {renderPlaceSearchResult({ item: place })}
+                      </View>
+                    ))}
+                  </>
+                )}
+
+                {/* Clinics Section */}
+                {clinicSearchResults.length > 0 && (
+                  <>
                     <View style={styles.sectionHeader}>
                       <Ionicons name="medkit" size={16} color={colors.primary} />
-                      <Text style={styles.sectionHeaderText}>{t('clinics')} ({clinicSearchResults.length})</Text>
+                      <Text style={styles.sectionHeaderText}>{t('clinics') || 'Clinics'} ({clinicSearchResults.length})</Text>
                     </View>
-                  ) : null
-                }
-                ListEmptyComponent={
+                    {clinicSearchResults.map((clinic) => (
+                      <View key={clinic.clinicID}>
+                        {renderClinicSearchResult({ item: clinic })}
+                      </View>
+                    ))}
+                  </>
+                )}
+
+                {/* No Results */}
+                {placeSearchResults.length === 0 && clinicSearchResults.length === 0 && (
                   <View style={styles.noResultsContainer}>
                     <Text style={styles.noResultsText}>{t('no_results_found')}</Text>
                   </View>
-                }
-              />
+                )}
+              </ScrollView>
             )}
           </View>
         </TouchableOpacity>
       </Modal>
-      <View style={{ flex: 1 }}>
+      <View
+        style={{ flex: 1 }}
+        onLayout={(e) => {
+          const h = e.nativeEvent.layout.height;
+          if (h && Math.abs(h - mapAreaHeight) > 1) setMapAreaHeight(h);
+        }}
+      >
         <MapView
           ref={mapRef}
           provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
@@ -699,9 +850,13 @@ export const SelectLocation = ({ navigation }: any) => {
           showsMyLocationButton={true}
           toolbarEnabled={false}
         >
-          {/* Selected location marker (red pin) */}
-          {markerCoordinate && (
+          {/* Selected location marker (red pin). Hidden while a clinic is
+              selected so the native marker is fully unmounted; this avoids the
+              Android react-native-maps bug where a stale pin remains after
+              tapping a clinic and then choosing a new location. */}
+          {markerCoordinate && !selectedClinic && (
             <Marker
+              key={`selected-${markerCoordinate.latitude}-${markerCoordinate.longitude}`}
               coordinate={markerCoordinate}
               title={t('selected_location')}
               description={selectedLocation?.address || `Lat: ${markerCoordinate.latitude.toFixed(6)}, Lng: ${markerCoordinate.longitude.toFixed(6)}`}
@@ -709,44 +864,22 @@ export const SelectLocation = ({ navigation }: any) => {
               zIndex={500}
             />
           )}
-          
+
           {/* Clinic markers (purple pins) */}
           {clinics.map((clinic, index) => {
             const coordinates = getOffsetCoordinates(clinic);
             if (!coordinates) return null;
-            
+
             const isSelected = selectedClinic?.clinicID === clinic.clinicID;
-            
+
             return (
-              <Marker
+              <ClinicMarker
                 key={`clinic-${clinic.clinicID}-${index}`}
-                coordinate={coordinates}
-                onPress={(e) => {
-                  e.stopPropagation();
-                  handleClinicMarkerPress(clinic);
-                }}
-                tracksViewChanges={false}
-                zIndex={isSelected ? 1000 : index}
-              >
-                <TouchableOpacity 
-                  activeOpacity={0.8}
-                  onPress={() => handleClinicMarkerPress(clinic)}
-                  style={styles.markerTouchable}
-                >
-                  <View style={styles.markerContainer}>
-                    <View style={[
-                      styles.markerPin,
-                      isSelected && styles.markerPinSelected
-                    ]}>
-                      <Ionicons name="home" size={18} color="white" />
-                    </View>
-                    <View style={[
-                      styles.markerTriangle,
-                      isSelected && styles.markerTriangleSelected
-                    ]} />
-                  </View>
-                </TouchableOpacity>
-              </Marker>
+                coordinates={coordinates}
+                isSelected={isSelected}
+                zIndex={index}
+                onPress={() => handleClinicMarkerPress(clinic)}
+              />
             );
           })}
         </MapView>
@@ -763,20 +896,26 @@ export const SelectLocation = ({ navigation }: any) => {
 
         {/* Clinic Info Card */}
         {selectedClinic && cardPosition && (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.clinicCard, { left: cardPosition.left, top: cardPosition.top, width: cardWidth }]}
             activeOpacity={0.9}
             onPress={handleCardPress}
+            onLayout={(e) => {
+              const h = e.nativeEvent.layout.height;
+              // Only grow — shrinking can race with a just-completed pan and
+              // make the card briefly look like it doesn't fit above the pin.
+              if (h && h > cardHeight + 1) setCardHeight(h);
+            }}
           >
             <View style={styles.cardContent}>
               <View style={styles.imageContainer}>
                 <Image
                   source={
-                    selectedClinic.details?.coverImage 
+                    selectedClinic.details?.coverImage
                       ? { uri: selectedClinic.details.coverImage }
                       : selectedClinic.details?.logo
-                      ? { uri: selectedClinic.details.logo }
-                      : ClinicProfile
+                        ? { uri: selectedClinic.details.logo }
+                        : ClinicProfile
                   }
                   style={styles.clinicImage}
                   resizeMode="cover"
@@ -807,7 +946,7 @@ export const SelectLocation = ({ navigation }: any) => {
                 </View>
 
                 <Text style={styles.clinicName} numberOfLines={2}>
-                  {selectedClinic.clinicName || selectedClinic.details?.businessName || selectedClinic.name}
+                  {selectedClinic.details?.businessName || selectedClinic.clinicName || ''}
                 </Text>
               </View>
             </View>
@@ -818,7 +957,13 @@ export const SelectLocation = ({ navigation }: any) => {
 
       {/* Bottom Section: Selected Location Info and Action Buttons */}
       {selectedLocation && (
-        <View style={styles.bottomContainer}>
+        <View
+          style={styles.bottomContainer}
+          onLayout={(e) => {
+            const h = e.nativeEvent.layout.height;
+            if (h && Math.abs(h - bottomContainerHeight) > 1) setBottomContainerHeight(h);
+          }}
+        >
           {/* Selected Location Display */}
           <View style={styles.locationInfo}>
             <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
@@ -828,7 +973,7 @@ export const SelectLocation = ({ navigation }: any) => {
               </Text>
             </View>
           </View>
-          
+
           {/* Action Buttons */}
           <View style={styles.actionButtonsContainer}>
             <TouchableOpacity
@@ -838,7 +983,7 @@ export const SelectLocation = ({ navigation }: any) => {
             >
               <Text style={styles.doneButtonText}>{t('done')}</Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               style={styles.currentLocationButton}
               onPress={getCurrentLocation}

@@ -47,7 +47,7 @@ const ConsultationEndedModal: React.FC<ConsultationEndedModalProps> = ({
 
           {/* Description */}
           <Text style={styles.description}>
-            {hasPrescription 
+            {hasPrescription
               ? t('consultation_ended_description')
               : t('consultation_ended_no_prescription') || 'The consultation has ended. No prescription is available yet.'}
           </Text>
@@ -58,7 +58,7 @@ const ConsultationEndedModal: React.FC<ConsultationEndedModalProps> = ({
               <Text style={styles.closeButtonText}>{t('close')}</Text>
             </TouchableOpacity>
 
-            {hasPrescription && (
+            {/* {hasPrescription && (
               <TouchableOpacity
                 style={styles.prescriptionButton}
                 onPress={onGetPrescription}
@@ -67,7 +67,7 @@ const ConsultationEndedModal: React.FC<ConsultationEndedModalProps> = ({
                   {t('get_prescription')}
                 </Text>
               </TouchableOpacity>
-            )}
+            )} */}
           </View>
         </View>
       </View>
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
   description: {
     fontSize: 14,
     color: colors.secondaryText,
-    textAlign: 'left',
+    textAlign: 'center',
     lineHeight: 20,
     marginBottom: 24,
     paddingHorizontal: 0,

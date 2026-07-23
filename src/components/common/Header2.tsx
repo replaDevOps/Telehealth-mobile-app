@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Text, Image } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { mvs } from '../../config/metrices';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { BackSvg, ShopingCartSvg, SingleLogo } from '../../assets/icons';
+import { BackSvg, ShopingCartSvg } from '../../assets/icons';
+import { AiLogo } from '../../assets/images';
 import { colors } from '../../styles/colors';
 import { useTranslation } from 'react-i18next';
 import { Dropdown } from 'react-native-element-dropdown';
@@ -41,6 +42,7 @@ interface Header2Props {
   handleBackPress?: () => void;
   loading?: boolean;
   rightElement?: React.ReactNode;
+  inScrollView?: boolean;
 }
 
 const Header2: React.FC<Header2Props> = ({
@@ -65,15 +67,29 @@ const Header2: React.FC<Header2Props> = ({
   logo = false,
   loading = false,
   rightElement,
+  inScrollView = false,
 }) => {
   const navigation = useNavigation<NavigationProp>();
   const { t, i18n } = useTranslation();
-  const [language, setLanguage] = useState(i18n.language);
+
+  const normalizeLang = (lang: string | undefined) => {
+    if (!lang) return 'en';
+    const code = lang.split(/[-_]/)[0];
+    return code === 'ar' ? 'ar' : 'en';
+  };
+
+  const [language, setLanguage] = useState<string>(normalizeLang(i18n.language));
+
+  // Keep local language state in sync when i18n changes elsewhere
+  React.useEffect(() => {
+    const normalized = normalizeLang(i18n.language);
+    if (normalized !== language) setLanguage(normalized);
+  }, [i18n.language]);
   const [isFocus, setIsFocus] = useState(false);
 
   const data = [
-    { label: 'Eng', value: 'en' },
-    { label: 'Arb', value: 'ar' },
+    { label: t('english'), value: 'en' },
+    { label: t('arabic'), value: 'ar' },
   ];
 
   const onBackPress = () => {
@@ -91,7 +107,7 @@ const Header2: React.FC<Header2Props> = ({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container,{paddingHorizontal: inScrollView ? 0 : mvs(15)}]} >
       {back && (
         <TouchableOpacity style={styles.headerButton} onPress={onBackPress}>
           {useCancel ? (
@@ -104,7 +120,7 @@ const Header2: React.FC<Header2Props> = ({
 
       <View style={styles.textc}>
         {logo ? (
-          <SingleLogo width={30} height={30} />
+          <Image source={AiLogo} style={styles.logoImage} resizeMode="contain" />
         ) : (
           <Text style={styles.text}>{title}</Text>
         )}
@@ -150,7 +166,7 @@ const Header2: React.FC<Header2Props> = ({
           maxHeight={300}
           labelField="label"
           valueField="value"
-          placeholder={!isFocus ? 'Select language' : '...'}
+          placeholder={!isFocus ? t('select_language') : '...'}
           value={language}
           onFocus={() => setIsFocus(true)}
           onBlur={() => setIsFocus(false)}
@@ -193,7 +209,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     width: '100%',
-    paddingHorizontal: mvs(15),
+    
     paddingVertical: mvs(10),
   },
   icon: {
@@ -217,6 +233,10 @@ const styles = StyleSheet.create({
     color: colors.black,
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  logoImage: {
+    width: 64,
+    height: 32,
   },
   cancelText: {
     fontSize: mvs(16),
@@ -262,7 +282,7 @@ const styles = StyleSheet.create({
   dropdown: {
     height: 50,
     paddingHorizontal: 8,
-    width: 100,
+    width: 120,
   },
   placeholderStyle: {
     fontSize: 16,

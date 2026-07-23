@@ -11,14 +11,18 @@ ENV['NODE_BINARY'] = `which node`.strip
 platform :ios, min_ios_version_supported
 prepare_react_native_project!
 
-linkage = ENV['USE_FRAMEWORKS']
-if linkage != nil
-  Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
-  use_frameworks! :linkage => linkage.to_sym
-end
+# Build the Firebase SDK as static frameworks. Required by react-native-firebase
+# when using a Swift Firebase pod (FirebaseAuth) alongside others (Messaging).
+$RNFirebaseAsStaticFramework = true
 
 target 'Telehealth' do
   pod 'RNVectorIcons', :path => '../node_modules/react-native-vector-icons'
+
+  # react-native-firebase with FirebaseAuth (a Swift pod) requires Firebase to be
+  # built as static frameworks. Without this, RNFBMessaging fails with
+  # "'FirebaseAuth/FirebaseAuth-Swift.h' file not found".
+  use_frameworks! :linkage => :static
+
   config = use_native_modules!
 
   use_react_native!(

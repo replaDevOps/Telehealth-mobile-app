@@ -76,7 +76,7 @@ export const styles = StyleSheet.create({
     marginBottom: 8,
     fontWeight: '500',
   },
-  mainSection:{flex:1,padding:16},
+  mainSection:{padding:16},
   serviceCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -110,11 +110,13 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
+    maxWidth: 120,
   },
   categoryBadgeText: {
     fontSize: 10,
     color: colors.primary,
     fontWeight: '500',
+    textTransform: 'capitalize',
   },
   nameBadge: {
     backgroundColor: colors.white,
@@ -165,9 +167,24 @@ export const styles = StyleSheet.create({
     width:"100%"
   },
   serviceRight:{
-    alignItems:"center",
-    gap:15
-  
-  
-  }
+    alignItems: "flex-end",
+    justifyContent: 'space-between',
+    width: 110,
+    paddingLeft: 8,
+    paddingTop: 2,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#ccc',
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
   });

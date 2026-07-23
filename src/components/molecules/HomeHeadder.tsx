@@ -5,15 +5,18 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
+  ActivityIndicator,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { colors } from '../../styles/colors';
 import LinearGradient from 'react-native-linear-gradient';
 import { FilterSvg, ShopingCartSvg } from '@assets/icons';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface HomeHeaderProps {
   location?: string | null; // Can be null if no location available
+  isLocationLoading?: boolean;
   country?: string;
   onLocationPress?: () => void;
   onCartPress?: () => void;
@@ -28,6 +31,7 @@ interface HomeHeaderProps {
 
 const HomeHeader = ({
   location,
+  isLocationLoading = false,
   onLocationPress,
   onCartPress,
   onNotificationPress,
@@ -39,6 +43,7 @@ const HomeHeader = ({
   notificationCount = 0,
 }: HomeHeaderProps) => {
   const { t } = useTranslation();
+  const inset = useSafeAreaInsets();
   return (
     <LinearGradient
       colors={['#7625D7', '#591CA2', '#3E1371']}
@@ -46,7 +51,7 @@ const HomeHeader = ({
       end={{ x: 0.5, y: 1 }}
       style={styles.LinearGradientContainer}
     >
-      <View style={styles.headerContainer}>
+      <View style={[styles.headerContainer, { paddingTop: inset.top + 20 }]}>
         <View style={styles.topRow}>
           <View style={styles.locationContainer}>
             <Text style={styles.locationLabel}>{t('location_label')}</Text>
@@ -55,7 +60,14 @@ const HomeHeader = ({
               onPress={onLocationPress}
               activeOpacity={0.7}
             >
-              {location ? (
+              {isLocationLoading ? (
+                <>
+                  <ActivityIndicator size="small" color={colors.white} />
+                  <Text style={styles.locationText} numberOfLines={1}>
+                    {t('getting_location')}
+                  </Text>
+                </>
+              ) : location ? (
                 <>
                   <Ionicons name="location" size={18} color={colors.white} />
                   <Text style={styles.locationText} numberOfLines={1}>
@@ -77,10 +89,10 @@ const HomeHeader = ({
             >
               <ShopingCartSvg />
               {cartItemCount > 0 && (
-              <View style={styles.badge}>
+              <View style={[styles.badge,{top: -4, right: -4}]}>
                 <Text style={styles.badgeText}>{cartItemCount}</Text>
               </View>
-              )}
+              )} 
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -142,7 +154,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 15,
   },
   headerContainer: {
-    paddingTop: 60,
+   
     paddingBottom: 30,
     paddingHorizontal: 20,
   },
@@ -165,7 +177,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    width: '80%',
+    width: '70%',
   },
   locationText: {
     color: '#FFF',
@@ -189,8 +201,8 @@ const styles = StyleSheet.create({
   },
   badge: {
     position: 'absolute',
-    top: -2,
-    right: -2,
+    top: -15,
+    right: -15,
     backgroundColor: colors.white,
     borderRadius: 10,
     minWidth: 20,

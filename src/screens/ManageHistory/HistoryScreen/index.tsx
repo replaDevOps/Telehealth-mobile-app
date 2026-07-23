@@ -15,13 +15,16 @@ import type {
   Tab,
   PaymentKind,
   PaymentItem,
+  PaymentConsultationItem,
+  PaymentAppointmentItem,
   ConsultationItem,
   DropdownOption,
 } from '../types/history.types';
 import { ConsultationCard, PaymentCard, HistoryTabs, SearchBar } from '../components';
 import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
-import Toast from 'toastify-react-native';
+import { capitalizeWords } from '../utils/format';
+import { Toast } from 'toastify-react-native';
 import { colors } from '../../../styles/colors';
 
 const DROPDOWN_OPTIONS: DropdownOption[] = [
@@ -34,7 +37,7 @@ export function HistoryScreen({ navigation }) {
   const [activeTab, setActiveTab] = useState<Tab>('consultation');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<PaymentKind | ''>(
-    'consultation',
+    'appointment',
   );
   const [consultations, setConsultations] = useState<ConsultationItem[]>([]);
   const [loadingConsultations, setLoadingConsultations] = useState(false);
@@ -52,6 +55,7 @@ export function HistoryScreen({ navigation }) {
 
   // Fetch consultations from API
   const fetchConsultations = useCallback(async (pageNo: number = 1, append: boolean = false) => {
+    console.log('fetchConsultations called', { pageNo, append, activeTab, searchQuery });
     if (activeTab !== 'consultation') return;
 
     if (append) {
@@ -69,6 +73,7 @@ export function HistoryScreen({ navigation }) {
           recordsPerPage: recordsPerPage,
         },
       });
+      console.log('API.GET_CONSULTATIONS request params:', { name: searchQuery, pageNo });
 
       console.log('Consultations response:', response.data);
 
@@ -114,11 +119,12 @@ export function HistoryScreen({ navigation }) {
           return {
             id: String(consultation.id),
             date: consultation.created_at || '',
-            serviceName: serviceData.name || consultation.serviceName || '',
+            serviceName: capitalizeWords(serviceData.name || consultation.serviceName || ''),
             duration: consultation.duration || '',
             type: consultationType.type,
             icon: consultationType.icon,
-            doctorName: doctorData.name || consultation.doctorName || 'Refunded',
+            doctorName: doctorData.name ? doctorData.name : t('no_agent_accepted'),
+            noAgentAccepted: !doctorData.name,
             doctorAvatar: doctorData.image || consultation.doctorAvatar || '',
             clinicName: normalizedClinicInfo.clinicName || '',
             price: consultation.price || '0',
@@ -178,6 +184,7 @@ export function HistoryScreen({ navigation }) {
 
   // Fetch payment history from API
   const fetchPayments = useCallback(async (pageNo: number = 1, append: boolean = false) => {
+    console.log('fetchPayments called', { pageNo, append, activeTab, selectedType, searchQuery });
     if (activeTab !== 'payment') return;
 
     if (append) {
@@ -201,10 +208,12 @@ export function HistoryScreen({ navigation }) {
           recordsPerPage: recordsPerPage,
         },
       });
+      console.log('API.GET_PAYMENTS request', { endpoint, params: { name: searchQuery, pageNo } });
 
       console.log('Payments response:', response.data);
 
       const responseData = response.data;
+      console.log(responseData)
 
       // Extract data array
       let apiPayments: any[] = [];
@@ -226,59 +235,119 @@ export function HistoryScreen({ navigation }) {
             const clinicData = payment.clinic || {};
             const doctorData = payment.doctor || {};
             const serviceData = payment.service || {};
-            console.log('payment', payment);
+            // console.log('payment', payment);
+            const rawType = payment.type || payment.consultationType;
+            const normalized = rawType && typeof rawType === 'string'
+              ? rawType.charAt(0).toUpperCase() + rawType.slice(1).toLowerCase()
+              : '';
+            const validTypes = ['Chat', 'Video', 'Audio'];
+            const normalizedType = validTypes.includes(normalized) ? normalized as 'Chat' | 'Video' | 'Audio' : undefined;
             return {
               id: String(payment.id || payment.paymentId || Date.now()),
               kind: 'consultation' as const,
               date: payment.date || payment.created_at || '',
               paymentId: String(payment.paymentId || payment.id || ''),
-              type: payment.type || payment.consultationType,
-              duration: payment.duration || serviceData.duration || '',
-              serviceName: payment.serviceName || serviceData.name || '',
+              type: normalizedType,
+              duration: payment.duration || '',
+              serviceName: capitalizeWords(payment.serviceName || serviceData.name || ''),
               doctorStatus: payment.doctorStatus || payment.status,
-              doctorName: payment.doctorName || doctorData.name || '',
+              doctorName: doctorData.name ? t('customer_support') : t('no_agent_accepted'),
               doctorAvatar: payment.doctorAvatar || doctorData.image || '',
               clinicName: payment.clinicName || clinicData.clinicName || clinicData.name || '',
               clinicLocation: payment.clinicLocation || clinicData.location || '',
-              price: payment.price || payment.amount || '0',
+              price: payment.transaction?.amount || payment.price || payment.amount || '0',
               status: payment.status || 'Completed',
               statusColor: payment.status === 'Completed' || payment.status === 'Success'
                 ? colors.green
                 : payment.status === 'Pending'
                   ? colors.yellow
                   : colors.red,
+              refundServiceCount: payment.refundServiceCount || 0,
             } as PaymentConsultationItem;
           } else {
-            // Map appointment payment
+            // Map appointment payment (API: clinic.details.logo, clinic.details.address, city, district)
             const clinicData = payment.clinic || {};
+            const clinicDetails = clinicData.details || {};
             const services = payment.services || [];
             const appointmentServices = payment.appointment_services || [];
+
+            const clinicLogo = clinicDetails.logo || clinicDetails.coverImage || clinicData.logo || clinicData.coverImage || clinicData.image || payment.clinicImage || '';
+            const locationParts = [
+              clinicDetails.address,
+              // clinicDetails.city,
+              // clinicDetails.district,
+            ].filter(Boolean);
+            const clinicLocationStr = locationParts.length > 0
+              ? locationParts.join(', ')
+              : (payment.clinicLocation || clinicData.location || '');
+
+            // Calculate refund status
+            const refundServices = payment.refundServices || [];
+            let refundStatus = '';
+            let refundStatusColor = colors.secondaryText;
+
+            if (refundServices.length > 0) {
+              // Check if any service has "Pending" status
+              const hasPending = refundServices.some((rs: any) => rs.status === 'Pending');
+
+              if (hasPending) {
+                refundStatus = 'Pending';
+                refundStatusColor = colors.yellow;
+              } else {
+                // Check if all have the same status
+                const statuses = refundServices.map((rs: any) => rs.status);
+                const uniqueStatuses = [...new Set(statuses)];
+
+                if (uniqueStatuses.length === 1) {
+                  refundStatus = uniqueStatuses[0];
+                  // Set color based on status
+                  if (refundStatus === 'Booked' || refundStatus === 'Completed' || refundStatus === 'Success') {
+                    refundStatusColor = colors.green;
+                  } else if (refundStatus === 'Refund') {
+                    refundStatusColor = colors.red;
+                  } else {
+                    refundStatusColor = colors.yellow;
+                  }
+                } else {
+                  refundStatus = 'Mixed';
+                  refundStatusColor = colors.secondaryText;
+                }
+              }
+            }
 
             return {
               id: String(payment.id || payment.paymentId || Date.now()),
               kind: 'appointment' as const,
-              date: payment.date || payment.created_at || payment.requestDate || '',
+              date: payment.created_at || payment.requestDate || '',
               paymentId: String(payment.paymentId || payment.id || ''),
-              clinicImg: !!payment.clinicImage || !!clinicData.image,
-              clinicName: payment.clinicName || clinicData.clinicName || clinicData.name || '',
-              clinicLocation: payment.clinicLocation || clinicData.location || '',
+              paymentStatus: payment.transaction.status || '',
+              clinicImg: !!clinicLogo || !!clinicData.image,
+              clinicImage: clinicLogo,
+              clinicName: payment.clinicName || clinicData.clinicName || clinicDetails.businessName || clinicData.name || '',
+              clinicLocation: clinicLocationStr,
               numberOfService: String(appointmentServices.length || services.length || payment.serviceCount || 0),
-              price: payment.price || payment.amount || '0',
+              price: payment.transaction?.amount || payment.price || payment.amount || '0',
               status: payment.status || 'Completed',
-              statusColor: payment.status === 'Completed' || payment.status === 'Success'
+              statusColor: payment.transaction.status === 'Paid' || payment.status === 'Completed' || payment.status === 'Success'
                 ? colors.green
                 : payment.status === 'Pending'
                   ? colors.yellow
                   : colors.red,
+              refundServiceCount: payment.refundServiceCount || 0,
+              refundServices: refundServices,
+              refundStatus: refundStatus,
+              refundStatusColor: refundStatusColor,
               services: services.map((service: any, index: number) => {
                 const serviceGroup = service.group || {};
+                const categoryRaw = service.category || serviceGroup.name || '';
+                const nameRaw = service.name || service.serviceName || '';
                 return {
                   id: service.id || index,
-                  name: service.name || service.serviceName || '',
+                  name: capitalizeWords(nameRaw),
                   duration: service.duration || '',
                   price: service.price || '0',
-                  category: service.category || serviceGroup.name || '',
-                  categoryBadge: service.category || serviceGroup.name || '',
+                  category: capitalizeWords(categoryRaw),
+                  categoryBadge: capitalizeWords(categoryRaw),
                   image: service.image ? { uri: service.image } : RecommandImage,
                 };
               }) || [],
@@ -325,23 +394,13 @@ export function HistoryScreen({ navigation }) {
 
   // Fetch consultations when tab changes or search query changes
   useEffect(() => {
+    console.log('History useEffect triggered by change', { activeTab, searchQuery, selectedType });
     if (activeTab === 'consultation') {
       fetchConsultations(1, false);
     } else if (activeTab === 'payment' && selectedType) {
       fetchPayments(1, false);
     }
   }, [activeTab, searchQuery, selectedType]);
-
-  // Refresh on focus
-  useFocusEffect(
-    useCallback(() => {
-      if (activeTab === 'consultation') {
-        fetchConsultations(1, false);
-      } else if (activeTab === 'payment' && selectedType) {
-        fetchPayments(1, false);
-      }
-    }, [activeTab, selectedType, fetchConsultations, fetchPayments])
-  );
 
   // Payments are already filtered by selectedType on the backend
   // No need for client-side filtering
@@ -405,9 +464,10 @@ export function HistoryScreen({ navigation }) {
           serviceName: item.serviceName,
         });
       } else {
+        const clinicImageUri = 'clinicImage' in item ? item.clinicImage : undefined;
         navigation.navigate('CardDetails', {
           ...commonParams,
-          image: item.clinicImg ? RecommandImage : undefined,
+          image: clinicImageUri ? { uri: clinicImageUri } : item.clinicImg ? RecommandImage : undefined,
           services: item.services || [],
           isAppointment: true,
         });
@@ -462,7 +522,7 @@ export function HistoryScreen({ navigation }) {
             fetchConsultations(1, false);
           }}
           ListEmptyComponent={
-            loadingConsultations ? (
+            loadingConsultations && !refreshingConsultations ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={colors.primary} />
                 <Text style={styles.loadingText}>{t('loading') || 'Loading...'}</Text>
@@ -481,23 +541,31 @@ export function HistoryScreen({ navigation }) {
             ) : null
           }
           style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: 16, flexGrow: 1 }}
+          contentContainerStyle={
+            consultations.length === 0
+              ? { flexGrow: 1, justifyContent: 'center', paddingBottom: 16 }
+              : { paddingBottom: 16 }
+          }
           showsVerticalScrollIndicator={false}
         />
       ) : (
         <>
           {activeTab === 'payment' && (
             <View style={styles.content}>
-              <CustomDropdown
+              {/* <CustomDropdown
                 label={t('type')}
                 placeholder={t('select_type_here')}
                 value={selectedType}
-                onValueChange={(value) => setSelectedType(value as PaymentKind | '')}
+                onValueChange={(value) => {
+                  setSelectedType(value as PaymentKind | '');
+                  setLoadingPayments(true);
+                  setPayments([]);
+                }}
                 options={DROPDOWN_OPTIONS.map(option => ({
                   ...option,
                   label: t(option.label.toLowerCase()),
                 }))}
-              />
+              /> */}
 
               <FlatList
                 data={payments}
@@ -511,8 +579,13 @@ export function HistoryScreen({ navigation }) {
                   setRefreshingPayments(true);
                   fetchPayments(1, false);
                 }}
+                contentContainerStyle={
+                  payments.length === 0
+                    ? { flexGrow: 1, justifyContent: 'center', paddingBottom: 16 }
+                    : { paddingBottom: 16 }
+                }
                 ListEmptyComponent={
-                  loadingPayments ? (
+                  loadingPayments && !refreshingPayments ? (
                     <View style={styles.loadingContainer}>
                       <ActivityIndicator size="large" color={colors.primary} />
                       <Text style={styles.loadingText}>{t('loading') || 'Loading...'}</Text>
@@ -524,7 +597,7 @@ export function HistoryScreen({ navigation }) {
                   )
                 }
                 ListFooterComponent={
-                  loadingMorePayments ? (
+                  loadingMorePayments && payments.length > 0 ? (
                     <View style={{ paddingVertical: 20 }}>
                       <ActivityIndicator size="small" color={colors.primary} />
                     </View>

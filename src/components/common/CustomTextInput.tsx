@@ -59,7 +59,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
             disabled={props.editable === false}
           >
             <Icon
-              name={showPassword ? 'visibility-off' : 'visibility'}
+              name={showPassword ? 'visibility' : 'visibility-off'}
               size={mvs(20)}
               color={colors.black}
             />

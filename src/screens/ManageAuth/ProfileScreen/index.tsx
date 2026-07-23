@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { Asset } from 'react-native-image-picker';
@@ -8,6 +8,11 @@ import { KeyboardAvoidScrollview } from '../../../components/common/keyboard-avo
 import { CustomTextInput } from '../../../components/common/CustomTextInput';
 import { CustomDropdown } from '../../../components/common/CustomDropdwon';
 import UserProfile from '../../../components/common/UserProfile';
+import DateOfBirthPicker, {
+  DobValue,
+  computeAge,
+  isDobComplete,
+} from '../../../components/common/DateOfBirthPicker';
 import { CustomButton } from '../../../components/common/CustomButton';
 import { Header2 } from '../../../components/common/Header2';
 import CustomText from '../../../components/common/CustomText';
@@ -24,6 +29,7 @@ import { BASE_URL } from '@constants';
 import { useAuthStore } from '@store';
 import { AuthStackParamList } from '../../../navigation/AuthNavigator';
 import parsePhoneNumberFromString, { CountryCode } from 'libphonenumber-js';
+import citiesData from '@utils/cities-data.json';
 
 type NavProps = StackNavigationProp<AuthStackParamList, 'Profile'>;
 type RouteProps = RouteProp<AuthStackParamList, 'Profile'>;
@@ -33,17 +39,27 @@ interface Props {
   route: RouteProps;
 }
 
+// A valid name has at least 2 words or at least 3 characters.
+const isValidName = (name: string): boolean => {
+  const trimmed = name.trim();
+  if (!trimmed) return false;
+  const words = trimmed.split(/\s+/).filter(Boolean);
+  return words.length >= 2 || trimmed.length >= 3;
+};
+
 export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
-  const { t } = useTranslation();
-  
-  // Get email/phone from route params
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language?.startsWith('ar');
+
+  // Get email/phone/name from route params
   const routeEmail = route.params?.email;
   const routePhone = route.params?.phone;
   const routeCountryCode = route.params?.countryCode || 'SA';
-  
-  const [fullName, setFullName] = useState('');
+  const routeName = route.params?.name;
+
+  const [fullName, setFullName] = useState(routeName || '');
   const [gender, setGender] = useState('');
-  const [age, setAge] = useState('');
+  const [dob, setDob] = useState<DobValue>({ day: '', month: '', year: '' });
   const [profileImage, setProfileImage] = useState('');
   const [profileImageAsset, setProfileImageAsset] = useState<Asset | null>(null);
   const [phone, setPhone] = useState('');
@@ -51,48 +67,26 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   const [phoneError, setPhoneError] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isPhoneValid, setIsPhoneValid] = useState(false);
-  const [nationality, setNationality] = useState('');
+  const [isSaudi, setIsSaudi] = useState<boolean | null>(null);
   const [IdCardNumber, setIdCardNumber] = useState('');
+  const [city, setCity] = useState('');
   const [email, setEmail] = useState(routeEmail || '');
   
   // Auto-fill email and phone from route params
   useEffect(() => {
-    if (routeEmail) {
-      setEmail(routeEmail);
-    }
-    
-    if (routePhone && routeCountryCode) {
-      // Check if phone already includes country code (starts with +)
-      if (routePhone.startsWith('+')) {
-        // Phone is in international format, parse it
-        try {
-          const phoneNumber = parsePhoneNumberFromString(routePhone);
-          if (phoneNumber) {
-            setPhone(phoneNumber.nationalNumber);
-            setCountryCode(phoneNumber.country || routeCountryCode);
-          } else {
-            // If parsing fails, try with country code
-            const phoneNumberWithCountry = parsePhoneNumberFromString(
-              routePhone,
-              routeCountryCode as CountryCode
-            );
-            if (phoneNumberWithCountry) {
-              setPhone(phoneNumberWithCountry.nationalNumber);
-              setCountryCode(routeCountryCode);
-            } else {
-              // Last resort: use as-is
-              setPhone(routePhone.replace(/^\+?\d{1,3}/, '')); // Remove country code prefix
-              setCountryCode(routeCountryCode);
-            }
-          }
-        } catch (error) {
-          // If parsing fails, remove country code prefix if present
-          const nationalNumber = routePhone.replace(/^\+?\d{1,3}/, '');
-          setPhone(nationalNumber);
-          setCountryCode(routeCountryCode);
-        }
+    if (routeEmail) setEmail(routeEmail);
+
+    if (routePhone) {
+      // Backend may send full international format (e.g. +966501234567) or national number
+      const parsed = parsePhoneNumberFromString(
+        routePhone.startsWith('+') ? routePhone : `+${routePhone}`,
+        routeCountryCode as CountryCode
+      ) ?? parsePhoneNumberFromString(routePhone, routeCountryCode as CountryCode);
+
+      if (parsed) {
+        setPhone(parsed.nationalNumber);
+        setCountryCode(parsed.country || routeCountryCode);
       } else {
-        // Phone is already in national format
         setPhone(routePhone);
         setCountryCode(routeCountryCode);
       }
@@ -100,24 +94,22 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   }, [routeEmail, routePhone, routeCountryCode]);
   const [emailError, setEmailError] = useState('');
   const [nameError, setNameError] = useState('');
-  const [ageError, setAgeError] = useState('');
+  const [dobError, setDobError] = useState('');
   const [idError, setIdError] = useState('');
-  const [nationalityError, setNationalityError] = useState('');
+  const [saudiError, setSaudiError] = useState('');
+  const [cityError, setCityError] = useState('');
   const [genderError, setGenderError] = useState('');
-  const [profileImageError, setProfileImageError] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingSkip, setLoadingSkip] = useState(false);
 
   const handleImageSelected = (uri: string) => {
     setProfileImage(uri);
-    setProfileImageError(''); // Clear error when image is selected
   };
 
   const handleImageAssetSelected = (asset: Asset) => {
     if (asset.uri) {
       setProfileImage(asset.uri);
       setProfileImageAsset(asset);
-      setProfileImageError(''); // Clear error when image is selected
     }
   };
 
@@ -130,13 +122,13 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     setEmailError('');
     setPhoneError('');
     setIdError('');
-    setAgeError('');
-    setNationalityError('');
+    setDobError('');
+    setSaudiError('');
+    setCityError('');
     setGenderError('');
-    setProfileImageError('');
 
-    if (!fullName.trim()) {
-      setNameError(t('name_required'));
+    if (!isValidName(fullName)) {
+      setNameError(fullName.trim() ? t('name_invalid') : t('name_required'));
       valid = false;
     }
     if (!email.trim() || !email.includes('@')) {
@@ -147,40 +139,67 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
       setPhoneError(t('phone_required'));
       valid = false;
     }
-    if (!nationality) {
-      setNationalityError(t('nationality_required'));
+    if (isSaudi === null) {
+      setSaudiError(t('saudi_status_required'));
       valid = false;
     }
-    if (!IdCardNumber.trim()) {
-      setIdError(t('id_required'));
+    if (!city) {
+      setCityError(t('city_required'));
       valid = false;
+    }
+    // Iqama is only required for non-Saudis. Saudis are never asked for an ID.
+    if (isSaudi === false) {
+      if (!IdCardNumber.trim()) {
+        setIdError(t('iqama_required_non_saudi'));
+        valid = false;
+      } else if (IdCardNumber.replace(/[^0-9]/g, '').length !== 10) {
+        setIdError(t('iqama_length_invalid'));
+        valid = false;
+      }
     }
     if (!gender) {
       setGenderError(t('gender_required'));
       valid = false;
     }
-    if (!age.trim()) {
-      setAgeError(t('age_required'));
+    if (!isDobComplete(dob)) {
+      setDobError(t('dob_required'));
       valid = false;
     }
-    if (!profileImage) {
-      setProfileImageError(t('profile_image_required'));
-      valid = false;
-    }
-    
+
     if (valid) {
       try {
         // Create FormData to include image file
         const formData = new FormData();
-        
         // Add text fields
+        const nationalityPayload = isSaudi ? 'saudi' : 'non_saudi';
+        const computedAge = computeAge(dob);
+
+        const parsedPhoneConfirm = parsePhoneNumberFromString(phone, countryCode as CountryCode);
+        const fullPhoneConfirm = parsedPhoneConfirm ? parsedPhoneConfirm.format('E.164') : phone.trim();
+
         formData.append('fullName', fullName.trim());
         formData.append('email', email.trim());
-        formData.append('phoneNo', phone.trim());
-        formData.append('nationality', nationality);
-        formData.append('nationalID', IdCardNumber.trim());
+        formData.append('phoneNo', fullPhoneConfirm);
+        formData.append('nationality', nationalityPayload);
+        // Only non-Saudis provide an Iqama number.
+        if (!isSaudi && IdCardNumber.trim()) {
+          formData.append('nationalID', IdCardNumber.trim());
+        }
         formData.append('gender', gender);
-        formData.append('age', age.trim());
+        if (computedAge !== null) {
+          formData.append('age', String(computedAge));
+        }
+        formData.append('city', city.trim());
+        console.log('[ProfileScreen] REGISTER payload:', {
+          fullName: fullName.trim(),
+          email: email.trim(),
+          phoneNo: fullPhoneConfirm,
+          nationality: nationalityPayload,
+          nationalID: !isSaudi ? IdCardNumber.trim() || undefined : undefined,
+          gender,
+          age: computedAge ?? undefined,
+          city: city?.trim() || undefined,
+        });
 
         // Add image if available
         if (profileImageAsset && profileImageAsset.uri) {
@@ -204,7 +223,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
 
         // Get auth token if available
         const token = useAuthStore.getState().auth?.token;
-        
+        console.log(formData)
         // Use fetch for FormData upload
         const response = await fetch(`${BASE_URL}${API.AUTH.REGISTER}`, {
           method: 'POST',
@@ -213,8 +232,9 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
             ...(token && { 'Authorization': `Bearer ${token}` }),
           },
         });
-
+        console.log('response',response)
         const data = await response.json();
+        console.log('Register API response:', data);
 
         if (!response.ok || data.success === false) {
           const errorMessage = data.message || data.data?.message || 'Registration failed';
@@ -239,41 +259,68 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const handleSkip = async () => {
     // Clear previous field errors
+    setNameError('');
     setPhoneError('');
     setEmailError('');
+    setIdError('');
 
-    // Ensure required fields are present before calling the skip API
+    // Validate all required fields at once
+    let hasError = false;
+
+    if (!isValidName(fullName)) {
+      setNameError(fullName.trim() ? t('name_invalid') : t('name_required'));
+      hasError = true;
+    }
+
     if (!phone || !phone.trim()) {
       setPhoneError(t('phone_required') || 'Phone number is required');
-      return;
+      hasError = true;
     }
 
     if (!email || !email.trim() || !email.includes('@')) {
       setEmailError(t('email_required') || 'Email is required');
-      return;
+      hasError = true;
     }
+
+    // If iqama is entered (non-Saudi) it must be exactly 10 digits
+    if (IdCardNumber.trim() && IdCardNumber.replace(/[^0-9]/g, '').length !== 10) {
+      setIdError(t('iqama_length_invalid'));
+      hasError = true;
+    }
+
+    if (hasError) return;
 
     setLoadingSkip(true);
     try {
-      // Build payload: phoneNo and email are required; include other profile fields if provided
+      const parsedPhoneSkip = parsePhoneNumberFromString(phone, countryCode as CountryCode);
+      const fullPhoneSkip = parsedPhoneSkip ? parsedPhoneSkip.format('E.164') : phone.trim();
+
+      // Build payload: fullName, phoneNo and email are required; include other profile fields if provided
       const payload: any = {
-        phoneNo: phone.trim(),
+        fullName: fullName.trim(),
+        phoneNo: fullPhoneSkip,
         email: email.trim(),
       };
-
-      if (fullName && fullName.trim()) payload.fullName = fullName.trim();
-      if (nationality) payload.nationality = nationality;
-      if (IdCardNumber && IdCardNumber.trim()) payload.nationalID = IdCardNumber.trim();
+      if (isSaudi !== null) {
+        payload.nationality = isSaudi ? 'saudi' : 'non_saudi';
+      }
+      if (!isSaudi && IdCardNumber?.trim() && IdCardNumber.replace(/[^0-9]/g, '').length === 10) {
+        payload.nationalID = IdCardNumber.trim();
+      }
       if (gender) payload.gender = gender;
-      if (age && age.trim()) payload.age = age.trim();
-
+      const skipAge = computeAge(dob);
+      if (skipAge !== null) payload.age = String(skipAge);
+      if (city) payload.city = city;
+      console.log("Skip",payload)
       const response = await apiClient.post(API.AUTH.SKIP, payload);
 
       // API may return success:false with message field — prefer showing field errors
       const serverMsg = response?.data?.message || '';
       if (response?.data?.success === false) {
         const lower = String(serverMsg).toLowerCase();
-        if (lower.includes('phone')) {
+        if (lower.includes('name') || lower.includes('full name')) {
+          setNameError(serverMsg);
+        } else if (lower.includes('phone')) {
           setPhoneError(serverMsg);
         } else if (lower.includes('email')) {
           setEmailError(serverMsg);
@@ -294,7 +341,8 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     } catch (err: any) {
       const errMsg = err?.response?.data?.message || err?.message || 'Skip failed';
       const lower = String(errMsg).toLowerCase();
-      if (lower.includes('phone')) setPhoneError(errMsg);
+      if (lower.includes('name') || lower.includes('full name')) setNameError(errMsg);
+      else if (lower.includes('phone')) setPhoneError(errMsg);
       else if (lower.includes('email')) setEmailError(errMsg);
       else Toast.error(errMsg);
     } finally {
@@ -306,10 +354,12 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   const isEmailSignup = !!routeEmail;
   const isPhoneSignup = !!routePhone;
 
-  const nationalityOptions = [
-    { label: t('saudi_arabian'), value: 'sau' },
-    { label: t('non_saudi'), value: 'non_saudi' },
-  ];
+  // City value stays the canonical English name (backend contract); only the
+  // displayed label is localized.
+  const cityOptions = citiesData.map((c: any) => ({
+    label: isArabic ? c.name_ar || c.name : c.name,
+    value: c.name,
+  }));
 
   const genderOptions = [
     { label: t('male'), value: 'male' },
@@ -319,21 +369,21 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
-      <Header2 title="" showLanguage={true} />
+      
       <KeyboardAvoidScrollview
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: mvs(30) }}
       >
+        <Header2 title="" showLanguage={true} inScrollView={true} />
         <View style={styles.container}>
+          {/* Profile photo is optional — a default avatar is shown until the
+              user picks one. */}
           <UserProfile
             profileImage={profileImage}
             onImageSelected={handleImageSelected}
             autoUpload={false}
             onImageAssetSelected={handleImageAssetSelected}
           />
-          {profileImageError ? (
-            <Text style={styles.errorText}>{profileImageError}</Text>
-          ) : null}
 
           <View style={styles.content}>
             <CustomText text={t('setup_profile')} />
@@ -388,32 +438,71 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
             editable={!isPhoneSignup}
           />
 
+          {/* Saudi / non-Saudi question replaces the old nationality dropdown. */}
+          <Text style={styles.label}>{t('are_you_saudi')}</Text>
+          <View style={styles.saudiToggleRow}>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              style={[styles.saudiOption, isSaudi === true && styles.saudiOptionActive]}
+              onPress={() => {
+                setIsSaudi(true);
+                setIdCardNumber('');
+                if (idError) setIdError('');
+                if (saudiError) setSaudiError('');
+              }}
+            >
+              <Text style={[styles.saudiOptionText, isSaudi === true && styles.saudiOptionTextActive]}>
+                {t('yes')}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              style={[styles.saudiOption, isSaudi === false && styles.saudiOptionActive]}
+              onPress={() => {
+                setIsSaudi(false);
+                if (saudiError) setSaudiError('');
+              }}
+            >
+              <Text style={[styles.saudiOptionText, isSaudi === false && styles.saudiOptionTextActive]}>
+                {t('no')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          {saudiError ? <Text style={styles.fieldError}>{saudiError}</Text> : null}
+          <Text style={styles.disclaimer}>{t('saudi_disclaimer')}</Text>
+
           <CustomDropdown
-            label={t('nationality')}
-            placeholder={t('select_nationality')}
-            value={nationality}
+            label={t('city') || 'City'}
+            placeholder={t('select_city') || 'Select City'}
+            value={city}
             onValueChange={(value) => {
-              setNationality(value);
-              if (nationalityError) setNationalityError('');
+              setCity(value);
+              if (cityError) setCityError('');
             }}
-            errorMessage={nationalityError}
-            options={nationalityOptions}
+            errorMessage={cityError}
+            options={cityOptions}
           />
 
-          <CustomTextInput
-            label={t('national_id')}
-            placeholder={t('national_id_placeholder')}
-            value={IdCardNumber}
-            onChangeText={(text) => {
-              // Only allow numeric values and limit to 10 characters
-              const numericText = text.replace(/[^0-9]/g, '').slice(0, 10);
-              setIdCardNumber(numericText);
-              if (idError) setIdError('');
-            }}
-            keyboardType="numeric"
-            maxLength={10}
-            errorMessage={idError}
-          />
+          {/* Iqama number is requested only for non-Saudis. */}
+          {isSaudi === false && (
+            <>
+              <CustomTextInput
+                label={t('national_id')}
+                placeholder={t('national_id_placeholder')}
+                value={IdCardNumber}
+                onChangeText={(text) => {
+                  // Only allow numeric values and limit to 10 characters
+                  const numericText = text.replace(/[^0-9]/g, '').slice(0, 10);
+                  setIdCardNumber(numericText);
+                  if (idError) setIdError('');
+                }}
+                keyboardType="numeric"
+                maxLength={10}
+                errorMessage={idError}
+              />
+              <Text style={styles.vatNote}>{t('vat_note_non_saudi')}</Text>
+            </>
+          )}
 
           <CustomDropdown
             label={t('gender')}
@@ -427,16 +516,14 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
             errorMessage={genderError}
           />
 
-          <CustomTextInput
-            label={t('age')}
-            placeholder={t('enter_age')}
-            value={age}
-            onChangeText={(text) => {
-              setAge(text);
-              if (ageError) setAgeError('');
+          <DateOfBirthPicker
+            label={t('date_of_birth')}
+            value={dob}
+            onChange={(value) => {
+              setDob(value);
+              if (dobError) setDobError('');
             }}
-            keyboardType="numeric"
-            errorMessage={ageError}
+            errorMessage={dobError}
           />
 
           <View style={styles.buttonContainer}>
@@ -450,6 +537,8 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
                 borderColor: colors.border,
               }}
               textStyle={{ color: colors.text }}
+              loading={loadingSkip}
+              disabled={loadingSkip}
             />
             <CustomButton
               title={t('confirm')}

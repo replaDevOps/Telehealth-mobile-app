@@ -12,6 +12,7 @@ interface MessageListProps {
   showAvatar: boolean;
   handleServicePress: (service: Service) => void;
   handleDeleteMessage?: (messageID: string) => void;
+  isRTL?: boolean;
 }
 
 export const MessageList: React.FC<MessageListProps> = ({
@@ -20,6 +21,7 @@ export const MessageList: React.FC<MessageListProps> = ({
   showAvatar,
   handleServicePress,
   handleDeleteMessage,
+  isRTL = false,
 }) => {
   const { t } = useTranslation();
 
@@ -60,6 +62,7 @@ export const MessageList: React.FC<MessageListProps> = ({
           showAvatar={showAvatar}
           handleServicePress={handleServicePress}
           handleDeleteMessage={handleDeleteMessage}
+          isRTL={isRTL}
         />
       ))}
     </ScrollView>

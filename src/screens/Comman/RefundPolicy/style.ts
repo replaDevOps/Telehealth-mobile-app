@@ -23,5 +23,15 @@ export const styles = StyleSheet.create({
         lineHeight: mvs(22),
         marginBottom: mvs(16),
     },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    errorText: {
+        fontSize: mvs(14),
+        color: colors.red,
+        marginBottom: mvs(16),
+    },
 
 });

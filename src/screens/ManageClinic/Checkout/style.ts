@@ -38,10 +38,13 @@ export const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
+  scrollContent: {
+    paddingBottom: mvs(40),
+  },
   clinicCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 10,
+    padding: 5,
     marginHorizontal: 12,
     marginVertical: 10,
     borderRadius: 12,
@@ -49,7 +52,7 @@ export const styles = StyleSheet.create({
   clinicImage: {
     width: 48,
     height: 48,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: '#DACEFB',
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
@@ -72,14 +75,17 @@ export const styles = StyleSheet.create({
     marginTop: 2,
   },
   serviceCard: {
-    flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    padding: 16,
+    padding: 4,
     marginHorizontal: 16,
     backgroundColor: colors.white,
     borderRadius: 12,
     marginBottom: 10
+  },
+  serviceContent:{
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   serviceLeft: {
     flexDirection: 'row',
@@ -89,7 +95,7 @@ export const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 8,
-    marginRight: 12,
+    marginRight: 6,
   },
   serviceInfo: {
     flex: 1,
@@ -98,29 +104,32 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 6,
     marginBottom: 6,
-    maxWidth: "50%"
   },
   categoryBadge: {
-    backgroundColor: "#310A60",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
+    backgroundColor: colors.primary,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    minWidth: 70,
+    maxWidth: 120,
   },
   categoryBadgeText: {
-    fontSize: 10,
+    fontSize: 12,
     color: colors.white,
-    fontWeight: '500',
+    fontWeight: '600',
+    textTransform: 'capitalize',
   },
   nameBadge: {
-    backgroundColor: "#DACEFB",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
+    backgroundColor: '#E9D9F8',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    maxWidth: 120,
   },
   nameBadgeText: {
-    fontSize: 10,
-    color: "#310A60",
-    fontWeight: '500',
+    fontSize: 12,
+    color: colors.primary,
+    fontWeight: '600',
   },
   serviceName: {
     fontSize: 15,
@@ -144,18 +153,17 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 4,
-    gap: 4,
-    backgroundColor: "#EBAD0033",
-    borderWidth: 1,
-    borderColor: colors.yellow,
     marginHorizontal: 12,
-    paddingHorizontal: 15,
+  },
+  bonusInstructionContainer: {
+    alignSelf: 'stretch',
+    paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 8
   },
   bonusInstruction: {
     color: colors.yellow,
-    textAlign: "center"
+    fontSize: 12,
+    fontWeight: '600',
   },
   servicePrice: {
     fontSize: 15,
@@ -262,6 +270,7 @@ export const styles = StyleSheet.create({
   summarySection: {
     paddingHorizontal: 16,
     marginTop: 24,
+    paddingBottom: 24,
   },
   summaryTitle: {
     fontSize: 16,
@@ -301,7 +310,7 @@ export const styles = StyleSheet.create({
     color: '#111827',
   },
   bottomPadding: {
-    height: mvs(120),
+    height: mvs(200),
   },
   bottomContainer: {
     padding: 20,
@@ -371,6 +380,22 @@ export const styles = StyleSheet.create({
   },
   redemptionValue: {
     color: '#EF4444',
+  },
+
+  redemptionInfoRow: {
+    marginHorizontal: 20,
+    marginTop: 8,
+  },
+  redemptionInfoText: {
+    color: '#6B7280',
+    fontSize: 13,
+  },
+
+  insufficientText: {
+    color: '#EF4444',
+    marginTop: 4,
+    fontSize: 13,
+    marginHorizontal: 4,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,

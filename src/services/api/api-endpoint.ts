@@ -6,11 +6,16 @@ export const API = {
     // EMAIL OTP
     SEND_OTP_EMAIL: '/patient-auth/send-otp-email',
     RESEND_OTP_EMAIL: '/patient-auth/resendEmailOpt',
+    // CHECK PHONE NUMBER REGISTRATION STATUS
+    CHECK_PHONE_NO: '/patient-auth/checkPhoneNo',
     // PHONE OTP
     SEND_OTP_PHONE: '/patient-auth/sendPhoneOtp',
     RESEND_OTP_PHONE: '/patient-auth/resendMobileOpt',
     // VERIFY OTP
     VERIFY_OTP: '/patient-auth/verifyOtp',
+    VERIFY_FIREBASE_OTP: '/patient-auth/verifyFirebaseOtp',
+    // VERIFY FIREBASE OTP FOR FORGOT PASSWORD (URL TBD)
+    VERIFY_FIREBASE_FORGOT_PASSWORD: '/patient-auth/verifyFirebaseForgotPassword',
     // CREATE PASSWORD
     CREATE_PASSWORD: '/patient-auth/createPassword',
     // REGISTER
@@ -31,9 +36,12 @@ export const API = {
     // SKIP (complete profile later)
     SKIP: '/patient-auth/skip',
     LOGOUT: '/patient-auth/logout',
+    // GOOGLE LOGIN / REGISTER
+    LOGIN_GOOGLE: '/patient-auth/login-with-google',
   },
   SETTINGS: {
     VIEW_PROFILE: '/patient-setting/viewProfile',
+    STORE_FCM_TOKEN: '/patient-setting/storeFcmToken',
     UPDATE_PROFILE_IMAGE: '/patient-setting/updateProfileImage',
     UPDATE_PROFILE: '/patient-setting/updateProfile',
     CHANGE_PASSWORD: '/patient-setting/changePassword',
@@ -57,8 +65,11 @@ export const API = {
     GET_CLINIC_SERVICES: '/patient-common/clinicServices',
     GET_CLINIC_REVIEWS: '/patient-common/clinicReviews',
     GET_DEVICE_DETAILS: '/patient-common/deviceDetails',
+    GET_SERVICES_GROUPS: '/patient-common/servicesGroups',
     GET_SERVICES_FILTER: '/patient-common/servicesFilter',
     GET_SERVICE_DETAILS: '/patient-common/serviceDetails',
+    PRIVACY_POLICY: '/patient-common/privacy',
+    TERMS_CONDITIONS: '/patient-common/terms',
   },
   CART: {
     ADD_TO_CART: '/cart/add',
@@ -74,6 +85,7 @@ export const API = {
     GET_SERVICES: '/patient-consultations/services',
     GET_CONSULTATION_TYPES: '/patient-consultations/consultationsTypes',
     FIND_DOCTORS: '/patient-consultations/findDoctors',
+    CHECK_PROFILE: '/patient-consultations/checkProfile',
     BOOK_CONSULTATION: '/patient-consultations/bookConsultations',
     GET_CONSULTATION_MESSAGES: '/patient-consultations/consultationsMessages', // GET /consultationsMessages/{consultationID}
     SEND_MESSAGE: '/patient-consultations/sendMessage',
@@ -87,6 +99,7 @@ export const API = {
     VIEW_ALL: '/patient-notifications/viewAll',
     DELETE: '/patient-notifications/delete',
     CLEAR_ALL: '/patient-notifications/clearAll',
+    READ_ALL: '/patient-notifications/readAll',
   },
   HISTORY: {
     GET_CONSULTATIONS: '/history/consultations', // GET /consultations?name=
@@ -97,6 +110,7 @@ export const API = {
     GET_CONSULTATION_PAYMENT_DETAILS: '/history/consultationPaymentDetails', // GET /consultationPaymentDetails/{id}
     GET_APPOINTMENT_DETAILS: '/history/appointmentDetails', // GET /appointmentDetails/{id}
     RATE_CLINIC: '/history/rateClinic', // POST /rateClinic
+    REFUND_POLICY: '/history/refundPolicy', // GET /refundPolicy
   },
   REFUND: {
     GET_REFUND_APPOINTMENTS: '/patient-setting/refundAppointments', // GET /refundAppointments?name=

@@ -8,9 +8,9 @@ import { styles } from '../style';
 import type { PaymentItem } from './PaymentCard';
 
 const ICON_MAP = {
-  Video: 'videocam',
-  Chat: 'chatbubble',
-  Audio: 'mic',
+  Video: 'videocam-outline',
+  Chat: 'chatbubble-outline',
+  Audio: 'mic-outline',
 } as const;
 
 interface PaymentHeaderProps {
@@ -21,12 +21,12 @@ export const PaymentHeader: React.FC<PaymentHeaderProps> = ({ item }) => {
   const { t } = useTranslation();
   const isConsultation = item.kind === 'consultation';
   const isAppointment = item.kind === 'appointment';
-
+  // console.log('Rendering PaymentHeader with item:', item); // Debug log to check the item data
   return (
     <View style={styles.paymentHeader}>
       <Text style={styles.paymentId}>
         {"#" + item.paymentId}
-        {isAppointment && item.clinicLocation && (
+        {isAppointment && (
           <Text style={styles.paymentType}>
             {' . '}
             {item.status}

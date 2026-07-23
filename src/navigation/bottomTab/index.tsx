@@ -1,9 +1,11 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { CommonActions } from '@react-navigation/native';
 import { colors } from '../../styles/colors';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   ClinicSvg,
@@ -33,6 +35,7 @@ const Tab = createBottomTabNavigator<TabParamList>();
 
 export default function CustomTabBar() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   return (
     <Tab.Navigator
       initialRouteName="Home"
@@ -53,7 +56,11 @@ export default function CustomTabBar() {
             return { display: 'none' };
           }
 
-          return styles.tabBar;
+          return {
+            ...styles.tabBar,
+            height: 65 + insets.bottom,
+            paddingBottom: 5 + insets.bottom,
+          };
         })(),
 
         tabBarIcon: ({ focused }) => {
@@ -102,7 +109,27 @@ export default function CustomTabBar() {
       <Tab.Screen name="Home" component={HomeNavigator} />
       <Tab.Screen name="Clinic" component={ClinicNavigator} />
       <Tab.Screen name="History" component={HistoryNavigator} />
-      <Tab.Screen name="Setting" component={SettingNavigator} />
+      <Tab.Screen
+        name="Setting"
+        component={SettingNavigator}
+        listeners={({ navigation }) => ({
+          tabPress: e => {
+            try {
+              console.log('Resetting Setting tab to root screen');
+              // Always navigate the Setting tab to its root screen when pressed
+              navigation.dispatch(
+                CommonActions.reset({
+                  index: 0,
+                  routes: [{ name: 'Setting', params: { screen: 'SettingScreen' } }],
+                })
+              );
+            } catch (err) {
+              // Fallback: perform normal navigation
+              navigation.navigate('Setting');
+            }
+          },
+        })}
+      />
     </Tab.Navigator>
   );
 }

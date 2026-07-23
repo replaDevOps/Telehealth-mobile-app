@@ -7,6 +7,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   Keyboard,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
 import { colors } from '../../../styles/colors';
 import { mvs } from '../../../config/metrices';
@@ -14,7 +16,8 @@ import { CustomButton } from '../../../components/common/CustomButton';
 import { Header2 } from '../../../components/common/Header2';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AntDesign from 'react-native-vector-icons/AntDesign';
-import { GoogleSvg, LogoSvg } from '../../../assets/icons';
+import { GoogleSvg } from '../../../assets/icons';
+import { LogoPng } from '../../../assets/images';
 import { CustomText } from '../../../components/common/CustomText';
 import PhoneNumberInput from '../../../components/common/PhoneTextInput';
 import { styles } from './style';
@@ -25,9 +28,21 @@ import { useTranslation } from 'react-i18next';
 import { API } from '@services/api/api-endpoint';
 import { apiClient } from '@services/api/api-client';
 import { Toast } from 'toastify-react-native';
+import { sendPhoneOtp } from '@services/firebase/phoneAuth';
+import { setPhoneConfirmation } from '@services/firebase/phoneAuthStore';
+import { signInWithGoogle, googleStatusCodes } from '@services/firebase/googleAuth';
+import { useAuthStore } from '@store';
+import { fcmService } from '../../../services/firebase/fcmService';
+
+const isValidEmailFormat = (value: string): boolean => {
+  if (!value || typeof value !== 'string') return false;
+  const trimmed = value.trim();
+  return trimmed.includes('@') && trimmed.indexOf('@') > 0 && trimmed.includes('.', trimmed.indexOf('@')) && trimmed.length > trimmed.indexOf('@') + 1;
+};
 
 export function SignUpScreen({ navigation }) {
   const { t } = useTranslation();
+  const { setAuth } = useAuthStore();
   const [selectedTab, setSelectedTab] = useState<'email' | 'phone'>('email');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -39,6 +54,7 @@ export function SignUpScreen({ navigation }) {
   const [emailError, setEmailError] = useState('');
   const [rememberError, setRememberError] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const phoneNumber = parsePhoneNumberFromString(
     phone,
@@ -55,7 +71,7 @@ export function SignUpScreen({ navigation }) {
     let valid = true;
 
     if (selectedTab === 'email') {
-      if (!email.trim() || !email.includes('@')) {
+      if (!isValidEmailFormat(email)) {
         setEmailError(t('invalid_email'));
         valid = false;
       } else {
@@ -72,6 +88,7 @@ export function SignUpScreen({ navigation }) {
 
     if (!isChecked) {
       setRememberError(true);
+      Toast.warn(t('please_accept_terms') || 'Please accept the Terms & Conditions and Privacy Policy to continue.');
       valid = false;
     } else {
       setRememberError(false);
@@ -80,29 +97,105 @@ export function SignUpScreen({ navigation }) {
     if (valid) {
       try {
         setLoading(true);
-        const endPoint =
-          selectedTab === 'email'
-            ? API.AUTH.SEND_OTP_EMAIL
-            : API.AUTH.SEND_OTP_PHONE;
 
-        const payload =
-          selectedTab === 'email' ? { email } : { phoneNo: formattedPhone };
+        if (selectedTab === 'phone') {
+          // Backend validates the number for this flow via `type`.
+          // Only send the OTP when it responds success:true; otherwise it
+          // returns the reason (e.g. "Phone number is already registered").
+          const checkRes = await apiClient.post(API.AUTH.CHECK_PHONE_NO, {
+            phoneNo: phone.trim(),
+            type: 'register',
+          });
+          if (checkRes?.data?.success !== true) {
+            const msg = checkRes?.data?.message || t('something_went_wrong');
+            setPhoneError(msg);
+            Toast.error(msg);
+            setLoading(false);
+            return;
+          }
 
-        const { data } = await apiClient.post(endPoint, payload);
-        Toast.success(data.message);
-        navigation.navigate('OTPScreen', {
-          source: 'signUp',
-          method: selectedTab, // 'email' or 'phone'
-          email: selectedTab === 'email' ? email : undefined,
-          phone: selectedTab === 'phone' ? phone : undefined,
-          countryCode: selectedTab === 'phone' ? countryCode : undefined,
-        });
+          console.log("formattedPhone",formattedPhone)
+          const confirmation = await sendPhoneOtp(formattedPhone);
+          setPhoneConfirmation(confirmation);
+          Toast.success(t('otp_sent_successfully'));
+          navigation.navigate('OTPScreen', {
+            source: 'signUp',
+            method: 'phone',
+            phone,
+            countryCode,
+          });
+        } else {
+          const { data } = await apiClient.post(API.AUTH.SEND_OTP_EMAIL, {
+            email,
+          });
+          Toast.success(data.message);
+          navigation.navigate('OTPScreen', {
+            source: 'signUp',
+            method: 'email',
+            email,
+          });
+        }
       } catch (error: any) {
         console.log('error', error);
-        Toast.error(error.message);
+        // Backend errors (e.g. checkPhoneNo "Phone number is already registered")
+        // carry a user-friendly message — surface it. Raw Firebase errors don't,
+        // so fall back to a friendly generic message for those.
+        const backendMsg =
+          error?.response?.data?.message || error?.data?.message;
+        if (selectedTab === 'phone') {
+          if (backendMsg) {
+            setPhoneError(backendMsg);
+            Toast.error(backendMsg);
+          } else {
+            Toast.error(t('something_went_wrong'));
+          }
+        } else {
+          Toast.error(backendMsg || error?.message || t('something_went_wrong'));
+        }
       } finally {
         setLoading(false);
       }
+    }
+  };
+
+  const handleGoogleSignUp = async () => {
+    setGoogleLoading(true);
+    try {
+      const { accessToken } = await signInWithGoogle();
+      if (!accessToken) throw new Error('No access token returned from Google');
+
+      const { data } = await apiClient.post(API.AUTH.LOGIN_GOOGLE, { accessToken });
+      console.log('✅ [Google] API response:', JSON.stringify(data, null, 2));
+      setAuth(data?.user);
+
+      fcmService.initializeFcm().catch(err =>
+        console.warn('[FCM] Token store after Google sign-up failed:', err),
+      );
+
+      Toast.success(data?.message || 'Google sign-up successful');
+      setTimeout(() => {
+        if (data?.is_new_user) {
+          navigation.replace('Profile', {
+            name: data?.user?.name || data?.user?.fullName || '',
+            email: data?.user?.email || '',
+          });
+        } else {
+          navigation.replace('Main', { screen: 'Home' });
+        }
+      }, 500);
+    } catch (error: any) {
+      if (error?.code === googleStatusCodes.SIGN_IN_CANCELLED) {
+        return;
+      }
+      const errorMsg =
+        error?.response?.data?.data?.message ||
+        error?.response?.data?.message ||
+        error?.message ||
+        'Google sign-up failed';
+      console.error('❌ [Google] Sign-up error:', error);
+      Toast.error(errorMsg);
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -112,15 +205,16 @@ export function SignUpScreen({ navigation }) {
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <Header2 title="" showLanguage={true} />
+       
         <ScrollView
           style={styles.container}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: mvs(30) }}
           keyboardShouldPersistTaps="handled"
         >
+           <Header2 title="" showLanguage={true} inScrollView={true} />
           <View style={styles.logoContainer}>
-            <LogoSvg />
+            <Image source={LogoPng} style={{ width: 300, height: 131, resizeMode: 'contain' }} />
           </View>
 
           <View style={{ ...styles.title }}>
@@ -176,7 +270,7 @@ export function SignUpScreen({ navigation }) {
                 value={email}
                 onChangeText={(text) => {
                   setEmail(text);
-                  if (emailError) setEmailError('');
+                  if (emailError && isValidEmailFormat(text)) setEmailError('');
                 }}
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -208,6 +302,7 @@ export function SignUpScreen({ navigation }) {
             title={t('sign_up')}
             onPress={handleSignUp}
             loading={loading}
+            disabled={googleLoading}
           />
 
           <View style={styles.signinRow}>
@@ -224,22 +319,32 @@ export function SignUpScreen({ navigation }) {
             <View style={styles.line} />
           </View>
 
-          {/* Apple Sign Up */}
-          <TouchableOpacity
-            style={styles.appleButton}
-            onPress={() => console.log('Apple Sign Up')}
-          >
-            <AntDesign name="apple1" size={20} color={colors.white} />
-            <Text style={styles.appleText}>{t('sign_up_apple')}</Text>
-          </TouchableOpacity>
+          {/* Apple Sign Up (only on iOS) */}
+          {Platform.OS === 'ios' && (
+            <TouchableOpacity
+              style={[styles.appleButton, (loading || googleLoading) && { opacity: 0.6 }]}
+              onPress={() => console.log('Apple Sign Up')}
+              disabled={loading || googleLoading}
+            >
+              <AntDesign name="apple1" size={20} color={colors.white} />
+              <Text style={styles.appleText}>{t('sign_up_apple')}</Text>
+            </TouchableOpacity>
+          )}
 
           {/* Google Sign Up */}
           <TouchableOpacity
-            style={styles.googleButton}
-            onPress={() => console.log('Google Sign Up')}
+            style={[styles.googleButton, (loading || googleLoading) && { opacity: 0.6 }]}
+            onPress={handleGoogleSignUp}
+            disabled={loading || googleLoading}
           >
-            <GoogleSvg />
-            <Text style={styles.googleText}>{t('sign_up_google')}</Text>
+            {googleLoading ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <>
+                <GoogleSvg />
+                <Text style={styles.googleText}>{t('sign_up_google')}</Text>
+              </>
+            )}
           </TouchableOpacity>
 
           {/* Terms & Conditions */}
@@ -267,9 +372,19 @@ export function SignUpScreen({ navigation }) {
 
             <Text style={styles.TextContent}>
               {t('terms_agreement')}
-              <Text style={styles.linkText}>{t('terms_conditions')}</Text>
+              <Text 
+                style={styles.linkText}
+                onPress={() => navigation.navigate('PolicyScreen', { type: 'terms' })}
+              >
+                {t('terms_conditions')}
+              </Text>
               {t('and')}
-              <Text style={styles.linkText}>{t('privacy_policy')}</Text>
+              <Text 
+                style={styles.linkText}
+                onPress={() => navigation.navigate('PolicyScreen', { type: 'privacy' })}
+              >
+                {t('privacy_policy')}
+              </Text>
             </Text>
           </View>
         </ScrollView>

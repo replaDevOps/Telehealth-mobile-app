@@ -5,11 +5,12 @@ import React, {
   useMemo,
   useCallback,
 } from 'react';
-import { View, Text, ScrollView, ActivityIndicator, Alert, BackHandler, KeyboardAvoidingView, Platform, Image, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { ServiceDetailBottomSheet } from '@components/molecules';
+import { View, Text, ScrollView, ActivityIndicator, Alert, BackHandler, Platform, Image, TouchableOpacity, Keyboard, useWindowDimensions, KeyboardAvoidingView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ServiceDetailBottomSheet, DeviceDetailBottomSheet } from '@components/molecules';
 import { styles } from './style';
 import { patient, RecommandImage } from '@assets/images';
+import ClinicAvatar from '@components/common/ClinicAvatar';
 import ConsultationEndedModal from '@components/molecules/EndSectionModal';
 import ConfirmationModal from '@components/molecules/ConfirmationModal';
 import { launchImageLibrary } from 'react-native-image-picker';
@@ -27,6 +28,7 @@ import {
 } from '../../../constants/appData';
 import { Message, Service } from '../../../types/chat.types';
 import { useCart } from '@context/CartContext';
+import { useCartCountContext } from '@context/CartCountContext';
 import { useTranslation } from 'react-i18next';
 import ConsultDoctorBottomSheet from '@components/molecules/ConsultDoctorBottomSheet';
 import { apiClient } from '@services/api/api-client';
@@ -38,10 +40,12 @@ import { useProfileStore } from '@store';
 import { pusherService } from '@services/pusher/PusherService';
 import { endConsultation } from '@services/api/webrtcService';
 import { useBackgroundTimer } from '../../../hooks/useBackgroundTimer';
+import { venaAIService, VenaAIServiceItem } from '@services/venaAI/venaAIService';
 
 // ---------- Main Component ----------
 export function ChatScreen({ navigation, route }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const { height } = useWindowDimensions();
   // Extract route params with defaults
   const chatType = route?.params?.chatType || 'ai';
   const fromHistory = route?.params?.fromHistory || false;
@@ -50,18 +54,23 @@ export function ChatScreen({ navigation, route }) {
   // Get consultationID from route params - check both consultationID and id
   const consultationID = route?.params?.consultationID || route?.params?.id;
   const recipientID = route?.params?.recipientID;
-  
+
   // Log consultationID on mount for debugging
   useEffect(() => {
     console.log('📞 [ChatScreen] Route params - consultationID:', route?.params?.consultationID, 'id:', route?.params?.id, 'final consultationID:', consultationID);
   }, []);
-  const { addToCart } = useCart();
+  const { addToCart, cartItems } = useCart();
+  const { incrementCartCount, triggerRefresh } = useCartCountContext();
 
   // ---------- State ----------
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [serviceDetailVisible, setServiceDetailVisible] = useState(false);
+  const [selectedDevice, setSelectedDevice] = useState<any>(null);
+  const [deviceDetailVisible, setDeviceDetailVisible] = useState(false);
+  const [loadingDeviceDetail, setLoadingDeviceDetail] = useState(false);
+  // selectedService and serviceDetailVisible kept for doctor-chat ServiceDetailBottomSheet
   const [isConsultationActive, setIsConsultationActive] = useState(
     chatType === 'doctor' && !fromHistory,
   );
@@ -73,15 +82,22 @@ export function ChatScreen({ navigation, route }) {
       console.log('📞 [ChatScreen] Consultation started, tracking duration');
     }
   }, [isConsultationActive, chatType, consultationID]);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [showBottomSheet, setShowBottomSheet] = useState(false);
   const [hasPrescription, setHasPrescription] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [consultationData, setConsultationData] = useState<any>(null);
   const [showEndConsultationModal, setShowEndConsultationModal] = useState(false);
+  const [consultationDuration, setConsultationDuration] = useState<string | null>(null);
+  const [consultationEndedState, setConsultationEndedState] = useState<boolean>(false);
   const consultationStartTimeRef = useRef<number | null>(null); // Track when consultation started
   const consultationEndedRef = useRef(false); // Prevent duplicate API calls
   const checkPrescriptionAndShowModalRef = useRef<(() => void) | undefined>(undefined); // Ref for background timer callback
+
+  // VenaAI refs (AI chat only)
+  const venaSessionIdRef = useRef<string>('');
+  const venaSocketRef = useRef<WebSocket | null>(null);
 
   const scrollRef = useRef<ScrollView>(null);
   const auth = useAuthStore(state => state.auth);
@@ -96,7 +112,7 @@ export function ChatScreen({ navigation, route }) {
     : patient;
 
   useEffect(() => {
-    console.log('clinicInfo.image type:', typeof (clinicInfoState?.image));
+    console.log('clinicInfo.image type:', typeof (clinicInfoState));
     console.log('clinicInfo.image value:', clinicInfoState?.image);
   }, [clinicInfoState]);
 
@@ -109,6 +125,28 @@ export function ChatScreen({ navigation, route }) {
   const showAvatar = chatType === 'doctor';
   const canSendMessages = !fromHistory;
 
+  // Map VenaAI suggestion items to the local Service type
+  const mapVenaServicesToSuggestions = useCallback(
+    (services: VenaAIServiceItem[], category: 'service' | 'device' = 'service'): Service[] =>
+      services.map(s => ({
+        id: String(s.id),
+        image: s.image ? { uri: s.image } : RecommandImage,
+        type: s.serviceType ?? s.group?.serviceType ?? '',
+        serviceGroup: s.group?.name ?? '',
+        serviceName: s.name ?? '',
+        price: s.priceDisplay ?? s.feeDisplay ?? '',
+        duration: s.duration ? String(s.duration) : '',
+        description: s.description ?? '',
+        procedure: s.procedure ?? '',
+        clinicName: s.clinicName ?? '',
+        loyality: s.loyality,
+        bonusLoyalityPoints: s.bonusLoyalityPoints,
+        totalLoyalityPoints: s.totalLoyalityPoints,
+        category,
+      })),
+    [],
+  );
+
   // ---------- Lifecycle ----------
   useEffect(() => {
     // If consultationID exists, fetch messages from API
@@ -118,10 +156,150 @@ export function ChatScreen({ navigation, route }) {
       // For doctor chat without consultationID, start with empty messages
       setMessages([]);
     } else {
-      // For AI chat, use initial messages
-      setMessages(initialMessages);
+      // For AI chat, start fresh – VenaAI provides the conversation
+      setMessages([]);
     }
   }, [consultationID, chatType]);
+
+  // ---------- Keyboard listener: toggle KAV behavior ----------
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showListener = Keyboard.addListener(showEvent, () => setKeyboardOpen(true));
+    const hideListener = Keyboard.addListener(hideEvent, () => setKeyboardOpen(false));
+    return () => {
+      showListener.remove();
+      hideListener.remove();
+    };
+  }, []);
+
+  // ---------- VenaAI WebSocket (AI chat only) ----------
+  useEffect(() => {
+    if (chatType !== 'ai') return;
+
+    // Generate a stable session ID for this chat session
+    venaSessionIdRef.current = `vena-${patientID ?? 'anon'}-${Date.now()}`;
+    const sessionId = venaSessionIdRef.current;
+    let socket: WebSocket | null = null;
+    let isMounted = true;
+
+    const connectSocket = () => {
+      const url = venaAIService.buildWebSocketUrl({
+        sessionId,
+        patientId: String(patientID ?? 'anon'),
+        clinicId,
+        lang,
+        dataSource: 'cache-first',
+      });
+
+      socket = new WebSocket(url);
+      venaSocketRef.current = socket;
+
+      socket.onopen = () => {
+        console.log('🤖 [VenaAI] WebSocket connected');
+      };
+
+      socket.onmessage = (event: any) => {
+        if (!isMounted) return;
+        try {
+          const payload = JSON.parse(event.data);
+
+          if (payload.type === 'connected') {
+            console.log('🤖 [VenaAI] Socket handshake ok, session:', payload.sessionId);
+            return;
+          }
+
+          if (payload.type === 'assistant_message') {
+            const data = payload.data;
+            console.log('🤖 [VenaAI] Assistant response:', JSON.stringify(data, null, 2));
+            // const showCards = data?.suggestions?.meta?.showCards !== false;
+            const showCards = true;
+
+            console.log('🤖 [VenaAI] Assistant response:', JSON.stringify(data.catalog.services, null, 2));
+            const suggestionServices = data?.suggestions?.services ?? [];
+            const suggestionDevices = data?.suggestions?.devices ?? [];
+
+            const mappedServices = mapVenaServicesToSuggestions(suggestionServices, 'service');
+            const mappedDevices = mapVenaServicesToSuggestions(suggestionDevices, 'device');
+            const combinedSuggestions = [...mappedServices, ...mappedDevices];
+            // console.log(combinedSuggestions)
+            const suggestions =
+              showCards && combinedSuggestions.length
+                ? combinedSuggestions
+                : undefined;
+
+            const botMsg: Message = {
+              id: `vena-bot-${Date.now()}`,
+              type: 'bot',
+              text: data?.reply ?? '',
+              timestamp: getCurrentTimestamp(),
+              suggestions,
+            };
+
+            setMessages(prev => {
+              // Remove the typing indicator if present, then append bot reply
+              const filtered = prev.filter(m => m.id !== 'vena-typing');
+              return [...filtered, botMsg];
+            });
+          }
+
+          if (payload.type === 'error') {
+            console.error('🤖 [VenaAI] Socket error:', payload.error);
+            setMessages(prev => prev.filter(m => m.id !== 'vena-typing'));
+          }
+        } catch (err) {
+          console.error('🤖 [VenaAI] Failed to parse message:', err);
+        }
+      };
+
+      socket.onerror = (err: Event) => {
+        console.error('🤖 [VenaAI] WebSocket error:', err);
+      };
+
+      socket.onclose = (event: any) => {
+        console.log('🤖 [VenaAI] WebSocket closed, code:', event.code);
+      };
+    };
+
+    // Start session, then open socket
+    const clinicId = clinicInfoState?.id ? Number(clinicInfoState.id) : undefined;
+
+    const lang = i18n.language ?? 'en';
+
+    venaAIService
+      .startSession({
+        sessionId,
+        patientId: String(patientID ?? 'anon'),
+        clinicId,
+        dataSource: 'cache-first',
+        userInfo: {
+          name: profileData?.name,
+          age: profileData?.age ? Number(profileData.age) : undefined,
+          gender: profileData?.gender,
+          language: lang,
+        },
+      })
+      .then(() => {
+        if (isMounted) connectSocket();
+      })
+      .catch(err => {
+        console.error('🤖 [VenaAI] Session start failed, connecting anyway:', err);
+        if (isMounted) connectSocket();
+      });
+
+    return () => {
+      isMounted = false;
+      if (socket) {
+        socket.onopen = null;
+        socket.onmessage = null;
+        socket.onerror = null;
+        socket.onclose = null;
+        socket.close();
+        venaSocketRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatType, patientID]);
 
   // Fetch consultation messages from API
   const fetchConsultationMessages = useCallback(async (silent: boolean = false) => {
@@ -257,10 +435,12 @@ export function ChatScreen({ navigation, route }) {
     }
 
     consultationEndedRef.current = true;
+    const duration = calculateDuration();
+    setConsultationDuration(duration);
+    setConsultationEndedState(true);
     setIsConsultationActive(false);
 
     try {
-      const duration = calculateDuration();
       // In patient app: the user is always a patient, chatType='doctor' means chatting with doctor
       // So from = patient_XX, to = doctor_YY
       const doctorId = recipientID || consultationData?.doctorID || consultationData?.doctor?.id;
@@ -484,7 +664,7 @@ export function ChatScreen({ navigation, route }) {
         console.log('📞 [ChatScreen] Consultation end event received (raw):', JSON.stringify(eventPayload, null, 2));
         console.log('📞 [ChatScreen] Event payload type:', typeof eventPayload, 'has data property:', !!eventPayload?.data);
         console.log('📞 [ChatScreen] Current state - isMounted:', isMounted, 'consultationEndedRef:', consultationEndedRef.current, 'consultationID:', consultationID, 'type:', typeof consultationID);
-        
+
         if (!isMounted || consultationEndedRef.current) {
           console.log('📞 [ChatScreen] Ignoring event - isMounted:', isMounted, 'consultationEndedRef:', consultationEndedRef.current);
           return;
@@ -499,12 +679,12 @@ export function ChatScreen({ navigation, route }) {
         } else {
           console.log('📞 [ChatScreen] Using direct payload');
         }
-        
+
         const eventConsultationID = data?.consultationID || data?.id || eventPayload?.consultationID || eventPayload?.id;
         const fromUser = (data?.from || eventPayload?.from || '').toString();
-        
+
         console.log('📞 [ChatScreen] Extracted - eventConsultationID:', eventConsultationID, 'type:', typeof eventConsultationID, 'fromUser:', fromUser, 'consultationID:', consultationID, 'type:', typeof consultationID);
-        
+
         // Check if this event is from the other side (doctor), not from ourselves (patient)
         // If we (patient) sent this event, ignore it
         const isFromPatient = fromUser && fromUser.startsWith('patient_');
@@ -512,24 +692,20 @@ export function ChatScreen({ navigation, route }) {
           console.log('📞 [ChatScreen] Ignoring own event from:', fromUser);
           return;
         }
-        
+
         // Compare IDs - ensure both are converted to strings for reliable comparison
         const eventIDStr = eventConsultationID?.toString() || '';
         const consultationIDStr = consultationID?.toString() || '';
         const idsMatch = eventIDStr && consultationIDStr && eventIDStr === consultationIDStr;
-        
+
         console.log('📞 [ChatScreen] ID comparison - eventIDStr:', eventIDStr, 'consultationIDStr:', consultationIDStr, 'match:', idsMatch);
-        
+
         // Check if this is for our consultation
         if (idsMatch) {
-          console.log('✅ [ChatScreen] Consultation ended by doctor, showing modal');
-          consultationEndedRef.current = true;
-          setIsConsultationActive(false);
-          
-          // Show modal without fetching prescription upfront
-          // Prescription will only be fetched when user clicks the button
-          setHasPrescription(true); // Always show button
-          setModalVisible(true);
+          console.log('✅ [ChatScreen] Consultation ended by doctor, recording duration and showing modal');
+          // Call checkPrescriptionAndShowModal which internally calls endConsultationAndNotify
+          // to record the actual elapsed duration before showing the modal
+          checkPrescriptionAndShowModal();
         } else {
           console.log('❌ [ChatScreen] Event consultationID mismatch - eventIDStr:', eventIDStr, 'consultationIDStr:', consultationIDStr);
         }
@@ -670,8 +846,48 @@ export function ChatScreen({ navigation, route }) {
             // Remove the optimistic message on error
             setMessages(prev => prev.filter(msg => msg.id !== tempId));
           }
+        } else if (chatType === 'ai') {
+          // VenaAI: upload image to AI service
+          try {
+            const data = await venaAIService.uploadImageWithMessage({
+              sessionId: venaSessionIdRef.current,
+              patientId: String(patientID ?? 'anon'),
+              clinicId: clinicInfoState?.id ? Number(clinicInfoState.id) : undefined,
+              imageUri: asset.uri,
+              imageName: asset.fileName || 'image.jpg',
+              imageType: asset.type || 'image/jpeg',
+              preferredLanguage: i18n.language ?? 'en',
+            });
+
+            // Remove uploading state from the user message
+            setMessages(prev =>
+              prev.map(msg =>
+                msg.id === tempId
+                  ? { ...msg, images: msg.images?.map(img => ({ ...img, isUploading: false })) }
+                  : msg,
+              ),
+            );
+
+            const suggestions =
+              data?.suggestions?.meta?.showCards && data?.suggestions?.services?.length
+                ? mapVenaServicesToSuggestions(data.suggestions.services)
+                : undefined;
+
+            const botMsg: Message = {
+              id: `vena-bot-${Date.now()}`,
+              type: 'bot',
+              text: data?.reply ?? '',
+              timestamp: getCurrentTimestamp(),
+              suggestions,
+            };
+            setMessages(prev => [...prev, botMsg]);
+          } catch (error: any) {
+            console.error('🤖 [VenaAI] Image upload error:', error);
+            Toast.error(error?.message || 'Failed to send image to AI');
+            setMessages(prev => prev.filter(msg => msg.id !== tempId));
+          }
         } else {
-          // No consultation ID, just remove uploading state
+          // No consultation ID and not AI chat, just remove uploading state
           setMessages(prev =>
             prev.map(msg =>
               msg.id === tempId
@@ -685,7 +901,7 @@ export function ChatScreen({ navigation, route }) {
         }
       },
     );
-  }, [showAvatar, consultationID, recipientID]);
+  }, [showAvatar, consultationID, recipientID, chatType, patientID, mapVenaServicesToSuggestions]);
 
   const handleSend = useCallback(async () => {
     const trimmedMessage = message.trim();
@@ -708,8 +924,9 @@ export function ChatScreen({ navigation, route }) {
 
     setMessages(prev => [...prev, newMsg]);
     setMessage('');
+    console.log('💬 [VenaAI] User message:', trimmedMessage);
 
-    // Send message via API if consultationID exists
+    // Send message via API if consultationID exists (doctor chat)
     if (consultationID && recipientID) {
       try {
         const formData = new FormData();
@@ -755,8 +972,70 @@ export function ChatScreen({ navigation, route }) {
         // Remove the optimistic message on error
         setMessages(prev => prev.filter(msg => msg.id !== tempId));
       }
+    } else if (chatType === 'ai') {
+      // VenaAI: send via WebSocket (fallback to HTTP if socket not ready)
+      const typingMsg: Message = {
+        id: 'vena-typing',
+        type: 'bot',
+        text: '...',
+        timestamp: getCurrentTimestamp(),
+      };
+      setMessages(prev => [...prev, typingMsg]);
+
+      const sessionId = venaSessionIdRef.current;
+      const socket = venaSocketRef.current;
+
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(
+          JSON.stringify({
+            clinicId: clinicInfoState?.id ? Number(clinicInfoState.id) : undefined,
+            message: trimmedMessage,
+            dataSource: 'cache-first',
+            preferredLanguage: i18n.language ?? 'en',
+          }),
+        );
+      } else {
+        // Fallback: HTTP chat endpoint
+        try {
+          const data = await venaAIService.sendMessageHTTP({
+            sessionId,
+            patientId: String(patientID ?? 'anon'),
+            clinicId: clinicInfoState?.id ? Number(clinicInfoState.id) : undefined,
+            message: trimmedMessage,
+            preferredLanguage: i18n.language ?? 'en',
+          });
+
+          console.log('🤖 [VenaAI] HTTP response:', JSON.stringify(data, null, 2));
+          const serviceSource =
+            data?.suggestions?.services?.length
+              ? data.suggestions.services
+              : data?.catalog?.services?.length
+                ? data.catalog.services
+                : [];
+          const suggestions = serviceSource.length
+            ? mapVenaServicesToSuggestions(serviceSource)
+            : undefined;
+
+          const botMsg: Message = {
+            id: `vena-bot-${Date.now()}`,
+            type: 'bot',
+            text: data?.reply ?? '',
+            timestamp: getCurrentTimestamp(),
+            suggestions,
+          };
+
+          setMessages(prev => {
+            const filtered = prev.filter(m => m.id !== 'vena-typing');
+            return [...filtered, botMsg];
+          });
+        } catch (error: any) {
+          console.error('🤖 [VenaAI] HTTP fallback error:', error);
+          Toast.error(error?.message || 'Failed to get AI response');
+          setMessages(prev => prev.filter(m => m.id !== 'vena-typing'));
+        }
+      }
     }
-  }, [message, showAvatar, consultationID, recipientID]);
+  }, [message, showAvatar, consultationID, recipientID, chatType, patientID, mapVenaServicesToSuggestions]);
 
   // Handle delete message
   const handleDeleteMessage = useCallback(async (messageID: string) => {
@@ -792,53 +1071,118 @@ export function ChatScreen({ navigation, route }) {
     );
   }, [t]);
 
-  const handleServicePress = useCallback((service: Service) => {
-    setSelectedService(service);
-    setServiceDetailVisible(true);
+  const handleServicePress = useCallback(async (service: Service) => {
+    if (service.category === 'device') {
+      setDeviceDetailVisible(true);
+      setLoadingDeviceDetail(true);
+      setSelectedDevice(null);
+      try {
+        const response = await apiClient.get(`${API.CLINIC.GET_DEVICE_DETAILS}/${service.id}`);
+        if (response.data.success && response.data.data) {
+          const d = response.data.data;
+          let badge = d.badge || {};
+          if (Object.keys(badge).length === 0) {
+            if (d.service_details?.length > 0) {
+              d.service_details.forEach((s: any, i: number) => { badge[i + 1] = s.name; });
+            } else {
+              badge[1] = d.name || d.title || 'Device';
+            }
+          }
+          setSelectedDevice({
+            id: d.id?.toString() || service.id,
+            image: d.image ? { uri: d.image } : service.image,
+            title: d.title || d.name || service.serviceName,
+            note: d.note || d.notes || '',
+            badge,
+            purpose: d.purpose || '',
+          });
+        } else {
+          setSelectedDevice({
+            id: service.id,
+            image: service.image,
+            title: service.serviceName,
+            note: '',
+            badge: { 1: service.serviceGroup || 'Device' },
+            purpose: service.description || '',
+          });
+        }
+      } catch {
+        setSelectedDevice({
+          id: service.id,
+          image: service.image,
+          title: service.serviceName,
+          note: '',
+          badge: { 1: service.serviceGroup || 'Device' },
+          purpose: service.description || '',
+        });
+      } finally {
+        setLoadingDeviceDetail(false);
+      }
+    } else {
+      setSelectedService(service);
+      setServiceDetailVisible(true);
+    }
   }, []);
 
-  const handleAddToCart = service => {
-    const cartItem = {
-      service: service,
-      clinic: {
-        id: `clinic_${Date.now()}`,
-        name: 'AI Health Clinic',
-        location: 'None',
-        image: RecommandImage,
-        specialty: 'General',
-        rating: 3,
-      },
-    };
+  const addServiceToCart = async (service: any, shouldNavigate: boolean) => {
+    const serviceID = typeof service.id === 'string' ? parseInt(service.id, 10) : service.id;
+    if (isNaN(serviceID)) {
+      Toast.error('Invalid service ID');
+      return;
+    }
 
-    addToCart(cartItem);
+    // If navigating (checkout) and already in cart, skip API call
+    if (shouldNavigate) {
+      const exists = cartItems?.find((i: any) => String(i.service.id) === String(service.id));
+      if (exists) {
+        setServiceDetailVisible(false);
+        navigation.navigate('CartScreen');
+        return;
+      }
+    }
 
-    console.log('Service added to cart:', cartItem);
+    try {
+      const response = await apiClient.post(API.CART.ADD_TO_CART, { serviceID });
 
-    setServiceDetailVisible(false);
-    navigation.navigate('CartScreen');
+      if (response.data?.success === false) {
+        Toast.error(response.data?.message || 'Failed to add service to cart');
+        return;
+      }
+
+      const cartItem = {
+        service: service,
+        clinic: {
+          id: clinicInfoState?.id || `clinic_${Date.now()}`,
+          name: clinicInfoState?.name || clinicInfoState?.clinicName || '',
+          location: clinicInfoState?.location || clinicInfoState?.address || '',
+          image: clinicInfoState?.image || RecommandImage,
+          specialty: 'General',
+          rating: 0,
+        },
+      };
+
+      addToCart(cartItem);
+      // Bump the global cart-count badge immediately so the header updates
+      // without waiting for the user to open the cart screen.
+      incrementCartCount();
+      triggerRefresh();
+      Toast.success(response.data?.message || response.data?.data?.message || 'Service added to cart');
+      setServiceDetailVisible(false);
+
+      if (shouldNavigate) {
+        navigation.navigate('CartScreen');
+      }
+    } catch (error: any) {
+      const msg = error?.response?.data?.message || error?.message || 'Failed to add service to cart';
+      Toast.error(msg);
+    }
   };
 
+  const handleAddToCart = async (service: any) => addServiceToCart(service, false);
+
   const handleCheckout = useCallback(
-    service => {
-      setServiceDetailVisible(false);
-      navigation.navigate('CheckoutScreen', {
-        services: [
-          {
-            service: service,
-            clinic: {
-              id: `clinic_${Date.now()}`,
-              name: 'AI Health Clinic',
-              location: 'None',
-              image: RecommandImage,
-              specialty: 'General',
-              rating: 3,
-            },
-          },
-        ],
-        fromCart: false,
-      });
-    },
-    [navigation],
+    (service: any) => addServiceToCart(service, true),
+    [addServiceToCart],
   );
 
   const handleEndConsultation = useCallback(async () => {
@@ -870,10 +1214,24 @@ export function ChatScreen({ navigation, route }) {
     }
 
     setModalVisible(false);
+    const clinicID = clinicInfoState?.id || consultationData?.clinicID;
+    const clinic = clinicID
+      ? {
+        id: clinicID,
+        name: clinicInfoState?.name || clinicInfoState?.clinicName || '',
+        location: clinicInfoState?.location || '',
+        image: clinicInfoState?.image,
+        specialty: 'General',
+        rating: 0,
+      }
+      : null;
     navigation.navigate('PrescriptionScreen', {
       consultationID: consultationID,
+      fromChat: true,
+      clinic,
+      clinicID,
     });
-  }, [navigation, consultationID]);
+  }, [navigation, consultationID, clinicInfoState, consultationData]);
 
   const handleCloseModal = useCallback(() => {
     setModalVisible(false);
@@ -907,11 +1265,15 @@ export function ChatScreen({ navigation, route }) {
     navigation.navigate('CartScreen');
   };
 
+  const handleConsultNow = useCallback(() => {
+    setShowBottomSheet(true);
+  }, []);
+
   const handleVisitClinic = useCallback(async () => {
     if (fromHistory) {
-      // Navigate to clinic detail if viewing from history
+      // Replace Chat with ClinicDetail so back from clinic goes to previous screen (e.g. History), not Chat
       const clinicID = clinicInfoState?.id || consultationData?.clinicID;
-      navigation.navigate('ClinicDetail', {
+      navigation.replace('ClinicDetail', {
         clinic: {
           id: clinicID,
           name: clinicInfoState?.name || clinicInfoState?.clinicName || '',
@@ -930,10 +1292,10 @@ export function ChatScreen({ navigation, route }) {
 
   const handleConfirmEndConsultation = useCallback(async () => {
     setShowEndConsultationModal(false);
-    
+
     // End the consultation first
     await endConsultationAndNotify();
-    
+
     // Navigate to clinic detail
     const clinicID = clinicInfoState?.id || consultationData?.clinicID;
     navigation.replace('ClinicDetail', {
@@ -949,79 +1311,108 @@ export function ChatScreen({ navigation, route }) {
     });
   }, [clinicInfoState, consultationData, navigation, endConsultationAndNotify]);
 
+  const insets = useSafeAreaInsets();
+  const inputPadding = {
+    paddingBottom: Math.max(0, insets.bottom - 10),
+    paddingLeft: 4,
+    paddingRight: 4,
+  };
+  const screenPadding = {
+    paddingTop: insets.top,
+    paddingLeft: insets.left,
+    paddingRight: insets.right,
+  };
+
   // ---------- Main Render ----------
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <View style={[styles.container, screenPadding, chatType === 'ai' && { direction: 'ltr' }]}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
-        style={{ flex: 1 }}
+        behavior={keyboardOpen ? 'padding' : undefined}
+        keyboardVerticalOffset={0}
+        style={[{ flex: 1 }, styles.container]}
       >
-        <View style={styles.container}>
-        <ChatHeader
-          chatType={chatType}
-          doctorInfo={doctorInfo}
-          consultationTime={consultationTime}
-          fromHistory={fromHistory}
-          handleGoBack={handleGoBack}
-          handleEndConsultation={handleEndConsultation}
-          handleCart={handleCartPress}
-          isConsultationActive={isConsultationActive}
-          consultationData={consultationData}
-        />
-
-        {/* Clinic Info Bar */}
-        {chatType === 'doctor' && clinicInfoState && (
-          <View style={styles.clinicInfo}>
-            <View style={styles.clinicLeft}>
-              <Image
-                source={typeof clinicInfoState.image === 'string' && clinicInfoState.image.startsWith('http')
-                  ? { uri: clinicInfoState.image }
-                  : typeof clinicInfoState.image === 'string'
-                  ? { uri: `https://telehealth.repla-projects.com/${clinicInfoState.image}` }
-                  : clinicInfoState.image}
-                style={styles.clinicImage}
-              />
-              <View>
-                <Text style={styles.clinicName}>{clinicInfoState.name || clinicInfoState.clinicName}</Text>
-                <Text style={styles.clinicLocation}>{clinicInfoState.location || clinicInfoState.address || ''}</Text>
-              </View>
-            </View>
-            <TouchableOpacity style={styles.consultButton} onPress={handleVisitClinic}>
-              <Text style={styles.consultButtonText}>{t('visit') || 'Visit'}</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Messages */}
-        {!modalVisible && (
-          <>
-            {loadingMessages ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#6B46C1" />
-                <Text style={styles.loadingText}>{t('loading_messages') || 'Loading messages...'}</Text>
-              </View>
-            ) : (
-              <MessageList
-                messages={messages}
-                scrollRef={scrollRef}
-                showAvatar={showAvatar}
-                handleServicePress={handleServicePress}
-                handleDeleteMessage={handleDeleteMessage}
-              />
-            )}
-          </>
-        )}
-
-        {/* Input - Only show if not viewing history */}
-        {!modalVisible && (
-          <MessageInput
-            message={message}
-            setMessage={setMessage}
-            handleSend={handleSend}
-            handleImagePick={handleImagePick}
-            canSendMessages={canSendMessages}
+        <View style={styles.content}>
+          <ChatHeader
+            chatType={chatType}
+            doctorInfo={doctorInfo}
+            consultationTime={consultationTime}
+            consultationElapsed={calculateDuration()}
+            fromHistory={fromHistory}
+            handleGoBack={handleGoBack}
+            handleEndConsultation={handleEndConsultation}
+            handleCart={handleCartPress}
+            isConsultationActive={isConsultationActive}
+            consultationData={consultationData}
+            consultationEnded={consultationEndedState}
+            consultationDuration={consultationDuration}
           />
+
+          {/* Clinic Info Bar */}
+          {clinicInfoState?.id && (chatType === 'doctor' || chatType === 'ai') && (
+            <View style={styles.clinicInfo}>
+              <View style={styles.clinicLeft}>
+                {clinicInfoState.image ? (
+                  <Image
+                    source={typeof clinicInfoState.image === 'string' && clinicInfoState.image.startsWith('http')
+                      ? { uri: clinicInfoState.image }
+                      : typeof clinicInfoState.image === 'string'
+                        ? { uri: `https://telehealth.repla-projects.com/${clinicInfoState.image}` }
+                        : clinicInfoState.image}
+                    style={styles.clinicImage}
+                  />
+                ) : (
+                  <ClinicAvatar name={clinicInfoState.name || clinicInfoState.clinicName} size={48} style={styles.clinicImage} />
+                )}
+                <View style={styles.clinicTextWrapper}>
+                  <Text style={styles.clinicName} numberOfLines={1}>{clinicInfoState.name || clinicInfoState.clinicName}</Text>
+                  <Text style={styles.clinicLocation} numberOfLines={2}>{clinicInfoState.location || clinicInfoState.address || ''}</Text>
+                </View>
+              </View>
+              {chatType === 'ai' ? (
+                <TouchableOpacity style={styles.consultButton} onPress={handleConsultNow}>
+                  <Text style={styles.consultButtonText}>{t('consult_now') || 'Consult Now'}</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity style={styles.consultButton} onPress={handleVisitClinic}>
+                  <Text style={styles.consultButtonText}>{t('visit') || 'Visit'}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+
+          {/* Messages */}
+          {!modalVisible && (
+            <>
+              {loadingMessages ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color="#6B46C1" />
+                  <Text style={styles.loadingText}>{t('loading_messages') || 'Loading messages...'}</Text>
+                </View>
+              ) : (
+                <MessageList
+                  messages={messages}
+                  scrollRef={scrollRef}
+                  showAvatar={showAvatar}
+                  handleServicePress={handleServicePress}
+                  handleDeleteMessage={chatType === 'ai' ? undefined : handleDeleteMessage}
+                  isRTL={i18n.language === 'ar'}
+                />
+              )}
+            </>
+          )}
+        </View>
+
+        {/* Input - apply safe area insets manually so bar is never clipped (SafeAreaView unreliable on stack screens) */}
+        {!modalVisible && (
+          <View style={[styles.inputWrapper, inputPadding]}>
+            <MessageInput
+              message={message}
+              setMessage={setMessage}
+              handleSend={handleSend}
+              handleImagePick={handleImagePick}
+              canSendMessages={canSendMessages}
+            />
+          </View>
         )}
 
         {/* Modals */}
@@ -1032,6 +1423,12 @@ export function ChatScreen({ navigation, route }) {
           onAddToCart={handleAddToCart}
           onCheckout={handleCheckout}
         />
+        <DeviceDetailBottomSheet
+          visible={deviceDetailVisible}
+          onClose={() => setDeviceDetailVisible(false)}
+          device={selectedDevice}
+          loading={loadingDeviceDetail}
+        />
         <ConsultationEndedModal
           visible={modalVisible}
           onClose={handleCloseModal}
@@ -1041,6 +1438,7 @@ export function ChatScreen({ navigation, route }) {
         <ConsultDoctorBottomSheet
           visible={showBottomSheet}
           onClose={() => setShowBottomSheet(false)}
+          clinicID={clinicInfoState?.id}
         />
         <ConfirmationModal
           visible={showEndConsultationModal}
@@ -1052,8 +1450,7 @@ export function ChatScreen({ navigation, route }) {
           onCancel={() => setShowEndConsultationModal(false)}
           confirmButtonStyle="destructive"
         />
-      </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }

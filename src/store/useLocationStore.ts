@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { Platform, PermissionsAndroid } from 'react-native';
 import Geolocation from '@react-native-community/geolocation';
+import { showLocationSettingsAlert, handleLocationError } from '../utils/locationUtils';
 
 export interface LocationData {
   lat: number;
@@ -89,6 +90,10 @@ const useLocationStore = create<LocationStore>((set, get) => ({
 
       if (!hasPermission) {
         set({ isLoading: false, location: null });
+        showLocationSettingsAlert({
+          title: 'Location Permission',
+          message: 'Location access is needed for this app. Would you like to open settings to enable it?',
+        });
         return;
       }
 
@@ -114,9 +119,14 @@ const useLocationStore = create<LocationStore>((set, get) => ({
         },
         isLoading: false,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.warn('Error fetching location:', error);
       set({ isLoading: false, location: null });
+      handleLocationError(error ?? {}, {
+        title: 'Location Not Available',
+        message: 'Please enable location services. Would you like to open settings?',
+        openLocationSettings: true,
+      });
     }
   },
 

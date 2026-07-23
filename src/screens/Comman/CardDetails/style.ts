@@ -63,6 +63,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    marginRight: 8,
   },
   clinicImage: {
     width: 48,
@@ -96,7 +97,7 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
   },
   serviceCard: {
-    flexDirection: 'row',
+    // flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     padding: 16,
@@ -104,6 +105,10 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.lightGray,
     marginTop: 12,
     borderRadius: 12,
+  },
+  serviceContent:{
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   serviceLeft: {
     flexDirection: 'row',
@@ -128,11 +133,12 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
-  },
+    maxWidth: 120, },
   categoryBadgeText: {
     fontSize: 10,
     color: colors.primary,
     fontWeight: '500',
+    textTransform: 'capitalize',
   },
   nameBadge: {
     backgroundColor: colors.white,

@@ -4,6 +4,7 @@ import FastImage from '@d11/react-native-fast-image';
 import { Suggestion } from '../Suggestion';
 import { Message as MessageType, Service } from '../../../types/chat.types';
 import { styles } from './style';
+import { formatUTCToLocalTime } from '../../../utils';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -12,42 +13,37 @@ interface MessageProps {
   showAvatar: boolean;
   handleServicePress: (service: Service) => void;
   handleDeleteMessage?: (messageID: string) => void;
+  isRTL?: boolean;
 }
+
+const renderBoldText = (text: string, baseStyle: any) => {
+  const parts = text.split(/\*\*(.+?)\*\*/g);
+  if (parts.length === 1) return <Text style={baseStyle}>{text}</Text>;
+  return (
+    <Text style={baseStyle}>
+      {parts.map((part, i) =>
+        i % 2 === 1 ? (
+          <Text key={i} style={{ fontWeight: 'bold' }}>{part}</Text>
+        ) : (
+          part
+        ),
+      )}
+    </Text>
+  );
+};
 
 export const Message: React.FC<MessageProps> = ({
   msg,
   showAvatar,
   handleServicePress,
   handleDeleteMessage,
+  isRTL = false,
 }) => {
   const [loadingImages, setLoadingImages] = useState<{ [key: number]: boolean }>({});
   const [fullScreenImage, setFullScreenImage] = useState<string | null>(null);
   const isUser = msg.type === 'user';
   const hasText = msg.text && msg.text.trim().length > 0;
   const hasImages = msg.images && msg.images.length > 0;
-
-  const formatTimeOnly = (timestamp: any) => {
-    if (!timestamp) return '';
-    try {
-      let date: Date;
-      if (typeof timestamp === 'number') {
-        date = new Date(timestamp);
-      } else if (/^\d+$/.test(String(timestamp))) {
-        const num = parseInt(String(timestamp), 10);
-        date = num < 1e12 ? new Date(num * 1000) : new Date(num);
-      } else {
-        date = new Date(String(timestamp));
-      }
-
-      if (isNaN(date.getTime())) return String(timestamp);
-
-      const hh = String(date.getHours()).padStart(2, '0');
-      const mm = String(date.getMinutes()).padStart(2, '0');
-      return `${hh}:${mm}`;
-    } catch (e) {
-      return String(timestamp);
-    }
-  };
 
   const handleLongPress = () => {
     if (!isUser || !handleDeleteMessage) return;
@@ -82,13 +78,14 @@ export const Message: React.FC<MessageProps> = ({
           )}
           <View style={styles.botMessageContent}>
             {showAvatar && msg.user && (
-              <Text style={styles.senderName}>{msg.user.name}</Text>
+              <View style={styles.messageHeader}>
+                <Text style={styles.senderName}>{msg.user.name}</Text>
+                <Text style={styles.timestamp}>{formatUTCToLocalTime(msg.timestamp)}</Text>
+              </View>
             )}
             {(hasText || hasImages) && (
               <View style={styles.botMessage}>
-                {hasText && (
-                  <Text style={styles.botMessageText}>{msg.text}</Text>
-                )}
+                {hasText && renderBoldText(msg.text, [styles.botMessageText, isRTL && { textAlign: 'right' as const, writingDirection: 'rtl' as const }])}
                 {hasImages && (
                   <View style={styles.botImagesRow}>
                     {msg.images?.map((img, i) => {
@@ -160,7 +157,7 @@ export const Message: React.FC<MessageProps> = ({
         >
           {showAvatar && msg.user && (
             <View style={styles.userMessageHeader}>
-              <Text style={styles.timestamp}>{formatTimeOnly(msg.timestamp)}</Text>
+              <Text style={styles.timestamp}>{formatUTCToLocalTime(msg.timestamp)}</Text>
               <Text style={styles.senderName}>{msg.user.name}</Text>
               <Image source={msg.user.avatar} style={styles.avatar} />
             </View>

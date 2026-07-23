@@ -32,6 +32,11 @@ export interface Service {
   duration: string;
   description: string;
   procedure: string;
+  clinicName?: string;
+  loyality?: boolean;
+  bonusLoyalityPoints?: string;
+  totalLoyalityPoints?: string | number;
+  category?: 'service' | 'device';
 }
 
 export interface Message {

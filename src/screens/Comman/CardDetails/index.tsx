@@ -14,11 +14,12 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import Geolocation from '@react-native-community/geolocation';
 import { PermissionsAndroid } from 'react-native';
 import RNFS from 'react-native-fs';
+import ReactNativeBlobUtil from 'react-native-blob-util';
 import { colors } from '../../../styles/colors';
 import { styles } from './style';
 import { Header2 } from '@components/common/Header2';
 import { CustomButton } from '@components/common/CustomButton';
-import { RecommandImage } from '@assets/images';
+import ClinicAvatar from '@components/common/ClinicAvatar';
 import RatingBottomSheet from '@components/molecules/RatingBottomSheet';
 import { RouteProp, useRoute } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
@@ -28,6 +29,7 @@ import { Toast as Toastify } from 'toastify-react-native';
 import { BASE_URL } from '@constants';
 import { useAuthStore } from '@store';
 import { translateCityToEnglish } from '../../../utils/cityTranslator';
+import { capitalizeWords, formatDateTimeLocal } from '../../ManageHistory/utils/format';
 
 type CardDetailsRouteParams = {
   paymentId: string;
@@ -41,6 +43,8 @@ type CardDetailsRouteParams = {
   image?: any;
   reason?: string;
   isRefundRequest?: boolean; // Flag to indicate this is from refund requests
+  refundStatus?: string;
+  refund_status?: string;
 
   consultationType?: 'Chat' | 'Video' | 'Audio';
   duration?: string;
@@ -74,6 +78,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
   const route = useRoute<CardDetailsRouteProp>();
   const params = route.params;
   const reason = params.reason;
+  const [refundReason, setRefundReason] = useState<string | undefined>(params.reason);
 
   // Determine if it's appointment or consultation based on params
   const isAppointment = params.isAppointment;
@@ -106,6 +111,8 @@ export function CardDetails({ navigation }: { navigation: any }) {
     paymentMethod?: string;
     total?: string;
     services: any[];
+    refundStatus?: string;
+    refundStatusColor?: string;
   }>({
     clinicName: params.clinicName || '',
     clinicLocation: params.clinicLocation || '',
@@ -125,6 +132,8 @@ export function CardDetails({ navigation }: { navigation: any }) {
     paymentMethod: undefined,
     total: params.price || '',
     services: params.services || [],
+    refundStatus: params.refundStatus || params.refund_status || undefined,
+    refundStatusColor: undefined,
   });
 
   // Get user location for refund appointment details
@@ -283,45 +292,121 @@ export function CardDetails({ navigation }: { navigation: any }) {
           const appointmentData = finalData.appointment || {};
           const appointmentServices = finalData.appointment_services || [];
           const transactionData = finalData.transactions || {};
-
           // Extract clinicID for rating
           const extractedClinicID = clinicData.clinicID || clinicData.id || appointmentData.clinicID || null;
           setClinicID(extractedClinicID);
 
-          // Format date from appointment requestDate or transaction date
-          const dateStr = appointmentData.requestDate || transactionData.date || appointmentData.created_at || '';
-          let formattedDateTime = '';
-          if (dateStr) {
-            try {
-              const date = new Date(dateStr);
-              formattedDateTime = date.toLocaleString('en-GB', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true,
-              });
-            } catch (e) {
-              formattedDateTime = dateStr;
-            }
-          }
+          // Format date and time from appointment requestDate or transaction date
+          const dateStr =  appointmentData.created_at || '';
+          const formattedDateTime = formatDateTimeLocal(dateStr);
 
           // Format price from transaction amount
           const priceValue = transactionData.amount || '0';
           const formattedPrice = priceValue ? `SAR ${parseFloat(priceValue).toFixed(2)}` : 'SAR 0.00';
+
+          // Handle refund detail payloads that return a top-level `service` object
+          if (!appointmentServices || appointmentServices.length === 0) {
+            // Some refund endpoints return the refunded item under `service` (see sample payloads)
+            const refundServicePayload = finalData.service || finalData.services || null;
+            if (refundServicePayload) {
+              // Capture refund reason from payload if provided (some endpoints put actual reason here)
+              setRefundReason(refundServicePayload?.reason || svc?.reason || params.reason);
+              const svc = refundServicePayload.service || refundServicePayload;
+              const refundOriginal = refundServicePayload?.servicePrice ?? svc?.price ?? refundServicePayload?.price ?? '0';
+              const refundFinal = refundServicePayload?.price ?? svc?.price ?? '0';
+              const refundDiscount = refundServicePayload?.campaignDiscount ?? 0;
+              const mappedServicesRefund = [
+                {
+                  id: svc?.id || refundServicePayload?.serviceID || 0,
+                  appointmentServiceID: refundServicePayload?.id || undefined,
+                  name: svc?.name || refundServicePayload?.name || '',
+                  duration: svc?.duration ? `${svc.duration} min` : (refundServicePayload?.duration ? `${refundServicePayload.duration} min` : ''),
+                  price: String(refundOriginal),
+                  campaignDiscount: Number(refundDiscount || 0),
+                  finalPrice: Number(refundFinal || 0),
+                  status: refundServicePayload?.status || svc?.status || '',
+                  refundStatus: refundServicePayload?.refundStatus || refundServicePayload?.refund_status || '',
+                  category: svc?.serviceType || svc?.category || '',
+                  categoryBadge: svc?.group?.name || '',
+                  image: svc?.image ? { uri: svc.image } : null,
+                },
+              ];
+
+              // Use clinic from finalData.clinic if available
+              const clinicDataRefund = finalData.clinic || {};
+              const clinicDetailsRefund = clinicDataRefund.details || {};
+              console.log(refundServicePayload)
+              const dateStrRefund = refundServicePayload?.appointment?.created_at || refundServicePayload?.created_at || refundServicePayload?.updated_at || transactionData?.date || appointmentData?.created_at || '';
+              const formattedDateTimeRefund = formatDateTimeLocal(dateStrRefund);
+
+              const priceValueRefund = refundServicePayload?.price || transactionData?.amount || '0';
+              const formattedPriceRefund = priceValueRefund ? `SAR ${parseFloat(priceValueRefund).toFixed(2)}` : 'SAR 0.00';
+
+              const appointmentLocationPartsRefund = [
+                clinicDetailsRefund.address
+                // translateCityToEnglish(clinicDetailsRefund.city),
+                // translateCityToEnglish(clinicDetailsRefund.district),
+              ].filter(Boolean);
+              const appointmentClinicLocationRefund = appointmentLocationPartsRefund.length > 0
+                ? appointmentLocationPartsRefund.join(', ')
+                : '';
+
+              setClinicID(clinicDataRefund.clinicID || clinicDataRefund.id || appointmentData.clinicID || null);
+
+              // Normalize transaction object: some refund endpoints return transaction under the `service` object
+              const txn = refundServicePayload.transaction || refundServicePayload.service?.transaction || finalData.transaction || finalData.transactions || null;
+              if (txn) {
+                setPaymentDetails(prev => ({ ...(prev || {}), transactions: txn }));
+              }
+
+              setDisplayData({
+                clinicName: clinicDataRefund.clinicName || clinicDetailsRefund.businessName || clinicDataRefund.name || '',
+                clinicLocation: appointmentClinicLocationRefund,
+                status: txn?.status || transactionData.status || refundServicePayload?.status || appointmentData.status || '',
+                statusColor: (txn?.status === 'Paid' || txn?.status === 'Completed' || transactionData.status === 'Paid' || transactionData.status === 'Completed') ? colors.green : colors.red,
+                dateTime: formattedDateTimeRefund,
+                price: formattedPriceRefund,
+                image: clinicDetailsRefund.logo ? { uri: clinicDetailsRefund.logo } : undefined,
+                consultationType: undefined,
+                duration: undefined,
+                doctorName: undefined,
+                doctorAvatar: undefined,
+                serviceName: undefined,
+                servicePrice: undefined,
+                serviceType: undefined,
+                serviceGroup: undefined,
+                paymentMethod: undefined,
+                total: formattedPriceRefund,
+                services: mappedServicesRefund,
+              });
+
+              setLoading(false);
+              return;
+            }
+          }
 
           // Map appointment_services to services array
           const mappedServices = appointmentServices.map((appointmentService: any, index: number) => {
             const serviceData = appointmentService.service || {};
             const groupData = serviceData.group || {};
 
+            // Service-level status may be provided on the appointmentService or the nested service
+            const svcStatus = appointmentService.status || appointmentService.refundStatus || appointmentService.serviceStatus || serviceData.status || '';
+
+            // API returns: servicePrice (original), price (final), campaignDiscount (discount)
+            const originalPriceRaw = appointmentService.servicePrice ?? serviceData.price ?? appointmentService.price ?? '0';
+            const finalPriceRaw = appointmentService.price ?? serviceData.price ?? '0';
+            const discountRaw = appointmentService.campaignDiscount ?? 0;
             return {
               id: serviceData.id || appointmentService.serviceID || index,
               appointmentServiceID: appointmentService.id, // This is the ID needed for refund API
               name: serviceData.name || '',
               duration: serviceData.duration ? `${serviceData.duration} min` : '',
-              price: serviceData.price || appointmentService.price || '0',
+              price: String(originalPriceRaw),
+              campaignDiscount: Number(discountRaw || 0),
+              finalPrice: Number(finalPriceRaw || 0),
+              status: svcStatus,
+              refundStatus: appointmentService.refundStatus,
               category: serviceData.serviceType && typeof serviceData.serviceType === 'string' && serviceData.serviceType.length
                 ? serviceData.serviceType.charAt(0).toUpperCase() + serviceData.serviceType.slice(1)
                 : '',
@@ -330,7 +415,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
                 : (serviceData.serviceType && typeof serviceData.serviceType === 'string'
                   ? serviceData.serviceType.charAt(0).toUpperCase() + serviceData.serviceType.slice(1)
                   : ''),
-              image: serviceData.image ? { uri: serviceData.image } : RecommandImage,
+              image: serviceData.image ? { uri: serviceData.image } : null,
             };
           });
 
@@ -342,20 +427,21 @@ export function CardDetails({ navigation }: { navigation: any }) {
               ? colors.yellow
               : colors.red;
 
+          const appointmentLocationParts = [
+            clinicDetails.address,
+          ].filter(Boolean);
+          const appointmentClinicLocation = appointmentLocationParts.length > 0
+            ? appointmentLocationParts.join(', ')
+            : '';
+
           setDisplayData({
             clinicName: clinicData.clinicName || clinicDetails.businessName || clinicData.name || '',
-            clinicLocation: (() => {
-              const city = translateCityToEnglish(clinicDetails.city);
-              const district = translateCityToEnglish(clinicDetails.district);
-              return clinicDetails.address || `${city || ''}${district ? `, ${district}` : ''}`.trim() || '';
-            })(),
+            clinicLocation: appointmentClinicLocation,
             status: status,
             statusColor: statusColor,
             dateTime: formattedDateTime,
             price: formattedPrice,
-            image: clinicData.image || clinicDetails.coverImage || clinicDetails.logo
-              ? { uri: clinicData.image || clinicDetails.coverImage || clinicDetails.logo }
-              : RecommandImage,
+            image: clinicDetails.logo ? { uri: clinicDetails.logo } : undefined,
             consultationType: undefined,
             duration: undefined,
             doctorName: undefined,
@@ -369,36 +455,32 @@ export function CardDetails({ navigation }: { navigation: any }) {
             services: mappedServices,
           });
         } else {
-          // Consultation payment details - map according to the API response structure
+          // Consultation payment details - map according to the API response structure (includes clinic.details with location)
           const consultationData = finalData;
           const clinicData = consultationData.clinic || {};
+          const clinicDetails = clinicData.details || {};
           const doctorData = consultationData.doctor || {};
           const serviceData = consultationData.service || {};
 
           // Extract clinicID for rating
           setClinicID(clinicData.id || consultationData.clinicID || null);
 
-          // Format date and time from date or created_at
-          const dateTimeStr = consultationData.date || consultationData.created_at || '';
-          let formattedDateTime = '';
-          if (dateTimeStr) {
-            try {
-              const date = new Date(dateTimeStr);
-              formattedDateTime = date.toLocaleString('en-GB', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true,
-              });
-            } catch (e) {
-              formattedDateTime = dateTimeStr;
-            }
-          }
+          // Build location from clinic.details (address only)
+          const locationParts = [
+            clinicDetails.address,
+          ].filter(Boolean);
+          const clinicLocationStr = locationParts.length > 0
+            ? locationParts.join(', ')
+            : (clinicData.location || '');
 
+          // Format date and time from date or created_at
+          console.log("consultationData",consultationData.created_at)
+          const dateTimeStr = consultationData.created_at || '';
+          console.log('Raw date time from API:', dateTimeStr);
+          const formattedDateTime = formatDateTimeLocal(dateTimeStr);
+          console.log('Formatted date time:', consultationData.price);
           // Format price with currency
-          const priceValue = consultationData.price || consultationData.amount || '0';
+          const priceValue = consultationData.price || '0';
           const formattedPrice = priceValue ? `SAR ${parseFloat(priceValue).toFixed(2)}` : 'SAR 0.00';
 
           // Format duration from service duration (in minutes)
@@ -419,8 +501,8 @@ export function CardDetails({ navigation }: { navigation: any }) {
           const formattedServicePrice = servicePriceValue ? `SAR ${parseFloat(servicePriceValue).toFixed(2)}` : 'SAR 0.00';
 
           setDisplayData({
-            clinicName: clinicData.clinicName || clinicData.name || '',
-            clinicLocation: clinicData.location || '',
+            clinicName: clinicData.clinicName || clinicDetails.businessName || clinicData.name || '',
+            clinicLocation: clinicLocationStr,
             status: consultationData.status || '',
             statusColor: consultationData.status === 'Completed' || consultationData.status === 'Success'
               ? colors.green
@@ -429,19 +511,25 @@ export function CardDetails({ navigation }: { navigation: any }) {
                 : colors.red,
             dateTime: formattedDateTime,
             price: formattedPrice,
-            image: clinicData.image ? { uri: clinicData.image } : RecommandImage,
+            image: (clinicData.image || clinicDetails.logo || clinicDetails.coverImage)
+              ? { uri: clinicData.image || clinicDetails.logo || clinicDetails.coverImage }
+              : undefined,
             consultationType: consultationData.type || consultationData.consultationType,
-            duration: consultationData.duration || '',
-            doctorName: doctorData.name || '',
+            duration: consultationData.duration || formattedDuration || '',
+            doctorName: doctorData.name ? doctorData.name : t('no_agent_accepted'),
             doctorAvatar: doctorData.image || undefined,
-            serviceName: (serviceData.name || '').toUpperCase(),
+            serviceName: capitalizeWords(serviceData.name || ''),
             servicePrice: formattedServicePrice,
-            serviceType: (serviceData.serviceType || '').toUpperCase(),
-            serviceGroup: (serviceData.group?.name || '').toUpperCase(),
+            serviceType: capitalizeWords(serviceData.serviceType || ''),
+            serviceGroup: capitalizeWords(serviceData.group?.name || ''),
             paymentMethod: (consultationData.transaction?.paymentMethod || 'CreditCard').toUpperCase(),
             total: formattedPrice,
             services: [],
           });
+          // Some consultation endpoints may include a reason at top-level service
+          if (consultationData?.service?.reason) {
+            setRefundReason(consultationData.service.reason);
+          }
         }
       } else {
         // API returned failure or no data - show empty state
@@ -546,31 +634,40 @@ export function CardDetails({ navigation }: { navigation: any }) {
     }
   };
 
-  // Helper function to download invoice from URL
+  const onInvoiceDownloadSuccess = (filePath: string, fileName: string) => {
+    Toastify.success(t('invoice_saved_successfully'));
+    if (Platform.OS === 'android') {
+      RNFS.exists(filePath).then((exists) => {
+        if (exists) {
+          ReactNativeBlobUtil.android.addCompleteDownload({
+            path: filePath,
+            title: fileName,
+            description: t('download_invoice') || 'Invoice',
+            mime: 'application/pdf',
+            showNotification: true,
+          });
+        }
+      });
+    }
+  };
+
+  // Helper function to download invoice from URL using RNFS (PDF saved to Downloads/Documents)
   const downloadInvoiceFromUrl = async (invoiceUrl: string, downloadDir: string, fileName: string): Promise<void> => {
     const token = (useAuthStore.getState().auth as any)?.token;
     if (!token) {
       throw new Error('Authentication token not found');
     }
-
     const filePath = `${downloadDir}/${fileName}`;
-
-    // Use RNFS.downloadFile to download the PDF
     const downloadResult = await RNFS.downloadFile({
       fromUrl: invoiceUrl,
       toFile: filePath,
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/pdf',
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/pdf',
       },
     }).promise;
-
     if (downloadResult.statusCode === 200) {
-      console.log('Invoice saved at:', filePath);
-      Toastify.success(
-        t('invoice_saved_successfully') ||
-        `Invoice saved as PDF successfully\nLocation: ${Platform.OS === 'android' ? 'Downloads' : 'Documents'}`
-      );
+      onInvoiceDownloadSuccess(filePath, fileName);
     } else {
       throw new Error(`Failed to download invoice: ${downloadResult.statusCode}`);
     }
@@ -654,27 +751,19 @@ export function CardDetails({ navigation }: { navigation: any }) {
         downloadDir = RNFS.DocumentDirectoryPath;
       }
 
-      // If it's a PDF file, download and save it
+      // If it's a PDF file, download and save it with RNFS
       if (contentType.includes('application/pdf') || contentType.includes('application/octet-stream')) {
-        // Save the PDF file directly using RNFS
         const filePath = `${downloadDir}/${fileName}`;
-
-        // Use RNFS.downloadFile for better handling
         const downloadResult = await RNFS.downloadFile({
           fromUrl: url,
           toFile: filePath,
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/pdf',
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/pdf',
           },
         }).promise;
-
         if (downloadResult.statusCode === 200) {
-          console.log('Invoice saved at:', filePath);
-          Toastify.success(
-            t('invoice_saved_successfully') ||
-            `Invoice saved as PDF successfully\nLocation: ${Platform.OS === 'android' ? 'Downloads' : 'Documents'}`
-          );
+          onInvoiceDownloadSuccess(filePath, fileName);
         } else {
           throw new Error(`Failed to download invoice: ${downloadResult.statusCode}`);
         }
@@ -696,14 +785,10 @@ export function CardDetails({ navigation }: { navigation: any }) {
                 // Download from URL
                 await downloadInvoiceFromUrl(fileData, downloadDir, fileName);
               } else if (typeof fileData === 'string' && fileData.length > 100) {
-                // Assume it's base64 data
+                // Assume it's base64 data – write PDF and show success + notification
                 const filePath = `${downloadDir}/${fileName}`;
                 await RNFS.writeFile(filePath, fileData, 'base64');
-                console.log('Invoice saved at:', filePath);
-                Toastify.success(
-                  t('invoice_saved_successfully') ||
-                  `Invoice saved as PDF successfully\nLocation: ${Platform.OS === 'android' ? 'Downloads' : 'Documents'}`
-                );
+                onInvoiceDownloadSuccess(filePath, fileName);
               } else {
                 throw new Error(t('invoice_format_not_supported') || 'Invoice format not supported');
               }
@@ -744,18 +829,39 @@ export function CardDetails({ navigation }: { navigation: any }) {
         const serviceData = appointmentService.service || {};
         const groupData = serviceData.group || {};
 
+        // Determine service-level status (API may use different field names)
+        const svcStatus = appointmentService.status || appointmentService.refundStatus || appointmentService.serviceStatus || serviceData.status || '';
+        const svcRefundStatus = appointmentService.refundStatus || serviceData.refundStatus || appointmentService.refund_status || '';
+        // Map refund state to simple categories: processed (final) or processing (in-progress)
+        const isProcessed = typeof svcStatus === 'string' && /(processed|refunded|completed)/i.test(svcStatus);
+        const isRejected = /reject/i.test(svcStatus) || /reject/i.test(svcRefundStatus);
+        const isProcessing = typeof svcStatus === 'string' && /(processing|pending|in-progress|request)/i.test(svcStatus) && !isProcessed;
+        const refundState = isProcessed ? 'processed' : (isProcessing ? 'processing' : '');
+        console.log('Service', groupData)
+        // API: servicePrice (original), price (final), campaignDiscount (discount)
+        const originalPriceRaw = appointmentService.servicePrice ?? serviceData.price ?? appointmentService.price ?? '0';
+        const finalPriceRaw = appointmentService.price ?? serviceData.price ?? '0';
+        const discountRaw = appointmentService.campaignDiscount ?? 0;
         return {
           id: serviceData.id || appointmentService.serviceID,
           appointmentServiceID: appointmentService.id, // Required for cancellation API
           serviceID: appointmentService.serviceID,
           name: serviceData.name || '',
           duration: serviceData.duration ? `${serviceData.duration} min` : '',
-          price: serviceData.price || appointmentService.price || '0',
-          category: groupData.name || serviceData.serviceType || '',
+          price: String(originalPriceRaw),
+          campaignDiscount: Number(discountRaw || 0),
+          finalPrice: Number(finalPriceRaw || 0),
+          category: groupData.serviceType || serviceData.serviceType || '',
           categoryBadge: groupData.name || serviceData.serviceType || '',
-          image: serviceData.image ? { uri: serviceData.image } : RecommandImage,
+          image: serviceData.image ? { uri: serviceData.image } : null,
+          status: svcStatus,
+          refundStatus: svcRefundStatus,
+          refundState: refundState,
+          disabled: isProcessed || isRejected,
         };
       });
+
+      const overallRefundStatus = paymentDetails.refundStatus || paymentDetails.refund_status || paymentDetails.refund?.status || displayData.refundStatus || '';
 
       navigation.navigate('Refund', {
         paymentId: params.paymentId,
@@ -773,15 +879,18 @@ export function CardDetails({ navigation }: { navigation: any }) {
           district: clinicDetails.district || '',
         },
         appointmentID: paymentDetails.appointment?.id,
+        refundStatus: overallRefundStatus,
       });
     } else {
       // Fallback to params for consultations or if no paymentDetails
+      const fallbackRefundStatus = params.refundStatus || params.refund_status || '';
       navigation.navigate('Refund', {
         paymentId: params.paymentId,
         clinicName: params.clinicName,
         clinicLocation: params.clinicLocation,
         image: params.image,
         services: params.services,
+        refundStatus: fallbackRefundStatus,
       });
     }
   };
@@ -789,6 +898,76 @@ export function CardDetails({ navigation }: { navigation: any }) {
   // Check if we have no data to display (no paymentDetails and empty displayData)
   const hasNoData = !paymentDetails && (!displayData.clinicName && !displayData.clinicLocation && !displayData.dateTime);
 
+  // Calculate total refunded amount for appointment by summing service-level refunds.
+  // Use `refundDate` on each `appointment_service` (fallback to `transferDate`) and include
+  // services whose `refundStatus` is Confirm. This is more reliable than relying on `transferData`.
+  const totalRefundedAmount = (() => {
+    if (!isAppointment || !paymentDetails) return 0;
+
+    // When opened from refund details, the refund amount is the price of the item
+    if (params.isRefundRequest) {
+      const svc = displayData.services?.[0];
+      const raw = svc?.price ?? displayData.price ?? '0';
+      const parsed = parseFloat(String(raw).replace(/[^0-9.-]+/g, ''));
+      return isNaN(parsed) ? 0 : parsed;
+    }
+
+    const services = paymentDetails.appointment_services || [];
+
+    // Filter services that were confirmed refunded and have a refundDate (or transferDate as fallback)
+    const refundedServices = services.filter((svc: any) => {
+      const svcRefundStatus = (svc.refundStatus || svc.refund_status || svc.status || '').toString();
+      const hasRefundDate = !!(
+        svc.refundDate || svc.refund_date || svc.transferDate || svc.transfer_date || svc.transfer?.date || svc.refund?.date
+      );
+      return /confirm/i.test(svcRefundStatus) && hasRefundDate;
+    });
+
+    // Sum refunded amounts (try several possible fields, fall back to service.price)
+    const sum = refundedServices.reduce((acc: number, svc: any) => {
+      const amtCandidates = [
+        svc.refundAmount,
+        svc.refund_amount,
+        svc.refund?.amount,
+        svc.transferData?.amount,
+        svc.transfer_amount,
+        svc.transferAmount,
+        svc.price,
+        svc.service?.price,
+      ];
+
+      for (const cand of amtCandidates) {
+        if (cand === undefined || cand === null) continue;
+        const parsed = parseFloat(String(cand).replace(/[^0-9.-]+/g, ''));
+        if (!Number.isNaN(parsed)) {
+          return acc + parsed;
+        }
+      }
+
+      return acc;
+    }, 0);
+
+    return sum;
+  })();
+
+  // Disable "Request for Refund" when every service would already be non-selectable
+  // on the Refund screen. Mirrors the per-service rule in RefundRequest/index.tsx.
+  const disableRefundButton = (() => {
+    const servicesList = displayData.services || [];
+    if (!Array.isArray(servicesList) || servicesList.length === 0) return false;
+
+    return servicesList.every((svc: any) => {
+      const svcStatusStr = String(svc.status || '');
+      const svcRefundStatusStr = String(svc.refundStatus || svc.refund_status || '');
+      const refundStatusNormalized = svcRefundStatusStr.trim().toLowerCase();
+
+      const isProcessed = /(processed|refunded|completed)/i.test(svcStatusStr);
+      const isRefundStatusDisabled = /^(pending|confirm|confirmed|rejected|reject)$/i.test(refundStatusNormalized);
+      const isRejected = /reject/i.test(svcStatusStr) || /reject/i.test(svcRefundStatusStr);
+
+      return isProcessed || isRefundStatusDisabled || isRejected;
+    });
+  })();
   if (loading) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
@@ -820,7 +999,6 @@ export function CardDetails({ navigation }: { navigation: any }) {
       </SafeAreaView>
     );
   }
-
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
       <StatusBar barStyle="dark-content" />
@@ -829,14 +1007,20 @@ export function CardDetails({ navigation }: { navigation: any }) {
       <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
         <View style={styles.clinicInfo}>
           <View style={styles.clinicLeft}>
-            <Image
-              source={displayData.image || RecommandImage}
-              style={styles.clinicImage}
-              resizeMode="cover"
-            />
-            <View>
-              <Text style={styles.clinicName}>{displayData.clinicName || t('clinic_name') || 'Clinic Name'}</Text>
-              <Text style={styles.clinicLocation}>{displayData.clinicLocation || t('clinic_location') || 'Location'}</Text>
+            {displayData.image ? (
+              <Image
+                source={displayData.image}
+                style={styles.clinicImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <ClinicAvatar name={displayData.clinicName} size={56} style={styles.clinicImage} />
+            )}
+            <View style={{ flex: 1, flexShrink: 1 }}>
+              <Text style={styles.clinicName} numberOfLines={1} ellipsizeMode="tail">{displayData.clinicName || t('clinic_name') || 'Clinic Name'}</Text>
+              {!!displayData.clinicLocation && (
+                <Text style={styles.clinicLocation} numberOfLines={1} ellipsizeMode="tail">{displayData.clinicLocation}</Text>
+              )}
             </View>
           </View>
 
@@ -861,42 +1045,68 @@ export function CardDetails({ navigation }: { navigation: any }) {
         {isAppointment &&
           displayData.services?.map(service => (
             <View key={service.id} style={styles.serviceCard}>
-              <View style={styles.serviceLeft}>
-                <Image source={service.image} style={styles.serviceImage} />
-                <View style={styles.serviceInfo}>
-                  <View style={styles.serviceBadges}>
-                    <View style={styles.categoryBadge}>
-                      <Text style={styles.categoryBadgeText}>
-                        {service.category}
-                      </Text>
-                    </View>
-                    <View style={styles.nameBadge}>
-                      <Text style={styles.nameBadgeText}>
-                        {service.categoryBadge}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <Text style={styles.serviceName}>{service.name}</Text>
-
-                  <View style={styles.durationContainer}>
-                    <Ionicons
-                      name="time-outline"
-                      size={18}
-                      color={colors.secondaryText}
-                    />
-                    <Text style={styles.duration}>{service.duration}</Text>
-                  </View>
+              <View style={styles.serviceBadges}>
+                <View style={styles.categoryBadge}>
+                  <Text style={styles.categoryBadgeText} numberOfLines={1} ellipsizeMode="tail">
+                    {service.category}
+                  </Text>
+                </View>
+                <View style={styles.nameBadge}>
+                  <Text style={styles.nameBadgeText} numberOfLines={1} ellipsizeMode="tail">
+                    {service.categoryBadge}
+                  </Text>
                 </View>
               </View>
-              <Text style={styles.servicePrice}>{service.price}</Text>
+              <View style={styles.serviceContent}>
+                <View style={styles.serviceLeft}>
+                  <Image source={service.image} style={styles.serviceImage} />
+                  <View style={styles.serviceInfo}>
+
+
+                    <Text style={styles.serviceName} numberOfLines={1} ellipsizeMode="tail">{service.name}</Text>
+
+                    <View style={styles.durationContainer}>
+                      <Ionicons
+                        name="time-outline"
+                        size={18}
+                        color={colors.secondaryText}
+                      />
+                      <Text style={styles.duration}>{service.duration}</Text>
+                    </View>
+                  </View>
+                </View>
+                <View style={{ justifyContent: 'space-between', alignItems: 'flex-end', width: 110, paddingLeft: 8 }}>
+                  {Number((service as any).campaignDiscount || 0) > 0 && (service as any).finalPrice !== null && (service as any).finalPrice !== undefined ? (
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <Text style={[styles.servicePrice, { fontSize: 12, color: '#888', textDecorationLine: 'line-through', fontWeight: '400' }]}>
+                        SAR {parseFloat(String(service.price)).toFixed(2)}
+                      </Text>
+                      <Text style={styles.servicePrice}>{`SAR ${Number((service as any).finalPrice).toFixed(2)}`}</Text>
+                      <Text style={{ fontSize: 11, fontWeight: '600', color: '#16a34a', marginTop: 2 }}>
+                        {`-SAR ${Number((service as any).campaignDiscount).toFixed(2)}`}
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text style={styles.servicePrice}>SAR {service.price}</Text>
+                  )}
+                  {(() => {
+                    const isRefund = typeof (service.status || '') === 'string' && /refund/i.test(service.status || '');
+                    const displayStatus = isRefund ? ((service.status + " " + service.refundStatus)) : service.status;
+                    return displayStatus ? (
+                      <Text style={{ fontSize: 12, color: '#6b7280', marginTop: 8 }} numberOfLines={1}>
+                        {displayStatus}
+                      </Text>
+                    ) : null;
+                  })()}
+                </View>
+              </View>
             </View>
           ))}
-        {reason && (
+        {(refundReason || reason) && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{t('reason_for_refund')}</Text>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>{reason}</Text>
+              <Text style={styles.detailLabel}>{refundReason || reason}</Text>
             </View>
           </View>
         )}
@@ -905,7 +1115,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>{t('payment_detail')}</Text>
 
-             
+
 
               {paymentDetails?.transactions?.paymentMethod && (
                 <View style={styles.detailRow}>
@@ -916,26 +1126,34 @@ export function CardDetails({ navigation }: { navigation: any }) {
                 </View>
               )}
 
-              {paymentDetails?.transactions?.loyaltyPointEarn !== null && paymentDetails?.transactions?.loyaltyPointEarn !== undefined && (
+              {/* {paymentDetails?.transactions?.loyaltyPointEarn !== null && paymentDetails?.transactions?.loyaltyPointEarn !== 0 && paymentDetails?.transactions?.loyaltyPointEarn !== undefined && ( */}
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>{t('points_earned')}</Text>
-                  <Text style={styles.points_earn}>{paymentDetails.transactions.loyaltyPointEarn} {t('points') || 'Points'}</Text>
+                  <Text style={styles.points_earn}>{paymentDetails.transactions.loyaltyPointEarn || 0} {t('points') || 'Points'}</Text>
                 </View>
-              )}
+              {/* )} */}
 
-              {paymentDetails?.transactions?.loyaltyPointUsed !== null && paymentDetails?.transactions?.loyaltyPointUsed !== undefined && (
+              {/* {paymentDetails?.transactions?.loyaltyPointUsed !== null && paymentDetails?.transactions?.loyaltyPointUsed !== undefined && ( */}
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>{t('points_used')}</Text>
-                  <Text style={styles.points_use}>{paymentDetails.transactions.loyaltyPointUsed} {t('points') || 'Points'}</Text>
+                  <Text style={styles.points_use}>{paymentDetails.transactions.loyaltyPointUsed || 0} {t('points') || 'Points'}</Text>
                 </View>
-              )}
+              {/* )} */}
+
+
+              {/* Show total refunded amount when appointment refund is confirmed and transfer data exists */}
+              {/* {isAppointment && totalRefundedAmount > 0 && ( */}
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>{t('total_refund_amount')}</Text>
+                  <Text style={styles.detailValue}>{`SAR ${totalRefundedAmount.toFixed(2)}`}</Text>
+                </View>
+              {/* )} */}
 
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>{t('status')}</Text>
-                <Text
-                  style={[styles.detailValue, { color: displayData.statusColor }]}
-                >
-                  {displayData.status}
+                <Text style={styles.detailValue}>
+                  <Text style={{ color: displayData.statusColor || colors.black }}>{displayData.status}</Text>
+
                 </Text>
               </View>
 
@@ -954,15 +1172,49 @@ export function CardDetails({ navigation }: { navigation: any }) {
                   {displayData.services?.length || 0}
                 </Text>
               </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>{t('subtotal')}</Text>
-                <Text style={styles.detailValue}>{displayData.price}</Text>
-              </View>
-
-              <View style={styles.totalContainer}>
-                <Text style={styles.totalLabel}>{t('total')}</Text>
-                <Text style={styles.totalAmount}>{displayData.price}</Text>
-              </View>
+              {(() => {
+                const servicesList = displayData.services || [];
+                const subtotalSum = servicesList.reduce((s: number, sv: any) => s + parseFloat(String(sv.price || 0)), 0);
+                const discountSum = servicesList.reduce((s: number, sv: any) => s + Number(sv.campaignDiscount || 0), 0);
+                const txn = paymentDetails?.transactions || {};
+                const taxAmount = Number(txn.totalTax || 0);
+                const txnAmount = txn.amount !== undefined && txn.amount !== null ? Number(txn.amount) : null;
+                const totalAmount = txnAmount !== null
+                  ? txnAmount
+                  : servicesList.reduce((s: number, sv: any) => {
+                      const fp = sv.finalPrice !== null && sv.finalPrice !== undefined
+                        ? Number(sv.finalPrice)
+                        : parseFloat(String(sv.price || 0));
+                      return s + fp;
+                    }, 0);
+                const hasDiscount = discountSum > 0;
+                return (
+                  <>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>{t('subtotal')}</Text>
+                      <Text style={styles.detailValue}>{`SAR ${subtotalSum.toFixed(2)}`}</Text>
+                    </View>
+                    {hasDiscount && (
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>{t('discount') || 'Discount'}</Text>
+                        <Text style={[styles.detailValue, { color: '#16a34a' }]}>
+                          {`-SAR ${discountSum.toFixed(2)}`}
+                        </Text>
+                      </View>
+                    )}
+                    {taxAmount > 0 && (
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>{t('tax') || 'Tax'}</Text>
+                        <Text style={styles.detailValue}>{`SAR ${taxAmount.toFixed(2)}`}</Text>
+                      </View>
+                    )}
+                    <View style={styles.totalContainer}>
+                      <Text style={styles.totalLabel}>{t('total')}</Text>
+                      <Text style={styles.totalAmount}>{`SAR ${totalAmount.toFixed(2)}`}</Text>
+                    </View>
+                  </>
+                );
+              })()}
             </View>
           </>
         ) : (
@@ -977,10 +1229,11 @@ export function CardDetails({ navigation }: { navigation: any }) {
 
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>{t('status')}</Text>
-                <Text
-                  style={[styles.detailValue, { color: displayData.statusColor }]}
-                >
-                  {displayData.status}
+                <Text style={styles.detailValue}>
+                  <Text style={{ color: displayData.statusColor || colors.black }}>{displayData.status}</Text>
+                  {displayData.refundStatus ? (
+                    <Text style={{ color: displayData.refundStatusColor || '#6b7280' }}>{` ${displayData.refundStatus}`}</Text>
+                  ) : null}
                 </Text>
               </View>
 
@@ -1014,7 +1267,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
 
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>{t('price')}</Text>
-                <Text style={styles.detailValue}>{displayData.servicePrice}</Text>
+                <Text style={styles.detailValue}>{displayData.total}</Text>
               </View>
 
               <View style={styles.detailRow}>
@@ -1043,12 +1296,13 @@ export function CardDetails({ navigation }: { navigation: any }) {
         )}
       </ScrollView>
 
-      {!reason && (
+      {!(refundReason || reason) && (
         <View style={styles.bottomButtonContainer}>
           {isAppointment ? (
             <CustomButton
               title={t('request_for_refund')}
               onPress={handleRefund}
+              disabled={disableRefundButton}
             />
           ) : (
             <CustomButton

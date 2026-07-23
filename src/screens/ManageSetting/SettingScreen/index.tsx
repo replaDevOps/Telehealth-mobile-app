@@ -21,6 +21,7 @@ import { useAuthStore, useProfileStore } from '@store';
 import { apiClient } from '../../../services/api/api-client';
 import { API } from '../../../services/api/api-endpoint';
 import { colors } from '../../../styles/colors';
+import { signOutGoogle } from '../../../services/firebase/googleAuth';
 
 export const SettingScreen = ({ navigation }: { navigation: any }) => {
   const { t } = useTranslation();
@@ -66,14 +67,14 @@ export const SettingScreen = ({ navigation }: { navigation: any }) => {
           onPress: async () => {
             setIsLoggingOut(true);
             try {
-              // Call logout API
-              await apiClient.post(API.AUTH.LOGOUT);
+              await Promise.all([
+                apiClient.post(API.AUTH.LOGOUT),
+                signOutGoogle(),
+              ]);
             } catch (error: any) {
-              // Even if API call fails, proceed with logout
-              console.log('Logout API error:', error);
+              console.log('Logout error:', error);
             }
-            
-            // Clear auth store and profile store, then navigate to login
+
             useProfileStore.getState().clearProfile();
             logout();
             navigation.replace('Auth', { screen: 'SignIn' });
@@ -91,9 +92,7 @@ export const SettingScreen = ({ navigation }: { navigation: any }) => {
     {
       icon: ProfileSvg,
       title: t('profile_settings'),
-      onPress: () => navigation.navigate('ProfileSetting', {
-        profileData: profileData,
-      }),
+      onPress: () => navigation.navigate('ProfileSetting', { profileData }),
     },
     {
       icon: FAQsSvg,

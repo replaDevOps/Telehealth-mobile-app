@@ -1,9 +1,8 @@
 
 import React from 'react';
-import { View, Text, TouchableOpacity, Image } from 'react-native';
-import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
-import { colors } from '../../../styles/colors';
+import { View, Text, TouchableOpacity, Image, ScrollView } from 'react-native';
 import { Service } from '../../../types/chat.types';
+import { coinIcon } from '@assets/images';
 import { styles } from './style';
 
 interface SuggestionProps {
@@ -16,29 +15,35 @@ export const Suggestion: React.FC<SuggestionProps> = ({
   handleServicePress,
 }) => {
   return (
-    <View style={styles.suggestionsContainer}>
-      {suggestions.map(service => (
-        <TouchableOpacity
-          key={service.id}
-          style={styles.suggestionCard}
-          onPress={() => handleServicePress(service)}
-        >
-          <Image source={service.image} style={styles.suggestionImage} />
-          <View style={styles.suggestionContent}>
-            <Text style={styles.suggestionTitle}>{service.serviceGroup}</Text>
-            <View style={styles.suggestionSubtitleRow}>
-              <Text style={styles.suggestionSubtitle}>
-                {service.serviceName}
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.suggestionsContainer}
+    >
+      {suggestions.map(service => {
+        const loyaltyPts = service.totalLoyalityPoints ?? service.bonusLoyalityPoints;
+        const showLoyalty = loyaltyPts && Number(loyaltyPts) > 0;
+        const subtitle = service.serviceGroup || service.type || 'Service';
+
+        return (
+          <TouchableOpacity
+            key={service.id}
+            style={styles.suggestionCard}
+            onPress={() => handleServicePress(service)}
+            activeOpacity={0.85}
+          >
+            <Image source={service.image} style={styles.suggestionImage} />
+            <View style={styles.suggestionContent}>
+              <Text style={styles.suggestionTitle} numberOfLines={1} ellipsizeMode="tail">
+                {service.serviceName.charAt(0).toUpperCase() + service.serviceName.slice(1).toLowerCase()}
               </Text>
-              <FontAwesome5
-                name="external-link-alt"
-                size={12}
-                color={colors.primary}
-              />
+              <Text style={styles.categoryTagText}>
+                {service.category === 'device' ? 'Device' : 'Service'}
+              </Text>
             </View>
-          </View>
-        </TouchableOpacity>
-      ))}
-    </View>
+          </TouchableOpacity>
+        );
+      })}
+    </ScrollView>
   );
 };

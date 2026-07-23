@@ -1,5 +1,5 @@
 import { Header2 } from '@components/common/Header2';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,27 +8,50 @@ import {
   Image,
   StatusBar,
   ActivityIndicator,
+  I18nManager,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../../../styles/colors';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { mvs } from '@config/metrices';
 import { ApplePaySvg, StcPaySvg, TabbySvg, TamaraSvg } from '@assets/icons';
 import MasterCardSvg from '@assets/icons/MastercardSvg';
-import { CustomTextInput } from '@components/common/CustomTextInput';
-import { CustomButton } from '@components/common/CustomButton';
 import { styles } from './style';
+import ClinicAvatar from '@components/common/ClinicAvatar';
 import { PaymentMethod, SuccessMessageModal } from '@components/molecules'; // Verify this path
 import { useTranslation } from 'react-i18next';
-import { coinIcon } from '@assets/images';
 import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
 import { Toast } from 'toastify-react-native';
-import { useAuthStore } from '@store';
+import { useAuthStore, useProfileStore } from '@store';
+import { useCart } from '@context/CartContext';
+import { useCartCountContext } from '@context/CartCountContext';
 
 export function CheckoutScreen({ route, navigation }) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
+  const { profileData, fetchProfile, refreshProfile, currencyValuePerPoint } = useProfileStore();
+  const { clearCart } = useCart();
+  const { triggerRefresh } = useCartCountContext();
   const { services = [], totalLoyaltyPoints = 0 } = route.params || {};
+  const groupServicePrice = Number(route.params?.groupServicePrice || 0);
+  const groupCampaignDiscount = Number(route.params?.groupCampaignDiscount || 0);
+  const groupTotalPrice = Number(route.params?.groupTotalPrice || 0);
+  const clinicLoyaltyPointsParam = route.params?.clinicLoyaltyPoints;
+  const clinicLoyaltyPoints = clinicLoyaltyPointsParam
+    ? typeof clinicLoyaltyPointsParam === 'string'
+      ? parseInt(clinicLoyaltyPointsParam, 10) || 0
+      : Number(clinicLoyaltyPointsParam) || 0
+    : 0;
+
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
+
+  const userLoyaltyPoints = profileData?.loyaltyPoints
+    ? typeof profileData.loyaltyPoints === 'string'
+      ? parseInt(profileData.loyaltyPoints, 10) || 0
+      : Number(profileData.loyaltyPoints) || 0
+    : 0;
   const [couponCode, setCouponCode] = useState('');
   const [discount, setDiscount] = useState(0);
   const [selectedPayment, setSelectedPayment] = useState('credit');
@@ -69,16 +92,77 @@ export function CheckoutScreen({ route, navigation }) {
   // Calculate totals
   const calculateSubtotal = () => {
     return services.reduce((total, item) => {
-      const price = parseFloat(item.service.price.replace(/[^0-9.]/g, ''));
+      const price = parseFloat(String(item.service.price).replace(/[^0-9.]/g, ''));
       return total + price;
     }, 0);
   };
 
-  const subtotal = calculateSubtotal();
-  const tax = subtotal * 0.15; // 15% tax
+  const calculateCampaignDiscount = () => {
+    return services.reduce((total, item) => {
+      return total + Number(item.service?.campaignDiscount || 0);
+    }, 0);
+  };
+
+  const itemsSubtotal = calculateSubtotal();
+  // Prefer clinic-level group values from the cart payload (the API exposes
+  // campaignDiscount/servicePrice/totalPrice at the clinic group level, not per item).
+  // Fall back to per-item summation when the group values aren't provided.
+  const subtotal = groupServicePrice > 0 ? groupServicePrice : itemsSubtotal;
+  const campaignDiscountTotal = groupCampaignDiscount > 0
+    ? groupCampaignDiscount
+    : calculateCampaignDiscount();
+  // groupTotalPrice (post-discount, pre-tax) is informational — totals are recomputed below.
+  void groupTotalPrice;
+  // Apply 15% tax only for non-Saudi users
+  const isNonSaudi = profileData?.nationality && String(profileData.nationality).toLowerCase() === 'non_saudi';
+  const TAX_RATE = isNonSaudi ? 0.15 : 0;
+  // Tax is calculated on the post-campaign-discount subtotal
+  const taxableBase = Math.max(0, subtotal - campaignDiscountTotal);
+  const tax = taxableBase * TAX_RATE;
   const discountAmount = subtotal * (discount / 100);
-  const redemptionAmount = parseFloat(redeemPoints) || 0;
-  const total = subtotal + tax - discountAmount - redemptionAmount;
+
+  // Loyalty conversion: prefer server-provided `currencyValuePerPoint`, fallback to 0.05 SAR per coin
+  const parsedCurrencyPerPoint = Number(String(currencyValuePerPoint ?? '').replace(/,/g, '.'));
+  const COIN_TO_SAR = parsedCurrencyPerPoint > 0 ? parsedCurrencyPerPoint : 5 / 100;
+
+  // `redeemPoints` input is number of coins the user wants to redeem
+  const redemptionCoinsInput = Math.max(0, Math.floor(Number(redeemPoints) || 0));
+
+  // Maximum amount (SAR) that can be redeemed against the remaining payable amount
+  const maxRedemptionSAR = Math.max(0, subtotal - campaignDiscountTotal + tax - discountAmount); // Updated to use new tax calculation
+  // Convert SAR limit to maximum redeemable coins
+  const maxRedeemableCoins = Math.floor(maxRedemptionSAR / COIN_TO_SAR);
+
+  const insufficientCoins = redemptionCoinsInput > userLoyaltyPoints;
+
+  // Applied coins are limited by user's balance and by the payable amount
+  const appliedCoins = insufficientCoins ? 0 : Math.min(redemptionCoinsInput, maxRedeemableCoins);
+  const appliedRedemptionAmount = appliedCoins * COIN_TO_SAR; // SAR value
+
+  const total = subtotal - campaignDiscountTotal + tax - discountAmount - appliedRedemptionAmount;
+
+  // Handler to validate points input from UI
+  const handlePointsToRedeemChange = (value: string) => {
+    // Normalize to integer coins
+    const coins = Math.max(0, Math.floor(Number(value) || 0));
+
+    // Recompute max redeemable coins based on current amounts
+    const maxRedemptionSAR = Math.max(0, subtotal - campaignDiscountTotal + tax - discountAmount);
+    const maxRedeemableCoinsLocal = Math.floor(maxRedemptionSAR / COIN_TO_SAR);
+
+    if (coins > userLoyaltyPoints) {
+      Toast.error(t('insufficient_coins') || 'You do not have enough coins');
+      return;
+    }
+
+    if (coins > maxRedeemableCoinsLocal) {
+      Toast.error(t('redeem_exceeds_total') || 'Redeem amount exceeds remaining payable total');
+      return;
+    }
+
+    // Accept value (store as string to preserve controlled input behavior)
+    setRedeemPoints(String(coins));
+  };
 
   const handleApplyCoupon = () => {
     // Mock coupon validation
@@ -149,6 +233,20 @@ export function CheckoutScreen({ route, navigation }) {
     setLoading(true);
 
     try {
+      // Prevent proceeding if user tried to redeem more points than they own
+      if (insufficientCoins) {
+        Toast.error(t('insufficient_coins') || 'Insufficient coins');
+        setLoading(false);
+        return;
+      }
+
+      // Prevent proceeding if user requested more coins than allowed by payable amount
+      if (redemptionCoinsInput > maxRedeemableCoins) {
+        Toast.error(t('redeem_exceeds_total') || 'Redeem amount exceeds remaining payable total');
+        setLoading(false);
+        return;
+      }
+
       // Prepare checkout payload
       const payload = {
         paymentMethod: 'stripe',
@@ -158,6 +256,12 @@ export function CheckoutScreen({ route, navigation }) {
         cvc: cvv,
         cardholderName: cardholderName,
         redeemPoints: redeemPoints || '',
+        // include services with clinic location/address so backend can process location-aware checkout
+        items: services.map(item => ({
+          serviceID: item.service?.id || item.service?.serviceID || item.serviceID,
+          clinicID: item.clinic?.id,
+          location: item.clinic?.address || item.clinic?.location || '',
+        })),
       };
 
       console.log('Checkout payload:', { ...payload, cardNumber: '***', cvc: '***' });
@@ -168,15 +272,17 @@ export function CheckoutScreen({ route, navigation }) {
       // Check for success: false in response
       if (response.data?.success === false) {
         const errorMessage = response.data?.message || 'Checkout failed';
-        Toast.error(errorMessage);
+        // Toast.error(errorMessage);
+        console.log('Checkout error:', errorMessage);
         setShowErrorModal(true);
         setLoading(false);
         return;
       }
 
-      // Success
-      const successMessage = response.data?.message || 'Payment processed successfully';
-      // Toast.success(successMessage);
+      // Success - clear in-memory cart and trigger cart count refresh so clinic/service views stay in sync
+      clearCart();
+      triggerRefresh();
+      refreshProfile().catch(() => {});
       setShowSuccessModal(true);
       setLoading(false);
     } catch (error: any) {
@@ -214,13 +320,16 @@ export function CheckoutScreen({ route, navigation }) {
     }
   };
   const HandleRequest = () => {
-    console.log('the okay button is pressed');
     setShowSuccessModal(false);
-    navigation.goBack();
+    navigation.navigate('EntryPoint', {
+      screen: 'Clinic',
+      params: { screen: 'ClinicScreen' },
+    });
   };
 
   // Group services by clinic
   const groupedServices = services.reduce((acc, item) => {
+   
     const clinicId = item.clinic.id;
     if (!acc[clinicId]) {
       acc[clinicId] = {
@@ -244,6 +353,7 @@ export function CheckoutScreen({ route, navigation }) {
 
       <ScrollView
         style={styles.scrollView}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 40 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Render services grouped by clinic */}
@@ -252,21 +362,25 @@ export function CheckoutScreen({ route, navigation }) {
             key={group.clinic.id}
             style={{
               backgroundColor: colors.gray,
-              margin: 20,
+              margin: 10,
               borderRadius: 10,
             }}
           >
             {/* Clinic Card */}
             <View style={styles.clinicCard}>
-              <Image
-                source={group.clinic.image}
-                resizeMode="cover"
-                style={styles.clinicImage}
-              />
+              {group.clinic.image ? (
+                <Image
+                  source={group.clinic.image}
+                  resizeMode="cover"
+                  style={styles.clinicImage}
+                />
+              ) : (
+                <ClinicAvatar name={group.clinic.name} size={56} style={styles.clinicImage} />
+              )}
               <View style={styles.clinicInfo}>
                 <Text style={styles.clinicName}>{group.clinic.name}</Text>
                 <Text style={styles.clinicLocation}>
-                  {group.clinic.location}, 2.2km
+                  {group.clinic.address || group.clinic.location || ''}{group.clinic.distance ? `, ${group.clinic.distance}` : ''}
                 </Text>
               </View>
             </View>
@@ -274,24 +388,27 @@ export function CheckoutScreen({ route, navigation }) {
             {/* Services from this clinic */}
             {group.services.map(service => (
               <View key={service.id} style={styles.serviceCard}>
-                <View style={styles.serviceLeft}>
-                  <Image source={service.image} style={styles.serviceImage} />
-                  <View style={styles.serviceInfo}>
-                    <View style={styles.serviceBadges}>
+                 <View style={styles.serviceBadges}>
                       <View style={styles.categoryBadge}>
                         <Text
                           style={styles.categoryBadgeText}
                           numberOfLines={1}
+                          ellipsizeMode="tail"
                         >
                           {service.type}
                         </Text>
                       </View>
                       <View style={styles.nameBadge}>
-                        <Text style={styles.nameBadgeText} numberOfLines={1}>
+                        <Text style={styles.nameBadgeText} numberOfLines={1} ellipsizeMode="tail">
                           {service.serviceGroup}
                         </Text>
                       </View>
                     </View>
+                    <View style={styles.serviceContent}>
+                <View style={styles.serviceLeft}>
+                  <Image source={service.image} style={styles.serviceImage} />
+                  <View style={styles.serviceInfo}>
+                   
                     <Text style={styles.serviceName} numberOfLines={1}>
                       {service.serviceName}
                     </Text>
@@ -305,13 +422,25 @@ export function CheckoutScreen({ route, navigation }) {
                     </View>
                   </View>
                 </View>
-                <Text style={styles.servicePrice}>{service.price}</Text>
+                {Number(service.campaignDiscount || 0) > 0 && service.finalPrice !== undefined && service.finalPrice !== null ? (
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={[styles.servicePrice, { fontSize: 12, color: '#888', textDecorationLine: 'line-through', fontWeight: '400' }]}>
+                      {service.price}
+                    </Text>
+                    <Text style={styles.servicePrice}>{`SAR ${Number(service.finalPrice).toFixed(2)}`}</Text>
+                    <Text style={{ fontSize: 11, fontWeight: '600', color: '#16a34a', marginTop: 2 }}>
+                      {`-SAR ${Number(service.campaignDiscount).toFixed(2)}`}
+                    </Text>
+                  </View>
+                ) : (
+                  <Text style={styles.servicePrice}>{service.price}</Text>
+                )}
+                </View>
               </View>
             ))}
 
-            <View style={styles.pointsContainer}>
-              <Image source={coinIcon} style={{ width: 16, height: 16 }} />
-              <Text style={styles.bonusInstruction}>
+            <View style={styles.bonusInstructionContainer}>
+              <Text style={[styles.bonusInstruction, { textAlign: I18nManager.isRTL ? 'right' : 'left' }]}>
                 {t('you_will_earn_coins_for_this_appointment', {
                   count: totalLoyaltyPoints,
                 })}
@@ -348,11 +477,20 @@ export function CheckoutScreen({ route, navigation }) {
           showTitle={true}
           compact={true}
           showRoyaltyPoints={true}
-          royaltyPoints={300}
+          royaltyPoints={clinicLoyaltyPoints}
           pointsToRedeem={redeemPoints}
-          onPointsToRedeemChange={setRedeemPoints}
+          onPointsToRedeemChange={handlePointsToRedeemChange}
+          coinToSar={COIN_TO_SAR}
+          maxRedemptionSAR={maxRedemptionSAR}
           onApplyCoupon={code => console.log('Apply', code)}
         />
+        
+
+        {insufficientCoins && (
+          <View style={{ marginHorizontal: 20, marginTop: 8 }}>
+            <Text style={styles.insufficientText}>{t('insufficient_coins') || 'Insufficient coins'}</Text>
+          </View>
+        )}
 
 
 
@@ -368,32 +506,33 @@ export function CheckoutScreen({ route, navigation }) {
 
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>{t('subtotal')}</Text>
-            <Text style={styles.summaryValue}>{subtotal.toFixed(2)} SAR</Text>
+            <Text style={styles.summaryValue}>SAR {subtotal.toFixed(2)}</Text>
+          </View>
+
+      
+
+          <View style={styles.summaryRow}>
+            {TAX_RATE > 0 && (
+              <>
+                <Text style={styles.summaryLabel}>{t('tax')}</Text>
+                <Text style={styles.summaryValue}>SAR {tax.toFixed(2)}</Text>
+              </>
+            )}
           </View>
 
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>{t('tax')}</Text>
-            <Text style={styles.summaryValue}>{tax.toFixed(2)} SAR</Text>
+            <Text style={styles.summaryLabel}>{t('discount')}</Text>
+            <Text style={[styles.summaryValue, styles.discountValue]}>
+            {`-${campaignDiscountTotal.toFixed(2)} SAR`}
+            </Text>
           </View>
 
-          {discount > 0 && (
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>
-                {t('discount')} ({discount}%)
-              </Text>
-              <Text style={[styles.summaryValue, styles.discountValue]}>
-                -{discountAmount.toFixed(2)} SAR
-              </Text>
-            </View>
-          )}
-          {redemptionAmount > 0 && (
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>{t('redemption')}</Text>
-              <Text style={[styles.summaryValue, styles.redemptionValue]}>
-                -{redemptionAmount.toFixed(2)} SAR
-              </Text>
-            </View>
-          )}
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>{t('redemption')}</Text>
+            <Text style={[styles.summaryValue, appliedRedemptionAmount > 0 ? styles.redemptionValue : null]}>
+              {appliedRedemptionAmount > 0 ? `-${appliedRedemptionAmount.toFixed(2)} SAR` : '0.00 SAR'}
+            </Text>
+          </View>
 
 
         </View>
@@ -404,23 +543,23 @@ export function CheckoutScreen({ route, navigation }) {
       </ScrollView>
 
       {/* Bottom Button */}
-      <View style={styles.bottomContainer}>
+      <View style={[styles.bottomContainer, { paddingBottom: 20 + insets.bottom }]}>
         <View style={styles.bottomInfoRow}>
           <Text style={styles.totalAmountText}>
             {t('total_amount') || 'Total Amount'}{' '}
             <Text style={styles.inclTaxText}>({t('incl_tax') || 'incl tax'})</Text>
           </Text>
-          <Text style={styles.totalAmountValue}>{total.toFixed(2)} SAR</Text>
+          <Text style={styles.totalAmountValue}>SAR {total.toFixed(2)}</Text>
         </View>
 
-        {(discountAmount > 0 || redemptionAmount > 0) && (
+        {(discountAmount > 0 || appliedRedemptionAmount > 0 || campaignDiscountTotal > 0) && (
           <View style={styles.summaryTriggerRow}>
             <TouchableOpacity>
-              <Text style={styles.summaryTriggerText}>
+              {/* <Text style={styles.summaryTriggerText}>
                 {t('appointment_summary') || 'Appointment Summary'}
-              </Text>
+              </Text> */}
             </TouchableOpacity>
-            <Text style={styles.originalSubtotal}>{(subtotal + tax).toFixed(2)} SAR</Text>
+            <Text style={styles.originalSubtotal}>SAR {(subtotal + tax).toFixed(2)}</Text>
           </View>
         )}
 
@@ -439,7 +578,10 @@ export function CheckoutScreen({ route, navigation }) {
         visible={showSuccessModal}
         onClose={() => {
           setShowSuccessModal(false);
-          navigation.goBack();
+          navigation.navigate('EntryPoint', {
+            screen: 'Clinic',
+            params: { screen: 'ClinicScreen' },
+          });
         }}
         title={t('request_send')}
         description={t('request_sent_description')}

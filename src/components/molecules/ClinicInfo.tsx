@@ -43,12 +43,12 @@ export const ClinicInfo: React.FC<ClinicInfoProps> = ({
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.clinicName}>{name}</Text>
+      <Text style={styles.clinicName} numberOfLines={1} ellipsizeMode="tail">{name}</Text>
 
       <View style={styles.locationRow}>
         <View style={styles.locationName}>
           <Ionicons name="location" size={16} color={colors.secondaryText} />
-          <Text style={styles.locationText}>{location},</Text>
+          <Text style={styles.locationText} numberOfLines={1} ellipsizeMode="tail">{location},</Text>
           <Text style={styles.statText}>{distance},</Text>
           <View style={styles.statItem}>
             <Ionicons name="star" size={16} color="#FFD700" />
@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   category: {
-    fontSize: 14,
+    fontSize: 10,
     color: colors.primary,
     fontWeight: '500',
     marginBottom: 8,
@@ -91,6 +91,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.text,
     flex: 1,
+    flexShrink: 1,
   },
   consultButton: {
     backgroundColor: colors.black,
@@ -118,6 +119,8 @@ const styles = StyleSheet.create({
   locationText: {
     fontSize: 14,
     color: colors.secondaryText,
+    flex: 1,
+    flexShrink: 1,
   },
   statsRow: {
     flexDirection: 'row',

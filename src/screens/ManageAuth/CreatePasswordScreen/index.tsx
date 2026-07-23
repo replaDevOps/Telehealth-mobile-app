@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, Image } from 'react-native';
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { KeyboardAvoidScrollview } from '../../../components/common/keyboard-avoid-scrollview';
-import { LogoSvg } from '../../../assets/icons';
+import { LogoPng } from '../../../assets/images';
 import { Header2 } from '../../../components/common/Header2';
 import CustomText from '../../../components/common/CustomText';
 import { CustomButton } from '../../../components/common/CustomButton';
@@ -111,10 +111,10 @@ export const CreatePassword: React.FC<Props> = ({ navigation, route }) => {
 
     if (!password || !confirmPassword) {
       if (!password) {
-        setPasswordError(t('fields_required'));
+        setPasswordError(t('password_required'));
       }
       if (!confirmPassword) {
-        setConfirmPasswordError(t('fields_required'));
+        setConfirmPasswordError(t('confirm_password_required'));
       }
       return;
     }
@@ -131,21 +131,27 @@ export const CreatePassword: React.FC<Props> = ({ navigation, route }) => {
       return;
     }
     setLoading(true);
-    const [data,err]= await tryCatch(apiClient.post(API.AUTH.CREATE_PASSWORD, {
-      password,
-      confirmPassword,
-    }));
+    const firebaseUid = route.params?.firebaseUid;
+    const [data, err] = await tryCatch(
+      apiClient.post(API.AUTH.CREATE_PASSWORD, {
+        password,
+        confirmPassword,
+        ...(firebaseUid ? { firebaseUid } : {}),
+      }),
+    );
     if (err) {
       Toast.error((err as Error).message);
-      return; 
+      setLoading(false);
+      return;
     }
-    Toast.success(data.data.message);
+    const successMsg = t('password_created_success');
+    Toast.success(successMsg);
     setLoading(false);
-    // Pass email/phone data to Profile screen
     navigation.navigate('Profile', {
       email: route.params?.email,
       phone: route.params?.phone,
       countryCode: route.params?.countryCode,
+      firebaseUid,
     });
   };
 
@@ -156,7 +162,7 @@ export const CreatePassword: React.FC<Props> = ({ navigation, route }) => {
 
         <View style={styles.container}>
           <View style={styles.logoContainer}>
-            <LogoSvg />
+            <Image source={LogoPng} style={{ width: 300, height: 131, resizeMode: 'contain' }} />
           </View>
 
           <View style={styles.content}>

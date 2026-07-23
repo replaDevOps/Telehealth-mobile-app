@@ -5,6 +5,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
 import { colors } from '../../../styles/colors';
 import { styles } from '../style';
+import { formatDateWithTimeShort } from '../utils/format';
 
 interface ConsultationItem {
   id: string;
@@ -17,6 +18,7 @@ interface ConsultationItem {
   doctorAvatar: string;
   clinicName: string;
   price: string;
+  noAgentAccepted?: boolean;
 }
 
 interface ConsultationCardProps {
@@ -31,25 +33,10 @@ export const ConsultationCard: React.FC<ConsultationCardProps> = ({
   onChatPress,
 }) => {
   const { t } = useTranslation();
-  // Format date from ISO string to readable format (YYYY-MM-DD)
-  const formatDate = (dateStr: string) => {
-    console.log('Formatting date:', dateStr);
-    if (!dateStr) return '';
-    try {
-      const date = new Date(dateStr);
-      // Format as "YYYY-MM-DD"
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    } catch (e) {
-      return dateStr;
-    }
-  };
 
   return (
     <View style={styles.card}>
-      <Text style={styles.dateText}>{formatDate(item.date)}</Text>
+      <Text style={styles.dateText}>{formatDateWithTimeShort(item.date)}</Text>
 
       <View style={styles.cardContainer}>
         {/* Service Header */}
@@ -57,7 +44,7 @@ export const ConsultationCard: React.FC<ConsultationCardProps> = ({
           <Text style={styles.serviceName}>{item.serviceName}</Text>
           <View style={styles.serviceDetails}>
             {item.duration && <><Ionicons name="time-outline" size={14} color={colors.white} />
-            <Text style={styles.durationText}>{item.duration}</Text></>}
+              <Text style={styles.durationText}>{item.duration}</Text></>}
             <Ionicons name={item.icon as any} size={14} color={colors.white} />
             <Text style={styles.typeText}>{t(item.type)}</Text>
           </View>
@@ -73,21 +60,21 @@ export const ConsultationCard: React.FC<ConsultationCardProps> = ({
             <Text style={styles.doctorName}>{item.doctorName}</Text>
             <Text style={styles.clinicName}>{item.clinicName}</Text>
           </View>
-          <Text style={styles.price}>{item.price}</Text>
+          {/* <Text style={styles.price}>{"SAR " + item.price}</Text> */}
         </View>
 
         {/* Actions */}
         <View style={styles.actionsRow}>
-          <TouchableOpacity
+          {/* <TouchableOpacity
             style={styles.prescriptionButton}
             onPress={onPrescriptionPress}
           >
             <Text style={styles.prescriptionButtonText}>
               {t('get_prescription')}
             </Text>
-          </TouchableOpacity>
-          {/* Only show View Chat button for Chat consultations, not Audio or Video */}
-          {item.type === 'Chat' && (
+          </TouchableOpacity> */}
+          {/* Only show View Chat button for Chat consultations where an agent was accepted */}
+          {item.type === 'Chat' && !item.noAgentAccepted && (
             <TouchableOpacity style={styles.viewChatButton} onPress={onChatPress}>
               <Text style={styles.viewChatButtonText}>{t('view_chat')}</Text>
             </TouchableOpacity>

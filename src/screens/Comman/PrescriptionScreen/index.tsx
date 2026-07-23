@@ -9,11 +9,13 @@ import {
   ActivityIndicator,
   Modal,
   ImageSourcePropType,
-  Share,
   Platform,
+  BackHandler,
 } from 'react-native';
+import { CommonActions } from '@react-navigation/native';
 import RNHTMLtoPDF from 'react-native-html-to-pdf';
 import RNFS from 'react-native-fs';
+import ReactNativeBlobUtil from 'react-native-blob-util';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { doctor, Signature } from '@assets/images';
 import { Header2 } from '@components/common/Header2';
@@ -21,7 +23,7 @@ import { colors } from '../../../styles/colors';
 import { styles } from './style';
 import { useTranslation } from 'react-i18next';
 import { CustomButton } from '@components/common/CustomButton';
-import { Toast } from '@components/common/Toast';
+import { Toast } from 'toastify-react-native';
 import { EmptyContentSvg } from '@assets/icons';
 import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
@@ -110,6 +112,7 @@ interface InfoSectionProps {
 interface SectionProps {
   title: string;
   children: React.ReactNode;
+  style?: object;
 }
 
 interface MedicationCardProps {
@@ -124,19 +127,14 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
   const [error, setError] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
-  const [toast, setToast] = useState<{
-    visible: boolean;
-    message: string;
-    type: 'success' | 'error';
-  }>({
-    visible: false,
-    message: '',
-    type: 'success',
-  });
+  // using toastify-react-native via `Toast` import
 
   const prescriptionId = route?.params?.prescriptionId;
   const consultationID = route?.params?.consultationID;
   const fromHistory = route?.params?.fromHistory || false;
+  const fromChat = route?.params?.fromChat || false;
+  const clinic = route?.params?.clinic;
+  const clinicID = route?.params?.clinicID;
 
   useEffect(() => {
     if (consultationID) {
@@ -144,15 +142,42 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   }, [prescriptionId, consultationID]);
 
+  const navigateToClinicDetail = React.useCallback(() => {
+    if (clinic && clinicID != null) {
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 1,
+          routes: [
+            { name: 'EntryPoint' as never },
+            { name: 'ClinicDetail' as never, params: { clinic, clinicID } as never },
+          ],
+        }),
+      );
+    } else {
+      navigation.navigate('EntryPoint' as any);
+    }
+  }, [navigation, clinic, clinicID]);
+
   // Handler for Header2 back button
   const handleHeaderBack = () => {
-    if (!fromHistory) {
-      console.log('📜 [PrescriptionScreen] Header back clicked - navigating to EntryPoint');
-      navigation.navigate('EntryPoint' as any);
-    } else {
+    if (fromHistory) {
       navigation.goBack();
+    } else if (fromChat && clinic) {
+      navigateToClinicDetail();
+    } else {
+      navigation.navigate('EntryPoint' as any);
     }
   };
+
+  // Hardware/gesture back: when from chat consultation, go to clinic single view instead of chat
+  useEffect(() => {
+    if (!fromChat || !clinic) return;
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      navigateToClinicDetail();
+      return true;
+    });
+    return () => backHandler.remove();
+  }, [fromChat, clinic, navigateToClinicDetail]);
 
   const fetchPrescriptionData = async (): Promise<void> => {
     if (!consultationID) {
@@ -229,26 +254,12 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
       // Check if response contains prescription data to generate PDF
       if (responseData?.success !== false && responseData?.prescriptions && Array.isArray(responseData.prescriptions) && responseData.prescriptions.length > 0) {
         // If the response contains prescription data, generate and save as PDF
-        try {
+          try {
           await generateAndSavePDF(responseData);
-          setToast({
-            visible: true,
-            message: t('prescription_saved_successfully') || 'Prescription saved as PDF successfully',
-            type: 'success',
-          });
+          Toast.success(t('prescription_saved_successfully') || 'Prescription saved as PDF successfully');
         } catch (pdfError: any) {
           console.error('PDF generation error:', pdfError);
-          // Fallback to sharing as text if PDF generation fails
-          try {
-            await sharePrescriptionAsText(responseData);
-          } catch (shareError: any) {
-            console.log('Share error:', shareError);
-            setToast({
-              visible: true,
-              message: t('prescription_available') || 'Prescription is available on screen',
-              type: 'success',
-            });
-          }
+          Toast.error(pdfError?.message || t('failed_to_download_prescription') || 'Failed to download prescription. Please try again.');
         }
       } else {
         // If no prescription data, show error
@@ -258,19 +269,13 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
       // Don't navigate automatically - let user stay on the prescription screen
     } catch (error: any) {
       console.error('Error downloading prescription:', error);
-      setToast({
-        visible: true,
-        message: error?.message || t('failed_to_download_prescription') || 'Failed to download prescription. Please try again.',
-        type: 'error',
-      });
+      Toast.error(error?.message || t('failed_to_download_prescription') || 'Failed to download prescription. Please try again.');
     } finally {
       setIsDownloading(false);
     }
   };
 
-  const hideToast = (): void => {
-    setToast(prev => ({ ...prev, visible: false }));
-  };
+
 
   // Generate HTML content for PDF
   const generatePrescriptionHTML = (apiData: any): string => {
@@ -409,10 +414,19 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
               color: #333;
             }
             .signature {
-              text-align: right;
+              text-align: left;
               margin-top: 40px;
               padding-top: 20px;
-              border-top: 1px solid #e0e0e0;
+              border-top: none;
+              clear: both;
+              page-break-inside: avoid;
+            }
+            .signature-img {
+              max-width: 200px;
+              height: auto;
+              display: block;
+              float: left;
+              margin-right: 10px;
             }
             @media print {
               body { 
@@ -494,7 +508,7 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
 
           <div class="signature">
             <p><strong>Doctor's Signature</strong></p>
-            ${doctor.signature ? `<img src="${doctor.signature}" alt="Doctor Signature" style="max-width: 200px; height: auto;" />` : '<p>_________________</p>'}
+            ${doctor.signature ? `<img class="signature-img" src="${doctor.signature}" alt="Doctor Signature" />` : '<p>_________________</p>'}
           </div>
           </div>
         </body>
@@ -504,99 +518,57 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
     return html;
   };
 
-  // Generate and save PDF
+  // Generate and save PDF (download only, no share). On Android, register with Download Manager for notification.
   const generateAndSavePDF = async (apiData: any): Promise<void> => {
     if (!prescription) {
       throw new Error('No prescription data available');
     }
 
     const htmlContent = generatePrescriptionHTML(apiData);
+    const baseName = `Prescription_${String(consultationID ?? Date.now())}`;
+    const fileName = `${baseName}.pdf`;
 
-    try {
-      // Determine the download directory based on platform
-      let downloadDir = '';
-      let fileName = `Prescription_${consultationID || Date.now()}.pdf`;
+    // Use a short relative directory so the library creates a deterministic path (no createTempFile randomness).
+    // Android: "Prescription" -> getExternalFilesDir()/Prescription/baseName.pdf
+    const options: any = {
+      html: htmlContent,
+      fileName: baseName,
+      base64: false,
+      width: 595,
+      height: 842,
+      paddingLeft: 50,
+      paddingRight: 50,
+      paddingTop: 40,
+      paddingBottom: 40,
+    };
 
-      if (Platform.OS === 'android') {
-        // For Android, save to Downloads folder
-        downloadDir = RNFS.DownloadDirectoryPath;
-      } else {
-        // For iOS, save to Documents directory
-        downloadDir = RNFS.DocumentDirectoryPath;
-      }
-      console.log('Download directory:', downloadDir);
-
-      // Generate PDF from HTML
-      const options = {
-        html: htmlContent,
-        fileName: fileName,
-        directory: Platform.OS === 'ios' ? 'Documents' : downloadDir,
-        base64: false,
-        width: 595, // A4 width in points
-        height: 842, // A4 height in points
-        paddingLeft: 50, // Left margin in points
-        paddingRight: 50, // Right margin in points
-        paddingTop: 40, // Top margin in points
-        paddingBottom: 40, // Bottom margin in points
-      };
-
-      const file = await RNHTMLtoPDF.convert(options);
-      console.log('PDF generated at:', file.filePath);
-
-      // For Android, ensure the file is in the Downloads folder
-      if (Platform.OS === 'android' && file.filePath) {
-        const finalPath = `${downloadDir}/${fileName}`;
-        // Move file to Downloads if it's not already there
-        if (file.filePath !== finalPath) {
-          await RNFS.moveFile(file.filePath, finalPath);
-          console.log('PDF moved to Downloads:', finalPath);
-        }
-      }
-
-      // Don't open Share dialog or Linking - just save the file
-      setToast({
-        visible: true,
-        message: t('prescription_saved_successfully') || `Prescription saved as PDF successfully\nLocation: ${Platform.OS === 'android' ? 'Downloads' : 'Documents'}`,
-        type: 'success',
-      });
-    } catch (error: any) {
-      console.error('PDF generation error:', error);
-      // If PDF generation fails, try to share as text
-      throw error;
+    if (Platform.OS === 'ios') {
+      options.directory = 'Documents';
+    } else {
+      options.directory = 'Prescription';
     }
-  };
 
-  // Fallback: Share prescription as text
-  const sharePrescriptionAsText = async (apiData: any): Promise<void> => {
-    const prescriptions = apiData.prescriptions || [];
-    const clinic = apiData.clinic || {};
-    const doctor = apiData.doctor || {};
+    const file = await RNHTMLtoPDF.convert(options);
+    if (!file?.filePath) {
+      throw new Error('PDF generation did not return a file path');
+    }
 
-    let shareMessage = `Prescription Details\n\n`;
-    shareMessage += `Clinic: ${clinic.clinicName || clinic.name || 'N/A'}\n`;
-    shareMessage += `Doctor: ${doctor.name || 'N/A'}\n`;
-    shareMessage += `Date: ${new Date().toLocaleDateString()}\n\n`;
-    shareMessage += `Medications:\n`;
-
-    prescriptions.forEach((prescription: any, index: number) => {
-      shareMessage += `${index + 1}. ${prescription.name || 'N/A'}\n`;
-      shareMessage += `   Description: ${prescription.description || 'N/A'}\n`;
-      shareMessage += `   Start Date: ${prescription.startDate || 'N/A'}\n`;
-      shareMessage += `   End Date: ${prescription.endDate || 'N/A'}\n\n`;
-    });
-
-    const result = await Share.share({
-      message: shareMessage,
-      title: t('prescription') || 'Prescription',
-    });
-
-    if (result.action === Share.sharedAction) {
-      setToast({
-        visible: true,
-        message: t('prescription_shared_successfully') || 'Prescription shared successfully',
-        type: 'success',
+    if (Platform.OS === 'android') {
+      // Ensure file exists before registering (library writes async; wait a tick if needed)
+      const exists = await RNFS.exists(file.filePath);
+      if (!exists) {
+        throw new Error(`PDF file was not created: ${file.filePath}`);
+      }
+      await ReactNativeBlobUtil.android.addCompleteDownload({
+        path: file.filePath,
+        title: fileName,
+        description: t('prescription') || 'Prescription',
+        mime: 'application/pdf',
+        showNotification: true,
       });
     }
+
+    Toast.success(t('prescription_saved_successfully') || `Prescription saved as PDF successfully\nLocation: ${Platform.OS === 'android' ? 'Downloads' : 'Documents'}`);
   };
 
   // Map API response to Prescription format
@@ -635,8 +607,38 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
     const firstPrescription = apiData.prescriptions?.[0];
     const appointmentDateStr = firstPrescription?.created_at || apiData.created_at || '';
 
-    // Map medications from prescriptions array
-    const medications: Medication[] = (apiData.prescriptions || []).map((prescription: any, index: number) => {
+    // Map medications from prescriptions array (raw data)
+    const rawMedications: Array<{
+      id: number;
+      name: string;
+      description: string;
+      startDate?: string;
+      endDate?: string;
+    }> = (apiData.prescriptions || []).map((prescription: any, index: number) => ({
+      id: prescription.id || index + 1,
+      name: prescription.name || '',
+      description: prescription.description || '',
+      startDate: prescription.startDate,
+      endDate: prescription.endDate,
+    }));
+
+    // Extract diagnosis entry (name === 'diagnosis')
+    const isDiagnosisEntry = (m: any) => typeof m.name === 'string' && m.name.trim().toLowerCase() === 'diagnosis';
+    const diagnosisIndex = rawMedications.findIndex(isDiagnosisEntry);
+    const diagnosisEntry = diagnosisIndex >= 0 ? rawMedications[diagnosisIndex] : undefined;
+    const diagnosisText = diagnosisEntry ? (diagnosisEntry.description || '') : '';
+
+    // Extract treatment entry (the item immediately after diagnosis)
+    let treatmentEntry: any;
+    if (diagnosisIndex >= 0 && rawMedications.length > diagnosisIndex + 1) {
+      treatmentEntry = rawMedications[diagnosisIndex + 1];
+    }
+
+    // Build medications list excluding diagnosis and treatment entries
+    const filteredMedications = rawMedications.filter(m => m !== diagnosisEntry && m !== treatmentEntry);
+
+    // Map filtered medications to final format
+    const medications: Medication[] = filteredMedications.map((prescription: any) => {
       // Calculate duration from startDate to endDate
       let duration = '';
       if (prescription.startDate && prescription.endDate) {
@@ -652,10 +654,10 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
       }
 
       return {
-        id: prescription.id || index + 1,
+        id: prescription.id,
         name: prescription.name || '',
-        genericName: prescription.name || '', // API doesn't provide generic name, use name
-        dosage: prescription.description || '', // Use description as dosage/instructions
+        genericName: prescription.name || '',
+        dosage: prescription.description || '',
         duration: duration,
         instructions: prescription.description || '',
       };
@@ -679,15 +681,31 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
     // Map clinic data
     const clinicData = apiData.clinic || {};
 
-    // Map service to treatment
+    // Map service data
     const serviceData = apiData.service || {};
-    const treatment = serviceData.name ? {
-      name: serviceData.name || '',
-      notes: serviceData.description || serviceData.procedure || '',
-    } : undefined;
 
     // Map patient data
     const patientData = apiData.patient || {};
+
+    // Capitalize words helper
+    const capitalizeWords = (str: any) => {
+      if (!str && str !== 0) return '';
+      return String(str)
+        .split(' ')
+        .map(s => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s))
+        .join(' ');
+    };
+
+    // Build diagnosis object if diagnosis text exists
+    const diagnosis = diagnosisText ? {
+      summary: [diagnosisText]
+    } : undefined;
+
+    // Build treatment object from treatment entry if it exists
+    const treatment = treatmentEntry ? {
+      name: treatmentEntry.name || '',
+      notes: treatmentEntry.description || '',
+    } : undefined;
 
     return {
       id: `#${consultationID || 'N/A'}`,
@@ -702,14 +720,18 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
       clinic: {
         name: clinicData.clinicName || clinicData.name || '',
         location: clinicData.location || clinicData.city || '',
-        specialization: serviceData.name || serviceData.serviceType || '',
+        specialization: serviceData.name
+          ? capitalizeWords(serviceData.name)
+          : serviceData.serviceType
+          ? capitalizeWords(serviceData.serviceType)
+          : '',
       },
       patient: {
         name: patientData.name || '',
         age: parseInt(patientData.age || '0', 10),
-        gender: patientData.gender || '',
+        gender: patientData.gender ? capitalizeWords(patientData.gender) : '',
       },
-      diagnosis: undefined, // API doesn't provide diagnosis
+      diagnosis: diagnosis,
       treatment: treatment,
       medications: medications,
     };
@@ -797,13 +819,6 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
       <StatusBar barStyle="dark-content" backgroundColor={colors.white} />
 
       <Header2 title={prescription.id} handleBackPress={handleHeaderBack} />
-      <Toast
-        message={toast.message}
-        type={toast.type}
-        visible={toast.visible}
-        onHide={hideToast}
-        duration={3000}
-      />
 
       <ScrollView
         style={styles.scrollView}
@@ -872,17 +887,18 @@ export const PrescriptionScreen: React.FC<Props> = ({ route, navigation }) => {
         {/* Medications Section */}
         {prescription.medications && prescription.medications.length > 0 && (
           <Section title={t('medication')}>
-            {prescription.medications.map(medication => (
+            {prescription.medications.map((medication, index) => (
               <MedicationCard
                 key={medication.id}
                 medication={medication}
                 t={t}
+                index={index}
               />
             ))}
           </Section>
         )}
 
-        <Section title={t('doctors_signature')}>
+        <Section title={t('doctors_signature')} style={{borderBottomWidth: 0}}>
           <View style={styles.signatureBox}>
             <Image
               source={prescription.doctor.signatureImage}
@@ -943,33 +959,68 @@ const InfoSection: React.FC<InfoSectionProps> = ({ title, items }) => (
   </View>
 );
 
-const Section: React.FC<SectionProps> = ({ title, children }) => (
-  <View style={styles.section}>
+const Section: React.FC<SectionProps> = ({ title, children, style }) => (
+  <View style={[styles.section, style]}>
     <Text style={styles.sectionTitle}>{title}</Text>
     {children}
   </View>
 );
 
-const MedicationCard: React.FC<MedicationCardProps> = ({ medication, t }) => (
-  <View style={styles.medicationCard}>
-    <Text style={styles.medicationName}>{medication.name}</Text>
-    <Text style={styles.medicationGeneric}>{medication.genericName}</Text>
+const MedicationCard: React.FC<MedicationCardProps & { index?: number }> = ({ medication, t, index }) => {
+  // Parse description string into fields: Dosage, Duration, Instructions
+  const parseDescription = (desc?: string) => {
+    const result = { dosage: '', duration: '', instructions: '' };
+    if (!desc) return result;
+    const parts = desc.split(',').map(p => p.trim()).filter(Boolean);
+    parts.forEach(part => {
+      const [key, ...rest] = part.split(':');
+      if (!key) return;
+      const val = rest.join(':').trim();
+      const k = key.trim().toLowerCase();
+      if (k.includes('dosage')) result.dosage = val;
+      else if (k.includes('duration')) result.duration = val;
+      else if (k.includes('instruction') || k.includes('notes')) result.instructions = val;
+      else {
+        // append unknown parts to instructions
+        result.instructions = result.instructions ? `${result.instructions}, ${part}` : part;
+      }
+    });
+    return result;
+  };
 
-    <View style={styles.medicationDetails}>
-      <View style={styles.medicationRow}>
-        <Text style={styles.medicationLabel}>{t('dosage')}</Text>
-        <Text style={styles.medicationValue}>{medication.dosage}</Text>
+  const parsed = parseDescription(medication.dosage || medication.instructions);
+  const dosage = parsed.dosage || medication.dosage || 'N/A';
+  const duration = parsed.duration || medication.duration || 'N/A';
+  const instructions = parsed.instructions || '';
+
+  return (
+    <View style={styles.medicationCard}>
+      {typeof index === 'number' && (
+        <Text style={styles.medicineIndexLabel}>{`Medicine ${index + 1}:`}</Text>
+      )}
+
+      <TouchableOpacity activeOpacity={0.8}>
+        <Text style={styles.medicineNameLink}>{medication.name}</Text>
+      </TouchableOpacity>
+
+      <View style={styles.medTwoColRow}>
+        <View style={styles.medColumn}>
+          <Text style={styles.medFieldLabel}>{t('dosage')}:</Text>
+          <Text style={styles.medFieldValue}>{dosage}</Text>
+        </View>
+
+        <View style={styles.medColumn}>
+          <Text style={styles.medFieldLabel}>{t('duration')}:</Text>
+          <Text style={styles.medFieldValue}>{duration}</Text>
+        </View>
       </View>
-      <View style={styles.medicationRow}>
-        <Text style={styles.medicationLabel}>{t('duration')}</Text>
-        <Text style={styles.medicationValue}>{medication.duration}</Text>
-      </View>
+
+      {instructions ? (
+        <>
+          <Text style={styles.medTreatmentNotesLabel}>{t('treatment_notes')}:</Text>
+          <Text style={styles.medTreatmentNotesValue}>{instructions}</Text>
+        </>
+      ) : null}
     </View>
-
-    {medication.instructions && (
-      <Text style={styles.medicationInstructions}>
-        {t('instructions')}: {medication.instructions}
-      </Text>
-    )}
-  </View>
-);
+  );
+};

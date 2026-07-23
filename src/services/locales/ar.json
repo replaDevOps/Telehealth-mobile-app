@@ -72,7 +72,7 @@
   "saudi_disclaimer": "في حال اختيار «سعودي» دون وجه صحيح، ستُضاف ضريبة 15٪ عند الدفع في العيادة",
   "vat_note_non_saudi": "سيُضاف إلى فاتورتك ضريبة القيمة المضافة 15٪",
   "national_id": "رقم الإقامة (لغير السعوديين)",
-  "national_id_placeholder": "XXXXXXXXX",
+  "national_id_placeholder": "XXXXXXXXXX",
   "enter_national_id": "أدخل رقم الإقامة",
   "gender": "الجنس",
   "select_gender": "اختر الجنس",

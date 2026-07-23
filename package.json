@@ -37,6 +37,7 @@
     "react-native": "0.82.1",
     "react-native-background-timer": "^2.4.1",
     "react-native-blob-util": "^0.24.6",
+    "react-native-date-picker": "^5.0.13",
     "react-native-element-dropdown": "^2.12.4",
     "react-native-fs": "^2.20.0",
     "react-native-html-to-pdf": "^0.12.0",

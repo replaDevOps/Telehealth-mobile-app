@@ -71,7 +71,7 @@
   "saudi_disclaimer": "If \"Saudi\" is selected incorrectly, a 15% tax will be added when paying at the clinic.",
   "vat_note_non_saudi": "A 15% VAT will be added to your bill.",
   "national_id": "Iqama Number (non-Saudi)",
-  "national_id_placeholder": "XXXXXXXXX",
+  "national_id_placeholder": "XXXXXXXXXX",
   "enter_national_id": "Enter Iqama number",
   "gender": "Gender",
   "select_gender": "Select Gender",

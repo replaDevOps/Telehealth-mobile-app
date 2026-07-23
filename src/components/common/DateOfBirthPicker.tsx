@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { Dropdown } from 'react-native-element-dropdown';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import DatePicker from 'react-native-date-picker';
 import { useTranslation } from 'react-i18next';
 import { colors } from '../../styles/colors';
 import { mvs } from '../../config/metrices';
@@ -28,118 +28,99 @@ const MONTHS_AR = [
   'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر',
 ];
 
-/**
- * Computes age in whole years from a date of birth. Returns null if the
- * date is incomplete or invalid.
- */
-export const computeAge = (value: DobValue): number | null => {
+export const dobToDate = (value: DobValue): Date | null => {
   const day = parseInt(value.day, 10);
   const month = parseInt(value.month, 10);
   const year = parseInt(value.year, 10);
   if (!day || !month || !year) return null;
 
-  const dob = new Date(year, month - 1, day);
-  // Guard against invalid combinations (e.g. 31 Feb rolls over).
-  if (
-    dob.getFullYear() !== year ||
-    dob.getMonth() !== month - 1 ||
-    dob.getDate() !== day
-  ) {
+  const d = new Date(year, month - 1, day);
+  if (d.getFullYear() !== year || d.getMonth() !== month - 1 || d.getDate() !== day) {
     return null;
   }
+  return d;
+};
+
+const dateToDob = (date: Date): DobValue => ({
+  day: String(date.getDate()),
+  month: String(date.getMonth() + 1),
+  year: String(date.getFullYear()),
+});
+
+/**
+ * Computes age in whole years from a date of birth. Returns null if the
+ * date is incomplete or invalid.
+ */
+export const computeAge = (value: DobValue): number | null => {
+  const dob = dobToDate(value);
+  if (!dob) return null;
 
   const today = new Date();
-  let age = today.getFullYear() - year;
-  const monthDiff = today.getMonth() - (month - 1);
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < day)) {
+  let age = today.getFullYear() - dob.getFullYear();
+  const monthDiff = today.getMonth() - dob.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
     age -= 1;
   }
   return age >= 0 ? age : null;
 };
 
-export const isDobComplete = (value: DobValue): boolean =>
-  !!value.day && !!value.month && !!value.year && computeAge(value) !== null;
+export const isDobComplete = (value: DobValue): boolean => computeAge(value) !== null;
+
+const MAX_AGE_YEARS = 100;
 
 const DateOfBirthPicker: React.FC<Props> = ({ label, value, onChange, errorMessage }) => {
   const { t, i18n } = useTranslation();
   const isArabic = i18n.language?.startsWith('ar');
   const hasError = !!errorMessage;
+  const [open, setOpen] = useState(false);
 
+  const selectedDate = dobToDate(value);
   const monthNames = isArabic ? MONTHS_AR : MONTHS_EN;
 
-  const dayOptions = useMemo(() => {
-    const days = 31;
-    return Array.from({ length: days }, (_, i) => ({
-      label: String(i + 1),
-      value: String(i + 1),
-    }));
-  }, []);
-
-  const monthOptions = useMemo(
-    () => monthNames.map((name, i) => ({ label: name, value: String(i + 1) })),
-    [monthNames],
+  const today = new Date();
+  const minimumDate = new Date(
+    today.getFullYear() - MAX_AGE_YEARS,
+    today.getMonth(),
+    today.getDate(),
   );
+  // Default the wheel to ~20 years ago so users aren't scrolling from today.
+  const defaultDate = new Date(today.getFullYear() - 20, 0, 1);
 
-  const yearOptions = useMemo(() => {
-    const currentYear = new Date().getFullYear();
-    const years: { label: string; value: string }[] = [];
-    // Allow ages roughly 1 to 100.
-    for (let y = currentYear - 1; y >= currentYear - 100; y--) {
-      years.push({ label: String(y), value: String(y) });
-    }
-    return years;
-  }, []);
-
-  const dropdownStyle = [styles.dropdown, hasError && styles.dropdownError];
+  const displayText = selectedDate
+    ? `${selectedDate.getDate()} ${monthNames[selectedDate.getMonth()]} ${selectedDate.getFullYear()}`
+    : t('select_date_of_birth');
 
   return (
     <View style={styles.container}>
       {label && <Text style={styles.label}>{label}</Text>}
 
-      <View style={styles.row}>
-        <Dropdown
-          style={[dropdownStyle, styles.dayField]}
-          placeholderStyle={styles.placeholderStyle}
-          selectedTextStyle={styles.selectedTextStyle}
-          itemTextStyle={styles.itemTextStyle}
-          data={dayOptions}
-          labelField="label"
-          valueField="value"
-          placeholder={t('day')}
-          value={value.day}
-          onChange={item => onChange({ ...value, day: item.value })}
-          maxHeight={250}
-          activeColor={colors.gray}
-        />
-        <Dropdown
-          style={[dropdownStyle, styles.monthField]}
-          placeholderStyle={styles.placeholderStyle}
-          selectedTextStyle={styles.selectedTextStyle}
-          itemTextStyle={styles.itemTextStyle}
-          data={monthOptions}
-          labelField="label"
-          valueField="value"
-          placeholder={t('month')}
-          value={value.month}
-          onChange={item => onChange({ ...value, month: item.value })}
-          maxHeight={250}
-          activeColor={colors.gray}
-        />
-        <Dropdown
-          style={[dropdownStyle, styles.yearField]}
-          placeholderStyle={styles.placeholderStyle}
-          selectedTextStyle={styles.selectedTextStyle}
-          itemTextStyle={styles.itemTextStyle}
-          data={yearOptions}
-          labelField="label"
-          valueField="value"
-          placeholder={t('year')}
-          value={value.year}
-          onChange={item => onChange({ ...value, year: item.value })}
-          maxHeight={250}
-          activeColor={colors.gray}
-        />
-      </View>
+      <TouchableOpacity
+        activeOpacity={0.8}
+        style={[styles.field, hasError && styles.fieldError]}
+        onPress={() => setOpen(true)}
+      >
+        <Text style={selectedDate ? styles.valueText : styles.placeholderText}>
+          {displayText}
+        </Text>
+      </TouchableOpacity>
+
+      <DatePicker
+        modal
+        open={open}
+        date={selectedDate ?? defaultDate}
+        mode="date"
+        maximumDate={today}
+        minimumDate={minimumDate}
+        locale={isArabic ? 'ar' : 'en'}
+        title={t('select_date_of_birth')}
+        confirmText={t('confirm')}
+        cancelText={t('cancel')}
+        onConfirm={date => {
+          setOpen(false);
+          onChange(dateToDob(date));
+        }}
+        onCancel={() => setOpen(false)}
+      />
 
       {hasError && <Text style={styles.errorText}>{errorMessage}</Text>}
     </View>
@@ -156,42 +137,25 @@ const styles = StyleSheet.create({
     marginBottom: mvs(6),
     fontWeight: '500',
   },
-  row: {
-    flexDirection: 'row',
-    gap: mvs(8),
-  },
-  dropdown: {
+  field: {
     height: mvs(40),
     borderColor: colors.border,
     borderWidth: 1,
     borderRadius: mvs(10),
-    paddingHorizontal: mvs(8),
+    paddingHorizontal: mvs(12),
     backgroundColor: colors.gray,
     justifyContent: 'center',
   },
-  dayField: {
-    flex: 1,
+  fieldError: {
+    borderColor: 'red',
   },
-  monthField: {
-    flex: 1.4,
+  valueText: {
+    fontSize: mvs(14),
+    color: colors.black,
   },
-  yearField: {
-    flex: 1.2,
-  },
-  placeholderStyle: {
+  placeholderText: {
     fontSize: mvs(14),
     color: colors.secondaryText,
-  },
-  selectedTextStyle: {
-    fontSize: mvs(14),
-    color: colors.black,
-  },
-  itemTextStyle: {
-    fontSize: mvs(14),
-    color: colors.black,
-  },
-  dropdownError: {
-    borderColor: 'red',
   },
   errorText: {
     color: 'red',

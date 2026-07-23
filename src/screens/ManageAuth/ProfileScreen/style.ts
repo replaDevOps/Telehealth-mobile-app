@@ -87,6 +87,51 @@ export const styles = StyleSheet.create({
       marginBottom: mvs(10),
       textAlign: 'center',
     },
+    saudiToggleRow: {
+      flexDirection: 'row',
+      gap: mvs(10),
+      marginTop: mvs(2),
+    },
+    saudiOption: {
+      flex: 1,
+      height: mvs(40),
+      borderRadius: mvs(10),
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.gray,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    saudiOptionActive: {
+      borderColor: colors.primary,
+      backgroundColor: colors.primary,
+    },
+    saudiOptionText: {
+      fontSize: mvs(14),
+      color: colors.text,
+      fontWeight: '500',
+    },
+    saudiOptionTextActive: {
+      color: colors.white,
+    },
+    disclaimer: {
+      fontSize: mvs(12),
+      color: colors.secondaryText,
+      marginTop: mvs(8),
+      marginBottom: mvs(16),
+    },
+    vatNote: {
+      fontSize: mvs(12),
+      color: colors.primary,
+      marginTop: mvs(4),
+      marginBottom: mvs(4),
+    },
+    fieldError: {
+      color: 'red',
+      fontSize: mvs(12),
+      marginTop: mvs(4),
+      marginBottom: mvs(10),
+    },
   });
   
   

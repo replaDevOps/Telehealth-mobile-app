@@ -1,0 +1,634 @@
+import { Header2 } from '@components/common/Header2';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { View, Text, ScrollView, Modal, ActivityIndicator, Alert, AppState, AppStateStatus } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { mvs } from '@config/metrices';
+import { colors } from '../../../styles/colors';
+import { CustomButton } from '@components/common/CustomButton';
+import { RecommandImage, doctor } from '@assets/images';
+import { styles } from './style';
+import { PaymentMethod, SuccessMessageModal } from '@components/molecules';
+import { useTranslation } from 'react-i18next';
+import { Toast as Toastify } from 'toastify-react-native';
+import { Toast } from '@components/common/Toast';
+import { apiClient } from '@services/api/api-client';
+import { API } from '@services/api/api-endpoint';
+import { pusherService } from '@services/pusher/PusherService';
+import NoResponseModal from '@components/molecules/NoResponseModal';
+import { useAuthStore } from '@store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+export function ConsultationPayment({ navigation, route }) {
+  const { t } = useTranslation();
+  const [selectedPayment, setSelectedPayment] = useState<'credit' | 'applepay' | 'stc' | 'tabby' | 'tamara'>('credit');
+  const [cardholderName, setCardholderName] = useState('');
+  const [cardNumber, setCardNumber] = useState('');
+  const [expiryDate, setExpiryDate] = useState('');
+  const [cvv, setCvv] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [waitingForDoctor, setWaitingForDoctor] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(120);
+  const [isTimerReady, setIsTimerReady] = useState(false);
+  const timerRef = useRef<any>(null);
+  const startTimestampRef = useRef<number | null>(null);
+  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
+  const timerStorageKeyRef = useRef<string | null>(null);
+  const refundProcessedRef = useRef(false);
+  const [showNoResponseModal, setShowNoResponseModal] = useState(false);
+  const auth = useAuthStore(state => state.auth);
+  const patientID = auth ? ((auth as any).id || (auth as any).user?.id) : undefined;
+  const consultationIdRef = useRef<any>(null);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [toast, setToast] = useState<{
+    visible: boolean;
+    message: string;
+    type: 'success' | 'error';
+  }>({
+    visible: false,
+    message: '',
+    type: 'success',
+  });
+
+  const consultationData = route?.params || {
+    consultationType: 'Chat',
+    consultationTypeId: 'chat',
+    duration: '30 Min',
+    price: 'SAR 20',
+    serviceType: 'Derma',
+    serviceGroup: 'Diagnostics',
+    service: 'Impacted Surgical Exposure - Difficult',
+  };
+
+  // Debug: Log received data
+  React.useEffect(() => {
+    console.log('ConsultationPayment received params:', consultationData);
+  }, []);
+
+  const consultationType = consultationData.consultationTypeId || 'chat';
+
+  const noDoctorsAvailable = Boolean(
+    (consultationData?.message && consultationData.message.toString().toLowerCase().includes('0 customer support agent')) ||
+    (consultationData?.doctors?.message && consultationData.doctors.message.toLowerCase().includes('0 customer support agent'))
+  );
+
+  const insets = useSafeAreaInsets();
+
+  const getRemainingSeconds = useCallback(() => {
+    if (!startTimestampRef.current) return 0;
+    const elapsed = Math.floor((Date.now() - startTimestampRef.current) / 1000);
+    return Math.max(0, 120 - elapsed);
+  }, []);
+
+  const showTimeoutModal = useCallback(() => {
+    console.log('⏰ [ConsultationPayment] showTimeoutModal called');
+    if (refundProcessedRef.current) return;
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    if (timerStorageKeyRef.current) {
+      AsyncStorage.removeItem(timerStorageKeyRef.current).catch(() => { });
+    }
+    setWaitingForDoctor(false);
+    setTimeLeft(0);
+    setShowNoResponseModal(true);
+  }, []);
+
+  const initTimerFromStorage = useCallback(async () => {
+    const key = timerStorageKeyRef.current;
+    if (!key) return;
+
+    try {
+      const stored = await AsyncStorage.getItem(key);
+      let startTs = stored ? Number(stored) : Date.now();
+
+      if (!stored) {
+        await AsyncStorage.setItem(key, String(startTs));
+      }
+
+      startTimestampRef.current = startTs;
+      const remaining = Math.max(0, 120 - Math.floor((Date.now() - startTs) / 1000));
+      console.log('⏰ [ConsultationPayment] initTimerFromStorage remaining:', remaining, 'startTs:', startTs);
+      setTimeLeft(remaining);
+      setIsTimerReady(true);
+
+      if (remaining <= 0) {
+        showTimeoutModal();
+      }
+    } catch (e) {
+      console.warn('⏰ [ConsultationPayment] initTimerFromStorage failed:', e);
+      setIsTimerReady(true);
+    }
+  }, [showTimeoutModal]);
+
+  // Handle payment method change - only allow card payment
+  const handlePaymentChange = (payment: 'credit' | 'applepay' | 'stc' | 'tabby' | 'tamara') => {
+    if (payment !== 'credit') {
+      Alert.alert(
+        t('payment_method_not_available') || 'Payment Method Not Available',
+        t('only_card_payment_available') || 'Only card payment is currently available. Please select card payment to proceed.',
+        [
+          {
+            text: t('ok') || 'OK',
+            onPress: () => setSelectedPayment('credit'), // Reset to card
+          },
+        ]
+      );
+      return;
+    }
+    setSelectedPayment(payment);
+  };
+
+  const handleConnectWithDoctor = async () => {
+    // Only card payment is implemented
+    // if (selectedPayment !== 'credit') {
+    //   Alert.alert(
+    //     t('payment_method_not_available') || 'Payment Method Not Available',
+    //     t('only_card_payment_available') || 'Only card payment is currently available. Please select card payment to proceed.',
+    //     [{ text: t('ok') || 'OK' }]
+    //   );
+    //   return;
+    // }
+
+    // // Validate card details
+    // if (!cardholderName || !cardNumber || !expiryDate || !cvv) {
+    //   Alert.alert(
+    //     t('fill_card_details') || 'Fill Card Details',
+    //     t('please_fill_all_card_details') || 'Please fill in all card details to proceed.',
+    //     [{ text: t('ok') || 'OK' }]
+    //   );
+    //   return;
+    // }
+
+    // Parse expiry date from MM/YYYY format to expMonth and expYear
+    // const expiryParts = expiryDate.split('/');
+    // if (expiryParts.length !== 2) {
+    //   Alert.alert(
+    //     t('invalid_expiry_date') || 'Invalid Expiry Date',
+    //     t('please_enter_valid_expiry_date') || 'Please enter a valid expiry date in MM/YYYY format.',
+    //     [{ text: t('ok') || 'OK' }]
+    //   );
+    //   return;
+    // }
+
+    // const expMonth = expiryParts[0].trim();
+    // const expYear = expiryParts[1].trim();
+
+    // if (!expMonth || !expYear || expMonth.length !== 2 || expYear.length !== 4) {
+    //   Alert.alert(
+    //     t('invalid_expiry_date') || 'Invalid Expiry Date',
+    //     t('please_enter_valid_expiry_date') || 'Please enter a valid expiry date in MM/YYYY format.',
+    //     [{ text: t('ok') || 'OK' }]
+    //   );
+    //   return;
+    // }
+
+    setIsLoading(true);
+
+    try {
+      // Prepare booking payload
+      const payload = {
+        // paymentMethod: 'stripe',
+        // cardNumber: cardNumber.replace(/\s/g, ''), // Remove spaces from card number
+        // expMonth: expMonth,
+        // expYear: expYear,
+        // cvc: cvv,
+        // cardholderName: cardholderName,
+        // Include consultation data if available
+        serviceID: consultationData.serviceID,
+        consultationType: consultationData.consultationType,
+        serviceType: consultationData.serviceType,
+        serviceGroup: consultationData.serviceGroup,
+      };
+
+      console.log('Booking consultation with payload:', payload);
+
+      // Call book consultation API
+      const response = await apiClient.post(API.CONSULTATIONS.BOOK_CONSULTATION);
+
+      console.log('Book consultation response:', response.data);
+
+      // Check for success: false in response
+      if (response.data?.success === false) {
+        Toastify.error(t('billing_generic_error') || 'Something went wrong. Please try again later.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Success - show toast and navigate to home
+      setIsLoading(false);
+
+      // Show success message
+      const successMessage = response.data?.message || t('consultation_booked_successfully') || 'Consultation booked successfully';
+      // Toastify.success(successMessage);
+
+      // Extract consultation data from response
+      // Response structure: { success: true, message: '...', consultation: { id: 28, ... } }
+      const consultationResponse = response.data?.consultation || response.data?.data || response.data;
+      const consultationID = consultationResponse?.id || response.data?.consultationID;
+
+      console.log('Consultation booked successfully. ID:', consultationID);
+      console.log('Waiting for doctor to accept consultation...');
+
+      // Instead of navigating to WaitingForDoctor, show loader here and wait for acceptance
+      consultationIdRef.current = consultationID;
+      console.log('⏰ [ConsultationPayment] Start waiting timer for consultation:', consultationID);
+      setWaitingForDoctor(true);
+      setTimeLeft(120);
+      refundProcessedRef.current = false;
+      timerStorageKeyRef.current = consultationID ? `waiting_timer_${consultationID}` : null;
+      startTimestampRef.current = Date.now();
+      setIsTimerReady(true);
+      if (timerStorageKeyRef.current) {
+        AsyncStorage.setItem(timerStorageKeyRef.current, String(startTimestampRef.current)).catch(() => { });
+      }
+    } catch (error: any) {
+      console.error('Error booking consultation:', error);
+      Toastify.error(t('billing_generic_error') || 'Something went wrong. Please try again later.');
+      setIsLoading(false);
+    }
+  };
+
+  // Initialize timer from storage when we start waiting
+  useEffect(() => {
+    if (!waitingForDoctor) {
+      setIsTimerReady(false);
+      return;
+    }
+
+    if (!isTimerReady) {
+      initTimerFromStorage();
+    }
+  }, [waitingForDoctor, isTimerReady, initTimerFromStorage]);
+
+  // AppState: recalculate remaining time when returning to foreground
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      const prev = appStateRef.current;
+      appStateRef.current = nextAppState;
+
+      if (prev.match(/inactive|background/) && nextAppState === 'active') {
+        if (!waitingForDoctor || !isTimerReady) return;
+        const remaining = getRemainingSeconds();
+        setTimeLeft(remaining);
+        if (remaining <= 0) {
+          showTimeoutModal();
+        }
+
+        // Pusher can drop in background; try to re-init
+        try {
+          pusherService.initialize();
+        } catch (e) { }
+      }
+    };
+
+    const sub = AppState.addEventListener('change', handleAppStateChange);
+    return () => sub.remove();
+  }, [waitingForDoctor, isTimerReady, getRemainingSeconds, showTimeoutModal]);
+
+  // Foreground ticking interval to update the UI timer
+  useEffect(() => {
+    if (!waitingForDoctor || !isTimerReady) return;
+
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+
+    timerRef.current = setInterval(() => {
+      const remaining = getRemainingSeconds();
+      setTimeLeft(remaining);
+      if (remaining <= 0) {
+        showTimeoutModal();
+      }
+    }, 1000);
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [waitingForDoctor, isTimerReady, getRemainingSeconds, showTimeoutModal]);
+
+  // Setup Pusher listener to detect acceptance while waiting here
+  useEffect(() => {
+    if (!waitingForDoctor || !consultationIdRef.current || !patientID) {
+      console.log('📞 [ConsultationPayment] Skipping Pusher setup:', {
+        waitingForDoctor,
+        consultationId: consultationIdRef.current,
+        patientID,
+      });
+      return;
+    }
+
+    console.log('📞 [ConsultationPayment] Setting up Pusher listener for consultation:', consultationIdRef.current);
+
+    pusherService.initialize();
+    const channelName = `patient-consultation${patientID}`;
+
+    const handleConsultationUpdate = (data: any) => {
+      console.log('📞 [ConsultationPayment] Consultation update received:', data);
+
+      // Skip if already processed
+      if (refundProcessedRef.current) {
+        console.log('📞 [ConsultationPayment] Already processed, skipping');
+        return;
+      }
+
+      const consultation = data?.consultation || data?.message || data;
+      const consultationStatus = consultation?.status || data?.status;
+      const isAcceptedStatus = consultationStatus === 'Accepted' || consultationStatus === 'accepted' || consultationStatus === 'Pending' || consultationStatus === 'pending' || consultationStatus === 'Booked' || consultationStatus === 'booked';
+      const consultationIdFromEvent = consultation?.id || data?.consultationID || data?.id;
+
+      console.log('📞 [ConsultationPayment] Check:', {
+        isAcceptedStatus,
+        eventConsultationId: consultationIdFromEvent,
+        ourConsultationId: consultationIdRef.current,
+        match: consultationIdFromEvent?.toString() === consultationIdRef.current?.toString(),
+      });
+
+      if (isAcceptedStatus && consultationIdFromEvent?.toString() === consultationIdRef.current?.toString()) {
+        console.log('✅ [ConsultationPayment] MATCH! Doctor accepted - navigating now!');
+
+        // Mark as processed FIRST to prevent duplicate handling
+        refundProcessedRef.current = true;
+
+        // Clear timer
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+        }
+        if (timerStorageKeyRef.current) {
+          AsyncStorage.removeItem(timerStorageKeyRef.current).catch(() => { });
+        }
+
+        const doctorData = consultation?.doctor || data?.doctor;
+        const clinicData = consultation?.clinic || data?.clinic;
+        const consultationType = consultation?.type || consultationData.consultationTypeId || 'chat';
+
+        console.log('✅ [ConsultationPayment] Navigation details:', {
+          consultationType,
+          doctorName: doctorData?.name,
+          doctorId: doctorData?.id,
+          recipientID: doctorData?.id || consultation?.doctorID,
+        });
+
+        // Show toast
+        Toastify.success(t('doctor_accepted_consultation'));
+
+        // Navigate immediately - don't wait for setWaitingForDoctor
+        const recipientID = String(doctorData?.id || consultation?.doctorID || '');
+        const userId = patientID ? `patient_${patientID}` : `patient_${Date.now()}`;
+        const consultationId = `consultation_${consultationIdRef.current}`;
+
+        if (consultationType === 'Audio' || consultationType === 'audio') {
+          console.log('🎤 [ConsultationPayment] Navigating to AudioConsultation');
+          navigation.replace('AudioConsultation', {
+            consultationId: consultationId,
+            userId: userId,
+            isInitiator: true,
+            recipientID: recipientID,
+            doctorInfo: {
+              id: recipientID,
+              name: doctorData?.name || 'Doctor',
+              avatar: doctorData?.image ? { uri: doctorData.image } : 'https://i.pravatar.cc/150?img=12',
+              specialization: doctorData?.specialization || '',
+            },
+          });
+        } else if (consultationType === 'Video' || consultationType === 'video') {
+          console.log('📹 [ConsultationPayment] Navigating to VideoConsultation');
+          navigation.replace('VideoConsultation', {
+            consultationId: consultationId,
+            userId: userId,
+            isInitiator: true,
+            recipientID: recipientID,
+            doctorInfo: {
+              id: recipientID,
+              name: doctorData?.name || 'Doctor',
+              avatar: doctorData?.image ? { uri: doctorData.image } : 'https://i.pravatar.cc/150?img=12',
+              specialization: doctorData?.specialization || '',
+            },
+          });
+        } else {
+          console.log('💬 [ConsultationPayment] Navigating to ChatScreen');
+          navigation.replace('ChatScreen', {
+            chatType: 'doctor',
+            consultationID: consultationIdRef.current,
+            recipientID: recipientID,
+            doctorInfo: {
+              id: recipientID,
+              name: doctorData?.name || 'Doctor',
+              avatar: doctorData?.image ? { uri: doctorData.image } : 'https://i.pravatar.cc/150?img=12',
+              specialization: doctorData?.specialization || '',
+            },
+            clinicInfo: {
+              name: clinicData?.name || clinicData?.clinicName || 'Clinic',
+              location: clinicData?.location || '',
+              image: clinicData?.image ? { uri: clinicData.image } : undefined,
+            },
+            fromHistory: false,
+          });
+        }
+
+        // Clear waiting state after navigation
+        setTimeout(() => {
+          setWaitingForDoctor(false);
+        }, 100);
+      }
+    };
+
+    console.log(`📞 [ConsultationPayment] Binding listener on channel: ${channelName}`);
+    pusherService.bind(channelName, 'consultation-patient', handleConsultationUpdate);
+
+    return () => {
+      console.log(`📞 [ConsultationPayment] Cleaning up Pusher listener on channel: ${channelName}`);
+      pusherService.unbind(channelName, 'consultation-patient');
+      pusherService.unsubscribe(channelName);
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [waitingForDoctor, patientID, navigation]);
+
+  const handleNoAgentModalClose = useCallback(() => {
+    setShowNoResponseModal(false);
+    if (timerStorageKeyRef.current) {
+      AsyncStorage.removeItem(timerStorageKeyRef.current).catch(() => { });
+    }
+    navigation.replace('EntryPoint');
+  }, [navigation]);
+
+  const getHeaderTitle = () => {
+    if (consultationType === 'chat') return t('chat_consultation');
+    if (consultationType === 'audio') return t('audio_consultation');
+    if (consultationType === 'video') return t('video_consultation');
+    return t('consultation');
+  };
+
+  const HandleRequest = () => {
+    setTimeout(() => {
+      setShowErrorModal(false);
+      setToast({
+        visible: true,
+        message: t('request_submit'),
+        type: 'success',
+      });
+
+      setTimeout(() => {
+        navigation.navigate('EntryPoint');
+      }, 1500);
+    }, 3000);
+  };
+
+  const hideToast = (): void => {
+    setToast(prev => ({ ...prev, visible: false }));
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <Header2 title={getHeaderTitle()} />
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        visible={toast.visible}
+        onHide={hideToast}
+        duration={3000}
+      />
+
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}
+        showsVerticalScrollIndicator={false}
+        scrollEnabled={!waitingForDoctor}
+      >
+        {/* Success Banner */}
+        <View style={[styles.successBanner, noDoctorsAvailable && { backgroundColor: colors.red }]}>
+          <Text style={styles.successText}>
+            {consultationData.message || t('doctors_available')}
+          </Text>
+        </View>
+
+        {/* Consultation Summary */}
+        <View style={styles.summarySection}>
+          <Text style={styles.sectionTitle}>{t('consultation_summary')}</Text>
+
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>{t('consultation_type')}</Text>
+            <Text style={styles.summaryValue}>
+              {consultationData.consultationType}
+            </Text>
+          </View>
+
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>{t('duration')}</Text>
+            <Text style={styles.summaryValue}>{'30 min'}</Text>
+          </View>
+
+          {/* <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>{t('price')}</Text>
+            <Text style={styles.summaryValue}>{consultationData.price}</Text>
+          </View> */}
+
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>{t('service_type')}</Text>
+            <Text style={styles.summaryValue}>
+              {consultationData.serviceType}
+            </Text>
+          </View>
+
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>{t('service_group')}</Text>
+            <Text style={styles.summaryValue}>
+              {consultationData.serviceGroup}
+            </Text>
+          </View>
+
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>{t('service')}</Text>
+            <Text style={[styles.summaryValue, styles.serviceValue]}>
+              {consultationData.service}
+            </Text>
+          </View>
+
+          {/* <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>{t('total')}</Text>
+            <Text style={styles.totalValue}>{consultationData.price}</Text>
+          </View> */}
+        </View>
+
+        {/* Payment Method Component */}
+        {/* <PaymentMethod
+          selectedPayment={selectedPayment}
+          onPaymentChange={handlePaymentChange}
+          cardholderName={cardholderName}
+          onCardholderNameChange={setCardholderName}
+          cardNumber={cardNumber}
+          onCardNumberChange={setCardNumber}
+          expiryDate={expiryDate}
+          onExpiryDateChange={setExpiryDate}
+          cvv={cvv}
+          onCvvChange={setCvv}
+          showTitle={true}
+          compact={false}
+        /> */}
+
+      </ScrollView>
+
+      {/* Waiting overlay shown after successful booking instead of navigating */}
+      {waitingForDoctor && (
+        <View style={styles.loadingOverlay}>
+          <View style={{ alignItems: 'center' }}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={{ color: "#ffff", marginTop: 20, textAlign: 'center', fontSize: 16, fontWeight: '600' }}>
+              {t('connecting_with_support_msg')
+              }
+            </Text>
+            {/* <Text style={{ color: colors.secondaryText, marginTop: 12, fontSize: 14 }}>
+              Time Remaining: {Math.floor(timeLeft / 60).toString().padStart(2, '0')}:{(timeLeft % 60).toString().padStart(2, '0')}
+            </Text> */}
+          </View>
+        </View>
+      )}
+
+      <NoResponseModal
+        visible={showNoResponseModal}
+        onClose={handleNoAgentModalClose}
+      />
+
+      <View
+        style={[
+          styles.bottomContainer,
+          { paddingBottom: insets.bottom ? insets.bottom + mvs(12) : mvs(16), position: 'absolute', left: 0, right: 0, bottom: 0 },
+        ]}
+      >
+        <CustomButton
+          title={t('connect_with_support')}
+          onPress={handleConnectWithDoctor}
+          disabled={waitingForDoctor || isLoading || noDoctorsAvailable}
+        />
+      </View>
+
+      <SuccessMessageModal
+        visible={showErrorModal}
+        onClose={() => {
+          setShowErrorModal(false);
+          navigation.goBack();
+        }}
+        title={t('no_answer')}
+        description={t('no_answer_description')}
+        buttonTitle={t('request_for_refund')}
+        buttonPress={HandleRequest}
+      />
+
+      <Modal
+        visible={isLoading}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+      >
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color={colors.white} />
+          <Text style={styles.loadingText}>{t('searching_for_support')}</Text>
+        </View>
+      </Modal>
+    </SafeAreaView>
+  );
+}

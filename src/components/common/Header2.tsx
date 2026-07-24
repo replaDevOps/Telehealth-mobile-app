@@ -1,10 +1,15 @@
-import { useNavigation } from '@react-navigation/native';
-import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
+import React, { useState } from 'react';
+import { View, StyleSheet, TouchableOpacity, Text, Image } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { mvs } from '../../config/metrices';
-import { colors } from '../../config/colors';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { BackSvg, ShopingCartSvg } from '../../assets/icons';
+import { AiLogo } from '../../assets/images';
+import { colors } from '../../styles/colors';
+import { useTranslation } from 'react-i18next';
+import { Dropdown } from 'react-native-element-dropdown';
+import { useNavigation } from '@react-navigation/native';
+import { ActivityIndicator } from 'react-native-paper';
 
 type RootStackParamList = {
   [key: string]: undefined;
@@ -26,34 +31,66 @@ interface Header2Props {
   showLanguage?: boolean;
   showCart?: boolean;
   cartCount?: number;
+  notificationCount?: number;
   handleNotification?: () => void;
+  HandleCart?: () => void;
+
   handleDownload?: () => void;
   handleSave?: () => void;
   saveDisabled?: boolean;
+  logo?: boolean;
   handleBackPress?: () => void;
+  loading?: boolean;
+  rightElement?: React.ReactNode;
+  inScrollView?: boolean;
 }
 
 const Header2: React.FC<Header2Props> = ({
   title,
   showEdit = false,
   onEditPress,
-  showNotification = true,
+  showNotification = false,
   back = true,
   useCancel = false,
-  useDownload = false,
   useSave = false,
   useSkip = false,
   showLanguage = false,
   showCart = false,
   cartCount = 0,
+  notificationCount = 0,
   handleNotification = () => {},
-  handleDownload = () => {},
+  HandleCart = () => {},
   handleSave,
   saveDisabled = false,
   handleBackPress,
   handleSkip,
+  logo = false,
+  loading = false,
+  rightElement,
+  inScrollView = false,
 }) => {
   const navigation = useNavigation<NavigationProp>();
+  const { t, i18n } = useTranslation();
+
+  const normalizeLang = (lang: string | undefined) => {
+    if (!lang) return 'en';
+    const code = lang.split(/[-_]/)[0];
+    return code === 'ar' ? 'ar' : 'en';
+  };
+
+  const [language, setLanguage] = useState<string>(normalizeLang(i18n.language));
+
+  // Keep local language state in sync when i18n changes elsewhere
+  React.useEffect(() => {
+    const normalized = normalizeLang(i18n.language);
+    if (normalized !== language) setLanguage(normalized);
+  }, [i18n.language]);
+  const [isFocus, setIsFocus] = useState(false);
+
+  const data = [
+    { label: t('english'), value: 'en' },
+    { label: t('arabic'), value: 'ar' },
+  ];
 
   const onBackPress = () => {
     if (handleBackPress) {
@@ -63,62 +100,103 @@ const Header2: React.FC<Header2Props> = ({
     }
   };
 
+  const handleLanguageChange = (item: { label: string; value: string }) => {
+    setLanguage(item.value);
+    i18n.changeLanguage(item.value);
+    setIsFocus(false);
+  };
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container,{paddingHorizontal: inScrollView ? 0 : mvs(15)}]} >
       {back && (
-        <TouchableOpacity style={styles.borderIcon} onPress={onBackPress}>
+        <TouchableOpacity style={styles.headerButton} onPress={onBackPress}>
           {useCancel ? (
-            <Text style={styles.cancelText}>Cancel</Text>
+            <Text style={styles.cancelText}>{t('cancel')}</Text>
           ) : (
-            <Ionicons name="chevron-back" size={25} color={colors.black} />
+            <BackSvg />
           )}
         </TouchableOpacity>
       )}
 
       <View style={styles.textc}>
-        <Text style={styles.text}>{title}</Text>
+        {logo ? (
+          <Image source={AiLogo} style={styles.logoImage} resizeMode="contain" />
+        ) : (
+          <Text style={styles.text}>{title}</Text>
+        )}
       </View>
 
       {useSave ? (
         <TouchableOpacity
           style={[styles.icon, saveDisabled && { opacity: 0.5 }]}
-          onPress={() => {
-            if (handleSave && !saveDisabled) {
-              handleSave();
-            }
-          }}
-          disabled={saveDisabled}
+          onPress={() => handleSave?.()}
+          disabled={saveDisabled || loading}
         >
-          <Text style={[styles.saveText, saveDisabled && { color: 'gray' }]}>
-            Save
-          </Text>
+          {loading ? (
+            <ActivityIndicator size="small" color={colors.primary} />
+          ) : (
+            <Text style={[styles.saveText, saveDisabled && { color: 'gray' }]}>
+              {t('save')}
+            </Text>
+          )}
         </TouchableOpacity>
       ) : useSkip && handleSkip ? (
         <TouchableOpacity style={styles.icon} onPress={handleSkip}>
-          <Text style={styles.skipText}>Skip</Text>
+          <Text style={styles.skipText}>{t('skip')}</Text>
         </TouchableOpacity>
-      ) : showCart && cartCount > 0 ? (
-        <TouchableOpacity style={styles.icon} onPress={handleNotification}>
+      ) : showCart ? (
+        <TouchableOpacity style={styles.headerButton} onPress={HandleCart}>
           <View style={styles.cartContainer}>
-            <Ionicons name="cart" size={25} color={colors.black} />
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{cartCount}</Text>
-            </View>
+            <ShopingCartSvg />
+            {cartCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{cartCount}</Text>
+              </View>
+            )}
           </View>
         </TouchableOpacity>
       ) : showLanguage ? (
-        <TouchableOpacity style={styles.icon}>
-          <Ionicons name="globe" size={25} color={colors.black} />
-          <Text style={styles.languageText}>Eng</Text>
-        </TouchableOpacity>
+        <Dropdown
+          style={[styles.dropdown]}
+          placeholderStyle={styles.placeholderStyle}
+          selectedTextStyle={styles.selectedTextStyle}
+          inputSearchStyle={styles.inputSearchStyle}
+          iconStyle={styles.iconStyle}
+          data={data}
+          maxHeight={300}
+          labelField="label"
+          valueField="value"
+          placeholder={!isFocus ? t('select_language') : '...'}
+          value={language}
+          onFocus={() => setIsFocus(true)}
+          onBlur={() => setIsFocus(false)}
+          onChange={handleLanguageChange}
+          renderLeftIcon={() => (
+            <Ionicons
+              style={styles.icon}
+              color={isFocus ? 'blue' : 'black'}
+              name="globe"
+              size={20}
+            />
+          )}
+        />
       ) : showEdit ? (
         <TouchableOpacity style={styles.icon} onPress={onEditPress}>
           <Ionicons name="create" size={25} color={colors.black} />
         </TouchableOpacity>
       ) : showNotification ? (
-        <TouchableOpacity style={styles.icon} onPress={handleNotification}>
-          <Ionicons name="notifications" size={25} color={colors.black} />
+        <TouchableOpacity style={styles.headerButton} onPress={handleNotification}>
+          <View style={styles.cartContainer}>
+            <Ionicons name="notifications" size={25} color={colors.black} />
+            {notificationCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{notificationCount}</Text>
+              </View>
+            )}
+          </View>
         </TouchableOpacity>
+      ) : rightElement ? (
+        rightElement
       ) : (
         <View style={styles.emptySpace} />
       )}
@@ -131,18 +209,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     width: '100%',
-    paddingHorizontal: 10,
+    
+    paddingVertical: mvs(10),
   },
   icon: {
-    paddingHorizontal: 10,
-    paddingVertical: 10,
+    marginRight: 5,
   },
-  borderIcon: {
-    paddingHorizontal: 10,
-    paddingVertical: 10,
+  headerButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: '50%',
   },
   textc: {
     flex: 1,
@@ -150,14 +231,19 @@ const styles = StyleSheet.create({
   },
   text: {
     color: colors.black,
-    fontSize: 16,
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  logoImage: {
+    width: 64,
+    height: 32,
   },
   cancelText: {
     fontSize: mvs(16),
     color: 'gray',
   },
   saveText: {
-    fontSize: mvs(16),
+    fontSize: mvs(14),
     color: colors.primary,
     fontWeight: 'bold',
   },
@@ -192,6 +278,25 @@ const styles = StyleSheet.create({
   },
   emptySpace: {
     width: 45,
+  },
+  dropdown: {
+    height: 50,
+    paddingHorizontal: 8,
+    width: 120,
+  },
+  placeholderStyle: {
+    fontSize: 16,
+  },
+  selectedTextStyle: {
+    fontSize: 16,
+  },
+  inputSearchStyle: {
+    height: 40,
+    fontSize: 16,
+  },
+  iconStyle: {
+    width: 20,
+    height: 20,
   },
 });
 

@@ -1,0 +1,89 @@
+<state_snapshot>
+    <overall_goal>
+        Make the app's static text translatable across all screens, excluding data sourced from the backend.
+    </overall_goal>
+
+    <key_knowledge>
+        - Localization is implemented using 'react-i18next' with a 'useTranslation' hook and 't()' function.
+        - Translation files are 'en.json' and 'ar.json', located in 'src/services/locales/'.
+        - Consistent issues with file pathing and naming (e.g., 'ClinicDetail' vs. 'ClinicDetailScreen', 'ConsulationPayment' vs. 'ConsultationPayment', 'VedioConsultation' vs. 'VideoConsultation') require careful verification.
+        - Translation involves updating JSON files with new keys and modifying component files to use the 't()' function.
+    </key_knowledge>
+
+    <file_system_state>
+        - MODIFIED: `src/services/locales/en.json` - Updated with new translation keys for ClinicDetailScreen, CheckoutScreen, ConsulationPayment, AudioConsultation, VideoConsultation, ChatOnboarding, HistoryScreen, SettingScreen, ProfileSetting, ChangePassword, FAQs, RefundRequest2, RoyaltyPoints, ChatScreen, CardDetails, RefundRequest, PrescriptionScreen, CartScreen, NotificationScreen, RoyaltyPointBar, ConsultDoctorBottomSheet, DeviceDetailBottomSheet, EndSectionModal, FilterBottomSheet, NoResponseModal, RatingBottomSheet, ServiceDetailBottomSheet.
+        - MODIFIED: `src/services/locales/ar.json` - Updated with new Arabic translation keys for ClinicDetailScreen, CheckoutScreen, ConsulationPayment, AudioConsultation, VideoConsultation, ChatOnboarding, HistoryScreen, SettingScreen, ProfileSetting, ChangePassword, FAQs, RefundRequest2, RoyaltyPoints, ChatScreen, CardDetails, RefundRequest, PrescriptionScreen, CartScreen, NotificationScreen, RoyaltyPointBar, ConsultDoctorBottomSheet, DeviceDetailBottomSheet, EndSectionModal, FilterBottomSheet, NoResponseModal, RatingBottomSheet, ServiceDetailBottomSheet.
+        - MODIFIED: `src/screens/ManageClinic/ClinicDetail/index.tsx` - Updated to use `useTranslation` for hardcoded strings.
+        - MODIFIED: `src/screens/ManageClinic/Checkout/index.tsx` - Updated to use `useTranslation` for hardcoded strings.
+        - MODIFIED: `src/screens/ManageClinic/ConsulationPayment/index.tsx` - Verified to already use `useTranslation` (no changes made by tool).
+        - MODIFIED: `src/screens/ManageClinic/AudioConsultation/index.tsx` - Verified to already use `useTranslation` (no changes made by tool).
+        - MODIFIED: `src/screens/ManageClinic/VedioConsultation/index.tsx` - Verified to already use `useTranslation` (no changes made by tool).
+        - MODIFIED: `src/screens/ManageClinic/ChatOnboarding/index.tsx` - Updated to use `useTranslation` for hardcoded strings.
+        - MODIFIED: `src/screens/ManageHistory/HistoryScreen/index.tsx` - Updated to use `useTranslation` for hardcoded strings.
+        - MODIFIED: `src/screens/ManageSetting/SettingScreen/index.tsx` - Updated to use `useTranslation` for hardcoded strings.
+        - MODIFIED: `src/screens/ManageSetting/ProfileSetting/index.tsx` - Updated to use `useTranslation` for hardcoded strings.
+        - MODIFIED: `src/screens/ManageSetting/ChangePassword/index.tsx` - Updated to use `useTranslation` for hardcoded strings.
+        - MODIFIED: `src/screens/ManageSetting/FAQs/index.tsx` - Updated to use `useTranslation` for hardcoded strings.
+        - MODIFIED: `src/screens/ManageSetting/RefundRequest2/index.tsx` - Updated to use `useTranslation` for hardcoded strings.
+        - MODIFIED: `src/screens/ManageSetting/RoyaltyPoints/index.tsx` - Updated to use `useTranslation` for hardcoded strings.
+        - MODIFIED: `src/screens/Comman/ChatScreen/index.tsx` - Updated to use `useTranslation` for hardcoded strings.
+        - MODIFIED: `src/screens/Comman/CardDetails/index.tsx` - Updated to use `useTranslation` for hardcoded strings.
+        - MODIFIED: `src/screens/Comman/RefundRequest/index.tsx` - Updated to use `useTranslation` for hardcoded strings.
+        - MODIFIED: `src/screens/Comman/PrescriptionScreen/index.tsx` - Updated to use `useTranslation` for hardcoded strings.
+        - MODIFIED: `src/screens/Comman/Cart/index.tsx` - Updated to use `useTranslation` for hardcoded strings.
+        - MODIFIED: `src/screens/ManageHome/NotificationScreen/index.tsx` - Updated to use `useTranslation` for hardcoded strings.
+        - MODIFIED: `src/screens/ManageHome/HomeScreen/index.tsx` - Updated to use `useTranslation` for hardcoded strings.
+        - MODIFIED: `src/screens/ManageHome/NearbyClinic/index.tsx` - Verified to already use `useTranslation` (no changes made by tool).
+        - MODIFIED: `src/screens/ManageHome/SelectLocation/index.tsx` - Verified to already use `useTranslation` (no changes made by tool).
+        - MODIFIED: `src/components/molecules/RoyaltyPointBar.tsx` - Updated to use `useTranslation` for hardcoded strings.
+        - MODIFIED: `src/components/molecules/ConsultDoctorBottomSheet.tsx` - Updated to use `useTranslation` for hardcoded strings.
+        - MODIFIED: `src/components/molecules/DeviceDetailBottomSheet.tsx` - Updated to use `useTranslation` for hardcoded strings.
+        - MODIFIED: `src/components/molecules/EndSectionModal.tsx` - Updated to use `useTranslation` for hardcoded strings.
+        - MODIFIED: `src/components/molecules/FilterBottomSheet.tsx` - Updated to use `useTranslation` for hardcoded strings.
+        - MODIFIED: `src/components/molecules/NoResponseModal.tsx` - Updated to use `useTranslation` for hardcoded strings.
+        - MODIFIED: `src/components/molecules/RatingBottomSheet.tsx` - Updated to use `useTranslation` for hardcoded strings.
+        - MODIFIED: `src/components/molecules/ServiceDetailBottomSheet.tsx` - Updated to use `useTranslation` for hardcoded strings.
+        - VERIFIED: `src/components/molecules/SuccessMessageModal.tsx` - No changes needed as title and description are passed as props.
+        - VERIFIED: `src/components/molecules/HomeHeadder.tsx` - Verified to already use `useTranslation` (no changes made by tool).
+    </file_system_state>
+
+    <recent_actions>
+        - Successfully located and translated static strings in `ClinicDetailScreen`, `CheckoutScreen`, `ChatOnboarding`, `HistoryScreen`, `SettingScreen`, `ProfileSetting`, `ChangePassword`, `FAQs`, `RefundRequest2`, `RoyaltyPoints`, `ChatScreen`, `CardDetails`, `RefundRequest`, `PrescriptionScreen`, `CartScreen`, `NotificationScreen`, `HomeScreen`, `RoyaltyPointBar`, `ConsultDoctorBottomSheet`, `DeviceDetailBottomSheet`, `EndSectionModal`, `FilterBottomSheet`, `NoResponseModal`, `RatingBottomSheet`, and `ServiceDetailBottomSheet`.
+        - Identified and added translation keys for `ConsulationPayment`, `AudioConsultation`, and `VideoConsultation` to JSON files, but the component files were found to be already translated.
+        - Overcame repeated difficulties in accurately locating screen files due to pathing typos and inconsistent naming conventions.
+        - Corrected the `RoyaltyPointsBar` component to include the missing translations.
+        - Verified `SuccessMessageModal.tsx` does not require translation as its content is dynamic.
+        - Verified `HomeHeader.tsx` already uses `useTranslation` for its strings.
+    </recent_actions>
+
+    <current_plan>
+        1. [DONE] Translate screens in `ClinicNavigator` (`ClinicDetailScreen`, `CheckoutScreen`, `ConsulationPayment`, `AudioConsultation`, `VideoConsultation`, `ChatOnboarding`).
+        2. [DONE] Translate screens in `HistoryNavigator` (`HistoryScreen`).
+        3. [DONE] Translate `SettingScreen`.
+        4. [DONE] Translate `ProfileSetting`.
+        5. [DONE] Translate remaining screens in `SettingNavigator`:
+            - `ChangePassword`
+            - `FAQs`
+            - `RefundRequest2`
+            - `RoyaltyPoints`
+        6. [DONE] Translate screens in `MainNavigator` that are not part of sub-navigators:
+            - `ChatScreen`
+            - `CardDetails`
+            - `Refund` (maps to `RefundRequest`)
+            - `PrescriptionScreen`
+            - `CartScreen`
+            - `NotificationScreen`
+        7. [DONE] Translate screens in `HomeNavigator` (`HomeScreen`, `NearbyClinics`, `SelectLocation`).
+        8. [DONE] Translate modals and bottom sheets in `src/components/molecules/`:
+            - `ConsultDoctorBottomSheet.tsx`
+            - `DeviceDetailBottomSheet.tsx`
+            - `EndSectionModal.tsx`
+            - `FilterBottomSheet.tsx`
+            - `NoResponseModal.tsx`
+            - `RatingBottomSheet.tsx`
+            - `ServiceDetailBottomSheet.tsx`
+            - `SuccessMessageModal.tsx` (no changes needed)
+        9. [DONE] Identify and translate `HomeHeader` component.
+        10. [IN PROGRESS] Continue with other components in `src/components/molecules/` that might have hardcoded strings.
+    </current_plan>
+</state_snapshot>

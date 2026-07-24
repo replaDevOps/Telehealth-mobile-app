@@ -1,0 +1,7 @@
+export * from './ManageHome'
+export * from './ManageAuth'
+export * from './Comman'
+export * from './ManageHistory'
+export * from './ManageSetting'
+export * from './ManageClinic'
+export * from './Splash'

@@ -1,0 +1,106 @@
+import { StyleSheet } from 'react-native';
+import { mvs } from '../../../config/metrices';
+import { colors } from '../../../styles/colors';
+
+export const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.white,
+    justifyContent: 'center',
+  },
+  logoContainer: {
+    justifyContent: 'space-around',
+  },
+  image: {
+    width: '100%',
+    height: mvs(400),
+    alignSelf: 'center',
+    resizeMode: 'cover',
+    position: 'relative',
+    bottom: mvs(10),
+  },
+  title: {
+    alignItems: 'center',
+  },
+  content: {
+    alignItems: 'center',
+    gap: mvs(15),
+  },
+
+  TextContent: {
+    fontSize: 16,
+    textAlign: 'center',
+    fontWeight: '500',
+    color: colors.secondaryText,
+  },
+  subtitle: {
+    fontSize: mvs(13),
+    textAlign: 'center',
+    color: colors.border,
+    marginTop: mvs(5),
+    marginBottom: mvs(25),
+  },
+  languageRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: mvs(40),
+    marginTop: mvs(30),
+    marginHorizontal: mvs(20),
+  },
+  langOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '46%',
+    marginHorizontal: mvs(6),
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.gray,
+    borderRadius: mvs(12),
+    paddingVertical: mvs(15),
+    paddingHorizontal: mvs(10),
+  },
+  activeLangOption: {
+    borderColor: colors.primary,
+    backgroundColor: '#F2EDFF',
+  },
+  radioOuter: {
+    width: mvs(18),
+    height: mvs(18),
+    borderRadius: mvs(9),
+    borderWidth: 2,
+    borderColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radioInner: {
+    width: mvs(10),
+    height: mvs(10),
+    borderRadius: mvs(5),
+    backgroundColor: colors.primary,
+  },
+  langText: {
+    fontSize: mvs(14),
+    fontWeight: '500',
+    color: colors.black,
+  },
+  flag: {
+    width: mvs(20),
+    height: mvs(20),
+    borderRadius: mvs(4),
+  },
+  button: {
+    position: 'absolute',
+    bottom: mvs(20),
+    width: '100%',
+    paddingHorizontal: mvs(20),
+  },
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.white,
+  },
+  langOptionInner: {
+    flexDirection: 'row',
+    gap: mvs(10),
+  },
+});

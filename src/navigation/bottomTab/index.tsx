@@ -1,12 +1,28 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { CommonActions } from '@react-navigation/native';
 import { colors } from '../../styles/colors';
-import ClinicScreen from '../../screens/bottomTab/ClinicScreen';
-import HistoryScreen from '../../screens/bottomTab/HistoryScreen';
-import SettingScreen from '../../screens/bottomTab/SettingScreen';
-import HomeScreen from '../../screens/bottomTab/HomeScreen';
-import { ClinicSvg, HomeSvg, SettingSvg, HistorySvg } from '../../assets/icons'; // Adjust the import path as needed
+import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import {
+  ClinicSvg,
+  HomeSvg,
+  SettingSvg,
+  HistorySvg,
+  FHomeSvg,
+  FClinicSvg,
+  fSettingSvg,
+  fHistorySvg,
+} from '../../assets/icons';
+import {
+  ClinicNavigator,
+  HistoryNavigator,
+  HomeNavigator,
+  SettingNavigator,
+} from '@navigation/MainNavigator';
 
 export type TabParamList = {
   Home: undefined;
@@ -18,42 +34,63 @@ export type TabParamList = {
 const Tab = createBottomTabNavigator<TabParamList>();
 
 export default function CustomTabBar() {
+  const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   return (
     <Tab.Navigator
       initialRouteName="Home"
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarShowLabel: false,
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: (() => {
+          const routeName = getFocusedRouteNameFromRoute(route) ?? '';
+
+          const showTabScreens = [
+            'HomeScreen',
+            'ClinicScreen',
+            'HistoryScreen',
+            'SettingScreen',
+          ];
+
+          if (!showTabScreens.includes(routeName) && routeName !== '') {
+            return { display: 'none' };
+          }
+
+          return {
+            ...styles.tabBar,
+            height: 65 + insets.bottom,
+            paddingBottom: 5 + insets.bottom,
+          };
+        })(),
+
         tabBarIcon: ({ focused }) => {
-          let SvgComponent = null;
+          let SvgComponent;
           let label = '';
           switch (route.name) {
             case 'Home':
-              SvgComponent = HomeSvg;
-              label = 'Home';
+              SvgComponent = focused ? FHomeSvg : HomeSvg;
+              label = t('home');
               break;
             case 'Clinic':
-              SvgComponent = ClinicSvg;
-              label = 'Clinic';
+              SvgComponent = focused ? FClinicSvg : ClinicSvg;
+
+              label = t('clinic');
               break;
             case 'History':
-              SvgComponent = HistorySvg;
-              label = 'History';
+              SvgComponent = focused ? fHistorySvg : HistorySvg;
+
+              label = t('history');
               break;
             case 'Setting':
-              SvgComponent = SettingSvg;
-              label = 'Setting';
+              SvgComponent = focused ? fSettingSvg : SettingSvg;
+
+              label = t('setting');
               break;
           }
           return (
             <View style={styles.iconLabelWrapper}>
               {SvgComponent && (
-                <SvgComponent
-                  width={24}
-                  height={24}
-                  fill={focused ? colors.primary : colors.secondary}
-                />
+                <SvgComponent width={24} height={24} fill={''} />
               )}
               <Text
                 numberOfLines={1}
@@ -69,10 +106,30 @@ export default function CustomTabBar() {
         },
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Clinic" component={ClinicScreen} />
-      <Tab.Screen name="History" component={HistoryScreen} />
-      <Tab.Screen name="Setting" component={SettingScreen} />
+      <Tab.Screen name="Home" component={HomeNavigator} />
+      <Tab.Screen name="Clinic" component={ClinicNavigator} />
+      <Tab.Screen name="History" component={HistoryNavigator} />
+      <Tab.Screen
+        name="Setting"
+        component={SettingNavigator}
+        listeners={({ navigation }) => ({
+          tabPress: e => {
+            try {
+              console.log('Resetting Setting tab to root screen');
+              // Always navigate the Setting tab to its root screen when pressed
+              navigation.dispatch(
+                CommonActions.reset({
+                  index: 0,
+                  routes: [{ name: 'Setting', params: { screen: 'SettingScreen' } }],
+                })
+              );
+            } catch (err) {
+              // Fallback: perform normal navigation
+              navigation.navigate('Setting');
+            }
+          },
+        })}
+      />
     </Tab.Navigator>
   );
 }

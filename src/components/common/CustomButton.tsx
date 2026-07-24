@@ -1,25 +1,50 @@
 import React from 'react';
-import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
-import { colors } from '../../config/colors';
+import {
+  TouchableOpacity,
+  Text,
+  StyleSheet,
+  TouchableOpacityProps,
+  TextProps,
+  ViewStyle,
+  ActivityIndicator,
+} from 'react-native';
+import { colors } from '../../styles/colors';
+import { mvs } from '../../config/metrices';
 
-interface CustomButtonProps {
+interface CustomButtonProps extends TouchableOpacityProps {
   title: string;
-  onPress: () => void;
-  disabled?: boolean;
+  textStyle?: TextProps['style'];
+  style?: ViewStyle;
+  loading?: boolean;
 }
 
 const CustomButton: React.FC<CustomButtonProps> = ({
   title,
-  onPress,
-  disabled = false,
+  textStyle,
+  style,
+  disabled,
+  loading,
+  ...props
 }) => {
   return (
     <TouchableOpacity
-      style={[styles.button, disabled && styles.disabledButton]}
-      onPress={onPress}
-      disabled={disabled}
+      style={[styles.button, disabled && styles.disabledButton, style]}
+      disabled={disabled || loading}
+      {...props}
     >
-      <Text style={styles.buttonText}>{title}</Text>
+      {loading ? (
+        <ActivityIndicator size="small" color={colors.white} />
+      ) : (
+        <Text
+          style={[
+            styles.buttonText,
+            disabled && styles.disabledText,
+            textStyle,
+          ]}
+        >
+          {title}
+        </Text>
+      )}
     </TouchableOpacity>
   );
 };
@@ -27,22 +52,21 @@ const CustomButton: React.FC<CustomButtonProps> = ({
 const styles = StyleSheet.create({
   button: {
     backgroundColor: colors.primary,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: mvs(12),
+    borderRadius: mvs(8),
     alignItems: 'center',
     justifyContent: 'center',
-    width: '90%',
-    alignSelf: 'center',
+    marginVertical: mvs(10),
   },
   disabledButton: {
-    backgroundColor: '#D3D3D3',
-    opacity: 0.5,
+    backgroundColor: colors.primaryTint,
   },
   buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
+    color: colors.white,
+    fontSize: mvs(16),
     fontWeight: 'bold',
   },
+  disabledText: {},
 });
 
 export { CustomButton };

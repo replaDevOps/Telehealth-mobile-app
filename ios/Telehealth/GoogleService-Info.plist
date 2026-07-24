@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>827261290955-15pkff04718tnok6k92g4ju2kkihct75.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.827261290955-15pkff04718tnok6k92g4ju2kkihct75</string>
+	<key>ANDROID_CLIENT_ID</key>
+	<string>827261290955-du1un8fna849uj5p7tifrjosrr9u6vd1.apps.googleusercontent.com</string>
+	<key>API_KEY</key>
+	<string>AIzaSyA-FxGqT4mQSlIs_CdPJvsB6gjjatKaox0</string>
+	<key>GCM_SENDER_ID</key>
+	<string>827261290955</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.vena.patient</string>
+	<key>PROJECT_ID</key>
+	<string>vena-telehealth</string>
+	<key>STORAGE_BUCKET</key>
+	<string>vena-telehealth.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:827261290955:ios:d40324d84549b26e984e4e</string>
+</dict>
+</plist>

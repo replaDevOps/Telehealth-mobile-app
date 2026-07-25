@@ -415,7 +415,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
             editable={!isEmailSignup}
           />
 
-          <Text style={styles.label}>{t('phone_number')}</Text>
+          <Text style={[styles.label, i18n.language === 'ar' && { textAlign: 'right' }]}>{t('phone_number')}</Text>
           <PhoneNumberInput
             phone={phone}
             setPhone={(text) => {

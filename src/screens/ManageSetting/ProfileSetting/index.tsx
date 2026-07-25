@@ -402,7 +402,7 @@ export const ProfileSetting = ({ navigation, route }: { navigation: any; route?:
             onChangeText={(text) => dispatch({ fullName: text })}
           />
 
-          <Text style={styles.label}>{t('phone_number_label')}</Text>
+          <Text style={[styles.label, i18n.language === 'ar' && { textAlign: 'right' }]}>{t('phone_number_label')}</Text>
           <PhoneNumberInput
             phone={state.phone}
             setPhone={(text) => dispatch({ phone: text })}

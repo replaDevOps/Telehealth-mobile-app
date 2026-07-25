@@ -35,7 +35,7 @@ import { signInWithGoogle, googleStatusCodes } from '../../../services/firebase/
 type TabType = 'email' | 'phone';
 
 export function SignInScreen({ navigation }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { setAuth } = useAuthStore();
 
   const [tab, setTab] = useState<TabType>('email');
@@ -339,7 +339,7 @@ export function SignInScreen({ navigation }) {
               />
             ) : (
               <>
-                <Text style={styles.label}>{t('phone_number')}</Text>
+                <Text style={[styles.label, i18n.language === 'ar' && { textAlign: 'right' }]}>{t('phone_number')}</Text>
                 <PhoneNumberInput
                   phone={form.phone}
                   setPhone={text => {

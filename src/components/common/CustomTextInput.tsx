@@ -9,6 +9,7 @@ import {
   StyleProp,
   TouchableOpacity,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { colors } from '../../styles/colors';
 import { mvs } from '../../config/metrices';
 import Icon from 'react-native-vector-icons/MaterialIcons'; // Ensure this is installed
@@ -33,18 +34,25 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
   ...props
 }) => {
   const [showPassword, setShowPassword] = useState(false); // Start with password hidden
+  const { i18n } = useTranslation();
+  const isRtl = i18n.language === 'ar';
 
   const handleTogglePassword = () => {
     setShowPassword(!showPassword);
   };
 
+  const alignmentStyle = {
+    textAlign: isRtl ? 'right' : 'left' as const,
+    writingDirection: isRtl ? 'rtl' : 'ltr' as const,
+  };
+
   return (
     <View style={[styles.container, containerStyle]}>
-      {label && <Text style={styles.label}>{label}</Text>}
+      {label && <Text style={[styles.label, alignmentStyle]}>{label}</Text>}
 
-      <View style={styles.inputContainer}>
+      <View style={[styles.inputContainer, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
         <TextInput
-          style={[styles.input, style]}
+          style={[styles.input, alignmentStyle, style]}
           placeholder={placeholder}
           placeholderTextColor={colors.secondaryText}
           value={value}
@@ -68,7 +76,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
       </View>
 
       {errorMessage ? (
-        <Text style={styles.errorText}>{errorMessage}</Text>
+        <Text style={[styles.errorText, alignmentStyle]}>{errorMessage}</Text>
       ) : null}
     </View>
   );
@@ -84,7 +92,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   inputContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.border,

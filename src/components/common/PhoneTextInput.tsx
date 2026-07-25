@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
 import PhoneInput from 'react-native-phone-number-input';
 import parsePhoneNumberFromString, { CountryCode } from 'libphonenumber-js';
+import { useTranslation } from 'react-i18next';
 
 import { mvs } from '../../config/metrices';
 import { colors } from '../../styles/colors';
@@ -17,7 +18,7 @@ const toNationalNumber = (raw?: string, code?: string): string => {
   return parsed ? String(parsed.nationalNumber) : raw;
 };
 
-// ✅ Props Interface
+// Props Interface
 interface PhoneNumberInputProps {
   phone?: string;
   setPhone?: (phone: string) => void;
@@ -47,6 +48,7 @@ const PhoneNumberInput: React.FC<PhoneNumberInputProps> = ({
   initialValue = '',
   CustomStyle,
 }) => {
+  const { t } = useTranslation();
   const [value, setValue] = useState<string>(initialValue || '');
   const [isValid, setIsValid] = useState<boolean>(false);
   const [hasBeenTouched, setHasBeenTouched] = useState<boolean>(false);
@@ -67,7 +69,26 @@ const PhoneNumberInput: React.FC<PhoneNumberInputProps> = ({
       const phoneChanged = nationalPhone && nationalPhone !== value;
       const countryChanged = countryCode && countryCode !== selectedCountryCode;
 
-      if (phoneChanged) setValue(nationalPhone);
+      if (phoneChanged) {
+        if ((countryCode || selectedCountryCode) === 'SA') {
+          let cleaned = nationalPhone.replace(/\D/g, '');
+          if (cleaned.startsWith('0')) {
+            cleaned = cleaned.substring(1);
+          }
+          cleaned = cleaned.substring(0, 9);
+          let formatted = cleaned;
+          if (cleaned.length <= 2) {
+            formatted = cleaned;
+          } else if (cleaned.length <= 5) {
+            formatted = `${cleaned.slice(0, 2)} ${cleaned.slice(2)}`;
+          } else {
+            formatted = `${cleaned.slice(0, 2)} ${cleaned.slice(2, 5)} ${cleaned.slice(5)}`;
+          }
+          setValue(formatted);
+        } else {
+          setValue(nationalPhone);
+        }
+      }
       if (countryChanged) setSelectedCountryCode(countryCode);
       if (phoneChanged || countryChanged) setComponentKey(prev => prev + 1);
     }
@@ -75,27 +96,68 @@ const PhoneNumberInput: React.FC<PhoneNumberInputProps> = ({
 
   useEffect(() => {
     if (value && phoneInput.current) {
-      const valid = phoneInput.current.isValidNumber(value);
-      console.log('valid', valid);
-      setIsValid(valid === true);
-      onValidationChange?.(valid && value.trim() !== '');
+      let rawText = value.replace(/\s/g, '');
+      if (selectedCountryCode === 'SA') {
+        const valid = rawText.length === 9 && rawText.startsWith('5');
+        setIsValid(valid);
+        onValidationChange?.(valid);
+      } else {
+        const valid = phoneInput.current.isValidNumber(rawText);
+        setIsValid(valid === true);
+        onValidationChange?.(valid && rawText.trim() !== '');
+      }
     }
   }, [value, selectedCountryCode]);
 
   const handleTextChange = (text: string) => {
-    setValue(text);
+    let rawText = text;
+    let formatted = text;
+
+    if (selectedCountryCode === 'SA') {
+      // Clean non-digits
+      let cleaned = text.replace(/\D/g, '');
+      // Strip leading 0
+      if (cleaned.startsWith('0')) {
+        cleaned = cleaned.substring(1);
+      }
+      cleaned = cleaned.substring(0, 9);
+      rawText = cleaned;
+
+      // Format as 5X XXX XXXX
+      if (cleaned.length <= 2) {
+        formatted = cleaned;
+      } else if (cleaned.length <= 5) {
+        formatted = `${cleaned.slice(0, 2)} ${cleaned.slice(2)}`;
+      } else {
+        formatted = `${cleaned.slice(0, 2)} ${cleaned.slice(2, 5)} ${cleaned.slice(5)}`;
+      }
+    }
+
+    setValue(formatted);
     setHasBeenTouched(true);
     hasUserTypedRef.current = true;
 
-    if (phoneInput.current) {
-      const valid = phoneInput.current.isValidNumber(text);
-      console.log('valid', valid);
-      setIsValid(valid === true);
+    // Validate
+    if (selectedCountryCode === 'SA') {
+      const valid = rawText.length === 9 && rawText.startsWith('5');
+      setIsValid(valid);
+      onValidationChange?.(valid);
+
+      // Update parent phone number
+      const phoneCode = phoneInput.current?.getCallingCode() || '966';
+      safeSetPhone(`+${phoneCode}${rawText}`);
+    } else {
+      if (phoneInput.current) {
+        const valid = phoneInput.current.isValidNumber(rawText);
+        setIsValid(valid === true);
+        onValidationChange?.(valid && rawText.trim() !== '');
+      }
     }
   };
 
   const handleFormattedTextChange = (formattedText: string) => {
     if (!hasUserTypedRef.current) return;
+    if (selectedCountryCode === 'SA') return;
 
     // Preserve the formatted international number (includes country dialing code)
     const formattedClean = (formattedText || '').replace(/\s/g, '');
@@ -103,7 +165,6 @@ const PhoneNumberInput: React.FC<PhoneNumberInputProps> = ({
 
     if (formattedClean && phoneInput.current) {
       const valid = phoneInput.current.isValidNumber(formattedClean);
-      console.log('valid', valid);
       setIsValid(valid === true);
       onValidationChange?.(valid && formattedClean.trim() !== '');
     } else {
@@ -122,9 +183,12 @@ const PhoneNumberInput: React.FC<PhoneNumberInputProps> = ({
     }
   };
 
-  const hasError =
-    ((phoneError || errorMessage) && hasBeenTouched) ||
-    (!isValid && hasBeenTouched && value);
+  const displayError =
+    phoneError ||
+    errorMessage ||
+    (!isValid && hasBeenTouched && value ? t('invalid_phone') : '');
+
+  const hasError = !!displayError;
 
   return (
     <View>
@@ -150,6 +214,7 @@ const PhoneNumberInput: React.FC<PhoneNumberInputProps> = ({
           textInputProps={{
             placeholderTextColor: colors.gray,
             editable: editable,
+            value: value,
           }}
           onChangeText={handleTextChange}
           onChangeCountry={handleCountryChange}
@@ -162,8 +227,7 @@ const PhoneNumberInput: React.FC<PhoneNumberInputProps> = ({
         />
       </View>
 
-      {phoneError && <Text style={styles.errorText}>{phoneError}</Text>}
-      {errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
+      {displayError ? <Text style={styles.errorText}>{displayError}</Text> : null}
     </View>
   );
 };
@@ -180,36 +244,44 @@ const styles = StyleSheet.create({
     borderRadius: mvs(8),
     marginBottom: mvs(16),
     overflow: 'hidden',
+    direction: 'ltr',
   },
   errorContainer: {
-    borderColor: 'red',
+    borderColor: colors.red,
     borderWidth: 1.5,
   },
   phoneInputInnerContainer: {
     width: '100%',
-    height: mvs(40),
+    height: mvs(50),
     backgroundColor: colors.gray,
+    direction: 'ltr',
   },
   textContainer: {
     backgroundColor: 'transparent',
     paddingVertical: 0,
+    height: mvs(50),
+    direction: 'ltr',
   },
   flagButton: {
     backgroundColor: 'transparent',
     paddingLeft: mvs(12),
+    direction: 'ltr',
   },
   codeText: {
     fontSize: mvs(16),
     color: colors.black,
   },
   textInput: {
-    fontSize: mvs(16),
+    fontSize: 16,
     color: colors.black,
-    paddingVertical: mvs(12),
-    paddingRight: mvs(12),
+    paddingVertical: 0,
+    height: mvs(50),
+    direction: 'ltr',
+    writingDirection: 'ltr',
+    textAlign: 'left',
   },
   errorText: {
-    color: 'red',
+    color: colors.red,
     marginBottom: mvs(5),
     fontSize: mvs(12),
     marginLeft: mvs(2),

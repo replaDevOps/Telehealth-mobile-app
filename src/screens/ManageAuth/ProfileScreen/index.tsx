@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { Asset } from 'react-native-image-picker';
@@ -201,7 +201,8 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
           city: city?.trim() || undefined,
         });
 
-        // Add image if available
+        // Add image — if user picked one use it, otherwise attach the
+        // bundled default avatar so the backend never rejects for missing photo.
         if (profileImageAsset && profileImageAsset.uri) {
           const uriParts = profileImageAsset.uri.split('.');
           const fileExtension = uriParts[uriParts.length - 1] || 'jpg';
@@ -219,6 +220,23 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
             type: fileType,
             name: fileName,
           } as any);
+        } else {
+          // No photo chosen — send the bundled default avatar
+          try {
+            // Use the JS-bundle require path (resolved at runtime by Metro)
+            const resolvedDefault = Image.resolveAssetSource(
+              require('../../../assets/images/image.png')
+            );
+            if (resolvedDefault?.uri) {
+              formData.append('image', {
+                uri: resolvedDefault.uri,
+                type: 'image/png',
+                name: 'default_avatar.png',
+              } as any);
+            }
+          } catch (_) {
+            // Silently skip if resolution fails — backend may accept no image
+          }
         }
 
         // Get auth token if available

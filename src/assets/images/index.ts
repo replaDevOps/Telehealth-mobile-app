@@ -14,6 +14,6 @@ export const coinIcon = require("./CoinIcon.png");
 export const Signature = require("./Signature.png")
 export const Marker_Pin = require("./Pin.png")
 export const AiLogo = require("./Ailogo.png")
-export const LogoPng = require("./LOGOPNG.png")
-
-
+export const LogoPng = require("./LOGOPNG.png");
+export const authBgLight = require("./auth_bg_light.png");
+export const authBgDark = require("./auth_bg_dark.png");

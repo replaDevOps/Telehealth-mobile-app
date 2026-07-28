@@ -2,7 +2,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Image, ScrollView } from 'react-native';
 import { Service } from '../../../types/chat.types';
-import { coinIcon } from '@assets/images';
 import { styles } from './style';
 
 interface SuggestionProps {

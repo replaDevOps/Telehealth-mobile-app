@@ -348,7 +348,9 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
 
       const [confirmation, err] = await tryCatch(sendPhoneOtp(e164));
       if (err || !confirmation) {
-        Toast.error((err as Error)?.message || 'Failed to resend OTP');
+        console.error('[OTP] Failed to resend phone OTP:', err);
+        const rawErr = (err as any)?.code || (err as any)?.message || 'Unknown Error';
+        Toast.error(`${t('something_went_wrong')} (${rawErr})`);
         setResendLoading(false);
         return;
       }
@@ -392,12 +394,13 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
 
       const [, err] = await tryCatch(apiClient.post(endPoint, payload));
       if (err) {
-        const errorMessage =
+        console.error('[OTP] Failed to resend API OTP:', err);
+        const rawErr =
           (err as any)?.response?.data?.message ||
           (err as any)?.response?.data?.data?.message ||
           (err as Error).message ||
-          'Failed to resend OTP';
-        Toast.error(errorMessage);
+          'Unknown Error';
+        Toast.error(`${t('something_went_wrong')} (${rawErr})`);
         setResendLoading(false);
         return;
       }
@@ -504,21 +507,25 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
           />
 
           <View style={styles.signinRow}>
-            <Text style={styles.TextContent}>{t('didnt_receive_code')}</Text>
-            <TouchableOpacity
-              onPress={handleResendOTP}
-              disabled={timer > 0 || resendLoading}
-            >
-              {resendLoading ? (
-                <Text style={styles.signinLink}>{t('sending')}...</Text>
-              ) : timer > 0 ? (
-                <Text style={[styles.signinLink, { opacity: 0.5 }]}>
-                  {t('resend_code')} ({formatTimer(timer)})
-                </Text>
-              ) : (
-                <Text style={styles.signinLink}>{t('resend_code')}</Text>
-              )}
-            </TouchableOpacity>
+            {timer > 0 ? (
+              <Text style={styles.TextContent}>
+                {t('otp_resend_countdown', { seconds: timer })}
+              </Text>
+            ) : (
+              <>
+                <Text style={styles.TextContent}>{t('didnt_receive_code')}</Text>
+                <TouchableOpacity
+                  onPress={handleResendOTP}
+                  disabled={resendLoading}
+                >
+                  {resendLoading ? (
+                    <Text style={styles.signinLink}>{t('sending')}...</Text>
+                  ) : (
+                    <Text style={styles.signinLink}>{t('resend_code')}</Text>
+                  )}
+                </TouchableOpacity>
+              </>
+            )}
           </View>
           </View>
         </KeyboardAvoidingView>

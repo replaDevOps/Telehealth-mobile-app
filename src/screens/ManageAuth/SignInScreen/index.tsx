@@ -9,15 +9,16 @@ import {
   Platform,
   Image,
   ActivityIndicator,
+  StatusBar,
+  ImageBackground,
 } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import { mvs } from '@config/metrices';
-import { CustomButton } from '@components/common/CustomButton';
 import { Header2 } from '@components/common/Header2';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import { GoogleSvg } from '@assets/icons';
-import { LogoPng } from '@assets/images';
-import { CustomText } from '@components/common/CustomText';
+import { LogoPng, authBgLight, authBgDark } from '@assets/images';
 import PhoneNumberInput from '@components/common/PhoneTextInput';
 import { styles } from './style';
 import { CustomTextInput } from '@components/common/CustomTextInput';
@@ -37,7 +38,9 @@ type TabType = 'email' | 'phone';
 export function SignInScreen({ navigation }) {
   const { t, i18n } = useTranslation();
   const { setAuth } = useAuthStore();
+  const isRtl = i18n.language === 'ar';
 
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [tab, setTab] = useState<TabType>('email');
   const [form, setForm] = useState({
     email: '',
@@ -73,7 +76,7 @@ export function SignInScreen({ navigation }) {
     return parsed.format('E.164');
   }, [form.phone, meta.countryCode]);
 
-  // Load saved credentials on mount if remember me was checked
+  // Load saved credentials and theme settings on mount
   useEffect(() => {
     const loadSavedCredentials = async () => {
       try {
@@ -82,7 +85,12 @@ export function SignInScreen({ navigation }) {
         const savedEmail = await AsyncStorage.getItem('rememberMeEmail');
         const savedPhone = await AsyncStorage.getItem('rememberMePhone');
         const savedCountryCode = await AsyncStorage.getItem('rememberMeCountryCode');
+        const savedTheme = await AsyncStorage.getItem('appTheme');
         
+        if (savedTheme === 'light' || savedTheme === 'dark') {
+          setTheme(savedTheme);
+        }
+
         console.log('📦 Saved credentials:', {
           tab: savedTab,
           email: savedEmail ? '***' : null,
@@ -118,23 +126,27 @@ export function SignInScreen({ navigation }) {
     loadSavedCredentials();
   }, []);
 
+  const handleThemeChange = async (newTheme: 'light' | 'dark') => {
+    setTheme(newTheme);
+    try {
+      await AsyncStorage.setItem('appTheme', newTheme);
+    } catch (e) {
+      console.warn('Failed to save theme setting', e);
+    }
+  };
+
   const validate = (): boolean => {
-    // Clear all errors first - explicitly clear inactive tab errors
     const nextErrors = { email: '', phone: '', password: '' };
     let valid = true;
 
-    // Only validate email if on email tab
     if (tab === 'email') {
       if (!form.email || !form.email.includes('@')) {
         nextErrors.email = t('invalid_email');
         valid = false;
       }
-      // Clear phone error when on email tab
       nextErrors.phone = '';
     } 
-    // Only validate phone if on phone tab
     else if (tab === 'phone') {
-      // Clear email error when on phone tab
       nextErrors.email = '';
       if (!form.phone || !meta.isPhoneValid) {
         nextErrors.phone = t('invalid_phone');
@@ -142,7 +154,6 @@ export function SignInScreen({ navigation }) {
       }
     }
 
-    // Always validate password
     if (!form.password) {
       nextErrors.password = t('password_required');
       valid = false;
@@ -153,88 +164,55 @@ export function SignInScreen({ navigation }) {
   };
 
   const handleSignIn = async () => {
-    // Validate first (user errors - show under inputs)
-    if (!validate()) {
-      return;
-    }
-    setMeta({ ...meta, loading: true });
+    if (!validate()) return;
 
+    setMeta(prev => ({ ...prev, loading: true }));
     try {
       const payload =
         tab === 'email'
           ? { email: form.email, password: form.password }
-          : { phoneNo: formattedPhone, password: form.password };
-      console.log('payload', payload);
-      const endpoint =
-        tab === 'email' ? API.AUTH.LOGIN_EMAIL : API.AUTH.LOGIN_PHONE;
-      console.log('endpoint', endpoint);
+          : { phone: formattedPhone, password: form.password };
+
+      console.log('🚀 Login payload:', JSON.stringify(payload, null, 2));
+
+      const endpoint = tab === 'email' ? API.AUTH.LOGIN_EMAIL : API.AUTH.LOGIN_PHONE;
       const { data } = await apiClient.post(endpoint, payload);
-      console.log('data', data);
-      setAuth(data?.user);
+      console.log('✅ API login response:', JSON.stringify(data, null, 2));
 
-      // Store FCM token in background after successful login
-      fcmService.initializeFcm().catch(err =>
-        console.warn('[FCM] Token store after login failed:', err),
-      );
-
-      // Save credentials if remember me is checked
       if (meta.remember) {
-        try {
-          console.log('💾 Saving credentials (Remember me checked):', {
-            tab,
-            email: tab === 'email' ? form.email : 'N/A',
-            phone: tab === 'phone' ? form.phone : 'N/A',
-            countryCode: tab === 'phone' ? meta.countryCode : 'N/A',
-          });
-          
-          await AsyncStorage.setItem('rememberMeTab', tab);
-          if (tab === 'email') {
-            await AsyncStorage.setItem('rememberMeEmail', form.email);
-            await AsyncStorage.removeItem('rememberMePhone');
-            await AsyncStorage.removeItem('rememberMeCountryCode');
-            console.log('✅ Saved email:', form.email);
-          } else {
-            await AsyncStorage.setItem('rememberMePhone', form.phone);
-            await AsyncStorage.setItem('rememberMeCountryCode', meta.countryCode);
-            await AsyncStorage.removeItem('rememberMeEmail');
-            console.log('✅ Saved phone:', form.phone, 'Country:', meta.countryCode);
-          }
-          console.log('✅ Credentials saved successfully');
-        } catch (error) {
-          console.error('❌ Error saving credentials:', error);
+        await AsyncStorage.setItem('rememberMeTab', tab);
+        if (tab === 'email') {
+          await AsyncStorage.setItem('rememberMeEmail', form.email);
+          await AsyncStorage.removeItem('rememberMePhone');
+        } else {
+          await AsyncStorage.setItem('rememberMePhone', form.phone);
+          await AsyncStorage.setItem('rememberMeCountryCode', meta.countryCode);
+          await AsyncStorage.removeItem('rememberMeEmail');
         }
       } else {
-        // Clear saved credentials if remember me is unchecked
-        try {
-          console.log('🗑️ Clearing saved credentials (Remember me unchecked)');
-          await AsyncStorage.multiRemove([
-            'rememberMeTab',
-            'rememberMeEmail',
-            'rememberMePhone',
-            'rememberMeCountryCode',
-          ]);
-          console.log('✅ Credentials cleared successfully');
-        } catch (error) {
-          console.error('❌ Error clearing credentials:', error);
-        }
+        await AsyncStorage.removeItem('rememberMeTab');
+        await AsyncStorage.removeItem('rememberMeEmail');
+        await AsyncStorage.removeItem('rememberMePhone');
+        await AsyncStorage.removeItem('rememberMeCountryCode');
       }
-      
+
+      setAuth(data?.user);
+
+      fcmService.initializeFcm().catch(err =>
+        console.warn('[FCM] Token store after email login failed:', err),
+      );
+
       Toast.success(data?.message || 'Login successful');
-      // Delay navigation to allow toast to be visible
       setTimeout(() => {
         navigation.replace('Main', { screen: 'Home' });
       }, 500);
-      setMeta({ ...meta, loading: false });
     } catch (error: any) {
-      // API errors (like unauthorized) - show in toast only, not under input
-      const errorMsg = 
-        error?.response?.data?.data?.message ||
-        error?.response?.data?.message ||
-        error?.message ||
-        'Login failed. Please check your credentials and try again.';
-      
-      Toast.error(errorMsg);
-      setMeta({ ...meta, loading: false });
+      console.error('❌ Login error:', error);
+      const backendMsg =
+        error?.response?.data?.message || error?.data?.message || error?.message;
+      Toast.error(backendMsg || t('something_went_wrong'));
+    } finally {
+      setMeta(prev => ({ ...prev, loading: false }));
     }
   };
 
@@ -267,195 +245,333 @@ export function SignInScreen({ navigation }) {
       if (error?.code === googleStatusCodes.SIGN_IN_CANCELLED) {
         return;
       }
-      const errorMsg =
-        error?.response?.data?.data?.message ||
-        error?.response?.data?.message ||
-        error?.message ||
-        'Google sign-in failed';
       console.error('❌ [Google] Sign-in error:', error);
-      Toast.error(errorMsg);
+      const rawErrorDetail = error?.code || error?.message || 'Unknown Error';
+      Toast.error(`${t('google_sign_in_failed')} (${rawErrorDetail})`);
     } finally {
       setGoogleLoading(false);
     }
   };
 
+  const isLight = theme === 'light';
+  const cardBg = isLight ? 'rgba(255, 255, 255, 0.75)' : 'rgba(26, 13, 54, 0.7)';
+  const cardBorder = isLight ? 'rgba(241, 243, 248, 0.5)' : '#3A2E5B';
+  const textCol = isLight ? colors.black : colors.white;
+  const secTextCol = isLight ? colors.secondaryText : '#A8A8A9';
+
+  const linkColor = isLight ? colors.primary : '#B388FF';
+  const bgImage = isLight ? authBgLight : authBgDark;
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.white }}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        
-        <ScrollView
-          style={styles.container}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: mvs(30) }}
-          keyboardShouldPersistTaps="handled"
+    <ImageBackground source={bgImage} style={{ flex: 1 }} resizeMode="cover">
+      <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }}>
+        <StatusBar hidden={true} />
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
-          <Header2 title="" showLanguage={true} inScrollView={true} />
-          <View style={styles.logoContainer}>
-            <Image source={LogoPng} style={{ width: 300, height: 131, resizeMode: 'contain' }} />
-          </View>
-
-          <View style={{ ...styles.title }}>
-            <CustomText text={t('welcome_back')} />
-          </View>
-          <View style={styles.content}>
-            <Text style={styles.TextContent}>{t('login_continue')}</Text>
-          </View>
-
-          {/* Tabs */}
-          <View style={styles.tabContainer}>
-            {(['email', 'phone'] as TabType[]).map(type => (
-              <TouchableOpacity
-                key={type}
-                style={[styles.tabButton, tab === type && styles.activeTab]}
-                onPress={() => {
-                  setTab(type);
-                  // Clear all field errors when switching tabs
-                  setErrors({ email: '', phone: '', password: '' });
-                }}
-              >
-                <Text
-                  style={[styles.tabText, tab === type && styles.activeTabText]}
-                >
-                  {t(type === 'email' ? 'email_address' : 'phone_number')}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <View style={{ marginTop: mvs(25) }}>
-            {tab === 'email' ? (
-              <CustomTextInput
-                label={t('email_address')}
-                placeholder={t('enter_email')}
-                value={form.email}
-                onChangeText={text => {
-                  setForm({ ...form, email: text });
-                  if (errors.email) setErrors({ ...errors, email: '' });
-                }}
-                errorMessage={errors.email}
-              />
-            ) : (
-              <>
-                <Text style={[styles.label, i18n.language === 'ar' && { textAlign: 'right' }]}>{t('phone_number')}</Text>
-                <PhoneNumberInput
-                  phone={form.phone}
-                  setPhone={text => {
-                    setForm({ ...form, phone: text });
-                    if (errors.phone) setErrors({ ...errors, phone: '' });
-                  }}
-                  countryCode={meta.countryCode}
-                  setCountryCode={code =>
-                    setMeta({ ...meta, countryCode: code as CountryCode })
-                  }
-                  phoneError={errors.phone}
-                  onValidationChange={valid =>
-                    setMeta({ ...meta, isPhoneValid: valid })
-                  }
-                  CustomStyle={{ backgroundColor: colors.white }}
-                />
-              </>
-            )}
-          </View>
-
-          <CustomTextInput
-            label={t('password')}
-            placeholder={t('enter_password')}
-            value={form.password}
-            onChangeText={text => {
-              setForm({ ...form, password: text });
-              if (errors.password) setErrors({ ...errors, password: '' });
+          <ScrollView
+            style={styles.container}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{
+              paddingHorizontal: mvs(20),
+              paddingTop: mvs(10),
+              paddingBottom: mvs(30),
             }}
-            secureTextEntry={true}
-            errorMessage={errors.password}
-          />
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* Header with theme / language toggles */}
+            <Header2
+              title=""
+              showLanguage={true}
+              inScrollView={true}
+              theme={theme}
+              onThemeChange={handleThemeChange}
+              showLogoLeft={true}
+            />
 
-          <View style={styles.PasswordRemember}>
-            <View style={styles.CheckBox}>
-              <TouchableOpacity
-                onPress={() => {
-                  const newRememberValue = !meta.remember;
-                  console.log('🔄 Remember me checkbox toggled:', newRememberValue);
-                  setMeta(prev => ({ 
-                    ...prev, 
-                    remember: newRememberValue,
-                    rememberError: false 
-                  }));
-                }}
-                accessibilityRole="checkbox"
-                accessibilityState={{ checked: meta.remember }}
-              >
-                <Ionicons
-                  name={meta.remember ? 'checkbox' : 'square-outline'}
-                  size={22}
-                  color={
-                    meta.rememberError
-                      ? 'red'
-                      : meta.remember
-                      ? colors.primary
-                      : colors.border
-                  }
+            {/* Redesigned Rounded Login Card */}
+            <View style={[styles.card, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+              {/* Center Logo */}
+              <View style={styles.logoContainer}>
+                <Image
+                  source={LogoPng}
+                  style={[styles.logo, theme === 'dark' && { tintColor: '#FFFFFF' }]}
+                  resizeMode="contain"
                 />
+              </View>
+
+              {/* Tagline */}
+              <Text style={[styles.tagline, { color: secTextCol }]}>
+                {t('beauty_tagline')}
+              </Text>
+
+              {/* Tab switch method switcher */}
+              <View
+                style={[
+                  styles.tabContainer,
+                  {
+                    flexDirection: isRtl ? 'row-reverse' : 'row',
+                    backgroundColor: isLight ? '#F1F3F8' : '#1D1236',
+                  },
+                ]}
+              >
+                {(['phone', 'email'] as TabType[]).map(type => {
+                  const isActive = tab === type;
+                  return (
+                    <TouchableOpacity
+                      key={type}
+                      style={[
+                        styles.tabButton,
+                        isActive && [
+                          styles.activeTab,
+                          { backgroundColor: isLight ? '#FFFFFF' : '#3A2E5B' },
+                        ],
+                      ]}
+                      onPress={() => {
+                        setTab(type);
+                        setErrors({ email: '', phone: '', password: '' });
+                      }}
+                    >
+                      <Ionicons
+                        name={type === 'email' ? 'mail-outline' : 'phone-portrait-outline'}
+                        size={mvs(16)}
+                        color={
+                          isActive
+                            ? isLight
+                              ? '#7625D7'
+                              : '#FFFFFF'
+                            : isLight
+                            ? '#545A65'
+                            : '#A8A8A9'
+                        }
+                      />
+                      <Text
+                        style={[
+                          styles.tabText,
+                          {
+                            color: isActive
+                              ? isLight
+                                ? '#7625D7'
+                                : '#FFFFFF'
+                              : isLight
+                              ? '#545A65'
+                              : '#A8A8A9',
+                          },
+                          isActive && styles.activeTabText,
+                        ]}
+                      >
+                        {t(type === 'email' ? 'email_address_tab' : 'phone_number_tab')}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Content inputs fields */}
+              <View style={{ marginTop: mvs(10) }}>
+                {tab === 'email' ? (
+                  <CustomTextInput
+                    label={t('email_address')}
+                    placeholder="name@email.com"
+                    value={form.email}
+                    onChangeText={text => {
+                      setForm({ ...form, email: text });
+                      if (errors.email) setErrors({ ...errors, email: '' });
+                    }}
+                    errorMessage={errors.email}
+                    theme={theme}
+                    leftIconName="mail-outline"
+                  />
+                ) : (
+                  <View style={{ marginBottom: mvs(16) }}>
+                    <Text
+                      style={[
+                        styles.label,
+                        { color: textCol },
+                        isRtl && { textAlign: 'right' },
+                      ]}
+                    >
+                      {t('phone_number')}
+                    </Text>
+                    <PhoneNumberInput
+                      phone={form.phone}
+                      setPhone={text => {
+                        setForm({ ...form, phone: text });
+                        if (errors.phone) setErrors({ ...errors, phone: '' });
+                      }}
+                      countryCode={meta.countryCode}
+                      setCountryCode={code =>
+                        setMeta({ ...meta, countryCode: code as CountryCode })
+                      }
+                      phoneError={errors.phone}
+                      onValidationChange={valid =>
+                        setMeta({ ...meta, isPhoneValid: valid })
+                      }
+                      CustomStyle={{
+                        backgroundColor: isLight ? colors.white : 'transparent',
+                      }}
+                      theme={theme}
+                    />
+                  </View>
+                )}
+              </View>
+
+              <CustomTextInput
+                label={t('password')}
+                placeholder="********"
+                value={form.password}
+                onChangeText={text => {
+                  setForm({ ...form, password: text });
+                  if (errors.password) setErrors({ ...errors, password: '' });
+                }}
+                secureTextEntry={true}
+                errorMessage={errors.password}
+                theme={theme}
+                leftIconName="lock-closed-outline"
+              />
+
+              {/* Remember Me / Forgot Password */}
+              <View style={styles.PasswordRemember}>
+                <View style={[styles.CheckBox, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setMeta(prev => ({ 
+                        ...prev, 
+                        remember: !prev.remember,
+                        rememberError: false 
+                      }));
+                    }}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: meta.remember }}
+                  >
+                    <Ionicons
+                      name={meta.remember ? 'checkbox' : 'square-outline'}
+                      size={22}
+                      color={
+                        meta.rememberError
+                          ? 'red'
+                          : meta.remember
+                          ? linkColor
+                          : isLight
+                          ? colors.border
+                          : '#5C4E7E'
+                      }
+                    />
+                  </TouchableOpacity>
+                  <Text style={[styles.TextContent, { color: secTextCol }]}>
+                    {t('remember_me')}
+                  </Text>
+                </View>
+
+                <TouchableOpacity onPress={() => navigation.navigate('ForgetPassword')}>
+                  <Text style={[styles.signinLink, { color: linkColor }]}>{t('forgot_password')}</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Gradient CTA Sign In button */}
+              <TouchableOpacity
+                style={styles.gradientButtonContainer}
+                onPress={handleSignIn}
+                disabled={meta.loading || googleLoading}
+              >
+                <LinearGradient
+                  colors={isLight ? ['#7625D7', '#9D4EDD'] : ['#7625D7', '#4A148C']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.gradientButton}
+                >
+                  {meta.loading ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <View style={{ flexDirection: isRtl ? 'row-reverse' : 'row', alignItems: 'center', gap: 8 }}>
+                      <Text style={styles.gradientButtonText}>{t('sign_in')}</Text>
+                      <Ionicons
+                        name={isRtl ? 'arrow-back-outline' : 'arrow-forward-outline'}
+                        size={18}
+                        color="#FFFFFF"
+                      />
+                    </View>
+                  )}
+                </LinearGradient>
               </TouchableOpacity>
-              <Text style={styles.TextContent}>{t('remember_me')}</Text>
+
+              {/* Footer switcher sign up */}
+              <View style={[styles.signinRow, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+                <Text style={[styles.TextContent, { color: secTextCol }]}>
+                  {t('create_account_prompt')}
+                </Text>
+                <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
+                  <Text style={[styles.signinLink, { color: linkColor }]}>{t('sign_up_link')}</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Or Divider */}
+              <View style={styles.dividerContainer}>
+                <View style={[styles.line, { backgroundColor: isLight ? colors.border : '#3A2E5B' }]} />
+                <Text style={[styles.orText, { color: secTextCol }]}>{t('or')}</Text>
+                <View style={[styles.line, { backgroundColor: isLight ? colors.border : '#3A2E5B' }]} />
+              </View>
+
+              {/* Apple / Google buttons */}
+              {Platform.OS === 'ios' && (
+                <TouchableOpacity
+                  style={[
+                    styles.appleButton,
+                    (meta.loading || googleLoading) && { opacity: 0.6 },
+                  ]}
+                  onPress={() => console.log('Apple Sign In')}
+                  disabled={meta.loading || googleLoading}
+                >
+                  <AntDesign name="apple1" size={20} color={colors.white} />
+                  <Text style={styles.appleText}>{t('sign_in_apple')}</Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity
+                style={[
+                  styles.googleButton,
+                  {
+                    backgroundColor: isLight ? '#F8F8FA' : 'rgba(29, 18, 54, 0.4)',
+                    borderColor: isLight ? '#E0E0E0' : '#3A2E5B',
+                    flexDirection: isRtl ? 'row-reverse' : 'row',
+                  },
+                  (meta.loading || googleLoading) && { opacity: 0.6 },
+                ]}
+                onPress={handleGoogleSignIn}
+                disabled={meta.loading || googleLoading}
+              >
+                {googleLoading ? (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                ) : (
+                  <>
+                    <GoogleSvg />
+                    <Text
+                      style={[
+                        styles.googleText,
+                        {
+                          color: textCol,
+                          marginLeft: isRtl ? 0 : mvs(10),
+                          marginRight: isRtl ? mvs(10) : 0,
+                        },
+                      ]}
+                    >
+                      {t('sign_in_google')}
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
             </View>
 
-            <TouchableOpacity
-              onPress={() => navigation.navigate('ForgetPassword')}
-            >
-              <Text style={styles.signinLink}>{t('forgot_password')}</Text>
-            </TouchableOpacity>
-          </View>
-
-          <CustomButton
-            title={t('sign_in')}
-            onPress={handleSignIn}
-            loading={meta.loading}
-            disabled={googleLoading}
-          />
-
-          <View style={styles.signinRow}>
-            <Text style={styles.TextContent}>{t('create_account')}</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
-              <Text style={styles.signinLink}>{t('sign_up')}</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.dividerContainer}>
-            <View style={styles.line} />
-            <Text style={styles.orText}>{t('or')}</Text>
-            <View style={styles.line} />
-          </View>
-
-          {Platform.OS === 'ios' && (
-            <TouchableOpacity
-              style={[styles.appleButton, (meta.loading || googleLoading) && { opacity: 0.6 }]}
-              onPress={() => console.log('Apple Sign In')}
-              disabled={meta.loading || googleLoading}
-            >
-              <AntDesign name="apple1" size={20} color={colors.white} />
-              <Text style={styles.appleText}>{t('sign_in_apple')}</Text>
-            </TouchableOpacity>
-          )}
-
-          <TouchableOpacity
-            style={[styles.googleButton, (meta.loading || googleLoading) && { opacity: 0.6 }]}
-            onPress={handleGoogleSignIn}
-            disabled={meta.loading || googleLoading}
-          >
-            {googleLoading ? (
-              <ActivityIndicator size="small" color={colors.primary} />
-            ) : (
-              <>
-                <GoogleSvg />
-                <Text style={styles.googleText}>{t('sign_in_google')}</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+            {/* Footer Text info */}
+            <View style={styles.footerContainer}>
+              <Text style={[styles.footerText, { color: secTextCol }]}>
+                {t('footer_done_by')}
+              </Text>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </ImageBackground>
   );
 }

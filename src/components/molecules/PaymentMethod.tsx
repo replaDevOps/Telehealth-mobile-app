@@ -14,8 +14,8 @@ import {
   StcPaySvg,
   TabbySvg,
   TamaraSvg,
+  SingleLogo,
 } from '@assets/icons';
-import { coinIcon } from '@assets/images';
 import { colors } from '../../styles/colors';
 
 // Types
@@ -506,7 +506,9 @@ function RoyaltyPointsSection({
         <Text style={styles.royaltyTitle}>{t('loyalty_points')}</Text>
         <View style={styles.royaltyBadge}>
           <View style={styles.pointsBadge}>
-            <Image source={coinIcon} style={styles.coinIcon} />
+            <View style={styles.coinIcon}>
+              <SingleLogo width={20} height={20} fill="#FDA005" />
+            </View>
             <Text style={styles.pointsValue}>{royaltyPoints}</Text>
           </View>
           <Text style={styles.conversionRate}>

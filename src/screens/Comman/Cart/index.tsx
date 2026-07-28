@@ -20,13 +20,12 @@ import { CustomButton } from '@components/common/CustomButton';
 import { useCart } from '@context/CartContext';
 import { useCartCountContext } from '@context/CartCountContext';
 import { styles } from './style';
-import { EmptyContentSvg } from '@assets/icons';
+import { EmptyContentSvg, SingleLogo } from '@assets/icons';
 import { useTranslation } from 'react-i18next';
 import Geolocation from '@react-native-community/geolocation';
 import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
 import { Toast } from 'toastify-react-native';
-import { coinIcon } from '@assets/images';
 import { useFocusEffect } from '@react-navigation/native';
 
 export function CartScreen({ navigation }) {
@@ -584,7 +583,7 @@ export function CartScreen({ navigation }) {
 
                 <View style={styles.clinicPointsContainer}>
                   <View style={styles.coinWrapper}>
-                    <Image source={coinIcon} style={styles.coinImage} />
+                    <SingleLogo width={16} height={16} fill="#FDA005" />
                   </View>
                   <Text style={styles.clinicPointsText}>{Math.round(Number(clinicGroup.clinicLoyaltyPoints || 0))}</Text>
                 </View>
@@ -773,10 +772,10 @@ export function CartScreen({ navigation }) {
                         {service.loyaltyPoints && Number(service.loyaltyPoints) > 0 && (
                           <View style={styles.loyaltyBadge}>
                             <View style={styles.coinWrapper}>
-                              <Image source={coinIcon} style={styles.coinImage} />
+                              <SingleLogo width={16} height={16} fill="#FDA005" />
                             </View>
                             <Text style={styles.loyaltyBadgeText}>
-                              {`Earn ${Math.round(Number(service.loyaltyPoints))} loyalty points`}
+                              {t('earn_points', { points: Math.round(Number(service.loyaltyPoints)) })}
                             </Text>
                           </View>
                         )}

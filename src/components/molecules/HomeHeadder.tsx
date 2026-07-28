@@ -51,7 +51,7 @@ const HomeHeader = ({
       end={{ x: 0.5, y: 1 }}
       style={styles.LinearGradientContainer}
     >
-      <View style={[styles.headerContainer, { paddingTop: inset.top + 20 }]}>
+      <View style={[styles.headerContainer, { paddingTop: inset.top + 12 }]}>
         <View style={styles.topRow}>
           <View style={styles.locationContainer}>
             <Text style={styles.locationLabel}>{t('location_label')}</Text>
@@ -67,16 +67,14 @@ const HomeHeader = ({
                     {t('getting_location')}
                   </Text>
                 </>
-              ) : location ? (
-                <>
-                  <Ionicons name="location" size={18} color={colors.white} />
-                  <Text style={styles.locationText} numberOfLines={1}>
-                    {location}
-                  </Text>
-                  <Ionicons name="chevron-down" size={18} color={colors.white} />
-                </>
               ) : (
-                <Ionicons name="chevron-down" size={18} color={colors.white} />
+                <>
+                  <Ionicons name="location" size={14} color={colors.white} />
+                  <Text style={styles.locationText} numberOfLines={1}>
+                    {location || t('riyadh')}
+                  </Text>
+                  <Ionicons name="chevron-down" size={14} color={colors.white} />
+                </>
               )}
             </TouchableOpacity>
           </View>
@@ -87,11 +85,11 @@ const HomeHeader = ({
               onPress={onCartPress}
               activeOpacity={0.7}
             >
-              <ShopingCartSvg />
+              <ShopingCartSvg width={18} height={18} />
               {cartItemCount > 0 && (
-              <View style={[styles.badge,{top: -4, right: -4}]}>
-                <Text style={styles.badgeText}>{cartItemCount}</Text>
-              </View>
+                <View style={[styles.badge,{top: -4, right: -4}]}>
+                  <Text style={styles.badgeText}>{cartItemCount}</Text>
+                </View>
               )} 
             </TouchableOpacity>
 
@@ -101,7 +99,7 @@ const HomeHeader = ({
               activeOpacity={0.7}
             >
               <View style={styles.notificationIconContainer}>
-                <Ionicons name="notifications-outline" size={24} />
+                <Ionicons name="notifications-outline" size={20} />
                 {notificationCount > 0 && (
                   <View style={styles.badge}>
                     <Text style={styles.badgeText}>
@@ -128,7 +126,7 @@ const HomeHeader = ({
             <TouchableOpacity onPress={onSearchPress} activeOpacity={0.7}>
               <Ionicons
                 name="search"
-                size={22}
+                size={18}
                 color={colors.black}
                 style={styles.searchIcon}
               />
@@ -140,7 +138,7 @@ const HomeHeader = ({
             onPress={onSLPress}
             activeOpacity={0.7}
           >
-            <FilterSvg />
+            <FilterSvg width={18} height={18} />
           </TouchableOpacity>
         </View>
       </View>
@@ -154,47 +152,46 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 15,
   },
   headerContainer: {
-   
-    paddingBottom: 30,
-    paddingHorizontal: 20,
+    paddingBottom: 15,
+    paddingHorizontal: 15,
   },
   topRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 20,
+    marginBottom: 10,
   },
   locationContainer: {
     flex: 1,
   },
   locationLabel: {
     color: '#FFF',
-    fontSize: 14,
-    marginBottom: 5,
+    fontSize: 13,
+    marginBottom: 2,
     opacity: 0.9,
   },
   locationButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    width: '70%',
+    gap: 4,
+    width: '75%',
   },
   locationText: {
     color: '#FFF',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     marginLeft: 2,
   },
   iconContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
   iconButton: {
-    width: 44,
-    height: 44,
+    width: 36,
+    height: 36,
     backgroundColor: '#FFF',
-    borderRadius: 22,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
@@ -228,25 +225,26 @@ const styles = StyleSheet.create({
   searchContainer: {
     flex: 1,
     backgroundColor: '#FFF',
-    borderRadius: 12,
-    height: 50,
+    borderRadius: 10,
+    height: 40,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 15,
+    paddingHorizontal: 10,
   },
   searchInput: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 14,
     color: '#333',
+    paddingVertical: 0,
   },
   searchIcon: {
-    marginLeft: 10,
+    marginLeft: 8,
   },
   SLButton: {
-    width: 50,
-    height: 50,
+    width: 40,
+    height: 40,
     backgroundColor: '#FFF',
-    borderRadius: 12,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },

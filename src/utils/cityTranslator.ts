@@ -59,3 +59,68 @@ export const translateCityToEnglish = (cityName: string | null | undefined): str
   // If no translation found, return original (might be mixed or already English)
   return trimmedCity;
 };
+
+/**
+ * Utility function to localize clinic metadata (name, specialty/category, address) when the UI is in Arabic.
+ * Maps English fields returned by the API to natural Arabic copy.
+ */
+export const localizeClinicText = (
+  text: string | null | undefined,
+  isArabic: boolean
+): string => {
+  if (!text) return '';
+  if (!isArabic) return text;
+
+  const trimmed = text.trim();
+  const lower = trimmed.toLowerCase();
+
+  // 1. Direct exact mappings for names, specialties, and addresses
+  const exactMap: { [key: string]: string } = {
+    'riyadh dental and dermatology clinic': 'عيادة الرياض لطب الأسنان والجلدية',
+    'riyadh dental and dermatology': 'الرياض لطب الأسنان والجلدية',
+    'dermatology': 'جلدية',
+    'dentistry': 'أسنان',
+    'both': 'جلدية / أسنان',
+    'general': 'عام',
+    'riyadh': 'الرياض',
+    'commercial market rd, b-block block b': 'طريق السوق التجاري، ب-بلوك بلوك ب',
+    'location not available': 'الموقع غير متوفر',
+  };
+
+  if (exactMap[lower]) {
+    return exactMap[lower];
+  }
+
+  // 2. Phrase/word mapping for partial values (like addresses or combined titles)
+  let translated = trimmed;
+
+  // Replace common city names
+  translated = translated.replace(/\bRiyadh\b/gi, 'الرياض');
+  translated = translated.replace(/\bJeddah\b/gi, 'جدة');
+  translated = translated.replace(/\bMakkah\b/gi, 'مكة المكرمة');
+  translated = translated.replace(/\bMadinah\b/gi, 'المدينة المنورة');
+  translated = translated.replace(/\bDammam\b/gi, 'الدمام');
+  translated = translated.replace(/\bKhobar\b/gi, 'الخبر');
+  translated = translated.replace(/\bTaif\b/gi, 'الطائف');
+
+  // Replace street/block address components
+  translated = translated.replace(/\bCommercial Market Rd\b/gi, 'طريق السوق التجاري');
+  translated = translated.replace(/\bB-Block\b/gi, 'ب-بلوك');
+  translated = translated.replace(/\bBlock B\b/gi, 'بلوك ب');
+  translated = translated.replace(/\bRoad\b/gi, 'طريق');
+  translated = translated.replace(/\bStreet\b/gi, 'شارع');
+  translated = translated.replace(/\bSt\b/gi, 'شارع');
+  translated = translated.replace(/\bRd\b/gi, 'طريق');
+  translated = translated.replace(/\bDistrict\b/gi, 'حي');
+  translated = translated.replace(/\bCity\b/gi, 'مدينة');
+
+  // Replace specialties and words in titles
+  translated = translated.replace(/\bDental and Dermatology Clinic\b/gi, 'عيادة طب الأسنان والجلدية');
+  translated = translated.replace(/\bDental and Dermatology\b/gi, 'الرياض لطب الأسنان والجلدية');
+  translated = translated.replace(/\bDental\b/gi, 'طب الأسنان');
+  translated = translated.replace(/\bDermatology\b/gi, 'جلدية');
+  translated = translated.replace(/\bDentistry\b/gi, 'أسنان');
+  translated = translated.replace(/\bClinic\b/gi, 'عيادة');
+
+  return translated;
+};

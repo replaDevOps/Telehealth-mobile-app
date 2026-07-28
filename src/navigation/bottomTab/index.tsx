@@ -58,8 +58,8 @@ export default function CustomTabBar() {
 
           return {
             ...styles.tabBar,
-            height: 65 + insets.bottom,
-            paddingBottom: 5 + insets.bottom,
+            height: 48 + insets.bottom,
+            paddingBottom: 2 + insets.bottom,
           };
         })(),
 
@@ -90,7 +90,7 @@ export default function CustomTabBar() {
           return (
             <View style={styles.iconLabelWrapper}>
               {SvgComponent && (
-                <SvgComponent width={24} height={24} fill={''} />
+                <SvgComponent width={20} height={20} fill={''} />
               )}
               <Text
                 numberOfLines={1}
@@ -137,19 +137,19 @@ export default function CustomTabBar() {
 const styles = StyleSheet.create({
   tabBar: {
     backgroundColor: colors.white,
-    height: 65,
-    paddingBottom: 5,
-    paddingTop: 5,
+    height: 48,
+    paddingBottom: 2,
+    paddingTop: 2,
   },
   iconLabelWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
     width: 60,
-    paddingTop: 10,
-    gap: 8,
+    paddingTop: 2,
+    gap: 3,
   },
   labelText: {
-    fontSize: 12,
+    fontSize: 10.5,
     fontFamily: 'DMSans-Regular',
     textAlign: 'center',
     width: '100%',

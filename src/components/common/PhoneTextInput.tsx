@@ -32,6 +32,7 @@ interface PhoneNumberInputProps {
   onValidationChange?: (isValid: boolean) => void;
   initialValue?: string;
   CustomStyle?: ViewStyle;
+  theme?: 'light' | 'dark';
 }
 
 const PhoneNumberInput: React.FC<PhoneNumberInputProps> = ({
@@ -47,6 +48,7 @@ const PhoneNumberInput: React.FC<PhoneNumberInputProps> = ({
   onValidationChange,
   initialValue = '',
   CustomStyle,
+  theme = 'light',
 }) => {
   const { t } = useTranslation();
   const [value, setValue] = useState<string>(initialValue || '');
@@ -189,6 +191,7 @@ const PhoneNumberInput: React.FC<PhoneNumberInputProps> = ({
     (!isValid && hasBeenTouched && value ? t('invalid_phone') : '');
 
   const hasError = !!displayError;
+  const isLight = theme === 'light';
 
   return (
     <View>
@@ -197,6 +200,10 @@ const PhoneNumberInput: React.FC<PhoneNumberInputProps> = ({
           styles.phoneInputContainer,
           containerStyle,
           CustomStyle,
+          {
+            backgroundColor: isLight ? colors.gray : '#1D1236',
+            borderColor: isLight ? colors.border : '#3A2E5B',
+          },
           hasError && styles.errorContainer,
         ]}
       >
@@ -212,18 +219,27 @@ const PhoneNumberInput: React.FC<PhoneNumberInputProps> = ({
           disabled={!editable}
           placeholder={placeholder}
           textInputProps={{
-            placeholderTextColor: colors.gray,
+            placeholderTextColor: isLight ? colors.secondaryText : '#8E8E8E',
             editable: editable,
             value: value,
           }}
           onChangeText={handleTextChange}
           onChangeCountry={handleCountryChange}
           onChangeFormattedText={handleFormattedTextChange}
-          containerStyle={styles.phoneInputInnerContainer}
+          containerStyle={[
+            styles.phoneInputInnerContainer,
+            { backgroundColor: isLight ? colors.gray : '#1D1236' },
+          ]}
           textContainerStyle={styles.textContainer}
           flagButtonStyle={styles.flagButton}
-          codeTextStyle={styles.codeText}
-          textInputStyle={styles.textInput}
+          codeTextStyle={[
+            styles.codeText,
+            { color: isLight ? colors.black : colors.white },
+          ]}
+          textInputStyle={[
+            styles.textInput,
+            { color: isLight ? colors.black : colors.white },
+          ]}
         />
       </View>
 
@@ -240,7 +256,6 @@ const styles = StyleSheet.create({
   },
   phoneInputContainer: {
     borderWidth: 1,
-    borderColor: colors.border,
     borderRadius: mvs(8),
     marginBottom: mvs(16),
     overflow: 'hidden',
@@ -253,7 +268,6 @@ const styles = StyleSheet.create({
   phoneInputInnerContainer: {
     width: '100%',
     height: mvs(50),
-    backgroundColor: colors.gray,
     direction: 'ltr',
   },
   textContainer: {
@@ -269,11 +283,9 @@ const styles = StyleSheet.create({
   },
   codeText: {
     fontSize: mvs(16),
-    color: colors.black,
   },
   textInput: {
     fontSize: 16,
-    color: colors.black,
     paddingVertical: 0,
     height: mvs(50),
     direction: 'ltr',

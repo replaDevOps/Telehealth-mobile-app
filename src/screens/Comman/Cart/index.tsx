@@ -1,7 +1,8 @@
 import { RecommandImage } from '@assets/images';
 import ClinicAvatar from '@components/common/ClinicAvatar';
 import { Header2 } from '@components/common/Header2';
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import * as React from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -27,9 +28,11 @@ import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
 import { Toast } from 'toastify-react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { localizeClinicText } from '../../../utils/cityTranslator';
 
 export function CartScreen({ navigation }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language === 'ar' || i18n.language?.startsWith('ar');
   const { removeFromCart, addToCart } = useCart();
   const { triggerRefresh, decrementCartCount, incrementCartCount } = useCartCountContext();
   const [cartData, setCartData] = useState<any[]>([]);
@@ -46,81 +49,6 @@ export function CartScreen({ navigation }) {
   const lastFetchParamsRef = useRef<{ lat: number; long: number } | null>(null);
   const lastFetchTimeRef = useRef<number>(0);
   const FETCH_CACHE_DURATION = 5000; // Cache fetch results for 5 seconds
-
-  useEffect(() => {
-    requestLocationAndFetchCart();
-  }, []);
-
-  // Refresh cart when screen comes into focus (with deduplication and debouncing)
-  useFocusEffect(
-    React.useCallback(() => {
-      // Debounce focus events - only fetch if location exists and not recently fetched
-      const now = Date.now();
-      if (userLocation && now - lastFetchTimeRef.current > FETCH_CACHE_DURATION) {
-        // Small delay to prevent race condition with initial mount
-        const timer = setTimeout(() => {
-          fetchCartDetails(userLocation.lat, userLocation.long, false);
-        }, 300);
-        return () => clearTimeout(timer);
-      }
-    }, [userLocation, fetchCartDetails])
-  );
-
-  const requestLocationAndFetchCart = async () => {
-    try {
-      if (Platform.OS === 'android') {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
-        );
-        if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-          getCurrentLocationAndFetch();
-        } else {
-          // Use default location if permission denied
-          fetchCartDetails(24.7136, 46.6753);
-        }
-      } else {
-        Geolocation.requestAuthorization();
-        getCurrentLocationAndFetch();
-      }
-    } catch (err) {
-      console.warn('Location permission error:', err);
-      fetchCartDetails(24.7136, 46.6753);
-    }
-  };
-
-  const getCurrentLocationAndFetch = () => {
-    // Use cached location if available (within 10 seconds)
-    const cachedLocation = lastFetchParamsRef.current;
-    const now = Date.now();
-    if (cachedLocation && now - lastFetchTimeRef.current < 10000) {
-      console.log('📍 Using cached location for faster load');
-      setUserLocation({ lat: cachedLocation.lat, long: cachedLocation.long });
-      fetchCartDetails(cachedLocation.lat, cachedLocation.long, true);
-      return;
-    }
-
-    Geolocation.getCurrentPosition(
-      position => {
-        const { latitude, longitude } = position.coords;
-        // Only update location if it's different (avoid triggering useFocusEffect unnecessarily)
-        setUserLocation(prev => {
-          if (prev && prev.lat === latitude && prev.long === longitude) {
-            return prev; // Same location, don't update
-          }
-          return { lat: latitude, long: longitude };
-        });
-        fetchCartDetails(latitude, longitude, true);
-      },
-      error => {
-        console.warn('Error getting location:', error);
-        // Use default location (Riyadh, Saudi Arabia)
-        const defaultLocation = { lat: 24.7136, long: 46.6753 };
-        setUserLocation(defaultLocation);
-        fetchCartDetails(defaultLocation.lat, defaultLocation.long, true);
-      },
-      { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 } // 5s timeout, 5min cache
-    );
-  };
 
   const transformCartData = useCallback((apiData: any): any[] => {
     console.log('Transforming API data for cart UI', apiData);
@@ -321,6 +249,81 @@ export function CartScreen({ navigation }) {
     }
   }, [transformCartData]);
 
+  const getCurrentLocationAndFetch = () => {
+    // Use cached location if available (within 10 seconds)
+    const cachedLocation = lastFetchParamsRef.current;
+    const now = Date.now();
+    if (cachedLocation && now - lastFetchTimeRef.current < 10000) {
+      console.log('📍 Using cached location for faster load');
+      setUserLocation({ lat: cachedLocation.lat, long: cachedLocation.long });
+      fetchCartDetails(cachedLocation.lat, cachedLocation.long, true);
+      return;
+    }
+
+    Geolocation.getCurrentPosition(
+      position => {
+        const { latitude, longitude } = position.coords;
+        // Only update location if it's different (avoid triggering useFocusEffect unnecessarily)
+        setUserLocation(prev => {
+          if (prev && prev.lat === latitude && prev.long === longitude) {
+            return prev; // Same location, don't update
+          }
+          return { lat: latitude, long: longitude };
+        });
+        fetchCartDetails(latitude, longitude, true);
+      },
+      error => {
+        console.warn('Error getting location:', error);
+        // Use default location (Riyadh, Saudi Arabia)
+        const defaultLocation = { lat: 24.7136, long: 46.6753 };
+        setUserLocation(defaultLocation);
+        fetchCartDetails(defaultLocation.lat, defaultLocation.long, true);
+      },
+      { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 } // 5s timeout, 5min cache
+    );
+  };
+
+  const requestLocationAndFetchCart = async () => {
+    try {
+      if (Platform.OS === 'android') {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+        );
+        if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+          getCurrentLocationAndFetch();
+        } else {
+          // Use default location if permission denied
+          fetchCartDetails(24.7136, 46.6753);
+        }
+      } else {
+        Geolocation.requestAuthorization();
+        getCurrentLocationAndFetch();
+      }
+    } catch (err) {
+      console.warn('Location permission error:', err);
+      fetchCartDetails(24.7136, 46.6753);
+    }
+  };
+
+  useEffect(() => {
+    requestLocationAndFetchCart();
+  }, []);
+
+  // Refresh cart when screen comes into focus (with deduplication and debouncing)
+  useFocusEffect(
+    React.useCallback(() => {
+      // Debounce focus events - only fetch if location exists and not recently fetched
+      const now = Date.now();
+      if (userLocation && now - lastFetchTimeRef.current > FETCH_CACHE_DURATION) {
+        // Small delay to prevent race condition with initial mount
+        const timer = setTimeout(() => {
+          fetchCartDetails(userLocation.lat, userLocation.long, false);
+        }, 300);
+        return () => clearTimeout(timer);
+      }
+    }, [userLocation, fetchCartDetails])
+  );
+
   // Get suggested services from API response for a specific clinic
   const getSuggestedServices = (clinicId: string) => {
     const clinicGroup = cartData.find((group: any) => group.clinic.id === clinicId);
@@ -338,22 +341,27 @@ export function CartScreen({ navigation }) {
   }, [cartData]);
 
   // Group cart items by clinic (already grouped from API)
-  const groupedByClinic = cartData.reduce((acc, group) => {
+  const groupedByClinic = cartData.reduce((acc: any, group: any) => {
     const clinicId = group.clinic.id || 'unknown';
     acc[clinicId] = group;
     return acc;
-  }, {});
+  }, {} as any);
+
+  const formatCurrency = (val: number | string) => {
+    const num = typeof val === 'number' ? val : parseFloat(String(val || 0).replace(/[^0-9.]/g, ''));
+    const formatted = isNaN(num) ? '0.00' : num.toFixed(2);
+    return isArabic ? `${formatted} ر.س` : `SAR ${formatted}`;
+  };
 
   const calculateSubtotal = (clinicGroup: any) => {
-    // Use totalPrice from API if available, otherwise calculate from services
     if (clinicGroup.totalPrice !== undefined) {
-      return `SAR ${parseFloat(clinicGroup.totalPrice.toString()).toFixed(2)}`;
+      return formatCurrency(clinicGroup.totalPrice);
     }
     const total = clinicGroup.services.reduce((sum: number, service: any) => {
-      const price = parseFloat(service.price.replace(/[^0-9.]/g, ''));
+      const price = parseFloat((service.price || '0').replace(/[^0-9.]/g, ''));
       return sum + price;
     }, 0);
-    return `SAR ${total.toFixed(2)}`;
+    return formatCurrency(total);
   };
 
   const calculateGroupDiscount = (clinicGroup: any) => {
@@ -575,10 +583,12 @@ export function CartScreen({ navigation }) {
                 <ClinicAvatar name={clinicGroup.clinic.name} size={56} style={styles.clinicImage} />
               )}
               <View style={styles.clinicInfo}>
-                <Text style={styles.clinicName} numberOfLines={1} ellipsizeMode="tail">{clinicGroup.clinic.name}</Text>
-                
+                <Text style={styles.clinicName} numberOfLines={1} ellipsizeMode="tail">
+                  {localizeClinicText(clinicGroup.clinic.name, isArabic)}
+                </Text>
+
                 <Text style={styles.clinicLocation} numberOfLines={1} ellipsizeMode="tail">
-                  {clinicGroup.clinic.address || clinicGroup.clinic.location || ''}{clinicGroup.clinic.distance ? `, ${clinicGroup.clinic.distance}` : ''}
+                  {localizeClinicText(clinicGroup.clinic.address || clinicGroup.clinic.location || '', isArabic)}{clinicGroup.clinic.distance ? `, ${clinicGroup.clinic.distance}` : ''}
                 </Text>
 
                 <View style={styles.clinicPointsContainer}>
@@ -587,7 +597,7 @@ export function CartScreen({ navigation }) {
                   </View>
                   <Text style={styles.clinicPointsText}>{Math.round(Number(clinicGroup.clinicLoyaltyPoints || 0))}</Text>
                 </View>
-                
+
               </View>
             </View>
 
@@ -613,18 +623,30 @@ export function CartScreen({ navigation }) {
                 <View style={styles.cardHeader}>
                   <View style={styles.serviceBadges}>
                     <View style={styles.categoryBadge}>
-                      <Text style={styles.categoryBadgeText} numberOfLines={1} ellipsizeMode="tail">{service.type}</Text>
+                      <Text style={styles.categoryBadgeText} numberOfLines={1} ellipsizeMode="tail">
+                        {localizeClinicText(service.type, isArabic)}
+                      </Text>
                     </View>
                     <View style={styles.nameBadge}>
-                      <Text style={styles.nameBadgeText} numberOfLines={1} ellipsizeMode="tail">{service.serviceGroup}</Text>
+                      <Text style={styles.nameBadgeText} numberOfLines={1} ellipsizeMode="tail">
+                        {localizeClinicText(service.serviceGroup, isArabic)}
+                      </Text>
                     </View>
                   </View>
                 </View>
 
                 <View style={styles.cardBody}>
-                  <Image source={service.image} style={styles.serviceImage} />
+                  <Image
+                    source={service.image}
+                    style={styles.serviceImage}
+                    onError={(e) => {
+                      console.log('Cart service image failed to load, falling back:', e.nativeEvent);
+                    }}
+                  />
                   <View style={styles.serviceContent}>
-                    <Text style={styles.serviceName} numberOfLines={1} ellipsizeMode="tail">{service.serviceName}</Text>
+                    <Text style={styles.serviceName} numberOfLines={1} ellipsizeMode="tail">
+                      {localizeClinicText(service.serviceName, isArabic)}
+                    </Text>
                     <View style={styles.serviceFooter}>
                       <View style={styles.durationContainer}>
                         <Ionicons
@@ -637,19 +659,19 @@ export function CartScreen({ navigation }) {
                       {Number(service.campaignDiscount || 0) > 0 && service.finalPrice !== null ? (
                         <View style={{ alignItems: 'flex-end' }}>
                           <Text style={[styles.servicePrice, { fontSize: 12, color: '#888', textDecorationLine: 'line-through', fontWeight: '400' }]}>{service.price}</Text>
-                          <Text style={styles.servicePrice}>{`SAR ${Number(service.finalPrice).toFixed(2)}`}</Text>
+                          <Text style={styles.servicePrice}>{formatCurrency(service.finalPrice)}</Text>
                           <Text style={{ fontSize: 11, fontWeight: '600', color: '#16a34a', marginTop: 2 }}>
-                            {`-SAR ${Number(service.campaignDiscount).toFixed(2)}`}
+                            {isArabic ? `-${Number(service.campaignDiscount).toFixed(2)} ر.س` : `-SAR ${Number(service.campaignDiscount).toFixed(2)}`}
                           </Text>
                         </View>
                       ) : (
-                        <Text style={styles.servicePrice}>{service.price}</Text>
+                        <Text style={styles.servicePrice}>{formatCurrency(service.finalPrice || service.rawPrice || service.price)}</Text>
                       )}
                     </View>
                     {/* Loyalty badge per service */}
                     {service.loyaltyPoints && Number(service.loyaltyPoints) > 0 && (
                       <Text style={styles.loyaltyBadgeText}>
-                        {`Earn ${Math.round(Number(service.loyaltyPoints))} loyalty points`}
+                        {t('earn_points', { points: Math.round(Number(service.loyaltyPoints)) }) || `Earn ${Math.round(Number(service.loyaltyPoints))} loyalty points`}
                       </Text>
                     )}
                   </View>
@@ -723,10 +745,14 @@ export function CartScreen({ navigation }) {
                     <View style={styles.cardHeader}>
                         <View style={styles.serviceBadges}>
                           <View style={styles.categoryBadge}>
-                            <Text style={[styles.categoryBadgeText]} numberOfLines={1} ellipsizeMode="tail" >{service.type}</Text>
+                            <Text style={[styles.categoryBadgeText]} numberOfLines={1} ellipsizeMode="tail">
+                              {localizeClinicText(service.type, isArabic)}
+                            </Text>
                           </View>
                           <View style={styles.nameBadge}>
-                            <Text style={styles.nameBadgeText} numberOfLines={1} ellipsizeMode="tail">{service.serviceGroup}</Text>
+                            <Text style={styles.nameBadgeText} numberOfLines={1} ellipsizeMode="tail">
+                              {localizeClinicText(service.serviceGroup, isArabic)}
+                            </Text>
                           </View>
                         </View>
                     </View>
@@ -735,7 +761,7 @@ export function CartScreen({ navigation }) {
                       <Image source={service.image} style={styles.serviceImage} />
                       <View style={styles.serviceContent}>
                         <Text style={styles.serviceName} numberOfLines={1} ellipsizeMode="tail">
-                          {service.serviceName}
+                          {localizeClinicText(service.serviceName, isArabic)}
                         </Text>
                         <View style={styles.serviceFooter}>
                           <View style={styles.durationContainer}>

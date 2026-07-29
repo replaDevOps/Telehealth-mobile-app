@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import * as React from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
@@ -220,23 +221,6 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
             type: fileType,
             name: fileName,
           } as any);
-        } else {
-          // No photo chosen — send the bundled default avatar
-          try {
-            // Use the JS-bundle require path (resolved at runtime by Metro)
-            const resolvedDefault = Image.resolveAssetSource(
-              require('../../../assets/images/image.png')
-            );
-            if (resolvedDefault?.uri) {
-              formData.append('image', {
-                uri: resolvedDefault.uri,
-                type: 'image/png',
-                name: 'default_avatar.png',
-              } as any);
-            }
-          } catch (_) {
-            // Silently skip if resolution fails — backend may accept no image
-          }
         }
 
         // Get auth token if available

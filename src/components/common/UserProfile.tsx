@@ -10,7 +10,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { launchImageLibrary, ImagePickerResponse, Asset } from 'react-native-image-picker';
 import { mvs } from '../../config/metrices';
 import { colors } from '../../styles/colors';
-import { EditSvg } from '../../assets/icons';
+import { EditSvg, SingleLogo } from '../../assets/icons';
 import { API } from '../../services/api/api-endpoint';
 import { BASE_URL } from '../../constants';
 import { Toast } from 'toastify-react-native';
@@ -31,12 +31,12 @@ const UserProfile: React.FC<UserProfileProps> = ({
 }) => {
   const [profileImage, setProfileImage] = useState(initialProfileImage);
   const [isUploading, setIsUploading] = useState(false);
+  const [hasLoadError, setHasLoadError] = useState(false);
 
   // Update profile image when prop changes
   useEffect(() => {
-    if (initialProfileImage) {
-      setProfileImage(initialProfileImage);
-    }
+    setProfileImage(initialProfileImage || '');
+    setHasLoadError(false);
   }, [initialProfileImage]);
 
   const uploadProfileImage = useCallback(async (asset: Asset) => {
@@ -99,7 +99,9 @@ const UserProfile: React.FC<UserProfileProps> = ({
   const openImagePicker = useCallback(() => {
     const options = {
       mediaType: 'photo' as const,
-      quality: 0.8 as const,
+      quality: 0.6 as const, // client-side compression
+      maxWidth: 500, // max dimensions
+      maxHeight: 500,
       includeBase64: false,
     };
 
@@ -130,9 +132,26 @@ const UserProfile: React.FC<UserProfileProps> = ({
     });
   }, [uploadProfileImage, autoUpload, onImageSelected, onImageAssetSelected]);
 
-  const imageSource = profileImage
-    ? { uri: profileImage }
-    : require('../../assets/images/image.png');
+  const getFullImageUrl = (path?: string) => {
+    if (!path) return '';
+    const trimmed = path.trim().toLowerCase();
+    if (
+      trimmed === '' || 
+      trimmed === 'null' || 
+      trimmed === 'undefined' || 
+      trimmed.includes('default') || 
+      trimmed.includes('image.png')
+    ) {
+      return '';
+    }
+    if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('file://')) {
+      return path;
+    }
+    const cleanPath = path.startsWith('/') ? path.slice(1) : path;
+    return `https://telehealth.repla-projects.com/${cleanPath}`;
+  };
+
+  const resolvedUri = getFullImageUrl(profileImage);
 
   return (
     <View style={styles.container}>
@@ -142,7 +161,17 @@ const UserProfile: React.FC<UserProfileProps> = ({
         activeOpacity={0.8}
         disabled={isUploading}
       >
-        <Image source={imageSource} style={[styles.profileImage]} />
+        {resolvedUri && !hasLoadError ? (
+          <Image 
+            source={{ uri: resolvedUri }} 
+            style={[styles.profileImage]} 
+            onError={() => setHasLoadError(true)}
+          />
+        ) : (
+          <View style={[styles.profileImage, { backgroundColor: '#E8DDF7', justifyContent: 'center', alignItems: 'center' }]}>
+            <SingleLogo width={mvs(50)} height={mvs(50)} fill="#7625D7" />
+          </View>
+        )}
 
         {/* Edit / Loading overlay */}
         {isUploading ? (

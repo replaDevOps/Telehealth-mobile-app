@@ -77,11 +77,19 @@ export const localizeClinicText = (
   // 1. Direct exact mappings for names, specialties, and addresses
   const exactMap: { [key: string]: string } = {
     'riyadh dental and dermatology clinic': 'عيادة الرياض لطب الأسنان والجلدية',
-    'riyadh dental and dermatology': 'الرياض لطب الأسنان والجلدية',
+    'riyadh dental and dermatology': 'عيادة الرياض لطب الأسنان والجلدية',
     'dermatology': 'جلدية',
     'dentistry': 'أسنان',
+    'dentist group': 'مجموعة الأسنان',
+    'service 101': 'خدمة 101',
+    'service 102': 'خدمة 102',
+    'acne treatment': 'علاج حب الشباب',
+    'microneedling facial prp': 'جلسة نيدلينج للوجه مع بلازما',
+    'scar subcision': 'تقطير الندبات',
+    'botox': 'بوتوكس',
     'both': 'جلدية / أسنان',
     'general': 'عام',
+    'group': 'مجموعة',
     'riyadh': 'الرياض',
     'commercial market rd, b-block block b': 'طريق السوق التجاري، ب-بلوك بلوك ب',
     'location not available': 'الموقع غير متوفر',
@@ -116,7 +124,9 @@ export const localizeClinicText = (
 
   // Replace specialties and words in titles
   translated = translated.replace(/\bDental and Dermatology Clinic\b/gi, 'عيادة طب الأسنان والجلدية');
-  translated = translated.replace(/\bDental and Dermatology\b/gi, 'الرياض لطب الأسنان والجلدية');
+  translated = translated.replace(/\bDental and Dermatology\b/gi, 'عيادة الرياض لطب الأسنان والجلدية');
+  translated = translated.replace(/\bDentist Group\b/gi, 'مجموعة الأسنان');
+  translated = translated.replace(/\bService (\d+)\b/gi, 'خدمة $1');
   translated = translated.replace(/\bDental\b/gi, 'طب الأسنان');
   translated = translated.replace(/\bDermatology\b/gi, 'جلدية');
   translated = translated.replace(/\bDentistry\b/gi, 'أسنان');

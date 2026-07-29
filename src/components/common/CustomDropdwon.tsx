@@ -1,6 +1,7 @@
-import React from 'react';
+import * as React from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
 import { Dropdown } from 'react-native-element-dropdown';
+import { useTranslation } from 'react-i18next';
 import { colors } from '../../styles/colors';
 import { mvs } from '../../config/metrices';
 
@@ -29,19 +30,34 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
   errorMessage, // ← ADD
 }) => {
   const hasError = !!errorMessage;
+  const { i18n } = useTranslation();
+  const isRtl = i18n.language === 'ar';
 
   return (
     <View style={[styles.container, containerStyle]}>
-      {label && <Text style={styles.label}>{label}</Text>}
+      {label && (
+        <Text style={[styles.label, { textAlign: isRtl ? 'right' : 'left' }]}>
+          {label}
+        </Text>
+      )}
 
       <Dropdown
         style={[
           styles.dropdown,
           hasError && styles.dropdownError, // ← Red border
         ]}
-        placeholderStyle={styles.placeholderStyle}
-        selectedTextStyle={styles.selectedTextStyle}
-        itemTextStyle={styles.itemTextStyle}
+        placeholderStyle={[
+          styles.placeholderStyle,
+          { textAlign: isRtl ? 'right' : 'left' },
+        ]}
+        selectedTextStyle={[
+          styles.selectedTextStyle,
+          { textAlign: isRtl ? 'right' : 'left' },
+        ]}
+        itemTextStyle={[
+          styles.itemTextStyle,
+          { textAlign: isRtl ? 'right' : 'left' },
+        ]}
         data={options}
         labelField="label"
         valueField="value"

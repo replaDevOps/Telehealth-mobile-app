@@ -19,6 +19,7 @@ import { styles } from './style';
 import ClinicAvatar from '@components/common/ClinicAvatar';
 import { PaymentMethod, SuccessMessageModal } from '@components/molecules'; // Verify this path
 import { useTranslation } from 'react-i18next';
+import { localizeClinicText } from '../../../utils/cityTranslator';
 import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
 import { Toast } from 'toastify-react-native';
@@ -27,7 +28,13 @@ import { useCart } from '@context/CartContext';
 import { useCartCountContext } from '@context/CartCountContext';
 
 export function CheckoutScreen({ route, navigation }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language === 'ar' || i18n.language?.startsWith('ar');
+  const formatCurrency = (val: number | string) => {
+    const num = typeof val === 'number' ? val : parseFloat(String(val || 0));
+    const formatted = isNaN(num) ? '0.00' : num.toFixed(2);
+    return isArabic ? `${formatted} ر.س` : `SAR ${formatted}`;
+  };
   const insets = useSafeAreaInsets();
   const { profileData, fetchProfile, refreshProfile, currencyValuePerPoint } = useProfileStore();
   const { clearCart } = useCart();
@@ -378,9 +385,9 @@ export function CheckoutScreen({ route, navigation }) {
                 <ClinicAvatar name={group.clinic.name} size={56} style={styles.clinicImage} />
               )}
               <View style={styles.clinicInfo}>
-                <Text style={styles.clinicName}>{group.clinic.name}</Text>
+                <Text style={styles.clinicName}>{localizeClinicText(group.clinic.name, isArabic)}</Text>
                 <Text style={styles.clinicLocation}>
-                  {group.clinic.address || group.clinic.location || ''}{group.clinic.distance ? `, ${group.clinic.distance}` : ''}
+                  {localizeClinicText(group.clinic.address || group.clinic.location || '', isArabic)}{group.clinic.distance ? `, ${group.clinic.distance}` : ''}
                 </Text>
               </View>
             </View>
@@ -395,12 +402,12 @@ export function CheckoutScreen({ route, navigation }) {
                           numberOfLines={1}
                           ellipsizeMode="tail"
                         >
-                          {service.type}
+                          {localizeClinicText(service.type, isArabic)}
                         </Text>
                       </View>
                       <View style={styles.nameBadge}>
                         <Text style={styles.nameBadgeText} numberOfLines={1} ellipsizeMode="tail">
-                          {service.serviceGroup}
+                          {localizeClinicText(service.serviceGroup, isArabic)}
                         </Text>
                       </View>
                     </View>
@@ -410,7 +417,7 @@ export function CheckoutScreen({ route, navigation }) {
                   <View style={styles.serviceInfo}>
                    
                     <Text style={styles.serviceName} numberOfLines={1}>
-                      {service.serviceName}
+                      {localizeClinicText(service.serviceName, isArabic)}
                     </Text>
                     <View style={styles.durationContainer}>
                       <Ionicons
@@ -427,13 +434,13 @@ export function CheckoutScreen({ route, navigation }) {
                     <Text style={[styles.servicePrice, { fontSize: 12, color: '#888', textDecorationLine: 'line-through', fontWeight: '400' }]}>
                       {service.price}
                     </Text>
-                    <Text style={styles.servicePrice}>{`SAR ${Number(service.finalPrice).toFixed(2)}`}</Text>
+                    <Text style={styles.servicePrice}>{formatCurrency(service.finalPrice)}</Text>
                     <Text style={{ fontSize: 11, fontWeight: '600', color: '#16a34a', marginTop: 2 }}>
-                      {`-SAR ${Number(service.campaignDiscount).toFixed(2)}`}
+                      {isArabic ? `-${Number(service.campaignDiscount).toFixed(2)} ر.س` : `-SAR ${Number(service.campaignDiscount).toFixed(2)}`}
                     </Text>
                   </View>
                 ) : (
-                  <Text style={styles.servicePrice}>{service.price}</Text>
+                  <Text style={styles.servicePrice}>{formatCurrency(service.finalPrice || service.rawPrice || service.price)}</Text>
                 )}
                 </View>
               </View>
@@ -506,7 +513,7 @@ export function CheckoutScreen({ route, navigation }) {
 
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>{t('subtotal')}</Text>
-            <Text style={styles.summaryValue}>SAR {subtotal.toFixed(2)}</Text>
+            <Text style={styles.summaryValue}>{formatCurrency(subtotal)}</Text>
           </View>
 
       
@@ -515,7 +522,7 @@ export function CheckoutScreen({ route, navigation }) {
             {TAX_RATE > 0 && (
               <>
                 <Text style={styles.summaryLabel}>{t('tax')}</Text>
-                <Text style={styles.summaryValue}>SAR {tax.toFixed(2)}</Text>
+                <Text style={styles.summaryValue}>{formatCurrency(tax)}</Text>
               </>
             )}
           </View>
@@ -523,14 +530,16 @@ export function CheckoutScreen({ route, navigation }) {
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>{t('discount')}</Text>
             <Text style={[styles.summaryValue, styles.discountValue]}>
-            {`-${campaignDiscountTotal.toFixed(2)} SAR`}
+            {isArabic ? `-${campaignDiscountTotal.toFixed(2)} ر.س` : `-${campaignDiscountTotal.toFixed(2)} SAR`}
             </Text>
           </View>
 
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>{t('redemption')}</Text>
             <Text style={[styles.summaryValue, appliedRedemptionAmount > 0 ? styles.redemptionValue : null]}>
-              {appliedRedemptionAmount > 0 ? `-${appliedRedemptionAmount.toFixed(2)} SAR` : '0.00 SAR'}
+              {appliedRedemptionAmount > 0
+                ? (isArabic ? `-${appliedRedemptionAmount.toFixed(2)} ر.س` : `-${appliedRedemptionAmount.toFixed(2)} SAR`)
+                : formatCurrency(0)}
             </Text>
           </View>
 
@@ -549,7 +558,7 @@ export function CheckoutScreen({ route, navigation }) {
             {t('total_amount') || 'Total Amount'}{' '}
             <Text style={styles.inclTaxText}>({t('incl_tax') || 'incl tax'})</Text>
           </Text>
-          <Text style={styles.totalAmountValue}>SAR {total.toFixed(2)}</Text>
+          <Text style={styles.totalAmountValue}>{formatCurrency(total)}</Text>
         </View>
 
         {(discountAmount > 0 || appliedRedemptionAmount > 0 || campaignDiscountTotal > 0) && (
@@ -559,7 +568,7 @@ export function CheckoutScreen({ route, navigation }) {
                 {t('appointment_summary') || 'Appointment Summary'}
               </Text> */}
             </TouchableOpacity>
-            <Text style={styles.originalSubtotal}>SAR {(subtotal + tax).toFixed(2)}</Text>
+            <Text style={styles.originalSubtotal}>{formatCurrency(subtotal + tax)}</Text>
           </View>
         )}
 

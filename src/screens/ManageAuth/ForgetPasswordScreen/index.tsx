@@ -23,8 +23,6 @@ import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
 import { Toast } from 'toastify-react-native';
 import parsePhoneNumberFromString, { CountryCode } from 'libphonenumber-js';
-import { sendPhoneOtp } from '@services/firebase/phoneAuth';
-import { setPhoneConfirmation } from '@services/firebase/phoneAuthStore';
 
 interface ForgetPasswordScreenProps {
   navigation: any;
@@ -218,15 +216,25 @@ export function ForgetPasswordScreen({
                     return;
                   }
 
-                  // Phone: verify via Firebase (same as registration)
+                  // Phone: backend sends the OTP (same as the email flow)
                   const phoneNumber = parsePhoneNumberFromString(phone, countryCode as CountryCode);
                   const formattedPhone = phoneNumber
                     ? `+${phoneNumber.countryCallingCode}${phoneNumber.nationalNumber}`
                     : `+${phone}`;
 
-                  const confirmation = await sendPhoneOtp(formattedPhone);
-                  setPhoneConfirmation(confirmation);
-                  Toast.success(t('otp_sent_successfully'));
+                  const response = await apiClient.post(API.AUTH.FORGOT_PASSWORD_PHONE, {
+                    phoneNo: formattedPhone,
+                  });
+
+                  if (response.data?.success === false) {
+                    const msg = response.data?.message || 'Failed to send OTP';
+                    setPhoneError(msg);
+                    Toast.error(msg);
+                    setLoading(false);
+                    return;
+                  }
+
+                  Toast.success(response.data?.message || t('otp_sent_successfully'));
                   navigation.navigate('OTPScreen', {
                     source: 'forgotPassword',
                     method: 'phone',
@@ -236,16 +244,20 @@ export function ForgetPasswordScreen({
                 }
               } catch (error: any) {
                 console.error('Forgot password error:', error);
-                const genericMsg =
+                // Backend messages (e.g. "Phone number is invalid.") are
+                // user-friendly — surface them, else fall back to a generic one.
+                const message =
+                  error?.response?.data?.message ||
+                  error?.data?.message ||
                   t('something_went_wrong_try_later') ||
                   'Something went wrong. Please try again later.';
 
-                Toast.error(genericMsg);
+                Toast.error(message);
 
                 if (selectedTab === 'email') {
-                  setEmailError(genericMsg);
+                  setEmailError(message);
                 } else {
-                  setPhoneError(genericMsg);
+                  setPhoneError(message);
                 }
               } finally {
                 setLoading(false);

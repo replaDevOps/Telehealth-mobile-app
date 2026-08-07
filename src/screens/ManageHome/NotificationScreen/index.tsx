@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
 import { useNotificationStore } from '@store/useNotificationStore';
+import { isNotificationRead } from '@services/api/notificationService';
 import { Toast } from 'toastify-react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import RatingBottomSheet from '@components/molecules/RatingBottomSheet';
@@ -28,7 +29,7 @@ interface Notification {
 
 export const NotificationScreen = () => {
   const { t } = useTranslation();
-  const { refreshNotifications } = useNotificationStore();
+  const { refreshNotifications, markAllRead } = useNotificationStore();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<number | string | null>(null);
@@ -43,6 +44,8 @@ export const NotificationScreen = () => {
   const fetchNotifications = async () => {
     setLoading(true);
     try {
+      // Clear the badge locally first, then let the refresh confirm it
+      markAllRead();
       apiClient.get(API.NOTIFICATIONS.READ_ALL).then(() => refreshNotifications()).catch(() => {});
       const response = await apiClient.get(API.NOTIFICATIONS.VIEW_ALL);
       console.log('Notifications response:', response.data);
@@ -70,8 +73,8 @@ export const NotificationScreen = () => {
         message: item.description || item.message || item.body || item.content || '', // Prioritize 'description' for message
         time: item.dateTime || item.created_at || item.time || item.date || '', // Prioritize 'dateTime'
         created_at: item.dateTime || item.created_at || item.time || item.date, // Also store in created_at
-        unread: item.is_read === false,
-        is_read: item.is_read === true,
+        unread: !isNotificationRead(item),
+        is_read: isNotificationRead(item),
         isReview: item.isReview === true,
         type: item.type,
         clinic_id: item.clinic_id || item.clinicID,

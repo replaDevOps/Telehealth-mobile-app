@@ -32,6 +32,30 @@ export interface DeleteNotificationResponse {
 }
 
 /**
+ * Single source of truth for "has this notification been read?".
+ *
+ * The API has shipped this flag as a boolean, as 0/1 and as "0"/"1" depending
+ * on the endpoint, and `!raw.is_read` silently breaks on the string form
+ * ("0" is truthy). Everything that shows an unread state — the header badge
+ * and the dot in the list — must go through here.
+ */
+export const isNotificationRead = (raw: any): boolean => {
+  if (!raw) return false;
+
+  const flag = raw.is_read ?? raw.isRead ?? raw.read;
+  if (flag !== undefined && flag !== null) {
+    if (typeof flag === 'string') {
+      const normalized = flag.trim().toLowerCase();
+      return normalized === '1' || normalized === 'true';
+    }
+    return flag === true || flag === 1;
+  }
+
+  // Some payloads carry a timestamp instead of a flag
+  return !!(raw.read_at || raw.readAt);
+};
+
+/**
  * Get all notifications for the patient
  * @returns Promise with list of notifications
  */

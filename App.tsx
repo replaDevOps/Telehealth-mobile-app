@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { StatusBar } from 'react-native';
+import { AppState, StatusBar } from 'react-native';
 import AppNavigator from './src/navigation/root-navigation';
 import { setGlobalFont } from './src/utils/overrideText';
 import { CartProvider } from '@context/CartContext';
@@ -13,6 +13,8 @@ import { usePusherNotifications } from './src/hooks/usePusherNotifications';
 import messaging from '@react-native-firebase/messaging';
 import { Toast } from 'toastify-react-native';
 import { fcmService } from './src/services/firebase/fcmService';
+import { useNotificationStore } from '@store/useNotificationStore';
+import { useAuthStore } from '@store';
 
 setGlobalFont();
 
@@ -23,6 +25,19 @@ messaging().setBackgroundMessageHandler(async remoteMessage => {
 });
 console.log('[FCM] ✅ Background message handler registered');
 
+// Pulls the unread count back in line with the server. Used whenever a push
+// may have changed it: FCM delivery, a notification tap, or returning to the
+// foreground (pushes delivered while backgrounded never reach a JS handler).
+const syncNotificationCount = () => {
+  if (!useAuthStore.getState().isAuthenticated) {
+    return;
+  }
+  useNotificationStore
+    .getState()
+    .refreshNotifications()
+    .catch(err => console.warn('[FCM] Notification count refresh failed:', err));
+};
+
 const AppContent = () => {
   // Setup Pusher notifications
   usePusherNotifications();
@@ -30,6 +45,10 @@ const AppContent = () => {
   useEffect(() => {
     // Foreground notification display
     const unsubscribe = fcmService.onForegroundMessage(({ title, body }) => {
+      // Move the badge immediately, then reconcile with the server's is_read
+      useNotificationStore.getState().incrementUnreadCount();
+      syncNotificationCount();
+
       if (title || body) {
         Toast.info(`${title ?? ''}\n${body ?? ''}`.trim());
       }
@@ -38,6 +57,7 @@ const AppContent = () => {
     // App opened from background by tapping notification
     fcmService.onBackgroundOpenedMessage(data => {
       console.log('[FCM] Opened from background, data:', data);
+      syncNotificationCount();
       // Add navigation logic here based on data.screen or data.type if needed
     });
 
@@ -45,11 +65,24 @@ const AppContent = () => {
     fcmService.getInitialNotification().then(data => {
       if (data) {
         console.log('[FCM] Opened from quit state, data:', data);
+        syncNotificationCount();
         // Add navigation logic here based on data.screen or data.type if needed
       }
     });
 
-    return unsubscribe;
+    // Pushes that land while the app is backgrounded are handled by the OS, so
+    // the count is stale until we come back — and the store's 2 minute cache
+    // would otherwise keep it stale.
+    const appStateSub = AppState.addEventListener('change', nextState => {
+      if (nextState === 'active') {
+        syncNotificationCount();
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      appStateSub.remove();
+    };
   }, []);
 
   return (

@@ -3,6 +3,7 @@ import {
   getAllNotifications,
   deleteNotification,
   clearAllNotifications,
+  isNotificationRead,
   Notification,
 } from '../services/api/notificationService';
 
@@ -15,10 +16,15 @@ interface NotificationStore {
   removeNotification: (id: number | string) => Promise<void>;
   clearAll: () => Promise<void>;
   refreshNotifications: () => Promise<void>;
+  incrementUnreadCount: () => void;
+  markAllRead: () => void;
 }
 
 // Cache duration: 2 minutes
 const CACHE_DURATION = 2 * 60 * 1000;
+
+const countUnread = (notifications: Notification[]) =>
+  notifications.filter(notif => !isNotificationRead(notif)).length;
 
 export const useNotificationStore = create<NotificationStore>((set, get) => ({
   notifications: [],
@@ -56,7 +62,11 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
       // Map API response to notification format
       // API structure: { id, type, description, dateTime }
       const mappedNotifications: Notification[] = notificationsList.map((item: any) => {
+        // Spread first: the normalized fields below must win over the raw ones,
+        // otherwise the read flag reverts to whatever shape the API sent.
+        const read = isNotificationRead(item);
         const mapped = {
+          ...item, // Keep all original fields for backward compatibility
           id: item.id,
           title: item.type || item.title || 'Notification', // Prioritize 'type' for title
           message: item.description || item.message || item.body || item.content || '', // Prioritize 'description' for message
@@ -64,23 +74,19 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
           type: item.type,
           time: item.dateTime || item.created_at || item.time || item.date || '',
           dateTime: item.dateTime,
-          // Default to unread (false) if read status is not provided
-          unread: item.is_read === false,
-          is_read: item.is_read === true,
-          read: item.is_read === true,
+          // Anything without a read flag counts as unread
+          unread: !read,
+          is_read: read,
+          read,
           created_at: item.dateTime || item.created_at || item.time || item.date, // Prioritize 'dateTime'
           updated_at: item.updated_at,
-          ...item, // Keep all original fields for backward compatibility
         };
         return mapped;
       });
-      
+
       console.log('Mapped notifications:', mappedNotifications);
-      
-      // Calculate unread count (notifications without read status are considered unread)
-      const unreadCount = mappedNotifications.filter(
-        (notif: Notification) => !notif.read && !notif.is_read,
-      ).length;
+
+      const unreadCount = countUnread(mappedNotifications);
 
       set({
         notifications: mappedNotifications,
@@ -104,14 +110,9 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
         (notif) => notif.id !== id,
       );
       
-      // Recalculate unread count
-      const unreadCount = updatedNotifications.filter(
-        (notif) => !notif.read && !notif.is_read,
-      ).length;
-
       set({
         notifications: updatedNotifications,
-        unreadCount,
+        unreadCount: countUnread(updatedNotifications),
       });
     } catch (error: any) {
       console.error('Failed to delete notification:', error);
@@ -138,5 +139,25 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
     // Force refresh by clearing cache
     set({ lastFetched: null });
     await get().fetchNotifications();
+  },
+
+  // Optimistic bump when a notification arrives over the socket, so the badge
+  // moves immediately instead of waiting on the viewAll round trip. The
+  // following refresh replaces this with the server's count.
+  incrementUnreadCount: () => {
+    set(state => ({ unreadCount: state.unreadCount + 1 }));
+  },
+
+  // Mirrors the readAll endpoint locally so the badge clears the moment the
+  // list is opened, without waiting for a refetch.
+  markAllRead: () => {
+    const readNotifications = get().notifications.map(notif => ({
+      ...notif,
+      unread: false,
+      is_read: true,
+      read: true,
+    }));
+
+    set({ notifications: readNotifications, unreadCount: 0 });
   },
 }));

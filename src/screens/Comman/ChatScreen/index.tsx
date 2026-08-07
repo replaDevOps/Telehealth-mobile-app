@@ -341,7 +341,7 @@ export function ChatScreen({ navigation, route }) {
             name: apiClinic.clinicName || apiClinic.clinicName || consultationDataFromAPI?.clinicName || '',
             clinicName: apiClinic.clinicName || apiClinic.name || consultationDataFromAPI?.clinicName || '',
             location: apiClinic.location || apiClinic.details?.address || consultationDataFromAPI?.location || '',
-            image: apiClinic.image || apiClinic.logo || apiClinic.coverImage || undefined,
+            image:  apiClinic.details.logo || apiClinic.coverImage || undefined,
           };
           setClinicInfoState(normalizedApiClinic);
           console.log('✅ [ChatScreen] Updated clinicInfoState from API:', normalizedApiClinic);

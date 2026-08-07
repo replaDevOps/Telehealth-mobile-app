@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
 import { Toast } from 'toastify-react-native';
+import citiesData from '@utils/cities-data.json';
 
 interface ClinicType {
   id: string;
@@ -38,7 +39,8 @@ const groupsCache: { [clinicType: string]: Group[] } = {};
 const servicesCache: { [groupIdsKey: string]: Service[] } = {};
 
 export const FilterScreen = ({ navigation, route }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language?.startsWith('ar');
   const [clinicTypes, setClinicTypes] = useState<ClinicType[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [services, setServices] = useState<Service[]>([]);
@@ -53,11 +55,7 @@ export const FilterScreen = ({ navigation, route }) => {
         clinicTypes: currentFilters.clinicTypes || null,
         serviceGroups: currentFilters.serviceGroups || {},
         serviceNames: currentFilters.serviceNames || {},
-        cities: currentFilters.cities || {
-          Makkah: false,
-          Madina: false,
-          Jeddah: false,
-    },
+        cities: currentFilters.cities || {},
         ratings: currentFilters.ratings || {
           5: false,
           4: false,
@@ -71,12 +69,8 @@ export const FilterScreen = ({ navigation, route }) => {
       clinicTypes: null,
       serviceGroups: {},
       serviceNames: {},
-    cities: {
-      Makkah: false,
-      Madina: false,
-      Jeddah: false,
-    },
-    ratings: {
+      cities: {},
+      ratings: {
       5: false,
       4: false,
       3: false,
@@ -262,6 +256,17 @@ export const FilterScreen = ({ navigation, route }) => {
     }
   };
 
+  // Same source as profile creation/update: the value stays the canonical
+  // English name (backend contract), only the label is localized.
+  const cityOptions = useMemo(
+    () =>
+      (citiesData as { id: number; name: string; name_ar?: string }[]).map(c => ({
+        label: isArabic ? c.name_ar || c.name : c.name,
+        value: c.name,
+      })),
+    [isArabic],
+  );
+
   // Calculate selected filters count dynamically
   const selectedFiltersCount = useMemo(() => {
     let count = 0;
@@ -346,11 +351,7 @@ export const FilterScreen = ({ navigation, route }) => {
       clinicTypes: null,
       serviceGroups: {},
       serviceNames: {},
-      cities: {
-        Makkah: false,
-        Madina: false,
-        Jeddah: false,
-      },
+      cities: {},
       ratings: {
         5: false,
         4: false,
@@ -444,22 +445,15 @@ export const FilterScreen = ({ navigation, route }) => {
         </FilterSection>
 
         {/* City */}
-        <FilterSection title={t('city')}>
-          <CheckboxItem
-            label={t('makkah')}
-            checked={filters.cities.Makkah}
-            onPress={() => handleCityToggle('Makkah')}
-          />
-          <CheckboxItem
-            label={t('madina')}
-            checked={filters.cities.Madina}
-            onPress={() => handleCityToggle('Madina')}
-          />
-          <CheckboxItem
-            label={t('jeddah')}
-            checked={filters.cities.Jeddah}
-            onPress={() => handleCityToggle('Jeddah')}
-          />
+        <FilterSection title={t('city')} defaultExpanded={false}>
+          {cityOptions.map(city => (
+            <CheckboxItem
+              key={city.value}
+              label={city.label}
+              checked={filters.cities[city.value] || false}
+              onPress={() => handleCityToggle(city.value)}
+            />
+          ))}
         </FilterSection>
 
         {/* Rating */}

@@ -9,13 +9,10 @@ export const API = {
     // CHECK PHONE NUMBER REGISTRATION STATUS
     CHECK_PHONE_NO: '/patient-auth/checkPhoneNo',
     // PHONE OTP
-    SEND_OTP_PHONE: '/patient-auth/sendPhoneOtp',
+    SEND_OTP_PHONE: '/patient-auth/send-otp-phoneNo',
     RESEND_OTP_PHONE: '/patient-auth/resendMobileOpt',
-    // VERIFY OTP
+    // VERIFY OTP (same endpoint for email and phone)
     VERIFY_OTP: '/patient-auth/verifyOtp',
-    VERIFY_FIREBASE_OTP: '/patient-auth/verifyFirebaseOtp',
-    // VERIFY FIREBASE OTP FOR FORGOT PASSWORD (URL TBD)
-    VERIFY_FIREBASE_FORGOT_PASSWORD: '/patient-auth/verifyFirebaseForgotPassword',
     // CREATE PASSWORD
     CREATE_PASSWORD: '/patient-auth/createPassword',
     // REGISTER

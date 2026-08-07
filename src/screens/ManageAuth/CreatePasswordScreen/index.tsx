@@ -131,12 +131,10 @@ export const CreatePassword: React.FC<Props> = ({ navigation, route }) => {
       return;
     }
     setLoading(true);
-    const firebaseUid = route.params?.firebaseUid;
     const [data, err] = await tryCatch(
       apiClient.post(API.AUTH.CREATE_PASSWORD, {
         password,
         confirmPassword,
-        ...(firebaseUid ? { firebaseUid } : {}),
       }),
     );
     if (err) {
@@ -151,7 +149,6 @@ export const CreatePassword: React.FC<Props> = ({ navigation, route }) => {
       email: route.params?.email,
       phone: route.params?.phone,
       countryCode: route.params?.countryCode,
-      firebaseUid,
     });
   };
 

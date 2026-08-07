@@ -55,6 +55,10 @@ export const usePusherNotifications = () => {
     const handleNotification = async (data: any) => {
       console.log('Notification received:', data);
 
+      // Bump the badge straight away — the refresh below reconciles it with
+      // the server's is_read state, but the count must not wait on the network.
+      useNotificationStore.getState().incrementUnreadCount();
+
       // Refresh notifications from API
       try {
         const { refreshNotifications } = useNotificationStore.getState();

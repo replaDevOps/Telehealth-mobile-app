@@ -28,8 +28,6 @@ import { useTranslation } from 'react-i18next';
 import { API } from '@services/api/api-endpoint';
 import { apiClient } from '@services/api/api-client';
 import { Toast } from 'toastify-react-native';
-import { sendPhoneOtp } from '@services/firebase/phoneAuth';
-import { setPhoneConfirmation } from '@services/firebase/phoneAuthStore';
 import { signInWithGoogle, googleStatusCodes } from '@services/firebase/googleAuth';
 import { useAuthStore } from '@store';
 import { fcmService } from '../../../services/firebase/fcmService';
@@ -114,10 +112,18 @@ export function SignUpScreen({ navigation }) {
             return;
           }
 
-          console.log("formattedPhone",formattedPhone)
-          const confirmation = await sendPhoneOtp(formattedPhone);
-          setPhoneConfirmation(confirmation);
-          Toast.success(t('otp_sent_successfully'));
+          const { data } = await apiClient.post(API.AUTH.SEND_OTP_PHONE, {
+            phoneNo: formattedPhone,
+          });
+          if (data?.success === false) {
+            const msg = data?.message || t('something_went_wrong');
+            setPhoneError(msg);
+            Toast.error(msg);
+            setLoading(false);
+            return;
+          }
+
+          Toast.success(data?.message || t('otp_sent_successfully'));
           navigation.navigate('OTPScreen', {
             source: 'signUp',
             method: 'phone',
@@ -138,8 +144,8 @@ export function SignUpScreen({ navigation }) {
       } catch (error: any) {
         console.log('error', error);
         // Backend errors (e.g. checkPhoneNo "Phone number is already registered")
-        // carry a user-friendly message — surface it. Raw Firebase errors don't,
-        // so fall back to a friendly generic message for those.
+        // carry a user-friendly message — surface it, otherwise fall back to a
+        // friendly generic message.
         const backendMsg =
           error?.response?.data?.message || error?.data?.message;
         if (selectedTab === 'phone') {

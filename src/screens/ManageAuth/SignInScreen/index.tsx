@@ -292,7 +292,7 @@ export function SignInScreen({ navigation }) {
           contentContainerStyle={{ paddingBottom: mvs(30) }}
           keyboardShouldPersistTaps="handled"
         >
-          <Header2 title="" showLanguage={true} inScrollView={true} />
+          <Header2 title="" back={false} showLanguage={true} inScrollView={true} />
           <View style={styles.logoContainer}>
             <Image source={LogoPng} style={{ width: 300, height: 131, resizeMode: 'contain' }} />
           </View>

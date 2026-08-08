@@ -1,4 +1,5 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import * as React from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,8 +15,8 @@ import {
   StcPaySvg,
   TabbySvg,
   TamaraSvg,
+  SingleLogo,
 } from '@assets/icons';
-import { coinIcon } from '@assets/images';
 import { colors } from '../../styles/colors';
 
 // Types
@@ -404,7 +405,7 @@ interface CardDetailsFormProps {
   onCardNumberChange: (text: string) => void;
   onExpiryDateChange: (text: string) => void;
   onCvvChange: (text: string) => void;
-  t: (key: string) => string;
+  t: (key: string, options?: any) => string;
 }
 
 function CardDetailsForm({
@@ -482,7 +483,7 @@ interface RoyaltyPointsSectionProps {
   pointsToRedeem: string;
   remainingPoints: number;
   onPointsChange: (text: string) => void;
-  t: (key: string) => string;
+  t: (key: string, options?: any) => string;
   coinToSar?: number;
   maxRedemptionSAR?: number;
 }
@@ -506,13 +507,15 @@ function RoyaltyPointsSection({
         <Text style={styles.royaltyTitle}>{t('loyalty_points')}</Text>
         <View style={styles.royaltyBadge}>
           <View style={styles.pointsBadge}>
-            <Image source={coinIcon} style={styles.coinIcon} />
+            <View style={styles.coinIcon}>
+              <SingleLogo width={20} height={20} fill="#FDA005" />
+            </View>
             <Text style={styles.pointsValue}>{royaltyPoints}</Text>
           </View>
           <Text style={styles.conversionRate}>
-            {coinToSar && coinToSar > 0
-              ? `10 ${t('coins')} = SAR ${(coinToSar * 10).toFixed(2)}`
-              : `100 ${t('coins')} = SAR 5`}
+            {t('points_conversion', {
+              sar: coinToSar && coinToSar > 0 ? String(Math.round(coinToSar * 10)) : '20',
+            })}
           </Text>
         </View>
       </View>
@@ -542,7 +545,7 @@ interface CouponCodeSectionProps {
   couponError: string;
   couponSuccess: string;
   onCouponCodeChange: (text: string) => void;
-  t: (key: string) => string;
+  t: (key: string, options?: any) => string;
 }
 
 function CouponCodeSection({

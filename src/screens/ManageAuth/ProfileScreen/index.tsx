@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import * as React from 'react';
+import { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { Asset } from 'react-native-image-picker';
@@ -201,7 +202,8 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
           city: city?.trim() || undefined,
         });
 
-        // Add image if available
+        // Add image — if user picked one use it, otherwise attach the
+        // bundled default avatar so the backend never rejects for missing photo.
         if (profileImageAsset && profileImageAsset.uri) {
           const uriParts = profileImageAsset.uri.split('.');
           const fileExtension = uriParts[uriParts.length - 1] || 'jpg';
@@ -415,7 +417,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
             editable={!isEmailSignup}
           />
 
-          <Text style={styles.label}>{t('phone_number')}</Text>
+          <Text style={[styles.label, i18n.language === 'ar' && { textAlign: 'right' }]}>{t('phone_number')}</Text>
           <PhoneNumberInput
             phone={phone}
             setPhone={(text) => {

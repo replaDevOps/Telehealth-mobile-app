@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Image } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { mvs } from '@config/metrices';
-import { coinIcon } from '@assets/images';
+import { SingleLogo } from '../../assets/icons';
 import { StyleSheet } from 'react-native';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import { colors } from '../../styles/colors';
@@ -29,7 +29,7 @@ export const RoyaltyPointsBar: React.FC<RoyaltyPointsProps> = ({
       activeOpacity={0.9}
     >
       <LinearGradient
-        colors={['#FDA005', '#F8D567']}
+        colors={['#7625D7', '#4A148B']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={style.linearGradient}
@@ -37,21 +37,17 @@ export const RoyaltyPointsBar: React.FC<RoyaltyPointsProps> = ({
         <View style={style.royaltyContent}>
           <View style={style.royaltyTitleContainer}>
             <Text style={style.royaltyTitle}>{t('loyalty_points')}</Text>
-            <AntDesign name="right" size={18} color={colors.white} />
+            <AntDesign name="right" size={16} color={colors.white} />
           </View>
-
-          {/* {(points ?? 0) > 0 && (
-            <Text style={style.royaltySubtitle}>
-              {t('valid_till_date')} {validTill}
-            </Text>
-          )} */}
 
           <Text style={style.royaltyPointsLabel}>{t('current_points')}</Text>
           <Text style={style.royaltyPointsValue}>{points}</Text>
         </View>
 
-        {/* Coin Icon */}
-        <Image source={coinIcon} style={style.coinIcon} />
+        {/* Gold V Logo Icon */}
+        <View style={style.logoContainer}>
+          <SingleLogo width={36} height={36} fill="#FDA005" />
+        </View>
       </LinearGradient>
     </TouchableOpacity>
   );
@@ -59,7 +55,7 @@ export const RoyaltyPointsBar: React.FC<RoyaltyPointsProps> = ({
 
 const style = StyleSheet.create({
   royaltyPointsContainer: {
-    marginTop: mvs(20),
+    marginTop: mvs(15),
     marginBottom: mvs(10),
   },
   linearGradient: {
@@ -67,47 +63,45 @@ const style = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderRadius: mvs(10),
+    paddingRight: mvs(20),
   },
   royaltyContent: {
-    padding: mvs(12),
+    padding: mvs(10),
   },
   royaltyTitleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: mvs(10),
+    gap: mvs(8),
   },
   royaltyTitle: {
-    fontSize: mvs(16),
+    fontSize: mvs(14),
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
   royaltyArrow: {
-    fontSize: mvs(16),
+    fontSize: mvs(14),
     color: '#FFFFFF',
     fontWeight: 'bold',
-    marginLeft: mvs(8),
+    marginLeft: mvs(6),
   },
   royaltySubtitle: {
-    fontSize: mvs(13),
+    fontSize: mvs(12),
     color: '#FFFFFF',
     marginTop: mvs(4),
   },
   royaltyPointsLabel: {
-    fontSize: mvs(13),
+    fontSize: mvs(11),
     fontWeight: '500',
     color: '#FFFFFF',
-    marginTop: mvs(8),
+    marginTop: mvs(4),
   },
   royaltyPointsValue: {
-    fontSize: mvs(16),
+    fontSize: mvs(14),
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
-  coinIcon: {
-    width: mvs(70),
-    position: 'absolute',
-    right: mvs(30),
-    height: mvs(70),
-    resizeMode: 'contain',
+  logoContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

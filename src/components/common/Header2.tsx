@@ -4,7 +4,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { mvs } from '../../config/metrices';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BackSvg, ShopingCartSvg } from '../../assets/icons';
-import { AiLogo } from '../../assets/images';
+import { AiLogo, LogoPng } from '../../assets/images';
 import { colors } from '../../styles/colors';
 import { useTranslation } from 'react-i18next';
 import { Dropdown } from 'react-native-element-dropdown';
@@ -43,6 +43,10 @@ interface Header2Props {
   loading?: boolean;
   rightElement?: React.ReactNode;
   inScrollView?: boolean;
+
+  theme?: 'light' | 'dark';
+  onThemeChange?: (theme: 'light' | 'dark') => void;
+  showLogoLeft?: boolean;
 }
 
 const Header2: React.FC<Header2Props> = ({
@@ -68,6 +72,9 @@ const Header2: React.FC<Header2Props> = ({
   loading = false,
   rightElement,
   inScrollView = false,
+  theme = 'light',
+  onThemeChange,
+  showLogoLeft = false,
 }) => {
   const navigation = useNavigation<NavigationProp>();
   const { t, i18n } = useTranslation();
@@ -107,24 +114,50 @@ const Header2: React.FC<Header2Props> = ({
   };
 
   return (
-    <View style={[styles.container,{paddingHorizontal: inScrollView ? 0 : mvs(15)}]} >
-      {back && (
-        <TouchableOpacity style={styles.headerButton} onPress={onBackPress}>
+    <View style={[styles.container, { paddingHorizontal: inScrollView ? 0 : mvs(15) }]} >
+      {showLogoLeft ? (
+        <View style={styles.leftLogoContainer}>
+          <Image
+            source={LogoPng}
+            style={[
+              styles.leftLogoImage,
+              theme === 'dark' && { tintColor: '#FFFFFF' },
+            ]}
+            resizeMode="contain"
+          />
+        </View>
+      ) : back ? (
+        <TouchableOpacity
+          style={[
+            styles.headerButton,
+            {
+              backgroundColor: theme === 'light' ? '#FFFFFF' : '#1D1236',
+              borderColor: theme === 'light' ? colors.border : '#3A2E5B',
+            },
+          ]}
+          onPress={onBackPress}
+        >
           {useCancel ? (
-            <Text style={styles.cancelText}>{t('cancel')}</Text>
-          ) : (
+            <Text style={[styles.cancelText, { color: theme === 'light' ? 'gray' : '#A772E5' }]}>{t('cancel')}</Text>
+          ) : theme === 'light' ? (
             <BackSvg />
+          ) : (
+            <Ionicons name="chevron-back" size={20} color={colors.white} />
           )}
         </TouchableOpacity>
+      ) : (
+        <View style={styles.emptySpace} />
       )}
 
-      <View style={styles.textc}>
-        {logo ? (
-          <Image source={AiLogo} style={styles.logoImage} resizeMode="contain" />
-        ) : (
-          <Text style={styles.text}>{title}</Text>
-        )}
-      </View>
+      {(logo || title) ? (
+        <View style={styles.textc}>
+          {logo ? (
+            <Image source={AiLogo} style={styles.logoImage} resizeMode="contain" />
+          ) : (
+            <Text style={[styles.text, { color: theme === 'light' ? colors.black : colors.white }]}>{title}</Text>
+          )}
+        </View>
+      ) : null}
 
       {useSave ? (
         <TouchableOpacity
@@ -156,30 +189,67 @@ const Header2: React.FC<Header2Props> = ({
           </View>
         </TouchableOpacity>
       ) : showLanguage ? (
-        <Dropdown
-          style={[styles.dropdown]}
-          placeholderStyle={styles.placeholderStyle}
-          selectedTextStyle={styles.selectedTextStyle}
-          inputSearchStyle={styles.inputSearchStyle}
-          iconStyle={styles.iconStyle}
-          data={data}
-          maxHeight={300}
-          labelField="label"
-          valueField="value"
-          placeholder={!isFocus ? t('select_language') : '...'}
-          value={language}
-          onFocus={() => setIsFocus(true)}
-          onBlur={() => setIsFocus(false)}
-          onChange={handleLanguageChange}
-          renderLeftIcon={() => (
-            <Ionicons
-              style={styles.icon}
-              color={isFocus ? 'blue' : 'black'}
-              name="globe"
-              size={20}
-            />
+        <View style={styles.rightHeaderControls}>
+          {onThemeChange && (
+            <TouchableOpacity
+              style={[
+                styles.themeButton,
+                {
+                  backgroundColor: theme === 'light' ? '#FFFFFF' : '#1D1236',
+                  borderColor: theme === 'light' ? colors.border : '#3A2E5B',
+                  borderWidth: 1,
+                },
+              ]}
+              onPress={() => onThemeChange(theme === 'light' ? 'dark' : 'light')}
+            >
+              <Ionicons
+                name={theme === 'light' ? 'sunny-outline' : 'moon-outline'}
+                size={mvs(18)}
+                color={theme === 'light' ? '#EAA300' : '#A772E5'}
+              />
+            </TouchableOpacity>
           )}
-        />
+          <Dropdown
+            style={[
+              styles.dropdown,
+              {
+                backgroundColor: theme === 'light' ? '#FFFFFF' : '#1D1236',
+                borderColor: theme === 'light' ? colors.border : '#3A2E5B',
+                borderWidth: 1,
+                borderRadius: mvs(18),
+                height: mvs(36),
+                width: mvs(110),
+              },
+            ]}
+            placeholderStyle={[styles.placeholderStyle, { color: theme === 'light' ? colors.black : colors.white }]}
+            selectedTextStyle={[
+              styles.selectedTextStyle,
+              {
+                color: theme === 'light' ? colors.black : colors.white,
+                fontSize: mvs(13),
+              },
+            ]}
+            iconStyle={styles.iconStyle}
+            data={data}
+            maxHeight={300}
+            labelField="label"
+            valueField="value"
+            placeholder={!isFocus ? t('select_language') : '...'}
+            value={language}
+            onFocus={() => setIsFocus(true)}
+            onBlur={() => setIsFocus(false)}
+            onChange={handleLanguageChange}
+            renderLeftIcon={() => (
+              <Ionicons
+                style={{ marginRight: 4 }}
+                color={theme === 'light' ? colors.black : colors.white}
+                name="globe-outline"
+                size={16}
+              />
+            )}
+            renderRightIcon={() => null}
+          />
+        </View>
       ) : showEdit ? (
         <TouchableOpacity style={styles.icon} onPress={onEditPress}>
           <Ionicons name="create" size={25} color={colors.black} />
@@ -208,8 +278,8 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     width: '100%',
-    
     paddingVertical: mvs(10),
   },
   icon: {
@@ -279,24 +349,44 @@ const styles = StyleSheet.create({
   emptySpace: {
     width: 45,
   },
+  rightHeaderControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  themeButton: {
+    width: mvs(36),
+    height: mvs(36),
+    borderRadius: mvs(18),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: mvs(8),
+  },
   dropdown: {
-    height: 50,
     paddingHorizontal: 8,
-    width: 120,
+    justifyContent: 'center',
   },
   placeholderStyle: {
-    fontSize: 16,
+    fontSize: 14,
   },
   selectedTextStyle: {
-    fontSize: 16,
+    fontSize: 14,
   },
   inputSearchStyle: {
     height: 40,
     fontSize: 16,
   },
   iconStyle: {
-    width: 20,
-    height: 20,
+    width: 16,
+    height: 16,
+  },
+  leftLogoContainer: {
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+    width: mvs(80),
+  },
+  leftLogoImage: {
+    width: mvs(70),
+    height: mvs(30),
   },
 });
 

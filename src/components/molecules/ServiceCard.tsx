@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { coinIcon } from '@assets/images';
+import { useTranslation } from 'react-i18next';
 import { colors } from '../../styles/colors';
 
 interface ServiceCardProps {
@@ -33,6 +33,7 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
   finalPrice,
   onPress,
 }) => {
+  const { t } = useTranslation();
   const discountNum = Number(campaignDiscount || 0);
   const hasDiscount = discountNum > 0 && finalPrice !== undefined && finalPrice !== null;
   const finalPriceLabel = hasDiscount
@@ -93,7 +94,9 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
         </View>
         {/* Loyalty badge */}
         {bonusLoyalityPoints && Number(bonusLoyalityPoints) > 0 && (
-          <Text style={styles.loyaltyBadgeText}>{`Earn ${Math.round(Number(bonusLoyalityPoints))} loyalty points`}</Text>
+          <Text style={styles.loyaltyBadgeText}>
+            {t('earn_points', { points: Math.round(Number(bonusLoyalityPoints)) })}
+          </Text>
         )}
       </View>
     </TouchableOpacity>

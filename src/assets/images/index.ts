@@ -15,5 +15,8 @@ export const Signature = require("./Signature.png")
 export const Marker_Pin = require("./Pin.png")
 export const AiLogo = require("./Ailogo.png")
 export const LogoPng = require("./LOGOPNG.png");
-export const authBgLight = require("./auth_bg_light.png");
-export const authBgDark = require("./auth_bg_dark.png");
+// These are JPEG files. They previously carried a .png extension, which broke
+// AAPT in release builds (debug is unaffected - Metro serves assets directly
+// instead of compiling them into res/).
+export const authBgLight = require("./auth_bg_light.jpg");
+export const authBgDark = require("./auth_bg_dark.jpg");

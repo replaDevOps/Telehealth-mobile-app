@@ -125,6 +125,67 @@ export const getPlaceDetails = async (placeId: string): Promise<PlaceDetails | n
 };
 
 /**
+ * Reverse geocode coordinates to a short "City, Country" label using the
+ * Google Geocoding API.
+ *
+ * Unlike `reverseGeocode` (which returns a full street address, suitable for a
+ * map pin), this reads `address_components` and returns only the locality and
+ * country - the format the home header expects.
+ *
+ * Callers should cache the result: see `useLocationStore`, which only calls
+ * this when its cached label is stale or the user has moved a meaningful
+ * distance, keeping usage inside the Geocoding API free tier.
+ *
+ * @param lat - Latitude
+ * @param lng - Longitude
+ * @returns Promise with "City, Country", or an empty string if unavailable
+ */
+export const reverseGeocodeCity = async (lat: number, lng: number): Promise<string> => {
+  try {
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${GOOGLE_MAPS_API_KEY}&language=en`;
+
+    const response = await fetch(url);
+    const data: any = await response.json();
+
+    if (data.status !== 'OK' || !Array.isArray(data.results) || data.results.length === 0) {
+      console.warn('Google Geocoding API error:', data.status);
+      return '';
+    }
+
+    // Google returns results from most to least specific; scan every result's
+    // components so we still find a locality when the closest match is a
+    // street address or a plus code.
+    const components: Array<{ long_name: string; types: string[] }> = data.results.flatMap(
+      (result: any) => result.address_components ?? []
+    );
+
+    const pick = (...types: string[]): string => {
+      for (const type of types) {
+        const match = components.find(c => Array.isArray(c.types) && c.types.includes(type));
+        if (match?.long_name) return match.long_name;
+      }
+      return '';
+    };
+
+    // postal_town covers regions (e.g. the UK) where locality is often absent;
+    // the admin-area levels are a last resort for rural coordinates.
+    const city = pick(
+      'locality',
+      'postal_town',
+      'administrative_area_level_2',
+      'administrative_area_level_1'
+    );
+    const country = pick('country');
+
+    if (city && country) return `${city}, ${country}`;
+    return country || city || '';
+  } catch (error) {
+    console.error('Error reverse geocoding city:', error);
+    return '';
+  }
+};
+
+/**
  * Reverse geocode coordinates to get address using Google Geocoding API
  * @param lat - Latitude
  * @param lng - Longitude

@@ -263,22 +263,6 @@ export function SignInScreen({ navigation }) {
   const bgImage = isLight ? authBgLight : authBgDark;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.white }}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        
-        <ScrollView
-          style={styles.container}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: mvs(30) }}
-          keyboardShouldPersistTaps="handled"
-        >
-          <Header2 title="" back={false} showLanguage={true} inScrollView={true} />
-          <View style={styles.logoContainer}>
-            <Image source={LogoPng} style={{ width: 300, height: 131, resizeMode: 'contain' }} />
-          </View>
     <ImageBackground source={bgImage} style={{ flex: 1 }} resizeMode="cover">
       <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }}>
         <StatusBar hidden={true} />

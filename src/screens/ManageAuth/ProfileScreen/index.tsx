@@ -150,7 +150,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     }
     // Iqama is only required for non-Saudis. Saudis are never asked for an ID.
     if (isSaudi === false) {
-      if (!IdCardNumber.trim()) {
+      if (!IdCardNumber || !IdCardNumber.trim()) {
         setIdError(t('iqama_required_non_saudi'));
         valid = false;
       } else if (IdCardNumber.replace(/[^0-9]/g, '').length !== 10) {
@@ -265,6 +265,10 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     setPhoneError('');
     setEmailError('');
     setIdError('');
+    setSaudiError('');
+    setCityError('');
+    setGenderError('');
+    setDobError('');
 
     // Validate all required fields at once
     let hasError = false;
@@ -284,10 +288,20 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
       hasError = true;
     }
 
-    // If iqama is entered (non-Saudi) it must be exactly 10 digits
-    if (IdCardNumber.trim() && IdCardNumber.replace(/[^0-9]/g, '').length !== 10) {
-      setIdError(t('iqama_length_invalid'));
+    if (isSaudi === null) {
+      setSaudiError(t('saudi_status_required'));
       hasError = true;
+    }
+
+    // Iqama is required for non-Saudis and must be 10 digits
+    if (isSaudi === false) {
+      if (!IdCardNumber || !IdCardNumber.trim()) {
+        setIdError(t('iqama_required_non_saudi'));
+        hasError = true;
+      } else if (IdCardNumber.replace(/[^0-9]/g, '').length !== 10) {
+        setIdError(t('iqama_length_invalid'));
+        hasError = true;
+      }
     }
 
     if (hasError) return;

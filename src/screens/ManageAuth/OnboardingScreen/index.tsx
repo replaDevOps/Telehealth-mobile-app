@@ -4,18 +4,21 @@ import { Header2 } from '../../../components/common/Header2';
 import { CustomButton } from '../../../components/common/CustomButton';
 import { styles } from './styles';
 import { FeatureItem } from './Components';
-import { ONBOARDING_STEPS } from '../../../constants';
+import { ONBOARDING_STEPS, ONBOARDING_STEPS_ARABIC } from '../../../constants';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 export function OnboardingScreen({ navigation }: any) {
   const [currentStep, setCurrentStep] = useState<number>(0);
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+
+  const isArabic = i18n.language === 'ar' || i18n.language?.startsWith('ar');
+  const onboardingSteps = isArabic ? ONBOARDING_STEPS_ARABIC : ONBOARDING_STEPS;
 
   const handleNext = () => {
     console.log('Next button pressed');
     setCurrentStep(prev => {
-      if (prev === ONBOARDING_STEPS.length - 1) {
+      if (prev === onboardingSteps.length - 1) {
         navigation.replace('SignIn');
         return prev;
       }
@@ -23,7 +26,7 @@ export function OnboardingScreen({ navigation }: any) {
     });
   };
 
-  const activeStep = ONBOARDING_STEPS[currentStep];
+  const activeStep = onboardingSteps[currentStep];
 
   return (
     <SafeAreaView style={styles.safeArea}>

@@ -23,6 +23,7 @@ import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
 import { Toast } from 'toastify-react-native';
 import parsePhoneNumberFromString, { CountryCode } from 'libphonenumber-js';
+import { getMappedErrorMessage } from '@utils';
 
 interface ForgetPasswordScreenProps {
   navigation: any;
@@ -183,12 +184,13 @@ export function ForgetPasswordScreen({
                   });
 
                   if (response.data?.success === false) {
-                    Toast.error(response.data?.message || 'Failed to send OTP');
+                    const msg = getMappedErrorMessage(response.data?.message) || t('something_went_wrong');
+                    Toast.error(msg);
                     setLoading(false);
                     return;
                   }
 
-                  Toast.success(response.data?.message || 'OTP sent successfully');
+                  Toast.success(getMappedErrorMessage(response.data?.message) || t('otp_sent_successfully'));
                   navigation.navigate('OTPScreen', {
                     source: 'forgotPassword',
                     method: 'email',
@@ -206,10 +208,11 @@ export function ForgetPasswordScreen({
                     });
                     checkData = checkRes?.data;
                   } catch (checkErr: any) {
-                    checkData = checkErr?.response?.data || checkErr?.data;
+                    checkData = checkErr?.response?.data || checkErr?.data || checkErr;
                   }
                   if (checkData?.success !== true) {
-                    const msg = checkData?.message || t('phone_not_registered');
+                    const rawCheckMsg = checkData?.message || checkData;
+                    const msg = getMappedErrorMessage(rawCheckMsg || 'phone_not_registered');
                     setPhoneError(msg);
                     Toast.error(msg);
                     setLoading(false);
@@ -227,14 +230,14 @@ export function ForgetPasswordScreen({
                   });
 
                   if (response.data?.success === false) {
-                    const msg = response.data?.message || 'Failed to send OTP';
+                    const msg = getMappedErrorMessage(response.data?.message) || t('something_went_wrong');
                     setPhoneError(msg);
                     Toast.error(msg);
                     setLoading(false);
                     return;
                   }
 
-                  Toast.success(response.data?.message || t('otp_sent_successfully'));
+                  Toast.success(getMappedErrorMessage(response.data?.message) || t('otp_sent_successfully'));
                   navigation.navigate('OTPScreen', {
                     source: 'forgotPassword',
                     method: 'phone',
@@ -243,14 +246,10 @@ export function ForgetPasswordScreen({
                   });
                 }
               } catch (error: any) {
-                console.error('Forgot password error:', error);
-                // Backend messages (e.g. "Phone number is invalid.") are
-                // user-friendly — surface them, else fall back to a generic one.
-                const message =
-                  error?.response?.data?.message ||
-                  error?.data?.message ||
-                  t('something_went_wrong_try_later') ||
-                  'Something went wrong. Please try again later.';
+                console.log('Forgot password error:', error);
+                const backendMsg =
+                  error?.response?.data?.message || error?.data?.message || error?.message || error;
+                const message = getMappedErrorMessage(backendMsg);
 
                 Toast.error(message);
 

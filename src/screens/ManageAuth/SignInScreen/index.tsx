@@ -32,6 +32,7 @@ import { useAuthStore } from '@store';
 import { API } from '@services/api/api-endpoint';
 import { fcmService } from '../../../services/firebase/fcmService';
 import { signInWithGoogle, googleStatusCodes } from '../../../services/firebase/googleAuth';
+import { getMappedErrorMessage } from '@utils';
 
 type TabType = 'email' | 'phone';
 
@@ -171,7 +172,12 @@ export function SignInScreen({ navigation }) {
       const payload =
         tab === 'email'
           ? { email: form.email, password: form.password }
-          : { phone: formattedPhone, password: form.password };
+          : {
+              phoneNo: formattedPhone,
+              phone: formattedPhone,
+              phone_no: formattedPhone,
+              password: form.password,
+            };
 
       console.log('🚀 Login payload:', JSON.stringify(payload, null, 2));
 
@@ -202,15 +208,15 @@ export function SignInScreen({ navigation }) {
         console.warn('[FCM] Token store after email login failed:', err),
       );
 
-      Toast.success(data?.message || 'Login successful');
+      Toast.success(getMappedErrorMessage(data?.message) || t('login_successful'));
       setTimeout(() => {
         navigation.replace('Main', { screen: 'Home' });
       }, 500);
     } catch (error: any) {
-      console.error('❌ Login error:', error);
+      console.log('Login error:', error);
       const backendMsg =
-        error?.response?.data?.message || error?.data?.message || error?.message;
-      Toast.error(backendMsg || t('something_went_wrong'));
+        error?.response?.data?.message || error?.data?.message || error?.message || error;
+      Toast.error(getMappedErrorMessage(backendMsg));
     } finally {
       setMeta(prev => ({ ...prev, loading: false }));
     }
@@ -254,8 +260,8 @@ export function SignInScreen({ navigation }) {
   };
 
   const isLight = theme === 'light';
-  const cardBg = isLight ? 'rgba(255, 255, 255, 0.75)' : 'rgba(26, 13, 54, 0.7)';
-  const cardBorder = isLight ? 'rgba(241, 243, 248, 0.5)' : '#3A2E5B';
+  const cardBg = isLight ? '#FFFFFF' : '#1A0D36';
+  const cardBorder = isLight ? '#E8EBF0' : '#3A2E5B';
   const textCol = isLight ? colors.black : colors.white;
   const secTextCol = isLight ? colors.secondaryText : '#A8A8A9';
 
@@ -373,7 +379,7 @@ export function SignInScreen({ navigation }) {
                 {tab === 'email' ? (
                   <CustomTextInput
                     label={t('email_address')}
-                    placeholder="name@email.com"
+                    placeholder={t('enter_email')}
                     value={form.email}
                     onChangeText={text => {
                       setForm({ ...form, email: text });

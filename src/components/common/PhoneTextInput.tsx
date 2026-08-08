@@ -40,7 +40,7 @@ const PhoneNumberInput: React.FC<PhoneNumberInputProps> = ({
   setPhone,
   countryCode,
   setCountryCode,
-  placeholder = 'Number goes here',
+  placeholder,
   containerStyle = {},
   phoneError,
   errorMessage,
@@ -51,6 +51,7 @@ const PhoneNumberInput: React.FC<PhoneNumberInputProps> = ({
   theme = 'light',
 }) => {
   const { t } = useTranslation();
+  const activePlaceholder = placeholder ?? t('enter_phone_number');
   const [value, setValue] = useState<string>(initialValue || '');
   const [isValid, setIsValid] = useState<boolean>(false);
   const [hasBeenTouched, setHasBeenTouched] = useState<boolean>(false);
@@ -217,7 +218,7 @@ const PhoneNumberInput: React.FC<PhoneNumberInputProps> = ({
           withShadow={false}
           autoFocus={false}
           disabled={!editable}
-          placeholder={placeholder}
+          placeholder={activePlaceholder}
           textInputProps={{
             placeholderTextColor: isLight ? colors.secondaryText : '#8E8E8E',
             editable: editable,

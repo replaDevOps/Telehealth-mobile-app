@@ -302,9 +302,18 @@ export const ProfileSetting = ({ navigation, route }: { navigation: any; route?:
       return false;
     }
 
-    // If national ID / Iqama provided, ensure it's exactly 10 digits
-    if (state.nationalID && state.nationalID.replace(/[^0-9]/g, '').length !== 10) {
-      Alert.alert('Error', 'Iqama Number must be exactly 10 digits');
+    // If nationality is Non-Saudi, Iqama number is required and must be 10 digits
+    if (state.nationality === 'Non-Saudi' || state.nationality === 'non_saudi') {
+      if (!state.nationalID || !state.nationalID.trim()) {
+        Alert.alert('Error', t('iqama_required_non_saudi') || 'Iqama number is required for non-Saudis');
+        return false;
+      }
+      if (state.nationalID.replace(/[^0-9]/g, '').length !== 10) {
+        Alert.alert('Error', t('iqama_length_invalid') || 'Iqama number must be exactly 10 digits');
+        return false;
+      }
+    } else if (state.nationalID && state.nationalID.replace(/[^0-9]/g, '').length !== 10) {
+      Alert.alert('Error', t('iqama_length_invalid') || 'Iqama number must be exactly 10 digits');
       return false;
     }
 

@@ -247,8 +247,8 @@ export function SignUpScreen({ navigation }) {
   };
 
   const isLight = theme === 'light';
-  const cardBg = isLight ? 'rgba(255, 255, 255, 0.75)' : 'rgba(26, 13, 54, 0.7)';
-  const cardBorder = isLight ? 'rgba(241, 243, 248, 0.5)' : '#3A2E5B';
+  const cardBg = isLight ? '#FFFFFF' : '#1A0D36';
+  const cardBorder = isLight ? '#E8EBF0' : '#3A2E5B';
   const textCol = isLight ? colors.black : colors.white;
   const secTextCol = isLight ? colors.secondaryText : '#A8A8A9';
 
@@ -367,7 +367,7 @@ export function SignUpScreen({ navigation }) {
                 {selectedTab === 'email' ? (
                   <CustomTextInput
                     label={t('email_address')}
-                    placeholder="name@email.com"
+                    placeholder={t('enter_email')}
                     value={email}
                     onChangeText={text => {
                       setEmail(text);

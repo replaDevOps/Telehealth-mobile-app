@@ -5,6 +5,9 @@ import {
   onboarding1,
   onboarding2,
   onboarding3,
+  onboardingArabic1,
+  onboardingArabic2,
+  onboardingArabic3,
   patient,
   pimples,
 } from '@assets/images';
@@ -24,6 +27,24 @@ export const ONBOARDING_STEPS = [
   {
     title: 'onboarding3_title',
     imgSrc: onboarding3,
+    content: 'onboarding3_content',
+  },
+];
+
+export const ONBOARDING_STEPS_ARABIC = [
+  {
+    title: 'onboarding1_title',
+    imgSrc: onboardingArabic1,
+    content: 'onboarding1_content',
+  },
+  {
+    title: 'onboarding2_title',
+    imgSrc: onboardingArabic2,
+    content: 'onboarding2_content',
+  },
+  {
+    title: 'onboarding3_title',
+    imgSrc: onboardingArabic3,
     content: 'onboarding3_content',
   },
 ];

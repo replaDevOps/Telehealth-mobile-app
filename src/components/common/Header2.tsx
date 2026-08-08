@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Text, Image } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, StyleSheet, TouchableOpacity, Text, Image, Modal, Dimensions } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { mvs } from '../../config/metrices';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -7,7 +7,6 @@ import { BackSvg, ShopingCartSvg } from '../../assets/icons';
 import { AiLogo, LogoPng } from '../../assets/images';
 import { colors } from '../../styles/colors';
 import { useTranslation } from 'react-i18next';
-import { Dropdown } from 'react-native-element-dropdown';
 import { useNavigation } from '@react-navigation/native';
 import { ActivityIndicator } from 'react-native-paper';
 
@@ -86,13 +85,15 @@ const Header2: React.FC<Header2Props> = ({
   };
 
   const [language, setLanguage] = useState<string>(normalizeLang(i18n.language));
+  const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
+  const langButtonRef = useRef<View>(null);
+  const [menuPos, setMenuPos] = useState({ top: 0, right: 0, width: mvs(120) });
 
   // Keep local language state in sync when i18n changes elsewhere
   React.useEffect(() => {
     const normalized = normalizeLang(i18n.language);
     if (normalized !== language) setLanguage(normalized);
   }, [i18n.language]);
-  const [isFocus, setIsFocus] = useState(false);
 
   const data = [
     { label: t('english'), value: 'en' },
@@ -110,7 +111,25 @@ const Header2: React.FC<Header2Props> = ({
   const handleLanguageChange = (item: { label: string; value: string }) => {
     setLanguage(item.value);
     i18n.changeLanguage(item.value);
-    setIsFocus(false);
+  };
+
+  const handleOpenLangMenu = () => {
+    if (langButtonRef.current) {
+      langButtonRef.current.measureInWindow((x, y, width, height) => {
+        const screenWidth = Dimensions.get('window').width;
+        const top = y + height + 4;
+        const right = screenWidth - (x + width);
+
+        setMenuPos({
+          top: top > 0 ? top : mvs(50),
+          right: Math.max(right, mvs(10)),
+          width: Math.max(width, mvs(120)),
+        });
+        setIsLangMenuOpen(true);
+      });
+    } else {
+      setIsLangMenuOpen(true);
+    }
   };
 
   return (
@@ -209,46 +228,118 @@ const Header2: React.FC<Header2Props> = ({
               />
             </TouchableOpacity>
           )}
-          <Dropdown
+
+          <TouchableOpacity
+            ref={langButtonRef}
+            activeOpacity={0.8}
             style={[
-              styles.dropdown,
+              styles.langPillButton,
               {
                 backgroundColor: theme === 'light' ? '#FFFFFF' : '#1D1236',
                 borderColor: theme === 'light' ? colors.border : '#3A2E5B',
-                borderWidth: 1,
-                borderRadius: mvs(18),
-                height: mvs(36),
-                width: mvs(110),
               },
             ]}
-            placeholderStyle={[styles.placeholderStyle, { color: theme === 'light' ? colors.black : colors.white }]}
-            selectedTextStyle={[
-              styles.selectedTextStyle,
-              {
-                color: theme === 'light' ? colors.black : colors.white,
-                fontSize: mvs(13),
-              },
-            ]}
-            iconStyle={styles.iconStyle}
-            data={data}
-            maxHeight={300}
-            labelField="label"
-            valueField="value"
-            placeholder={!isFocus ? t('select_language') : '...'}
-            value={language}
-            onFocus={() => setIsFocus(true)}
-            onBlur={() => setIsFocus(false)}
-            onChange={handleLanguageChange}
-            renderLeftIcon={() => (
-              <Ionicons
-                style={{ marginRight: 4 }}
-                color={theme === 'light' ? colors.black : colors.white}
-                name="globe-outline"
-                size={16}
-              />
-            )}
-            renderRightIcon={() => null}
-          />
+            onPress={handleOpenLangMenu}
+          >
+            <Ionicons
+              name="globe-outline"
+              size={mvs(16)}
+              color={theme === 'light' ? colors.black : colors.white}
+              style={{ marginRight: mvs(4) }}
+            />
+            <Text
+              style={[
+                styles.langPillText,
+                { color: theme === 'light' ? colors.black : colors.white },
+              ]}
+            >
+              {language === 'ar' ? t('arabic') : t('english')}
+            </Text>
+            <Ionicons
+              name={isLangMenuOpen ? 'chevron-up' : 'chevron-down'}
+              size={mvs(14)}
+              color={theme === 'light' ? colors.black : colors.white}
+              style={{ marginLeft: mvs(4) }}
+            />
+          </TouchableOpacity>
+
+          <Modal
+            transparent
+            visible={isLangMenuOpen}
+            animationType="fade"
+            statusBarTranslucent
+            onRequestClose={() => setIsLangMenuOpen(false)}
+          >
+            <TouchableOpacity
+              style={styles.modalBackdrop}
+              activeOpacity={1}
+              onPress={() => setIsLangMenuOpen(false)}
+            >
+              <View
+                style={[
+                  styles.langDropdownCard,
+                  {
+                    top: menuPos.top,
+                    right: menuPos.right,
+                    width: menuPos.width,
+                    backgroundColor: theme === 'light' ? '#FFFFFF' : '#1F123A',
+                    borderColor: theme === 'light' ? colors.border : '#3A2E5B',
+                  },
+                ]}
+              >
+                {data.map((item, idx) => {
+                  const isSelected = language === item.value;
+                  return (
+                    <TouchableOpacity
+                      key={item.value}
+                      activeOpacity={0.7}
+                      style={[
+                        styles.langOptionItem,
+                        idx < data.length - 1 && {
+                          borderBottomWidth: 1,
+                          borderBottomColor:
+                            theme === 'light' ? '#F0F0F5' : 'rgba(255, 255, 255, 0.08)',
+                        },
+                        isSelected && {
+                          backgroundColor:
+                            theme === 'light' ? '#F5F3FF' : '#2A1A4A',
+                        },
+                      ]}
+                      onPress={() => {
+                        handleLanguageChange(item);
+                        setIsLangMenuOpen(false);
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.langOptionText,
+                          {
+                            color: isSelected
+                              ? theme === 'light'
+                                ? '#7625D7'
+                                : '#B388FF'
+                              : theme === 'light'
+                              ? colors.black
+                              : colors.white,
+                            fontWeight: isSelected ? '600' : '400',
+                          },
+                        ]}
+                      >
+                        {item.label}
+                      </Text>
+                      {isSelected && (
+                        <Ionicons
+                          name="checkmark"
+                          size={mvs(16)}
+                          color={theme === 'light' ? '#7625D7' : '#B388FF'}
+                        />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </TouchableOpacity>
+          </Modal>
         </View>
       ) : showEdit ? (
         <TouchableOpacity style={styles.icon} onPress={onEditPress}>
@@ -387,6 +478,43 @@ const styles = StyleSheet.create({
   leftLogoImage: {
     width: mvs(70),
     height: mvs(30),
+  },
+  langPillButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: mvs(36),
+    paddingHorizontal: mvs(10),
+    borderRadius: mvs(18),
+    borderWidth: 1,
+  },
+  langPillText: {
+    fontSize: mvs(13),
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  langDropdownCard: {
+    position: 'absolute',
+    borderRadius: mvs(12),
+    borderWidth: 1,
+    paddingVertical: mvs(4),
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    elevation: 12,
+  },
+  langOptionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: mvs(10),
+    paddingHorizontal: mvs(14),
+  },
+  langOptionText: {
+    fontSize: mvs(14),
   },
 });
 

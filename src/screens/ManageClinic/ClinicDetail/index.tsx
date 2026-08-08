@@ -29,7 +29,7 @@ import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
 import { ClinicDetailResponse, ClinicService, ClinicReview, ClinicDescriptionResponse, ClinicDevice, DeviceDetailResponse, ServiceFilterOption } from '../../../types/clinic.types';
 import { Toast } from 'toastify-react-native';
-import { translateCityToEnglish } from '../../../utils/cityTranslator';
+import { translateCityToEnglish, localizeClinicText } from '../../../utils/cityTranslator';
 import { showLocationSettingsAlert, handleLocationError } from '../../../utils/locationUtils';
 
 // Define types
@@ -47,7 +47,7 @@ interface SortOption {
 }
 
 export const ClinicDetailScreen = ({ navigation, route }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const { clinic } = route.params;
   const { addToCart, cartItems } = useCart();
@@ -1112,18 +1112,24 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
   // Use clinic description data if available, otherwise use clinic detail
   const clinicDescriptionData = clinicDescription?.data;
 
-  const clinicName = clinicDescriptionData?.businessName ||
+  const rawClinicName = clinicDescriptionData?.businessName ||
     displayClinic.name ||
     displayClinic.clinicName ||
     clinic?.name ||
     'Clinic';
-  const clinicSpecialty = displayClinic.businessType || clinic?.specialty || 'General';
-  const clinicLocation = clinicDescriptionData?.address ||
+  const isArabic = i18n.language?.startsWith('ar');
+  const clinicName = localizeClinicText(rawClinicName, isArabic);
+
+  const rawClinicSpecialty = displayClinic.businessType || clinic?.specialty || 'General';
+  const clinicSpecialty = localizeClinicText(rawClinicSpecialty, isArabic);
+
+  const rawClinicLocation = clinicDescriptionData?.address ||
     translateCityToEnglish(clinicDescriptionData?.city) ||
     displayClinic.details?.address ||
     translateCityToEnglish(displayClinic.details?.city) ||
     clinic?.location ||
     'Location not available';
+  const clinicLocation = localizeClinicText(rawClinicLocation, isArabic);
   const clinicRating = parseFloat(displayClinic.avgRating) || parseFloat(clinic?.rating) || 0;
   const clinicDistance = (displayClinic as ClinicDetailResponse).distance
     ? `${((displayClinic as ClinicDetailResponse).distance!).toFixed(1)}km`

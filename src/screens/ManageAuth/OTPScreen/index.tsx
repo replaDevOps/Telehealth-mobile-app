@@ -414,21 +414,25 @@ export const NumberVerification: React.FC<Props> = ({ navigation, route }) => {
           />
 
           <View style={styles.signinRow}>
-            <Text style={styles.TextContent}>{t('didnt_receive_code')}</Text>
-            <TouchableOpacity
-              onPress={handleResendOTP}
-              disabled={timer > 0 || resendLoading}
-            >
-              {resendLoading ? (
-                <Text style={styles.signinLink}>{t('sending')}...</Text>
-              ) : timer > 0 ? (
-                <Text style={[styles.signinLink, { opacity: 0.5 }]}>
-                  {t('resend_code')} ({formatTimer(timer)})
-                </Text>
-              ) : (
-                <Text style={styles.signinLink}>{t('resend_code')}</Text>
-              )}
-            </TouchableOpacity>
+            {timer > 0 ? (
+              <Text style={styles.TextContent}>
+                {t('otp_resend_countdown', { seconds: timer })}
+              </Text>
+            ) : (
+              <>
+                <Text style={styles.TextContent}>{t('didnt_receive_code')}</Text>
+                <TouchableOpacity
+                  onPress={handleResendOTP}
+                  disabled={resendLoading}
+                >
+                  {resendLoading ? (
+                    <Text style={styles.signinLink}>{t('sending')}...</Text>
+                  ) : (
+                    <Text style={styles.signinLink}>{t('resend_code')}</Text>
+                  )}
+                </TouchableOpacity>
+              </>
+            )}
           </View>
           </View>
         </KeyboardAvoidingView>

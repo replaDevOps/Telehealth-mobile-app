@@ -1,4 +1,5 @@
-import React, { useEffect, useReducer, useRef, useState } from 'react';
+import * as React from 'react';
+import { useEffect, useReducer, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -392,7 +393,7 @@ export const ProfileSetting = ({ navigation, route }: { navigation: any; route?:
 
           {/* Personal Information Section */}
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>{t('personal_information')}</Text>
+            <Text style={[styles.sectionTitle, i18n.language === 'ar' && { textAlign: 'right' }]}>{t('personal_information')}</Text>
           </View>
 
           <CustomTextInput
@@ -402,7 +403,7 @@ export const ProfileSetting = ({ navigation, route }: { navigation: any; route?:
             onChangeText={(text) => dispatch({ fullName: text })}
           />
 
-          <Text style={styles.label}>{t('phone_number_label')}</Text>
+          <Text style={[styles.label, i18n.language === 'ar' && { textAlign: 'right' }]}>{t('phone_number_label')}</Text>
           <PhoneNumberInput
             phone={state.phone}
             setPhone={(text) => dispatch({ phone: text })}
@@ -477,7 +478,7 @@ export const ProfileSetting = ({ navigation, route }: { navigation: any; route?:
 
           {/* Password Manager */}
           <View style={[styles.sectionHeader, { marginTop: mvs(20) }]}>
-            <Text style={styles.sectionTitle}>{t('password_manager')}</Text>
+            <Text style={[styles.sectionTitle, i18n.language === 'ar' && { textAlign: 'right' }]}>{t('password_manager')}</Text>
           </View>
           <TouchableOpacity
             style={styles.menuItem}
@@ -490,7 +491,7 @@ export const ProfileSetting = ({ navigation, route }: { navigation: any; route?:
 
           {/* Multi-Language */}
           <View style={[styles.sectionHeader, { marginTop: mvs(30) }]}>
-            <Text style={styles.sectionTitle}>{t('multi_language')}</Text>
+            <Text style={[styles.sectionTitle, i18n.language === 'ar' && { textAlign: 'right' }]}>{t('multi_language')}</Text>
           </View>
           <CustomDropdown
             label={t('language_label')}
@@ -505,7 +506,7 @@ export const ProfileSetting = ({ navigation, route }: { navigation: any; route?:
 
           {/* Mode */}
           <View style={[styles.sectionHeader, { marginTop: mvs(30) }]}>
-            <Text style={styles.sectionTitle}>{t('mode')}</Text>
+            <Text style={[styles.sectionTitle, i18n.language === 'ar' && { textAlign: 'right' }]}>{t('mode')}</Text>
           </View>
           <View style={styles.switchItem}>
             <Text style={styles.switchLabel}>{t('notification')}</Text>
@@ -519,7 +520,7 @@ export const ProfileSetting = ({ navigation, route }: { navigation: any; route?:
 
           {/* Account */}
           <View style={[styles.sectionHeader, { marginTop: mvs(30) }]}>
-            <Text style={styles.sectionTitle}>{t('account')}</Text>
+            <Text style={[styles.sectionTitle, i18n.language === 'ar' && { textAlign: 'right' }]}>{t('account')}</Text>
           </View>
 
           <CustomButton

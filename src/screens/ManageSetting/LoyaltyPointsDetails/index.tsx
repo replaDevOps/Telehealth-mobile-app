@@ -3,10 +3,9 @@ import React, { useState, useCallback, useRef } from 'react';
 import { View, Text, FlatList, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { mvs } from '@config/metrices';
-import { coinIcon } from '@assets/images';
 import { useTranslation } from 'react-i18next';
 import { styles } from './style';
-import { RewardSvg } from '@assets/icons';
+import { RewardSvg, SingleLogo } from '@assets/icons';
 import {
   GenericTabs,
   RewardsMilestonesBottomSheet,
@@ -258,7 +257,7 @@ export const LoyaltyPointsDetails = () => {
 
         <View style={styles.rightSection}>
           <View style={styles.pointsContainer}>
-            <Image source={coinIcon} style={{ width: 16, height: 16 }} />
+            <SingleLogo width={16} height={16} fill="#FDA005" />
             <Text
               style={[
                 styles.points,

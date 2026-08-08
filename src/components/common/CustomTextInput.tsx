@@ -9,9 +9,11 @@ import {
   StyleProp,
   TouchableOpacity,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { colors } from '../../styles/colors';
 import { mvs } from '../../config/metrices';
-import Icon from 'react-native-vector-icons/MaterialIcons'; // Ensure this is installed
+import Icon from 'react-native-vector-icons/MaterialIcons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 interface CustomTextInputProps extends TextInputProps {
   label?: string;
@@ -19,6 +21,8 @@ interface CustomTextInputProps extends TextInputProps {
   errorMessage?: string;
   value: string;
   onChangeText: (text: string) => void;
+  theme?: 'light' | 'dark';
+  leftIconName?: string;
 }
 
 const CustomTextInput: React.FC<CustomTextInputProps> = ({
@@ -30,23 +34,65 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
   onChangeText,
   placeholder,
   secureTextEntry,
+  theme = 'light',
+  leftIconName,
   ...props
 }) => {
   const [showPassword, setShowPassword] = useState(false); // Start with password hidden
+  const { i18n } = useTranslation();
+  const isRtl = i18n.language === 'ar';
 
-  const handleTogglePassword = () => {
-    setShowPassword(!showPassword);
+  const alignmentStyle = {
+    textAlign: isRtl ? 'right' : 'left' as const,
+    writingDirection: isRtl ? 'rtl' : 'ltr' as const,
   };
+
+  const isLight = theme === 'light';
 
   return (
     <View style={[styles.container, containerStyle]}>
-      {label && <Text style={styles.label}>{label}</Text>}
+      {label && (
+        <Text
+          style={[
+            styles.label,
+            alignmentStyle,
+            { color: isLight ? colors.black : colors.white },
+          ]}
+        >
+          {label}
+        </Text>
+      )}
 
-      <View style={styles.inputContainer}>
+      {/* inputContainer always uses standard flexDirection: 'row' so left icons stay left, right visibility stays right */}
+      <View
+        style={[
+          styles.inputContainer,
+          {
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: isLight ? '#F1F3F8' : '#1D1236',
+            borderColor: isLight ? colors.border : '#3A2E5B',
+          },
+        ]}
+      >
+        {leftIconName && (
+          <Ionicons
+            name={leftIconName}
+            size={mvs(18)}
+            color={isLight ? colors.secondaryText : '#8E8E8E'}
+            style={styles.leftIcon}
+          />
+        )}
+
         <TextInput
-          style={[styles.input, style]}
+          style={[
+            styles.input,
+            alignmentStyle,
+            { color: isLight ? colors.black : colors.white },
+            style,
+          ]}
           placeholder={placeholder}
-          placeholderTextColor={colors.secondaryText}
+          placeholderTextColor={isLight ? colors.secondaryText : '#8E8E8E'}
           value={value}
           onChangeText={onChangeText}
           secureTextEntry={secureTextEntry && !showPassword} // Toggle visibility
@@ -61,17 +107,21 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
             <Icon
               name={showPassword ? 'visibility' : 'visibility-off'}
               size={mvs(20)}
-              color={colors.black}
+              color={isLight ? colors.black : colors.white}
             />
           </TouchableOpacity>
         )}
       </View>
 
       {errorMessage ? (
-        <Text style={styles.errorText}>{errorMessage}</Text>
+        <Text style={[styles.errorText, alignmentStyle]}>{errorMessage}</Text>
       ) : null}
     </View>
   );
+
+  function handleTogglePassword() {
+    setShowPassword(!showPassword);
+  }
 };
 
 const styles = StyleSheet.create({
@@ -81,22 +131,22 @@ const styles = StyleSheet.create({
   label: {
     fontSize: mvs(13),
     marginBottom: mvs(8),
-    fontWeight: '500',
+    fontWeight: '600',
   },
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: mvs(8),
-    backgroundColor: colors.gray,
+    borderRadius: mvs(12),
+    height: mvs(50),
+    paddingHorizontal: mvs(8),
+  },
+  leftIcon: {
+    paddingHorizontal: mvs(8),
   },
   input: {
     flex: 1,
-    paddingHorizontal: mvs(12),
-    paddingVertical: mvs(12),
+    paddingHorizontal: mvs(8),
+    height: '100%',
     fontSize: mvs(14),
-    color: colors.black,
   },
   iconContainer: {
     paddingHorizontal: mvs(10),
@@ -109,3 +159,4 @@ const styles = StyleSheet.create({
 });
 
 export { CustomTextInput };
+export type { CustomTextInputProps };

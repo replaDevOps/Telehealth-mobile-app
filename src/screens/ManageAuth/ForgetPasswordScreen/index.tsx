@@ -31,7 +31,7 @@ interface ForgetPasswordScreenProps {
 export function ForgetPasswordScreen({
   navigation,
 }: ForgetPasswordScreenProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [selectedTab, setSelectedTab] = useState<'email' | 'phone'>('email');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -123,7 +123,7 @@ export function ForgetPasswordScreen({
               />
             ) : (
               <>
-                <Text style={styles.label}>{t('phone_number')}</Text>
+                <Text style={[styles.label, i18n.language === 'ar' && { textAlign: 'right' }]}>{t('phone_number')}</Text>
                 <PhoneNumberInput
                   phone={phone}
                   setPhone={(text) => {

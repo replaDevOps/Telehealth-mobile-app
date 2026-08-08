@@ -38,8 +38,13 @@ interface NearbyClinicsProps {
   onSeeAllPress?: () => void; // Optional if not used yet
 }
 
+import { localizeClinicText } from '../../utils/cityTranslator';
+
 // ClinicListItem Component
 const ClinicListItem: React.FC<ClinicListItemProps> = ({ item, onPress }) => {
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language?.startsWith('ar');
+
   // Calculate rating value (handle both string and number types)
   const ratingValue = typeof item.rating === 'string'
     ? parseFloat(item.rating)
@@ -57,7 +62,7 @@ const ClinicListItem: React.FC<ClinicListItemProps> = ({ item, onPress }) => {
             resizeMode="cover"
           />
         ) : (
-          <ClinicAvatar name={item.name} size={80} style={styles.clinicImage} />
+          <ClinicAvatar name={localizeClinicText(item.name, isArabic)} size={80} style={styles.clinicImage} />
         )}
 
         <View style={styles.clinicInfo}>
@@ -71,11 +76,11 @@ const ClinicListItem: React.FC<ClinicListItemProps> = ({ item, onPress }) => {
             {/* If specialty is "Both", show Online and Offline chips; otherwise show single chip */}
             {item.specialty?.toLowerCase() === 'both' ? (
               <View style={styles.chipsContainer}>
-                <Text style={styles.specialtyText}>Dermatology</Text>
-                <Text style={styles.specialtyText}>Dentistry</Text>
+                <Text style={styles.specialtyText}>{isArabic ? 'جلدية' : 'Dermatology'}</Text>
+                <Text style={styles.specialtyText}>{isArabic ? 'أسنان' : 'Dentistry'}</Text>
               </View>
             ) : (
-              <Text style={styles.specialtyText}>{item.specialty}</Text>
+              <Text style={styles.specialtyText}>{localizeClinicText(item.specialty, isArabic)}</Text>
             )}
 
             {shouldShowRating && (
@@ -86,12 +91,12 @@ const ClinicListItem: React.FC<ClinicListItemProps> = ({ item, onPress }) => {
             )}
           </View>
           <Text style={styles.clinicName} numberOfLines={1}>
-            {item.name}
+            {localizeClinicText(item.name, isArabic)}
           </Text>
           <View style={styles.locationRow}>
             <Ionicons name="location" size={18} color={colors.secondaryText} />
             <Text style={styles.locationText} numberOfLines={1}>
-              {item.location}
+              {localizeClinicText(item.location, isArabic)}
             </Text>
           </View>
         </View>

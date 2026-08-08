@@ -31,13 +31,13 @@ export const SettingScreen = ({ navigation }: { navigation: any }) => {
   const { profileData, fetchProfile, refreshProfile } = useProfileStore();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
-  
+
   // Extract profile image and loyalty points from store
   const profileImage = profileData?.image || profileData?.profileImage || profileData?.profile_image || '';
-  const loyaltyPoints = profileData?.loyaltyPoints 
-    ? (typeof profileData.loyaltyPoints === 'string' 
-        ? parseInt(profileData.loyaltyPoints, 10) 
-        : profileData.loyaltyPoints)
+  const loyaltyPoints = profileData?.loyaltyPoints
+    ? (typeof profileData.loyaltyPoints === 'string'
+      ? parseInt(profileData.loyaltyPoints, 10)
+      : profileData.loyaltyPoints)
     : 0;
 
   // Fetch profile data on component mount and when screen is focused (only if authenticated)
@@ -108,7 +108,7 @@ export const SettingScreen = ({ navigation }: { navigation: any }) => {
               }
               Toast.success(response.data?.message || 'Account deletion requested');
               setTimeout(async () => {
-                try { await signOutGoogle(); } catch {}
+                try { await signOutGoogle(); } catch { }
                 useProfileStore.getState().clearProfile();
                 logout();
                 navigation.replace('Auth', { screen: 'SignIn' });
@@ -172,7 +172,7 @@ export const SettingScreen = ({ navigation }: { navigation: any }) => {
   const handleContactUsPress = () => {
     Alert.alert(
       t('contact_us'),
-      'support@repla-projects.com',
+      'info@vena-app.com',
       [{ text: t('okay'), style: 'default' }],
       { cancelable: true }
     );
@@ -205,27 +205,27 @@ export const SettingScreen = ({ navigation }: { navigation: any }) => {
       onPress: () => navigation.navigate('RefundRequest2'),
     },
     {
-      icon: (props: any) => <Ionicons name="globe-outline" size={24} color={colors.primary} {...props} />,
+      icon: (props: any) => <Ionicons name="globe-outline" size={24} color={colors.black} {...props} />,
       title: t('language'),
       onPress: handleLanguagePress,
     },
     {
-      icon: (props: any) => <Ionicons name="notifications-outline" size={24} color={colors.primary} {...props} />,
+      icon: (props: any) => <Ionicons name="notifications-outline" size={24} color={colors.black} {...props} />,
       title: t('notifications'),
       onPress: handleNotificationsPress,
     },
     {
-      icon: (props: any) => <Ionicons name="card-outline" size={24} color={colors.primary} {...props} />,
+      icon: (props: any) => <Ionicons name="card-outline" size={24} color={colors.black} {...props} />,
       title: t('payment_methods'),
       onPress: handlePaymentMethodsPress,
     },
     {
-      icon: (props: any) => <Ionicons name="chatbubbles-outline" size={24} color={colors.primary} {...props} />,
+      icon: (props: any) => <Ionicons name="chatbubbles-outline" size={24} color={colors.black} {...props} />,
       title: t('contact_us'),
       onPress: handleContactUsPress,
     },
     {
-      icon: (props: any) => <Ionicons name="information-circle-outline" size={24} color={colors.primary} {...props} />,
+      icon: (props: any) => <Ionicons name="information-circle-outline" size={24} color={colors.black} {...props} />,
       title: t('about_app'),
       onPress: handleAboutAppPress,
     },

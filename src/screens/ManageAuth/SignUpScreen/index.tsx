@@ -97,21 +97,8 @@ export function SignUpScreen({ navigation }) {
         setLoading(true);
 
         if (selectedTab === 'phone') {
-          // Backend validates the number for this flow via `type`.
-          // Only send the OTP when it responds success:true; otherwise it
-          // returns the reason (e.g. "Phone number is already registered").
-          const checkRes = await apiClient.post(API.AUTH.CHECK_PHONE_NO, {
-            phoneNo: phone.trim(),
-            type: 'register',
-          });
-          if (checkRes?.data?.success !== true) {
-            const msg = checkRes?.data?.message || t('something_went_wrong');
-            setPhoneError(msg);
-            Toast.error(msg);
-            setLoading(false);
-            return;
-          }
-
+          // The send-otp endpoint validates the number itself (e.g. returns
+          // "Phone number is already registered"), so no pre-check is needed.
           const { data } = await apiClient.post(API.AUTH.SEND_OTP_PHONE, {
             phoneNo: formattedPhone,
           });
@@ -143,8 +130,8 @@ export function SignUpScreen({ navigation }) {
         }
       } catch (error: any) {
         console.log('error', error);
-        // Backend errors (e.g. checkPhoneNo "Phone number is already registered")
-        // carry a user-friendly message — surface it, otherwise fall back to a
+        // Backend errors (e.g. "Phone number is already registered") carry a
+        // user-friendly message — surface it, otherwise fall back to a
         // friendly generic message.
         const backendMsg =
           error?.response?.data?.message || error?.data?.message;

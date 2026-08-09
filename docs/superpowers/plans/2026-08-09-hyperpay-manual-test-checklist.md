@@ -35,6 +35,8 @@ Run each on **iOS and Android**, and the billing form once in **English and Arab
 - [ ] MADA success (confirm MADA appears first in the widget)
 - [ ] Amount charged on the success screen matches the total shown on Checkout — report any mismatch, it indicates a backend/client calculation divergence (the app logs `[PaymentStatus] amount mismatch` to the console when this happens)
 - [ ] Close the WebView mid-payment → confirm dialog → Leave → status screen polls, does not silently return to Checkout
+- [ ] **Abandon the widget WITHOUT entering card details** → after ~30s the screen must say "Payment declined / not completed, you have not been charged" with Try Again. It must NOT say "Payment received", and must NOT show an "Amount charged" row. (This was a real bug — fixed in `0ea8e63`.)
+- [ ] Abandon *after* submitting a card while 3DS is still in flight → "We couldn't confirm your payment", no amount shown, no Try Again button
 - [ ] Android hardware back inside the WebView triggers the same confirm dialog
 - [ ] Airplane mode during polling → keeps retrying, then lands on "still processing", never on "declined"
 - [ ] Background the app during 3DS, return → payment completes and status resolves

@@ -1,5 +1,6 @@
 import {
   resolvePaymentOutcome,
+  resolveTimeoutOutcome,
   shouldKeepPolling,
 } from '../resolvePaymentOutcome';
 
@@ -33,6 +34,31 @@ describe('resolvePaymentOutcome', () => {
   });
 });
 
+describe('resolveTimeoutOutcome', () => {
+  // Regression: abandoning the widget before entering card details left the
+  // payment at status 'pending', and the deadline used to map that to
+  // 'processing' — telling the user "Payment received" and showing an
+  // "Amount charged" for a card that was never touched.
+  it('treats a still-pending payment as not completed, not as received', () => {
+    expect(resolveTimeoutOutcome('pending')).toBe('failed');
+  });
+
+  it('reports unconfirmed when HyperPay was still processing', () => {
+    expect(resolveTimeoutOutcome('processing')).toBe('unconfirmed');
+  });
+
+  it('reports unconfirmed when no status was ever retrieved', () => {
+    expect(resolveTimeoutOutcome(null)).toBe('unconfirmed');
+  });
+
+  it('never claims a charge it cannot prove', () => {
+    (['pending', 'processing', null] as const).forEach(status => {
+      expect(resolveTimeoutOutcome(status)).not.toBe('success');
+      expect(resolveTimeoutOutcome(status)).not.toBe('processing');
+    });
+  });
+});
+
 describe('shouldKeepPolling', () => {
   it('keeps polling while unresolved or mid-fulfilment', () => {
     expect(shouldKeepPolling('confirming')).toBe(true);
@@ -43,5 +69,6 @@ describe('shouldKeepPolling', () => {
     expect(shouldKeepPolling('success')).toBe(false);
     expect(shouldKeepPolling('failed')).toBe(false);
     expect(shouldKeepPolling('fulfillment_failed')).toBe(false);
+    expect(shouldKeepPolling('unconfirmed')).toBe(false);
   });
 });

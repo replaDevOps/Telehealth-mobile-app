@@ -606,5 +606,7 @@
   "fill_billing_details": "Please complete your billing details",
   "continue_to_payment": "Continue to Payment",
   "please_login_to_checkout": "Please login to proceed with checkout",
-  "session_expired_login_again": "Session expired. Please login again."
+  "session_expired_login_again": "Session expired. Please login again.",
+  "payment_unconfirmed_title": "We couldn't confirm your payment",
+  "payment_unconfirmed_body": "Your payment may still be going through. Please don't pay again — check your history in a few minutes, and contact support if it doesn't appear."
 }

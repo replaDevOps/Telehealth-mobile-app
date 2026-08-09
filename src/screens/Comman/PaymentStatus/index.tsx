@@ -24,8 +24,10 @@ import { styles } from './style';
 import {
   PaymentOutcome,
   resolvePaymentOutcome,
+  resolveTimeoutOutcome,
   shouldKeepPolling,
 } from './resolvePaymentOutcome';
+import type { PaymentStatus } from '../../../types/payment.types';
 
 const POLL_INTERVAL_MS = 2000;
 const POLL_TIMEOUT_MS = 30000;
@@ -64,6 +66,12 @@ const VIEWS: Record<
     icon: 'alert-circle',
     tint: colors.yellow,
   },
+  unconfirmed: {
+    title: 'payment_unconfirmed_title',
+    body: 'payment_unconfirmed_body',
+    icon: 'help-circle',
+    tint: colors.yellow,
+  },
 };
 
 export function PaymentStatusScreen({ route, navigation }: any) {
@@ -83,6 +91,8 @@ export function PaymentStatusScreen({ route, navigation }: any) {
 
   const settledRef = useRef(false);
   const fulfilledOnceRef = useRef(false);
+  /** Most recent status the server actually returned; null if none ever did. */
+  const lastStatusRef = useRef<PaymentStatus | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const deadlineRef = useRef<number>(Date.now() + POLL_TIMEOUT_MS);
   const mountedRef = useRef(true);
@@ -111,6 +121,7 @@ export function PaymentStatusScreen({ route, navigation }: any) {
       if (!mountedRef.current) return;
 
       setPayment(data);
+      lastStatusRef.current = data.status;
       const next = resolvePaymentOutcome(data.status, data.fulfillment_status);
       setOutcome(next);
 
@@ -144,7 +155,7 @@ export function PaymentStatusScreen({ route, navigation }: any) {
       // via the webhook and will appear in history.
       if (error?.status === 401) {
         settledRef.current = true;
-        setOutcome(prev => (prev === 'confirming' ? 'processing' : prev));
+        setOutcome(prev => (prev === 'confirming' ? 'unconfirmed' : prev));
         return;
       }
 
@@ -154,9 +165,12 @@ export function PaymentStatusScreen({ route, navigation }: any) {
 
     if (Date.now() >= deadlineRef.current) {
       settledRef.current = true;
-      // Whatever we last saw is what the user gets; 'confirming' at the
-      // deadline reads as "still processing" rather than an error.
-      setOutcome(prev => (prev === 'confirming' ? 'processing' : prev));
+      // Only override while still 'confirming' — a resolved outcome stands.
+      setOutcome(prev =>
+        prev === 'confirming'
+          ? resolveTimeoutOutcome(lastStatusRef.current)
+          : prev,
+      );
       return;
     }
 
@@ -231,7 +245,12 @@ export function PaymentStatusScreen({ route, navigation }: any) {
         <Text style={styles.title}>{t(view.title)}</Text>
         <Text style={styles.body}>{t(view.body)}</Text>
 
-        {payment && outcome !== 'confirming' && outcome !== 'failed' && (
+        {/*
+          Only ever show an amount for a payment the server confirmed as paid.
+          Rendering `payment.amount` for a pending checkout would present the
+          cart total as a charge the user never made.
+        */}
+        {payment?.status === 'paid' && (
           <View style={styles.detailBox}>
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>
@@ -258,7 +277,9 @@ export function PaymentStatusScreen({ route, navigation }: any) {
           </TouchableOpacity>
         )}
 
-        {(outcome === 'processing' || outcome === 'fulfillment_failed') && (
+        {(outcome === 'processing' ||
+          outcome === 'fulfillment_failed' ||
+          outcome === 'unconfirmed') && (
           <TouchableOpacity style={styles.primaryButton} onPress={goToHistory}>
             <Text style={styles.primaryButtonText}>{t('view_history')}</Text>
           </TouchableOpacity>

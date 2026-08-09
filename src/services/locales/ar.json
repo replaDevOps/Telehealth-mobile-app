@@ -590,5 +590,7 @@
   "fill_billing_details": "يرجى استكمال بيانات الفوترة",
   "continue_to_payment": "متابعة الدفع",
   "please_login_to_checkout": "يرجى تسجيل الدخول لإتمام الطلب",
-  "session_expired_login_again": "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى."
+  "session_expired_login_again": "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.",
+  "payment_unconfirmed_title": "تعذّر تأكيد عملية الدفع",
+  "payment_unconfirmed_body": "قد تكون عملية الدفع قيد المعالجة. يرجى عدم الدفع مرة أخرى — تحقق من السجل بعد بضع دقائق، وتواصل مع الدعم إذا لم تظهر."
 }

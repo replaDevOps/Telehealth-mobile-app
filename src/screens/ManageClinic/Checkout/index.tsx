@@ -13,19 +13,28 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../../../styles/colors';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { ApplePaySvg, StcPaySvg, TabbySvg, TamaraSvg } from '@assets/icons';
-import MasterCardSvg from '@assets/icons/MastercardSvg';
 import { styles } from './style';
 import ClinicAvatar from '@components/common/ClinicAvatar';
-import { PaymentMethod, SuccessMessageModal } from '@components/molecules'; // Verify this path
+import {
+  PaymentMethod,
+  SuccessMessageModal,
+  BillingDetailsForm,
+} from '@components/molecules';
 import { useTranslation } from 'react-i18next';
 import { localizeClinicText } from '../../../utils/cityTranslator';
 import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
+import { prepareCartCheckout } from '@services/payments/hyperpayService';
+import {
+  EMPTY_BILLING,
+  buildBillingPrefill,
+  loadCachedBilling,
+  saveCachedBilling,
+  validateBilling,
+} from '@utils/billingDetails';
+import type { BillingDetails } from '../../../types/payment.types';
 import { Toast } from 'toastify-react-native';
 import { useAuthStore, useProfileStore } from '@store';
-import { useCart } from '@context/CartContext';
-import { useCartCountContext } from '@context/CartCountContext';
 
 export function CheckoutScreen({ route, navigation }) {
   const { t, i18n } = useTranslation();
@@ -36,9 +45,7 @@ export function CheckoutScreen({ route, navigation }) {
     return isArabic ? `${formatted} ر.س` : `SAR ${formatted}`;
   };
   const insets = useSafeAreaInsets();
-  const { profileData, fetchProfile, refreshProfile, currencyValuePerPoint } = useProfileStore();
-  const { clearCart } = useCart();
-  const { triggerRefresh } = useCartCountContext();
+  const { profileData, fetchProfile, currencyValuePerPoint } = useProfileStore();
   const { services = [], totalLoyaltyPoints = 0 } = route.params || {};
   const groupServicePrice = Number(route.params?.groupServicePrice || 0);
   const groupCampaignDiscount = Number(route.params?.groupCampaignDiscount || 0);
@@ -54,6 +61,20 @@ export function CheckoutScreen({ route, navigation }) {
     fetchProfile();
   }, [fetchProfile]);
 
+  // Prefill billing once the profile is available: profile owns identity
+  // fields, the cache owns the address.
+  useEffect(() => {
+    let cancelled = false;
+
+    loadCachedBilling().then(cached => {
+      if (!cancelled) setBilling(buildBillingPrefill(profileData, cached));
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [profileData]);
+
   const userLoyaltyPoints = profileData?.loyaltyPoints
     ? typeof profileData.loyaltyPoints === 'string'
       ? parseInt(profileData.loyaltyPoints, 10) || 0
@@ -61,40 +82,13 @@ export function CheckoutScreen({ route, navigation }) {
     : 0;
   const [couponCode, setCouponCode] = useState('');
   const [discount, setDiscount] = useState(0);
-  const [selectedPayment, setSelectedPayment] = useState('credit');
-  const [cardDetails, setCardDetails] = useState({
-    cardholderName: '',
-    cardNumber: '',
-    expiryDate: '',
-    cvv: '',
-  });
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [billing, setBilling] = useState<BillingDetails>(EMPTY_BILLING);
+  const [invalidFields, setInvalidFields] = useState<(keyof BillingDetails)[]>(
+    [],
+  );
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [redeemPoints, setRedeemPoints] = useState('');
-
-  const allPaymentMethods = [
-    {
-      id: 'credit',
-      label: t('credit_debit_card'),
-      logo: <MasterCardSvg />,
-      type: 'card',
-    },
-    {
-      id: 'applepay',
-      label: t('apple_pay'),
-      logo: <ApplePaySvg />,
-      type: 'digital',
-    },
-    { id: 'stc', label: t('stc_pay'), logo: <StcPaySvg />, type: 'digital' },
-    { id: 'tabby', label: t('tabby'), logo: <TabbySvg />, type: 'installment' },
-    {
-      id: 'tamara',
-      label: t('tamara'),
-      logo: <TamaraSvg />,
-      type: 'installment',
-    },
-  ];
 
   // Calculate totals
   const calculateSubtotal = () => {
@@ -184,154 +178,75 @@ export function CheckoutScreen({ route, navigation }) {
     }
   };
 
-  const parseExpiryDate = (expiryDate: string) => {
-    // Expected format: MM/YY or MM/YYYY
-    const parts = expiryDate.split('/');
-    if (parts.length !== 2) {
-      return { month: '', year: '' };
-    }
-    const month = parts[0].trim();
-    let year = parts[1].trim();
-    // If year is 2 digits, assume 20XX
-    if (year.length === 2) {
-      year = `20${year}`;
-    }
-    return { month, year };
-  };
-
   const handleProceedToPayment = async () => {
-    // Only allow credit/debit card payment for now
-    if (selectedPayment !== 'credit') {
-      Toast.error('Only card payment is available at the moment');
-      return;
-    }
-
-    // Check authentication
-    const authState = useAuthStore.getState();
-    const token = authState.auth?.token;
-
+    const token = useAuthStore.getState().auth?.token;
     if (!token) {
-      Toast.error('Please login to proceed with checkout');
-      // Optionally navigate to login screen
-      // navigation.navigate('SignIn');
+      Toast.error(t('please_login_to_checkout'));
       return;
     }
 
-    // Validate payment details
-    const { cardholderName, cardNumber, expiryDate, cvv } = cardDetails;
-    if (!cardholderName || !cardNumber || !expiryDate || !cvv) {
-      Toast.error(t('fill_card_details') || 'Please fill all card details');
+    const invalid = validateBilling(billing);
+    if (invalid.length > 0) {
+      setInvalidFields(invalid);
+      Toast.error(t('fill_billing_details'));
+      return;
+    }
+    setInvalidFields([]);
+
+    if (insufficientCoins) {
+      Toast.error(t('insufficient_coins'));
       return;
     }
 
-    // Enforce maximum formatted card number length (16 digits + 3 spaces = 19)
-    if (cardNumber.length > 19) {
-      Toast.error('Please enter a valid card number');
-      return;
-    }
-
-    // Validate expiry date format
-    const { month, year } = parseExpiryDate(expiryDate);
-    if (!month || !year || month.length !== 2 || year.length !== 4) {
-      Toast.error('Please enter expiry date in MM/YY format');
+    if (redemptionCoinsInput > maxRedeemableCoins) {
+      Toast.error(t('redeem_exceeds_total'));
       return;
     }
 
     setLoading(true);
 
     try {
-      // Prevent proceeding if user tried to redeem more points than they own
-      if (insufficientCoins) {
-        Toast.error(t('insufficient_coins') || 'Insufficient coins');
-        setLoading(false);
-        return;
-      }
+      await saveCachedBilling(billing);
 
-      // Prevent proceeding if user requested more coins than allowed by payable amount
-      if (redemptionCoinsInput > maxRedeemableCoins) {
-        Toast.error(t('redeem_exceeds_total') || 'Redeem amount exceeds remaining payable total');
-        setLoading(false);
-        return;
-      }
+      // The amount is computed server-side from the cart. `total` on this
+      // screen is a preview only and is deliberately not sent.
+      const checkout = await prepareCartCheckout({
+        purpose: 'cart',
+        redeem_points: appliedCoins,
+        ...billing,
+        billing_country: billing.billing_country.toUpperCase(),
+      });
 
-      // Prepare checkout payload
-      const payload = {
-        paymentMethod: 'stripe',
-        cardNumber: cardNumber.replace(/\s/g, ''), // Remove spaces
-        expMonth: month,
-        expYear: year,
-        cvc: cvv,
-        cardholderName: cardholderName,
-        redeemPoints: redeemPoints || '',
-        // include services with clinic location/address so backend can process location-aware checkout
-        items: services.map(item => ({
-          serviceID: item.service?.id || item.service?.serviceID || item.serviceID,
-          clinicID: item.clinic?.id,
-          location: item.clinic?.address || item.clinic?.location || '',
-        })),
-      };
-
-      console.log('Checkout payload:', { ...payload, cardNumber: '***', cvc: '***' });
-      console.log('Auth token present:', !!token);
-
-      const response = await apiClient.post(API.CHECKOUT.CHECKOUT, payload);
-
-      // Check for success: false in response
-      if (response.data?.success === false) {
-        const errorMessage = response.data?.message || 'Checkout failed';
-        // Toast.error(errorMessage);
-        console.log('Checkout error:', errorMessage);
-        setShowErrorModal(true);
-        setLoading(false);
-        return;
-      }
-
-      // Success - clear in-memory cart and trigger cart count refresh so clinic/service views stay in sync
-      clearCart();
-      triggerRefresh();
-      refreshProfile().catch(() => {});
-      setShowSuccessModal(true);
       setLoading(false);
+      navigation.navigate('PaymentWebView', {
+        paymentUrl: checkout.payment_url,
+        paymentId: checkout.payment_id,
+        expectedAmount: total,
+      });
     } catch (error: any) {
-      console.error('Checkout error:', error);
+      setLoading(false);
+      console.error('[Checkout] prepare failed', error);
 
-      // Handle 401 Unauthenticated error
-      if (error?.status === 401 || error?.response?.status === 401) {
+      if (error?.status === 401) {
         Toast.error('Session expired. Please login again.');
-
         try {
-          // Call logout API
           await apiClient.post(API.AUTH.LOGOUT);
-        } catch (logoutError: any) {
-          // Even if logout API call fails, proceed with logout
+        } catch (logoutError) {
           console.log('Logout API error:', logoutError);
         } finally {
-          console.log('Logout API call failed');
-          // Clear auth store and navigate to login
           useAuthStore.getState().logout();
           navigation.replace('Auth', { screen: 'SignIn' });
         }
-
-        setLoading(false);
         return;
       }
 
-      const errorMessage =
-        error?.response?.data?.message ||
-        error?.data?.message ||
-        error?.message ||
-        'Failed to process payment';
-      // Toast.error(errorMessage);
+      if (error?.status === 422) {
+        Toast.error(error?.message || t('payment_failed_Description'));
+        return;
+      }
+
       setShowErrorModal(true);
-      setLoading(false);
     }
-  };
-  const HandleRequest = () => {
-    setShowSuccessModal(false);
-    navigation.navigate('EntryPoint', {
-      screen: 'Clinic',
-      params: { screen: 'ClinicScreen' },
-    });
   };
 
   // Group services by clinic
@@ -347,10 +262,6 @@ export function CheckoutScreen({ route, navigation }) {
     acc[clinicId].services.push(item.service);
     return acc;
   }, {});
-
-  const installmentPaymentMethods = allPaymentMethods.filter(
-    method => method.type === 'installment',
-  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -458,29 +369,7 @@ export function CheckoutScreen({ route, navigation }) {
 
         {/* Payment Methods Section - Only show card form for credit card */}
         <PaymentMethod
-          selectedPayment="credit" // Force credit card selection
-          onPaymentChange={(payment) => {
-            // Only allow credit card, ignore other selections
-            if (payment !== 'credit') {
-              Toast.error('Only card payment is available at the moment');
-              return;
-            }
-            setSelectedPayment(payment);
-          }}
-          cardholderName={cardDetails.cardholderName}
-          onCardholderNameChange={text =>
-            setCardDetails(prev => ({ ...prev, cardholderName: text }))
-          }
-          cardNumber={cardDetails.cardNumber}
-          onCardNumberChange={text =>
-            setCardDetails(prev => ({ ...prev, cardNumber: text }))
-          }
-          expiryDate={cardDetails.expiryDate}
-          onExpiryDateChange={text =>
-            setCardDetails(prev => ({ ...prev, expiryDate: text }))
-          }
-          cvv={cardDetails.cvv}
-          onCvvChange={text => setCardDetails(prev => ({ ...prev, cvv: text }))}
+          variant="card-only"
           showTitle={true}
           compact={true}
           showRoyaltyPoints={true}
@@ -489,9 +378,14 @@ export function CheckoutScreen({ route, navigation }) {
           onPointsToRedeemChange={handlePointsToRedeemChange}
           coinToSar={COIN_TO_SAR}
           maxRedemptionSAR={maxRedemptionSAR}
-          onApplyCoupon={code => console.log('Apply', code)}
         />
-        
+
+        <BillingDetailsForm
+          value={billing}
+          onChange={setBilling}
+          invalidFields={invalidFields}
+        />
+
 
         {insufficientCoins && (
           <View style={{ marginHorizontal: 20, marginTop: 8 }}>
@@ -578,25 +472,10 @@ export function CheckoutScreen({ route, navigation }) {
           disabled={loading}
         >
           <Text style={styles.proceedButtonText}>
-            {t('proceed_to_payment')}
+            {t('continue_to_payment')}
           </Text>
         </TouchableOpacity>
       </View>
-
-      <SuccessMessageModal
-        visible={showSuccessModal}
-        onClose={() => {
-          setShowSuccessModal(false);
-          navigation.navigate('EntryPoint', {
-            screen: 'Clinic',
-            params: { screen: 'ClinicScreen' },
-          });
-        }}
-        title={t('request_send')}
-        description={t('request_sent_description')}
-        buttonTitle={t('okay')}
-        buttonPress={HandleRequest}
-      />
 
       <SuccessMessageModal
         visible={showErrorModal}

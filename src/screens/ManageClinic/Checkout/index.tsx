@@ -228,7 +228,7 @@ export function CheckoutScreen({ route, navigation }) {
       console.error('[Checkout] prepare failed', error);
 
       if (error?.status === 401) {
-        Toast.error('Session expired. Please login again.');
+        Toast.error(t('session_expired_login_again'));
         try {
           await apiClient.post(API.AUTH.LOGOUT);
         } catch (logoutError) {

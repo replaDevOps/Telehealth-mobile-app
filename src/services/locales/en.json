@@ -605,5 +605,6 @@
   "card_mada_visa_master": "Card — MADA / Visa / Mastercard",
   "fill_billing_details": "Please complete your billing details",
   "continue_to_payment": "Continue to Payment",
-  "please_login_to_checkout": "Please login to proceed with checkout"
+  "please_login_to_checkout": "Please login to proceed with checkout",
+  "session_expired_login_again": "Session expired. Please login again."
 }

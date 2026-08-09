@@ -575,5 +575,19 @@
   "refund_policy_content_1_title": "1. Acceptance of Terms",
   "refund_policy_content_1_desc": "By using this app, you agree to follow these terms and conditions. If you do not agree, please stop using the app.",
   "refund_policy_content_2_title": "2. User Account",
-  "refund_policy_content_2_desc": "You are responsible for keeping your account information secure. Do not share your login details with others."
+  "refund_policy_content_2_desc": "You are responsible for keeping your account information secure. Do not share your login details with others.",
+  "payment_confirming_title": "Confirming your payment",
+  "payment_confirming_body": "Please wait while we confirm your payment. Don't close the app.",
+  "payment_success_title": "Payment successful",
+  "payment_success_body": "Your appointment has been booked. You'll find the details in your history.",
+  "payment_processing_title": "Payment received",
+  "payment_processing_body": "We're still finalising your booking. This usually takes a moment — you'll see it in your history shortly.",
+  "payment_declined_title": "Payment declined",
+  "payment_declined_body": "Your payment was not completed and you have not been charged. You can try again.",
+  "payment_unfulfilled_title": "Payment received — booking pending",
+  "payment_unfulfilled_body": "Your payment went through but we couldn't finalise the booking. Our team has been notified and will sort this out. Please don't pay again.",
+  "payment_amount_charged": "Amount charged",
+  "payment_reference": "Reference",
+  "try_again": "Try Again",
+  "view_history": "View History"
 }

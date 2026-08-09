@@ -36,6 +36,7 @@ import {
   CartScreen,
   RefundPolicy,
   PolicyScreen,
+  PaymentStatusScreen,
 } from '@screens/Comman';
 
 export type MainStackParamList = {
@@ -44,6 +45,7 @@ export type MainStackParamList = {
   CardDetails: undefined;
   Refund: { paymentId: string;[key: string]: any };
   CheckoutScreen: undefined;
+  PaymentStatus: { paymentId: number | string; expectedAmount?: number };
   CartScreen: undefined;
   PrescriptionScreen: undefined;
   Notification: undefined;
@@ -99,6 +101,11 @@ export const MainNavigator = () => {
       <Stack.Screen name="CardDetails" component={CardDetails} />
       <Stack.Screen name="Refund" component={RefundRequest} />
       <Stack.Screen name="CheckoutScreen" component={CheckoutScreen} />
+      <Stack.Screen
+        name="PaymentStatus"
+        component={PaymentStatusScreen}
+        options={{ gestureEnabled: false, headerBackVisible: false }}
+      />
       <Stack.Screen name="CartScreen" component={CartScreen} />
       <Stack.Screen name="PrescriptionScreen" component={PrescriptionScreen} />
       <Stack.Screen name="Notification" component={NotificationScreen} />

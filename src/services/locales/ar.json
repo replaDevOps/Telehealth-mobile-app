@@ -559,5 +559,19 @@
   "refund_policy_content_1_title": "1. الموافقة على الشروط",
   "refund_policy_content_1_desc": "باستخدام هذا التطبيق، أنت موافق على اتباع هذه الشروط والبنود. إذا كنت لا تتفق، يرجى إيقاف استخدام التطبيق.",
   "refund_policy_content_2_title": "2. حساب المستخدم",
-  "refund_policy_content_2_desc": "أنت مسؤول عن الحفاظ على معلومات حسابك آمنة. لا تشارك تفاصيل تسجيل الدخول مع الآخرين."
+  "refund_policy_content_2_desc": "أنت مسؤول عن الحفاظ على معلومات حسابك آمنة. لا تشارك تفاصيل تسجيل الدخول مع الآخرين.",
+  "payment_confirming_title": "جارٍ تأكيد الدفع",
+  "payment_confirming_body": "يرجى الانتظار بينما نؤكد عملية الدفع. لا تغلق التطبيق.",
+  "payment_success_title": "تم الدفع بنجاح",
+  "payment_success_body": "تم حجز موعدك. ستجد التفاصيل في السجل.",
+  "payment_processing_title": "تم استلام الدفعة",
+  "payment_processing_body": "ما زلنا ننهي الحجز. عادةً ما يستغرق ذلك لحظات، وستجده في السجل قريبًا.",
+  "payment_declined_title": "تم رفض الدفع",
+  "payment_declined_body": "لم تكتمل عملية الدفع ولم يتم خصم أي مبلغ. يمكنك المحاولة مرة أخرى.",
+  "payment_unfulfilled_title": "تم استلام الدفعة — الحجز قيد المعالجة",
+  "payment_unfulfilled_body": "تمت عملية الدفع لكن تعذّر إتمام الحجز. تم إبلاغ فريقنا وسيتم حل المشكلة. يرجى عدم الدفع مرة أخرى.",
+  "payment_amount_charged": "المبلغ المدفوع",
+  "payment_reference": "الرقم المرجعي",
+  "try_again": "حاول مرة أخرى",
+  "view_history": "عرض السجل"
 }

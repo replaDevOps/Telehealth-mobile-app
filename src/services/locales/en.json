@@ -589,5 +589,10 @@
   "payment_amount_charged": "Amount charged",
   "payment_reference": "Reference",
   "try_again": "Try Again",
-  "view_history": "View History"
+  "view_history": "View History",
+  "payment_title": "Payment",
+  "abandon_payment_title": "Leave payment?",
+  "abandon_payment_confirm": "If you've already entered your card details, leaving now may still result in a charge. We'll check your payment status.",
+  "leave": "Leave",
+  "stay": "Stay"
 }

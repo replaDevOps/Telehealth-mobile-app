@@ -6,3 +6,4 @@ export * from './Cart';
 export * from './RefundPolicy';
 export * from './PolicyScreen';
 export * from './PaymentStatus';
+export * from './PaymentWebView';

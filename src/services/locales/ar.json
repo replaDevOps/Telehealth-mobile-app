@@ -573,5 +573,10 @@
   "payment_amount_charged": "المبلغ المدفوع",
   "payment_reference": "الرقم المرجعي",
   "try_again": "حاول مرة أخرى",
-  "view_history": "عرض السجل"
+  "view_history": "عرض السجل",
+  "payment_title": "الدفع",
+  "abandon_payment_title": "مغادرة صفحة الدفع؟",
+  "abandon_payment_confirm": "إذا كنت قد أدخلت بيانات بطاقتك، فقد يتم الخصم رغم المغادرة. سنتحقق من حالة الدفع.",
+  "leave": "مغادرة",
+  "stay": "البقاء"
 }

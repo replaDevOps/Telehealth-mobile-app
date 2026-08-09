@@ -37,6 +37,7 @@ import {
   RefundPolicy,
   PolicyScreen,
   PaymentStatusScreen,
+  PaymentWebViewScreen,
 } from '@screens/Comman';
 
 export type MainStackParamList = {
@@ -45,6 +46,11 @@ export type MainStackParamList = {
   CardDetails: undefined;
   Refund: { paymentId: string;[key: string]: any };
   CheckoutScreen: undefined;
+  PaymentWebView: {
+    paymentUrl: string;
+    paymentId: number | string;
+    expectedAmount?: number;
+  };
   PaymentStatus: { paymentId: number | string; expectedAmount?: number };
   CartScreen: undefined;
   PrescriptionScreen: undefined;
@@ -101,6 +107,11 @@ export const MainNavigator = () => {
       <Stack.Screen name="CardDetails" component={CardDetails} />
       <Stack.Screen name="Refund" component={RefundRequest} />
       <Stack.Screen name="CheckoutScreen" component={CheckoutScreen} />
+      <Stack.Screen
+        name="PaymentWebView"
+        component={PaymentWebViewScreen}
+        options={{ gestureEnabled: false }}
+      />
       <Stack.Screen
         name="PaymentStatus"
         component={PaymentStatusScreen}

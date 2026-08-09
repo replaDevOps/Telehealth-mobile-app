@@ -578,5 +578,16 @@
   "abandon_payment_title": "مغادرة صفحة الدفع؟",
   "abandon_payment_confirm": "إذا كنت قد أدخلت بيانات بطاقتك، فقد يتم الخصم رغم المغادرة. سنتحقق من حالة الدفع.",
   "leave": "مغادرة",
-  "stay": "البقاء"
+  "stay": "البقاء",
+  "billing_details": "بيانات الفوترة",
+  "first_name": "الاسم الأول",
+  "last_name": "اسم العائلة",
+  "street_address": "عنوان الشارع",
+  "state_region": "المنطقة",
+  "postcode": "الرمز البريدي",
+  "country_code": "الدولة (رمز ISO)",
+  "card_mada_visa_master": "بطاقة — مدى / فيزا / ماستركارد",
+  "fill_billing_details": "يرجى استكمال بيانات الفوترة",
+  "continue_to_payment": "متابعة الدفع",
+  "please_login_to_checkout": "يرجى تسجيل الدخول لإتمام الطلب"
 }

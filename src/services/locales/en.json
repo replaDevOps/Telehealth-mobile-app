@@ -594,5 +594,16 @@
   "abandon_payment_title": "Leave payment?",
   "abandon_payment_confirm": "If you've already entered your card details, leaving now may still result in a charge. We'll check your payment status.",
   "leave": "Leave",
-  "stay": "Stay"
+  "stay": "Stay",
+  "billing_details": "Billing Details",
+  "first_name": "First Name",
+  "last_name": "Last Name",
+  "street_address": "Street Address",
+  "state_region": "State / Region",
+  "postcode": "Postcode",
+  "country_code": "Country (ISO code)",
+  "card_mada_visa_master": "Card — MADA / Visa / Mastercard",
+  "fill_billing_details": "Please complete your billing details",
+  "continue_to_payment": "Continue to Payment",
+  "please_login_to_checkout": "Please login to proceed with checkout"
 }

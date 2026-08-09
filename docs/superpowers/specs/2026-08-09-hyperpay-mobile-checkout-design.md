@@ -164,6 +164,19 @@ Profile gives `name`, `email`, `phoneNo`, `city`. `name` is split on the first
 space into first/last; a single-word name puts everything in first name and
 leaves last name for the user to fill.
 
+Prefill precedence is split by field kind, because a single global rule gets
+one half wrong:
+
+- **Identity fields** (`first_name`, `last_name`, `email`, `phone`) — profile
+  wins over cache. Profile is the account of record; if the user updates their
+  email, checkout must reflect it rather than replay a stale cached value.
+- **Address fields** (`billing_street1`, `billing_city`, `billing_state`,
+  `billing_postcode`, `billing_country`) — cache wins, falling back to profile
+  `city` for `billing_city` and `SA` for `billing_country`. These do not exist
+  on the profile at all, so the cache is the only memory of them.
+
+Every field stays editable regardless of where its value came from.
+
 ### PaymentWebView
 
 Full screen. Header with title and a close button that confirms via
@@ -225,8 +238,9 @@ verified manually.
 - `resolvePaymentOutcome(status, fulfillmentStatus)` — the full four-state
   table, explicitly including `paid` + `failed`.
 - `billingDetails` — name splitting (single word, multi-word, empty), prefill
-  precedence (cache > profile > default), required-field validation, cache
-  round-trip against a mocked AsyncStorage.
+  precedence (profile wins for identity fields, cache wins for address
+  fields), required-field validation, cache round-trip against a mocked
+  AsyncStorage.
 - `hyperpayService` — request payload shape and error normalisation against a
   mocked `apiClient`.
 

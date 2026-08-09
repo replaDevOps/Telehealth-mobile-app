@@ -76,6 +76,12 @@ export const API = {
   CHECKOUT: {
     CHECKOUT: '/checkout/checkout',
   },
+  PAYMENTS: {
+    HYPERPAY: {
+      PREPARE: '/payments/hyperpay/prepare',
+      STATUS: '/payments/hyperpay/status', // GET /status/{paymentId}
+    },
+  },
   CONSULTATIONS: {
     GET_SERVICE_TYPES: '/patient-consultations/serviceTypes',
     GET_GROUPS: '/patient-consultations/groups',

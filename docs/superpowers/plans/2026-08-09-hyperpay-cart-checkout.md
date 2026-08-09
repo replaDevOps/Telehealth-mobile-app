@@ -2483,6 +2483,17 @@ npm run android
 
 Expected: both build and launch. If either fails, fix it before handing over; a JS-only verification is not sufficient for this feature.
 
+> **iOS is blocked by a pre-existing repo condition.** `xcodebuild` exits 65 with
+> `Signing for "Telehealth" requires a development team` before compiling a
+> single file (`DEVELOPMENT_TEAM` is absent from
+> `ios/Telehealth.xcodeproj/project.pbxproj`). This reproduces on `main`
+> without any of this work, and fixing it requires an Apple developer team ID
+> that only the project owner has. Set the team in Xcode →
+> Signing & Capabilities, then re-run `npm run ios` to complete this step.
+>
+> Note `npm run ios | tail` reports exit code 0 because the pipeline's status
+> is `tail`'s. Check the log text, not the exit code.
+
 - [ ] **Step 3: Write the manual test checklist**
 
 Create `docs/superpowers/plans/2026-08-09-hyperpay-manual-test-checklist.md` with the content below, then commit it.

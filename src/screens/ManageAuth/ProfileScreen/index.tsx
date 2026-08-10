@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Image } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { Asset } from 'react-native-image-picker';
@@ -23,6 +23,7 @@ import { colors } from '../../../styles/colors';
 import { mvs } from '../../../config/metrices';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import { translateCityToArabic } from '../../../utils/cityTranslator';
 import { API } from '@services/api/api-endpoint';
 import { Toast } from 'toastify-react-native';
 import { apiClient } from '@services/api/api-client';
@@ -373,7 +374,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   // City value stays the canonical English name (backend contract); only the
   // displayed label is localized.
   const cityOptions = citiesData.map((c: any) => ({
-    label: isArabic ? c.name_ar || c.name : c.name,
+    label: isArabic ? (c.name_ar || translateCityToArabic(c.name)) : c.name,
     value: c.name,
   }));
 

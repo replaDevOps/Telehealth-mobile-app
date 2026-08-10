@@ -29,8 +29,8 @@ import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
 import { ClinicDetailResponse, ClinicService, ClinicReview, ClinicDescriptionResponse, ClinicDevice, DeviceDetailResponse, ServiceFilterOption } from '../../../types/clinic.types';
 import { Toast } from 'toastify-react-native';
-import { translateCityToEnglish, localizeClinicText } from '../../../utils/cityTranslator';
 import { showLocationSettingsAlert, handleLocationError } from '../../../utils/locationUtils';
+import { formatCurrency } from '@utils';
 
 // Define types
 interface Review {
@@ -186,7 +186,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     if (!clinicID) return;
 
     try {
-       
+
       if (pageNo === 1) {
         setLoadingDescription(true);
       } else {
@@ -233,7 +233,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
             devices: responseData.devices || [],
           });
         }
-      
+
         // Handle devices pagination - filter only active
         if (response.data.devices && Array.isArray(response.data.devices)) {
           const activeDevices = response.data.devices.filter(
@@ -614,7 +614,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
           : 'General',
         serviceGroup: service.group?.name || 'Group',
         serviceName: service.name,
-        price: `SAR ${parseFloat(service.price).toFixed(2)}`,
+        price: formatCurrency(service.price, isArabic),
         campaignDiscount: (service as any).campaignDiscount,
         finalPrice: (service as any).finalPrice,
         duration: `${service.duration} ${t('minutes')}`,
@@ -867,7 +867,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
             : 'General',
           serviceGroup: serviceDetail.group?.name || 'Group',
           serviceName: serviceDetail.name,
-          price: `SAR ${parseFloat(serviceDetail.price).toFixed(2)}`,
+          price: formatCurrency(serviceDetail.price, isArabic),
           campaignDiscount: (serviceDetail as any).campaignDiscount,
           finalPrice: (serviceDetail as any).finalPrice,
           duration: `${serviceDetail.duration} ${t('minutes')}`,
@@ -991,7 +991,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
           specialty: clinic.specialty,
           rating: clinic.rating,
         },
-      };  
+      };
       console.log(cartItem)
 
       addToCart(cartItem);
@@ -1015,8 +1015,8 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       const errorMessage = error?.message || error?.response?.data?.message || 'Failed to add service to cart';
       Toast.error(errorMessage);
     } finally {
-        setLoadingAddToCart(false);
-        setLoadingCheckout(false);
+      setLoadingAddToCart(false);
+      setLoadingCheckout(false);
     }
   };
 
@@ -1118,18 +1118,18 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     clinic?.name ||
     'Clinic';
   const isArabic = i18n.language?.startsWith('ar');
-  const clinicName = localizeClinicText(rawClinicName, isArabic);
+  const clinicName = rawClinicName;
 
   const rawClinicSpecialty = displayClinic.businessType || clinic?.specialty || 'General';
-  const clinicSpecialty = localizeClinicText(rawClinicSpecialty, isArabic);
+  const clinicSpecialty = rawClinicSpecialty;
 
   const rawClinicLocation = clinicDescriptionData?.address ||
-    translateCityToEnglish(clinicDescriptionData?.city) ||
+    clinicDescriptionData?.city ||
     displayClinic.details?.address ||
-    translateCityToEnglish(displayClinic.details?.city) ||
+    displayClinic.details?.city ||
     clinic?.location ||
     'Location not available';
-  const clinicLocation = localizeClinicText(rawClinicLocation, isArabic);
+  const clinicLocation = rawClinicLocation;
   const clinicRating = parseFloat(displayClinic.avgRating) || parseFloat(clinic?.rating) || 0;
   const clinicDistance = (displayClinic as ClinicDetailResponse).distance
     ? `${((displayClinic as ClinicDetailResponse).distance!).toFixed(1)}km`
@@ -1301,7 +1301,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
 
                 {/* Load more control for paginated services */}
                 {hasMoreServices && (
-                  <View style={{ width: '100%', alignItems: 'center',paddingTop: 6 }}>
+                  <View style={{ width: '100%', alignItems: 'center', paddingTop: 6 }}>
                     {loadingServicesPage && !refreshing ? (
                       <ActivityIndicator size="small" color="#7625D7" />
                     ) : (
@@ -1370,7 +1370,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
 
                 {/* Load more control for paginated reviews */}
                 {hasMoreReviews && (
-                   <View style={{ width: '100%', alignItems: 'center',paddingTop: 6 }}>
+                  <View style={{ width: '100%', alignItems: 'center', paddingTop: 6 }}>
                     {loadingReviewsPage && !refreshing ? (
                       <ActivityIndicator size="small" color="#7625D7" />
                     ) : (
@@ -1455,7 +1455,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
 
                 {/* Load more control for paginated devices */}
                 {hasMoreDevices ? (
-                  <View style={{ width: '100%', alignItems: 'center',paddingTop: 6 }}>
+                  <View style={{ width: '100%', alignItems: 'center', paddingTop: 6 }}>
                     {loadingDevicesPage && !refreshing ? (
                       <ActivityIndicator size="small" color="#7625D7" />
                     ) : (
@@ -1467,7 +1467,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
                       </TouchableOpacity>
                     )}
                   </View>
-                ):(<View style={{height: "10%"}}/>)}
+                ) : (<View style={{ height: "10%" }} />)}
               </View>
             ) : (
               <Text style={{ fontSize: 14, color: colors.secondaryText, textAlign: 'center', paddingVertical: 20 }}>

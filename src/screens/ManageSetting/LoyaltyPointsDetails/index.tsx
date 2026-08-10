@@ -17,11 +17,13 @@ import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
 import { colors } from '../../../styles/colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { formatCurrency } from '@utils';
 
 type PointsTab = 'earned' | 'used';
 
 export const LoyaltyPointsDetails = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language?.startsWith('ar');
 
   type RouteParams = {
     clinicId?: string;
@@ -166,7 +168,7 @@ export const LoyaltyPointsDetails = () => {
             serviceImage: item.service_image || item.serviceImage || item.image || null,
             transactionId: item.transactionId || item.transactionID || item.id?.toString() || `TXN-${index}`,
             points: item.loyalty_points || item.points || item.loyaltyPoints || item.totalPoints || 0,
-            amount: item.amount ? `SAR ${parseFloat(item.amount).toFixed(2)}` : '',
+            amount: item.amount ? formatCurrency(item.amount, isArabic) : '',
             // expiryDate will be a formatted local date string (or null)
             expiryDate: formattedExpiry || null,
             isUsed: activeTab === 'used',

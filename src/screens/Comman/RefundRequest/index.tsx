@@ -22,9 +22,11 @@ import { useTranslation } from 'react-i18next';
 import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
 import { Toast } from 'toastify-react-native';
+import { formatCurrency } from '@utils';
 
 export function RefundRequest() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language?.startsWith('ar');
   const insets = useSafeAreaInsets();
   const route = useRoute();
   const navigation = useNavigation<any>();
@@ -119,11 +121,7 @@ export function RefundRequest() {
   };
 
   const formatPrice = (price: any): string => {
-    const str = String(price ?? '').trim();
-    if (!str) return 'SAR 0.00';
-    if (/^SAR\s/i.test(str)) return str;
-    const num = parseFloat(str.replace(/[^0-9.-]+/g, ''));
-    return isNaN(num) ? `SAR ${str}` : `SAR ${num.toFixed(2)}`;
+    return formatCurrency(price, isArabic);
   };
 
   const totalRefund =
@@ -268,7 +266,7 @@ export function RefundRequest() {
                           </Text>
                           <Text style={styles.servicePrice}>{formatPrice(service.finalPrice)}</Text>
                           <Text style={{ fontSize: 11, fontWeight: '600', color: '#16a34a', marginTop: 2 }}>
-                            {`-SAR ${Number(service.campaignDiscount).toFixed(2)}`}
+                            {isArabic ? `-${Number(service.campaignDiscount).toFixed(2)} ر.س` : `-SAR ${Number(service.campaignDiscount).toFixed(2)}`}
                           </Text>
                         </View>
                       ) : (
@@ -334,7 +332,7 @@ export function RefundRequest() {
                       fontSize: 18,
                     }}
                   >
-                    SAR {totalRefund}
+                    {formatCurrency(totalRefund, isArabic)}
                   </Text>
                 </View>
               </View>

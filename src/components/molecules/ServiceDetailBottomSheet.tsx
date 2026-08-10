@@ -19,6 +19,7 @@ import { useCart } from '../../context/CartContext';
 import { useNavigation } from '@react-navigation/native';
 import { Toast } from 'toastify-react-native';
 import { checkProfile } from '@utils/checkProfile';
+import { formatCurrency } from '@utils';
 
 interface Service {
   id: string;
@@ -58,7 +59,7 @@ export const ServiceDetailBottomSheet: React.FC<ServiceDetailBottomSheetProps> =
   loading = false,
   loadingState = 'none',
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { cartItems } = useCart();
   const navigation = useNavigation();
   const [checkingProfileAdd, setCheckingProfileAdd] = useState(false);
@@ -66,7 +67,7 @@ export const ServiceDetailBottomSheet: React.FC<ServiceDetailBottomSheetProps> =
 
   if (!visible) return null;
 
-  
+
 
   const handleAddToCart = async () => {
     if (isAddDisabled || !service) return;
@@ -178,16 +179,19 @@ export const ServiceDetailBottomSheet: React.FC<ServiceDetailBottomSheetProps> =
                       )}
                     </View>
                     {(() => {
+                      const isArabic = i18n.language?.startsWith('ar');
                       const disc = Number(service.campaignDiscount || 0);
                       const hasDiscount = disc > 0 && service.finalPrice !== undefined && service.finalPrice !== null;
+                      const formattedPrice = formatCurrency(service.price, isArabic);
                       if (!hasDiscount) {
-                        return <Text style={styles.price}>{service.price}</Text>;
+                        return <Text style={styles.price}>{formattedPrice}</Text>;
                       }
+                      const discountLabel = isArabic ? `-${disc.toFixed(2)} ر.س` : `-SAR ${disc.toFixed(2)}`;
                       return (
                         <View style={{ alignItems: 'flex-end' }}>
-                          <Text style={styles.priceStrikethrough}>{service.price}</Text>
-                          <Text style={styles.price}>{`SAR ${parseFloat(String(service.finalPrice)).toFixed(2)}`}</Text>
-                          <Text style={styles.discountText}>{`-SAR ${disc.toFixed(2)}`}</Text>
+                          <Text style={styles.priceStrikethrough}>{formattedPrice}</Text>
+                          <Text style={styles.price}>{formatCurrency(service.finalPrice, isArabic)}</Text>
+                          <Text style={styles.discountText}>{discountLabel}</Text>
                         </View>
                       );
                     })()}
@@ -282,7 +286,7 @@ export const ServiceDetailBottomSheet: React.FC<ServiceDetailBottomSheetProps> =
           )}
         </View>
       </View>
-        {/* (removed) full-screen loader — using button-level loaders for profile check */}
+      {/* (removed) full-screen loader — using button-level loaders for profile check */}
     </Modal>
   );
 };

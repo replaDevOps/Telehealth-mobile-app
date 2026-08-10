@@ -21,7 +21,7 @@ export const ChangePassword = ({ navigation }) => {
   const [oldPassword, setOldPassword] = useState('');
 
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
+  const [_error, setError] = useState('');
   // Per-field errors
   const [oldPasswordError, setOldPasswordError] = useState('');
   const [passwordError, setPasswordError] = useState('');
@@ -29,6 +29,7 @@ export const ChangePassword = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
 
   const PASSWORD_RULE_MSG =
+    t('password_rule_msg') ||
     'Password must be at least 8 characters long and include a number and a special character.';
 
   const validatePassword = (pwd: string) => {
@@ -43,7 +44,7 @@ export const ChangePassword = ({ navigation }) => {
       if (!validatePassword(text)) {
         setPasswordError(PASSWORD_RULE_MSG);
       } else if (oldPassword && text === oldPassword) {
-        setPasswordError('New password must be different from old password');
+        setPasswordError(t('new_password_must_be_different') || 'New password must be different from old password');
       } else {
         setPasswordError('');
       }
@@ -116,7 +117,7 @@ export const ChangePassword = ({ navigation }) => {
 
     // Validate old password and new password are different
     if (oldPassword === password) {
-      setPasswordError('New password must be different from old password');
+      setPasswordError(t('new_password_must_be_different') || 'New password must be different from old password');
       return;
     }
 
@@ -198,7 +199,7 @@ export const ChangePassword = ({ navigation }) => {
                 if (text) setOldPasswordError('');
                 // Re-validate "new must be different from old" when old password changes
                 if (password && text === password) {
-                  setPasswordError('New password must be different from old password');
+                  setPasswordError(t('new_password_must_be_different') || 'New password must be different from old password');
                 } else if (password && validatePassword(password)) {
                   setPasswordError('');
                 }

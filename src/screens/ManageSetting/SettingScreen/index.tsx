@@ -24,6 +24,7 @@ import { apiClient } from '../../../services/api/api-client';
 import { API } from '../../../services/api/api-endpoint';
 import { colors } from '../../../styles/colors';
 import { signOutGoogle } from '../../../services/firebase/googleAuth';
+import { getMappedErrorMessage } from '@utils';
 
 export const SettingScreen = ({ navigation }: { navigation: any }) => {
   const { t, i18n } = useTranslation();
@@ -102,11 +103,13 @@ export const SettingScreen = ({ navigation }: { navigation: any }) => {
             try {
               const response = await apiClient.delete(API.SETTINGS.DELETE_USER_ACCOUNT);
               if (response.data?.success === false) {
-                Toast.error(response.data?.message || 'Failed to delete account');
+                const errMsg = response.data?.message || t('failed_to_delete_account');
+                Toast.error(getMappedErrorMessage(errMsg));
                 setIsDeletingAccount(false);
                 return;
               }
-              Toast.success(response.data?.message || 'Account deletion requested');
+              const successMsg = response.data?.message || t('account_permanently_deleted');
+              Toast.success(getMappedErrorMessage(successMsg));
               setTimeout(async () => {
                 try { await signOutGoogle(); } catch { }
                 useProfileStore.getState().clearProfile();
@@ -114,8 +117,8 @@ export const SettingScreen = ({ navigation }: { navigation: any }) => {
                 navigation.replace('Auth', { screen: 'SignIn' });
               }, 1000);
             } catch (error: any) {
-              const errMsg = error?.response?.data?.message || error?.message || 'Failed to delete account';
-              Toast.error(errMsg);
+              const errMsg = error?.response?.data?.message || error?.message || t('failed_to_delete_account');
+              Toast.error(getMappedErrorMessage(errMsg));
               setIsDeletingAccount(false);
             }
           },

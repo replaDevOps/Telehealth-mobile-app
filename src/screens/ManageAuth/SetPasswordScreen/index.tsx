@@ -42,7 +42,7 @@ export const SetPassword: React.FC<Props> = ({ navigation, route }) => {
     setPassword(text);
     if (text.length > 0) {
       if (!validatePassword(text)) {
-        setPasswordError('Password must be at least 8 characters long and include a number and a special character.');
+        setPasswordError(t('password_rule_msg') || 'Password must be at least 8 characters long and include a number and a special character.');
       } else {
         setPasswordError('');
       }
@@ -82,7 +82,7 @@ export const SetPassword: React.FC<Props> = ({ navigation, route }) => {
       setPasswordError(t('password_required'));
       valid = false;
     } else if (!validatePassword(password)) {
-      setPasswordError('Password must be at least 8 characters long and include a number and a special character.');
+      setPasswordError(t('password_rule_msg') || 'Password must be at least 8 characters long and include a number and a special character.');
       valid = false;
     }
 

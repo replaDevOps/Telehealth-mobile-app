@@ -20,7 +20,7 @@ import { Header2 } from '@components/common/Header2';
 import { useTranslation } from 'react-i18next';
 import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
-import { tryCatch } from '@utils';
+import { tryCatch, formatCurrency } from '@utils';
 
 interface PaymentAppointmentItem {
   id: string;
@@ -51,7 +51,8 @@ interface PaymentAppointmentItem {
 type AppintItem = PaymentAppointmentItem;
 
 export function RefundRequest2({ navigation }: { navigation: any }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language?.startsWith('ar');
   const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const [appointments, setAppointments] = useState<AppintItem[]>([]);
@@ -166,7 +167,7 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
               service?.name || service?.serviceName || service?.service_name ||
               service?.title || item.service?.name || 'Service',
             duration: service?.duration || service?.duration_minutes || service?.time || '30 min',
-            price: service?.price || service?.servicePrice || service?.service_price || item?.service?.price || 'SAR 0',
+            price: formatCurrency(service?.price || service?.servicePrice || service?.service_price || item?.service?.price, isArabic),
             category: service?.category || service?.categoryName || service?.category_name || 'Service',
             categoryBadge: service?.categoryBadge || service?.category_badge || 'SVC',
             image: service?.image || service?.serviceImage || service?.service_image || service?.image_url ,
@@ -207,7 +208,7 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
             clinicName: clinicDisplayName,
             clinicLocation: clinicLocation,
             numberOfService: mappedServices.length.toString() || item.numberOfService || item.number_of_service || '0',
-            price: item.price || item.totalPrice || item.total_price || item.amount || 'SAR 0',
+            price: item.price || item.totalPrice || item.total_price || item.amount || '0',
             status: status,
             statusColor: statusColor,
             refundStatus: item.refundStatus || item.refund_status || '',
@@ -313,7 +314,7 @@ export function RefundRequest2({ navigation }: { navigation: any }) {
               </View>
             </View>
 
-            <Text style={styles.paymentPrice}>SAR {item.price}</Text>
+            <Text style={styles.paymentPrice}>{formatCurrency(item.price, isArabic)}</Text>
           </View>
 
           <View style={styles.serviceStatusRow}>

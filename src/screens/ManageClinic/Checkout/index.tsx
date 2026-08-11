@@ -21,7 +21,6 @@ import {
   BillingDetailsForm,
 } from '@components/molecules';
 import { useTranslation } from 'react-i18next';
-import { localizeClinicText } from '../../../utils/cityTranslator';
 import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
 import { prepareCartCheckout } from '@services/payments/hyperpayService';
@@ -296,9 +295,9 @@ export function CheckoutScreen({ route, navigation }) {
                 <ClinicAvatar name={group.clinic.name} size={56} style={styles.clinicImage} />
               )}
               <View style={styles.clinicInfo}>
-                <Text style={styles.clinicName}>{localizeClinicText(group.clinic.name, isArabic)}</Text>
+                <Text style={styles.clinicName}>{group.clinic.name}</Text>
                 <Text style={styles.clinicLocation}>
-                  {localizeClinicText(group.clinic.address || group.clinic.location || '', isArabic)}{group.clinic.distance ? `, ${group.clinic.distance}` : ''}
+                  {group.clinic.address || group.clinic.location || ''}{group.clinic.distance ? `, ${group.clinic.distance}` : ''}
                 </Text>
               </View>
             </View>
@@ -313,12 +312,12 @@ export function CheckoutScreen({ route, navigation }) {
                           numberOfLines={1}
                           ellipsizeMode="tail"
                         >
-                          {localizeClinicText(service.type, isArabic)}
+                          {service.type}
                         </Text>
                       </View>
                       <View style={styles.nameBadge}>
                         <Text style={styles.nameBadgeText} numberOfLines={1} ellipsizeMode="tail">
-                          {localizeClinicText(service.serviceGroup, isArabic)}
+                          {service.serviceGroup}
                         </Text>
                       </View>
                     </View>
@@ -328,7 +327,7 @@ export function CheckoutScreen({ route, navigation }) {
                   <View style={styles.serviceInfo}>
                    
                     <Text style={styles.serviceName} numberOfLines={1}>
-                      {localizeClinicText(service.serviceName, isArabic)}
+                      {service.serviceName}
                     </Text>
                     <View style={styles.durationContainer}>
                       <Ionicons
@@ -424,7 +423,7 @@ export function CheckoutScreen({ route, navigation }) {
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>{t('discount')}</Text>
             <Text style={[styles.summaryValue, styles.discountValue]}>
-            {isArabic ? `-${campaignDiscountTotal.toFixed(2)} ر.س` : `-${campaignDiscountTotal.toFixed(2)} SAR`}
+            {isArabic ? `-${campaignDiscountTotal.toFixed(2)} ر.س` : `-SAR ${campaignDiscountTotal.toFixed(2)}`}
             </Text>
           </View>
 
@@ -432,7 +431,7 @@ export function CheckoutScreen({ route, navigation }) {
             <Text style={styles.summaryLabel}>{t('redemption')}</Text>
             <Text style={[styles.summaryValue, appliedRedemptionAmount > 0 ? styles.redemptionValue : null]}>
               {appliedRedemptionAmount > 0
-                ? (isArabic ? `-${appliedRedemptionAmount.toFixed(2)} ر.س` : `-${appliedRedemptionAmount.toFixed(2)} SAR`)
+                ? (isArabic ? `-${appliedRedemptionAmount.toFixed(2)} ر.س` : `-SAR ${appliedRedemptionAmount.toFixed(2)}`)
                 : formatCurrency(0)}
             </Text>
           </View>

@@ -36,8 +36,6 @@ interface RecommendedClinicsProps {
   onClinicPress: (clinic: Clinic) => void;
 }
 
-import { localizeClinicText } from '../../utils/cityTranslator';
-
 const ClinicCard = ({ item, onPress }: ClinicCardProps) => {
   const { t, i18n } = useTranslation();
   const isArabic = i18n.language?.startsWith('ar');
@@ -57,7 +55,7 @@ const ClinicCard = ({ item, onPress }: ClinicCardProps) => {
             resizeMode="cover"
           />
         ) : (
-          <ClinicAvatar name={localizeClinicText(item.name, isArabic)} size={140} style={styles.clinicImage} />
+          <ClinicAvatar name={item.name} size={140} style={styles.clinicImage} />
         )}
         {item.isFeatured && (
           <View style={styles.featuredBadge}>
@@ -76,7 +74,7 @@ const ClinicCard = ({ item, onPress }: ClinicCardProps) => {
               <Text style={styles.specialtyText}>{isArabic ? 'أسنان' : 'Dentistry'}</Text>
             </View>
           ) : (
-            <Text style={styles.specialtyText}>{localizeClinicText(item.specialty, isArabic)}</Text>
+            <Text style={styles.specialtyText}>{item.specialty}</Text>
           )}
           {showRating && (
             <View style={styles.ratingContainer}>
@@ -87,13 +85,13 @@ const ClinicCard = ({ item, onPress }: ClinicCardProps) => {
         </View>
 
         <Text style={styles.clinicName} numberOfLines={1}>
-          {localizeClinicText(item.name, isArabic)}
+          {item.name}
         </Text>
 
         <View style={styles.locationRow}>
           <Ionicons name="location" size={18} color={colors.secondaryText} />
           <Text style={styles.locationText} numberOfLines={1}>
-            {localizeClinicText(item.location, isArabic)}
+            {item.location}
           </Text>
         </View>
       </View>

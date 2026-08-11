@@ -17,6 +17,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
 import { Toast } from 'toastify-react-native';
 import { checkProfile } from '@utils/checkProfile';
+import { formatCurrency } from '@utils';
 import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
 
@@ -68,7 +69,8 @@ export default function ConsultDoctorBottomSheet({
   hasAudioPermission?: boolean;
   hasVideoPermission?: boolean;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language?.startsWith('ar');
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const [isLoading, setIsLoading] = useState(false);
   const [checkingProfile, setCheckingProfile] = useState(false);
@@ -101,7 +103,7 @@ export default function ConsultDoctorBottomSheet({
       cards.push({
         id: 'chat',
         name: t('chat_consultation'),
-        price: `SAR ${data.chatConsultationPrice} `,
+        price: formatCurrency(data.chatConsultationPrice, isArabic),
         Icon: ChatSvg,
       });
     }
@@ -430,10 +432,10 @@ export default function ConsultDoctorBottomSheet({
 
       // Format total price (from API) - this is the final price to pay
       const totalPrice = apiData?.totalPrice
-        ? `SAR ${apiData.consultationPrice}`
+        ? formatCurrency(apiData.consultationPrice, isArabic)
         : apiData?.consultationPrice
-          ? `SAR ${apiData.consultationPrice}`
-          : selectedCard.price;
+          ? formatCurrency(apiData.consultationPrice, isArabic)
+          : formatCurrency(selectedCard.price, isArabic);
 
       // Prepare navigation params with proper mapping
       const navigationParams = {

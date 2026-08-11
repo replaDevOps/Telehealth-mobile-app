@@ -6,7 +6,6 @@ import { setGlobalFont } from './src/utils/overrideText';
 import { CartProvider } from '@context/CartContext';
 import { CartCountProvider } from '@context/CartCountContext';
 import { NotificationCountProvider } from '@context/NotificationCountContext';
-import i18n from './src/services/i18n';
 import { Provider as PaperProvider } from 'react-native-paper';
 import ToastManager from 'toastify-react-native';
 import { usePusherNotifications } from './src/hooks/usePusherNotifications';
@@ -16,7 +15,11 @@ import { fcmService } from './src/services/firebase/fcmService';
 import { useNotificationStore } from '@store/useNotificationStore';
 import { useAuthStore } from '@store';
 
+import { useTranslation } from 'react-i18next';
+import { setupGlobalToast } from './src/utils';
+
 setGlobalFont();
+setupGlobalToast();
 
 // Background / quit-state message handler — must be registered outside any component
 console.log('[FCM] Registering background message handler...');
@@ -39,6 +42,9 @@ const syncNotificationCount = () => {
 };
 
 const AppContent = () => {
+  const { i18n } = useTranslation();
+  const isRtl = i18n.language?.startsWith('ar') || i18n.language === 'ar';
+
   // Setup Pusher notifications
   usePusherNotifications();
 
@@ -91,6 +97,9 @@ const AppContent = () => {
       <ToastManager
         showProgressBar={false}
         duration={1500}
+        isRTL={isRtl}
+        minHeight={46}
+        style={{ minHeight: 46, paddingVertical: 6 }}
       />
     </>
   );

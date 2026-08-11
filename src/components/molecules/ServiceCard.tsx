@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
 import { colors } from '../../styles/colors';
+import { formatCurrency } from '@utils';
 
 interface ServiceCardProps {
   image: any;
@@ -33,11 +34,16 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
   finalPrice,
   onPress,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language?.startsWith('ar');
   const discountNum = Number(campaignDiscount || 0);
   const hasDiscount = discountNum > 0 && finalPrice !== undefined && finalPrice !== null;
+  const formattedPrice = formatCurrency(price, isArabic);
   const finalPriceLabel = hasDiscount
-    ? `SAR ${parseFloat(String(finalPrice)).toFixed(2)}`
+    ? formatCurrency(finalPrice, isArabic)
+    : null;
+  const discountLabel = hasDiscount
+    ? (isArabic ? `-${discountNum.toFixed(2)} ر.س` : `-SAR ${discountNum.toFixed(2)}`)
     : null;
   // console.log('ServiceCard props:', {
   //   image,
@@ -64,19 +70,19 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
             <View style={styles.tag}>
               <Text style={styles.TypetagText} numberOfLines={1} ellipsizeMode="tail">{type}</Text>
             </View>
-              <View style={styles.tag}>
-                <Text style={styles.SGtagText} numberOfLines={1} ellipsizeMode="tail">{serviceGroup}</Text>
-              </View>
+            <View style={styles.tag}>
+              <Text style={styles.SGtagText} numberOfLines={1} ellipsizeMode="tail">{serviceGroup}</Text>
+            </View>
           </View>
           <View style={{ alignItems: 'flex-end' }}>
             {hasDiscount ? (
               <>
-                <Text style={styles.priceStrikethrough}>{price}</Text>
+                <Text style={styles.priceStrikethrough}>{formattedPrice}</Text>
                 <Text style={styles.price}>{finalPriceLabel}</Text>
-                <Text style={styles.discountText}>{`-SAR ${discountNum.toFixed(2)}`}</Text>
+                <Text style={styles.discountText}>{discountLabel}</Text>
               </>
             ) : (
-              <Text style={styles.price}>{price}</Text>
+              <Text style={styles.price}>{formattedPrice}</Text>
             )}
           </View>
         </View>

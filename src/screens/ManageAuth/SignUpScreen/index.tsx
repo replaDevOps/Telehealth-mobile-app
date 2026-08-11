@@ -32,6 +32,7 @@ import { apiClient } from '@services/api/api-client';
 import { Toast } from 'toastify-react-native';
 import { signInWithGoogle, googleStatusCodes } from '@services/firebase/googleAuth';
 import { useAuthStore } from '@store';
+import { getMappedErrorMessage } from '@utils';
 import { fcmService } from '../../../services/firebase/fcmService';
 
 const isValidEmailFormat = (value: string): boolean => {
@@ -164,7 +165,7 @@ export function SignUpScreen({ navigation }) {
             return;
           }
 
-          Toast.success(data?.message || t('otp_sent_successfully'));
+          Toast.success(getMappedErrorMessage(data?.message || 'otp_sent_successfully'));
           navigation.navigate('OTPScreen', {
             source: 'signUp',
             method: 'phone',
@@ -177,7 +178,7 @@ export function SignUpScreen({ navigation }) {
           });
           console.log('✅ API sign-up email response:', JSON.stringify(data, null, 2));
 
-          Toast.success(data?.message || t('otp_sent_successfully'));
+          Toast.success(getMappedErrorMessage(data?.message || 'otp_sent_successfully'));
           navigation.navigate('OTPScreen', {
             source: 'signUp',
             method: 'email',

@@ -18,6 +18,7 @@ import {
   SingleLogo,
 } from '@assets/icons';
 import { colors } from '../../styles/colors';
+import { formatCurrency } from '@utils';
 
 // Types
 type PaymentType = 'card' | 'digital' | 'installment';
@@ -555,7 +556,7 @@ function RoyaltyPointsSection({
         />
         {appliedCoins > 0 && (
           <Text style={[styles.royaltySubtext, { marginTop: 6 }] }>
-            {`${t('redemption') || 'Redemption'} SAR ${appliedRedemptionAmount.toFixed(2)} | ${t('remaining_amount') || 'Remaining Amount'} SAR ${Math.max(0, (maxRedemptionSAR || 0) - appliedRedemptionAmount).toFixed(2)}`}
+            {`${t('redemption') || 'Redemption'} ${formatCurrency(appliedRedemptionAmount, i18n.language?.startsWith('ar'))} | ${t('remaining_amount') || 'Remaining Amount'} ${formatCurrency(Math.max(0, (maxRedemptionSAR || 0) - appliedRedemptionAmount), i18n.language?.startsWith('ar'))}`}
           </Text>
         )}
       </View>

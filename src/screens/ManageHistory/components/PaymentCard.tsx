@@ -7,6 +7,7 @@ import { PaymentDoctorSection } from './PaymentDoctorSection';
 import { ServiceStatusRow } from './ServiceStatusRow';
 import { styles } from '../style';
 import { formatDateLocal } from '../utils/format';
+import { formatCurrency } from '@utils';
 
 interface ServiceDetail {
   id: number;
@@ -73,7 +74,7 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
   item,
   onViewDetails,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   return (
     <View style={[styles.card, { paddingHorizontal: 0 }]}>
@@ -84,7 +85,7 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
 
         <View style={styles.paymentDoctorRow}>
           <PaymentDoctorSection item={item} />
-          <Text style={styles.paymentPrice}>{"SAR " + item.price}</Text>
+          <Text style={styles.paymentPrice}>{formatCurrency(item.price, i18n.language?.startsWith('ar'))}</Text>
         </View>
 
         <ServiceStatusRow item={item} />

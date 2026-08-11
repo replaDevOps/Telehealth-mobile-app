@@ -38,9 +38,6 @@ interface NearbyClinicsProps {
   onSeeAllPress?: () => void; // Optional if not used yet
 }
 
-import { localizeClinicText } from '../../utils/cityTranslator';
-
-// ClinicListItem Component
 const ClinicListItem: React.FC<ClinicListItemProps> = ({ item, onPress }) => {
   const { t, i18n } = useTranslation();
   const isArabic = i18n.language?.startsWith('ar');
@@ -62,7 +59,7 @@ const ClinicListItem: React.FC<ClinicListItemProps> = ({ item, onPress }) => {
             resizeMode="cover"
           />
         ) : (
-          <ClinicAvatar name={localizeClinicText(item.name, isArabic)} size={80} style={styles.clinicImage} />
+          <ClinicAvatar name={item.name} size={80} style={styles.clinicImage} />
         )}
 
         <View style={styles.clinicInfo}>
@@ -80,7 +77,7 @@ const ClinicListItem: React.FC<ClinicListItemProps> = ({ item, onPress }) => {
                 <Text style={styles.specialtyText}>{isArabic ? 'أسنان' : 'Dentistry'}</Text>
               </View>
             ) : (
-              <Text style={styles.specialtyText}>{localizeClinicText(item.specialty, isArabic)}</Text>
+              <Text style={styles.specialtyText}>{item.specialty}</Text>
             )}
 
             {shouldShowRating && (
@@ -91,12 +88,12 @@ const ClinicListItem: React.FC<ClinicListItemProps> = ({ item, onPress }) => {
             )}
           </View>
           <Text style={styles.clinicName} numberOfLines={1}>
-            {localizeClinicText(item.name, isArabic)}
+            {item.name}
           </Text>
           <View style={styles.locationRow}>
             <Ionicons name="location" size={18} color={colors.secondaryText} />
             <Text style={styles.locationText} numberOfLines={1}>
-              {localizeClinicText(item.location, isArabic)}
+              {item.location}
             </Text>
           </View>
         </View>

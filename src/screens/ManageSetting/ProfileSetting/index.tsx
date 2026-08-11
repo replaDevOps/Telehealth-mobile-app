@@ -1,21 +1,16 @@
 import * as React from 'react';
-import { useEffect, useReducer, useRef, useState } from 'react';
+import { useEffect, useReducer, useState } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   Alert,
   Switch,
-  Modal,
-  Pressable,
-  Animated,
-  Dimensions,
   ActivityIndicator,
 } from 'react-native';
 import { KeyboardAvoidScrollview } from '../../../components/common/keyboard-avoid-scrollview';
 import { CustomTextInput } from '../../../components/common/CustomTextInput';
 import { CustomDropdown } from '../../../components/common/CustomDropdwon';
-import { CustomButton } from '../../../components/common/CustomButton';
 import { Header2 } from '../../../components/common/Header2';
 import PhoneNumberInput from '../../../components/common/PhoneTextInput';
 import { colors } from '../../../styles/colors';
@@ -24,19 +19,16 @@ import AntDesign from 'react-native-vector-icons/AntDesign';
 import { styles } from './style';
 import { mvs } from '@config/metrices';
 import { useTranslation } from 'react-i18next';
-import i18n from '../../../services/i18n';
 import { tryCatch } from '@utils';
 import citiesData from '@utils/cities-data.json';
+import { translateCityToArabic } from '../../../utils/cityTranslator';
 import { API } from '@services/api/api-endpoint';
 import { apiClient } from '@services/api/api-client';
 import { Toast } from 'toastify-react-native';
-import { useAuthStore, useProfileStore } from '@store';
+import { useProfileStore } from '@store';
 import { RouteProp } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import parsePhoneNumberFromString, { CountryCode } from 'libphonenumber-js';
-import { signOutGoogle } from '../../../services/firebase/googleAuth';
-
-const { height } = Dimensions.get('window');
 
 type State = {
   fullName: string;
@@ -50,7 +42,6 @@ type State = {
   isPhoneValid: boolean;
   language: string;
   notificationEnabled: boolean;
-  deleteModalVisible: boolean;
   nationalID: string;
   nationality: string;
   city: string;
@@ -68,7 +59,6 @@ const initialState: State = {
   isPhoneValid: true,
   language: 'English',
   notificationEnabled: false,
-  deleteModalVisible: false,
   nationalID: '',
   nationality: '',
   city: '',
@@ -147,18 +137,14 @@ const mapProfileDataToState = (data: any): Partial<State> => {
 
 export const ProfileSetting = ({ navigation, route }: { navigation: any; route?: RouteProp<any, 'ProfileSetting'> }) => {
   const { t, i18n } = useTranslation();
-  const {isAuthenticated}=useAuthStore()
-  const { logout } = useAuthStore();
+  const isArabic = i18n.language === 'ar';
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
-  const [deletingAccount, setDeletingAccount] = useState(false);
   const [languageChanged, setLanguageChanged] = useState(0); // Track language changes to force re-render
   const [state, dispatch] = useReducer(
     (state: State, action: Partial<State>) => ({ ...state, ...action }),
     initialState,
   );
-
-  const slideAnim = useRef(new Animated.Value(height)).current;
 
   // Re-run when language changes to force re-render
   useEffect(() => {
@@ -320,66 +306,6 @@ export const ProfileSetting = ({ navigation, route }: { navigation: any; route?:
     return true;
   };
 
-
-  const openDeleteModal = () => {
-    dispatch({ deleteModalVisible: true });
-    Animated.timing(slideAnim, {
-      toValue: 0,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const closeDeleteModal = () => {
-    Animated.timing(slideAnim, {
-      toValue: height,
-      duration: 250,
-      useNativeDriver: true,
-    }).start(() => dispatch({ deleteModalVisible: false }));
-  };
-
-  const handleDeleteAccount = async () => {
-    setDeletingAccount(true);
-    
-    try {
-      // Call delete account API
-      const response = await apiClient.delete(API.SETTINGS.DELETE_USER_ACCOUNT);
-
-      // Check for success: false in response
-      if (response.data?.success === false) {
-        const errorMessage = response.data?.message || 'Failed to delete account';
-        Toast.error(errorMessage);
-        setDeletingAccount(false);
-        closeDeleteModal();
-        return;
-      }
-
-      // Success - show success message
-      const successMessage = response.data?.message || 'Account deleted successfully';
-      Toast.success(successMessage);
-      
-      // Close modal
-      closeDeleteModal();
-      
-      // Logout and navigate to login
-      setTimeout(async () => {
-        try { await signOutGoogle(); } catch {}
-        logout();
-        navigation.replace('Auth', { screen: 'SignIn' });
-      }, 1000);
-    } catch (error: any) {
-      console.error('Delete account error:', error);
-      const errorMessage = 
-        error?.response?.data?.message || 
-        error?.data?.message ||
-        error?.message || 
-        'Failed to delete account. Please try again.';
-      Toast.error(errorMessage);
-      setDeletingAccount(false);
-    closeDeleteModal();
-    }
-  };
-
   return (
     <KeyboardAvoidScrollview>
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.white }}>
@@ -472,8 +398,8 @@ export const ProfileSetting = ({ navigation, route }: { navigation: any; route?:
             value={state.nationality}
             onValueChange={(text) => dispatch({ nationality: text })}
             options={[
-              { label: 'Saudi', value: 'Saudi' },
-              { label: 'Non-Saudi', value: 'Non-Saudi' },
+              { label: isArabic ? 'سعودي' : 'Saudi', value: 'Saudi' },
+              { label: isArabic ? 'غير سعودي' : 'Non-Saudi', value: 'Non-Saudi' },
             ]}
           />
 
@@ -482,7 +408,10 @@ export const ProfileSetting = ({ navigation, route }: { navigation: any; route?:
             placeholder={t('select_city') || 'Select City'}
             value={state.city}
             onValueChange={(text) => dispatch({ city: text })}
-            options={citiesData.map((c: any) => ({ label: c.name, value: c.name }))}
+            options={citiesData.map((c: any) => ({
+              label: isArabic ? (c.name_ar || translateCityToArabic(c.name)) : c.name,
+              value: c.name,
+            }))}
           />
 
           {/* Password Manager */}
@@ -526,72 +455,8 @@ export const ProfileSetting = ({ navigation, route }: { navigation: any; route?:
               thumbColor={colors.white}
             />
           </View>
-
-          {/* Account */}
-          <View style={[styles.sectionHeader, { marginTop: mvs(30) }]}>
-            <Text style={[styles.sectionTitle, i18n.language === 'ar' && { textAlign: 'right' }]}>{t('account')}</Text>
-          </View>
-
-          <CustomButton
-            title={t('delete_account')}
-            onPress={openDeleteModal} // <-- Trigger bottom sheet
-            style={styles.deleteButton}
-            textStyle={styles.deleteButtonText}
-          />
         </View>
         )}
-
-        {/* ================== DELETE ACCOUNT BOTTOM SHEET MODAL ================== */}
-        <Modal
-          visible={state.deleteModalVisible}
-          transparent
-          animationType="none"
-          onRequestClose={closeDeleteModal}
-        >
-          <Pressable style={styles.modalOverlay} onPress={closeDeleteModal}>
-            <Animated.View
-              style={[
-                styles.bottomSheet,
-                {
-                  transform: [{ translateY: slideAnim }],
-                },
-              ]}
-            >
-              <Pressable onPress={() => {}}>
-                {/* Prevent tap from closing */}
-                {/* Grabber */}
-                <View style={styles.grabber} />
-                {/* Header */}
-                <Text style={styles.modalTitle}>{t('delete_account')}</Text>
-                {/* Warning text */}
-                <Text style={styles.modalDescription}>
-                  {t('are_you_sure_delete_account')}
-                </Text>
-                {/* Delete button */}
-                <TouchableOpacity
-                  style={[styles.modalDeleteButton, deletingAccount && { opacity: 0.6 }]}
-                  onPress={handleDeleteAccount}
-                  disabled={deletingAccount}
-                >
-                  {deletingAccount ? (
-                    <ActivityIndicator size="small" color={colors.white} />
-                  ) : (
-                  <Text style={styles.modalDeleteButtonText}>
-                    {t('delete_account')}
-                  </Text>
-                  )}
-                </TouchableOpacity>
-                {/* Cancel */}
-                <TouchableOpacity
-                  style={styles.modalCancelButton}
-                  onPress={closeDeleteModal}
-                >
-                  <Text style={styles.modalCancelText}>{t('cancel')}</Text>
-                </TouchableOpacity>
-              </Pressable>
-            </Animated.View>
-          </Pressable>
-        </Modal>
       </SafeAreaView>
     </KeyboardAvoidScrollview>
   );

@@ -51,7 +51,7 @@ type Result<T, E = Error> = SuccessResult<T> | ErrorResult<E>;
 
 export const tryCatch = async <T, E = Error>(
   promise: Promise<T>,
-): Promise<Result<T,E>> => {
+): Promise<Result<T, E>> => {
   try {
     const data = await promise;
     return [data, null] as const
@@ -68,10 +68,10 @@ export const tryCatch = async <T, E = Error>(
  */
 export const formatUTCToLocalTime = (timestamp: any): string => {
   if (!timestamp) return '';
-  
+
   try {
     let date: Date;
-    
+
     // Handle different timestamp formats
     if (timestamp instanceof Date) {
       date = timestamp;
@@ -114,5 +114,31 @@ export const formatUTCToLocalTime = (timestamp: any): string => {
   }
 };
 
+/**
+ * Formats a given amount as currency based on the language.
+ * English (en): SAR 150.00
+ * Arabic (ar): 150.00 ر.س
+ */
+export const formatCurrency = (val: number | string | null | undefined, isArabic: boolean): string => {
+  if (val === null || val === undefined || val === '') {
+    return isArabic ? '0.00 ر.س' : 'SAR 0.00';
+  }
+
+  const str = String(val).trim();
+  const num = typeof val === 'number' ? val : parseFloat(str.replace(/[^0-9.-]/g, ''));
+
+  if (isNaN(num)) {
+    return isArabic ? '0.00 ر.س' : 'SAR 0.00';
+  }
+
+  const formatted = num.toFixed(2);
+  if (num < 0) {
+    return isArabic ? `-${Math.abs(num).toFixed(2)} ر.س` : `-SAR ${Math.abs(num).toFixed(2)}`;
+  }
+  return isArabic ? `${formatted} ر.س` : `SAR ${formatted}`;
+};
+
 export * from './getMappedErrorMessage';
+export * from './toastSetup';
+
 

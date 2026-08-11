@@ -72,6 +72,7 @@ export const CreatePassword: React.FC<Props> = ({ navigation, route }) => {
     if (value.length > 0) {
       if (!validatePassword(value)) {
         setPasswordError(
+          t('password_rule_msg') ||
           'Password must be at least 8 characters long and include a number and a special character.'
         );
       } else {
@@ -121,6 +122,7 @@ export const CreatePassword: React.FC<Props> = ({ navigation, route }) => {
 
     if (!validatePassword(password)) {
       setPasswordError(
+        t('password_rule_msg') ||
         'Password must be at least 8 characters long and include a number and a special character.',
       );
       return;
@@ -131,7 +133,7 @@ export const CreatePassword: React.FC<Props> = ({ navigation, route }) => {
       return;
     }
     setLoading(true);
-    const [data, err] = await tryCatch(
+    const [_data, err] = await tryCatch(
       apiClient.post(API.AUTH.CREATE_PASSWORD, {
         password,
         confirmPassword,

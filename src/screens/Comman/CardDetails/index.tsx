@@ -28,6 +28,7 @@ import { API } from '@services/api/api-endpoint';
 import { Toast as Toastify } from 'toastify-react-native';
 import { BASE_URL } from '@constants';
 import { useAuthStore } from '@store';
+import { formatCurrency } from '@utils';
 import { translateCityToEnglish } from '../../../utils/cityTranslator';
 import { capitalizeWords, formatDateTimeLocal } from '../../ManageHistory/utils/format';
 
@@ -74,7 +75,8 @@ type CardDetailsRouteProp = RouteProp<
 >;
 
 export function CardDetails({ navigation }: { navigation: any }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language?.startsWith('ar');
   const route = useRoute<CardDetailsRouteProp>();
   const params = route.params;
   const reason = params.reason;
@@ -297,12 +299,12 @@ export function CardDetails({ navigation }: { navigation: any }) {
           setClinicID(extractedClinicID);
 
           // Format date and time from appointment requestDate or transaction date
-          const dateStr =  appointmentData.created_at || '';
+          const dateStr = appointmentData.created_at || '';
           const formattedDateTime = formatDateTimeLocal(dateStr);
 
           // Format price from transaction amount
           const priceValue = transactionData.amount || '0';
-          const formattedPrice = priceValue ? `SAR ${parseFloat(priceValue).toFixed(2)}` : 'SAR 0.00';
+          const formattedPrice = formatCurrency(priceValue, isArabic);
 
           // Handle refund detail payloads that return a top-level `service` object
           if (!appointmentServices || appointmentServices.length === 0) {
@@ -340,7 +342,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
               const formattedDateTimeRefund = formatDateTimeLocal(dateStrRefund);
 
               const priceValueRefund = refundServicePayload?.price || transactionData?.amount || '0';
-              const formattedPriceRefund = priceValueRefund ? `SAR ${parseFloat(priceValueRefund).toFixed(2)}` : 'SAR 0.00';
+              const formattedPriceRefund = formatCurrency(priceValueRefund, isArabic);
 
               const appointmentLocationPartsRefund = [
                 clinicDetailsRefund.address
@@ -474,14 +476,14 @@ export function CardDetails({ navigation }: { navigation: any }) {
             : (clinicData.location || '');
 
           // Format date and time from date or created_at
-          console.log("consultationData",consultationData.created_at)
+          console.log("consultationData", consultationData.created_at)
           const dateTimeStr = consultationData.created_at || '';
           console.log('Raw date time from API:', dateTimeStr);
           const formattedDateTime = formatDateTimeLocal(dateTimeStr);
           console.log('Formatted date time:', consultationData.price);
           // Format price with currency
           const priceValue = consultationData.price || '0';
-          const formattedPrice = priceValue ? `SAR ${parseFloat(priceValue).toFixed(2)}` : 'SAR 0.00';
+          const formattedPrice = formatCurrency(priceValue, isArabic);
 
           // Format duration from service duration (in minutes)
           let formattedDuration = '';
@@ -498,7 +500,7 @@ export function CardDetails({ navigation }: { navigation: any }) {
 
           // Format service price
           const servicePriceValue = serviceData.price || '0';
-          const formattedServicePrice = servicePriceValue ? `SAR ${parseFloat(servicePriceValue).toFixed(2)}` : 'SAR 0.00';
+          const formattedServicePrice = formatCurrency(servicePriceValue, isArabic);
 
           setDisplayData({
             clinicName: clinicData.clinicName || clinicDetails.businessName || clinicData.name || '',
@@ -1079,15 +1081,15 @@ export function CardDetails({ navigation }: { navigation: any }) {
                   {Number((service as any).campaignDiscount || 0) > 0 && (service as any).finalPrice !== null && (service as any).finalPrice !== undefined ? (
                     <View style={{ alignItems: 'flex-end' }}>
                       <Text style={[styles.servicePrice, { fontSize: 12, color: '#888', textDecorationLine: 'line-through', fontWeight: '400' }]}>
-                        SAR {parseFloat(String(service.price)).toFixed(2)}
+                        {formatCurrency(service.price, isArabic)}
                       </Text>
-                      <Text style={styles.servicePrice}>{`SAR ${Number((service as any).finalPrice).toFixed(2)}`}</Text>
+                      <Text style={styles.servicePrice}>{formatCurrency((service as any).finalPrice, isArabic)}</Text>
                       <Text style={{ fontSize: 11, fontWeight: '600', color: '#16a34a', marginTop: 2 }}>
-                        {`-SAR ${Number((service as any).campaignDiscount).toFixed(2)}`}
+                        {isArabic ? `-${Number((service as any).campaignDiscount).toFixed(2)} ر.س` : `-SAR ${Number((service as any).campaignDiscount).toFixed(2)}`}
                       </Text>
                     </View>
                   ) : (
-                    <Text style={styles.servicePrice}>SAR {service.price}</Text>
+                    <Text style={styles.servicePrice}>{formatCurrency(service.price, isArabic)}</Text>
                   )}
                   {(() => {
                     const isRefund = typeof (service.status || '') === 'string' && /refund/i.test(service.status || '');
@@ -1127,26 +1129,26 @@ export function CardDetails({ navigation }: { navigation: any }) {
               )}
 
               {/* {paymentDetails?.transactions?.loyaltyPointEarn !== null && paymentDetails?.transactions?.loyaltyPointEarn !== 0 && paymentDetails?.transactions?.loyaltyPointEarn !== undefined && ( */}
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>{t('points_earned')}</Text>
-                  <Text style={styles.points_earn}>{paymentDetails.transactions.loyaltyPointEarn || 0} {t('points') || 'Points'}</Text>
-                </View>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>{t('points_earned')}</Text>
+                <Text style={styles.points_earn}>{paymentDetails.transactions.loyaltyPointEarn || 0} {t('points') || 'Points'}</Text>
+              </View>
               {/* )} */}
 
               {/* {paymentDetails?.transactions?.loyaltyPointUsed !== null && paymentDetails?.transactions?.loyaltyPointUsed !== undefined && ( */}
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>{t('points_used')}</Text>
-                  <Text style={styles.points_use}>{paymentDetails.transactions.loyaltyPointUsed || 0} {t('points') || 'Points'}</Text>
-                </View>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>{t('points_used')}</Text>
+                <Text style={styles.points_use}>{paymentDetails.transactions.loyaltyPointUsed || 0} {t('points') || 'Points'}</Text>
+              </View>
               {/* )} */}
 
 
               {/* Show total refunded amount when appointment refund is confirmed and transfer data exists */}
               {/* {isAppointment && totalRefundedAmount > 0 && ( */}
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>{t('total_refund_amount')}</Text>
-                  <Text style={styles.detailValue}>{`SAR ${totalRefundedAmount.toFixed(2)}`}</Text>
-                </View>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>{t('total_refund_amount')}</Text>
+                <Text style={styles.detailValue}>{formatCurrency(totalRefundedAmount, isArabic)}</Text>
+              </View>
               {/* )} */}
 
               <View style={styles.detailRow}>
@@ -1182,35 +1184,35 @@ export function CardDetails({ navigation }: { navigation: any }) {
                 const totalAmount = txnAmount !== null
                   ? txnAmount
                   : servicesList.reduce((s: number, sv: any) => {
-                      const fp = sv.finalPrice !== null && sv.finalPrice !== undefined
-                        ? Number(sv.finalPrice)
-                        : parseFloat(String(sv.price || 0));
-                      return s + fp;
-                    }, 0);
+                    const fp = sv.finalPrice !== null && sv.finalPrice !== undefined
+                      ? Number(sv.finalPrice)
+                      : parseFloat(String(sv.price || 0));
+                    return s + fp;
+                  }, 0);
                 const hasDiscount = discountSum > 0;
                 return (
                   <>
                     <View style={styles.detailRow}>
                       <Text style={styles.detailLabel}>{t('subtotal')}</Text>
-                      <Text style={styles.detailValue}>{`SAR ${subtotalSum.toFixed(2)}`}</Text>
+                      <Text style={styles.detailValue}>{formatCurrency(subtotalSum, isArabic)}</Text>
                     </View>
                     {hasDiscount && (
                       <View style={styles.detailRow}>
                         <Text style={styles.detailLabel}>{t('discount') || 'Discount'}</Text>
                         <Text style={[styles.detailValue, { color: '#16a34a' }]}>
-                          {`-SAR ${discountSum.toFixed(2)}`}
+                          {isArabic ? `-${discountSum.toFixed(2)} ر.س` : `-SAR ${discountSum.toFixed(2)}`}
                         </Text>
                       </View>
                     )}
                     {taxAmount > 0 && (
                       <View style={styles.detailRow}>
                         <Text style={styles.detailLabel}>{t('tax') || 'Tax'}</Text>
-                        <Text style={styles.detailValue}>{`SAR ${taxAmount.toFixed(2)}`}</Text>
+                        <Text style={styles.detailValue}>{formatCurrency(taxAmount, isArabic)}</Text>
                       </View>
                     )}
                     <View style={styles.totalContainer}>
                       <Text style={styles.totalLabel}>{t('total')}</Text>
-                      <Text style={styles.totalAmount}>{`SAR ${totalAmount.toFixed(2)}`}</Text>
+                      <Text style={styles.totalAmount}>{formatCurrency(totalAmount, isArabic)}</Text>
                     </View>
                   </>
                 );

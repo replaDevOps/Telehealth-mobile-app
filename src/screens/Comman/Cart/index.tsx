@@ -28,7 +28,6 @@ import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
 import { Toast } from 'toastify-react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { localizeClinicText } from '../../../utils/cityTranslator';
 
 export function CartScreen({ navigation }) {
   const { t, i18n } = useTranslation();
@@ -81,7 +80,7 @@ export function CartScreen({ navigation }) {
           type: item.serviceType || 'General', // Not provided in API response, using default
           serviceGroup: item.group?.groupName || 'Group',
           serviceName: item.serviceName,
-          price: item.price ? `SAR ${parseFloat(item.price).toFixed(2)}` : 'SAR 0.00',
+          price: formatCurrency(item.price),
           rawPrice: Number(item.price || 0),
           campaignDiscount: Number(item.campaignDiscount || 0),
           finalPrice: item.finalPrice !== undefined && item.finalPrice !== null ? Number(item.finalPrice) : null,
@@ -96,7 +95,7 @@ export function CartScreen({ navigation }) {
           type: service.serviceType || '',
           serviceGroup: service.group?.name || 'Group',
           serviceName: service.name,
-          price: service.price ? `SAR ${parseFloat(service.price).toFixed(2)}` : 'SAR 0.00',
+          price: formatCurrency(service.price),
           campaignDiscount: Number(service.campaignDiscount || 0),
           finalPrice: service.finalPrice !== undefined && service.finalPrice !== null ? Number(service.finalPrice) : null,
           duration: service.duration ? `${service.duration} ${t('minutes') || 'minutes'}` : '0 minutes',
@@ -199,7 +198,7 @@ export function CartScreen({ navigation }) {
 
       const response = await apiClient.get(API.CART.VIEW_CART_DETAILS, requestConfig);
       console.log(`🛒 [${requestId}] API response received`, response.data);
-     
+
 
       // Check if request was aborted
       if (abortController && abortController.signal.aborted) {
@@ -236,7 +235,7 @@ export function CartScreen({ navigation }) {
       const endTime = Date.now();
       const duration = endTime - startTime;
 
-     
+
 
       Toast.error(error.message || 'Failed to fetch cart details');
       setCartData([]);
@@ -468,7 +467,7 @@ export function CartScreen({ navigation }) {
     const startTime = Date.now();
     const requestId = `ADD_SUGGESTED_${startTime}`;
 
-   
+
 
     try {
       // Call API to add service to cart
@@ -479,7 +478,7 @@ export function CartScreen({ navigation }) {
       const endTime = Date.now();
       const duration = endTime - startTime;
 
-    
+
 
       if (response.data?.success === false) {
         const errorMessage = response.data?.message || 'Failed to add service to cart';
@@ -487,7 +486,7 @@ export function CartScreen({ navigation }) {
         return;
       }
 
-      console.log("Adding to cart",{
+      console.log("Adding to cart", {
         service: service,
         clinic: clinic,
       })
@@ -496,7 +495,7 @@ export function CartScreen({ navigation }) {
         service: service,
         clinic: clinic,
       });
-      
+
       // Show success message
       const successMessage = response.data?.message || response.data?.data?.message || 'Service added to cart successfully';
       Toast.success(successMessage);
@@ -584,11 +583,11 @@ export function CartScreen({ navigation }) {
               )}
               <View style={styles.clinicInfo}>
                 <Text style={styles.clinicName} numberOfLines={1} ellipsizeMode="tail">
-                  {localizeClinicText(clinicGroup.clinic.name, isArabic)}
+                  {clinicGroup.clinic.name}
                 </Text>
 
                 <Text style={styles.clinicLocation} numberOfLines={1} ellipsizeMode="tail">
-                  {localizeClinicText(clinicGroup.clinic.address || clinicGroup.clinic.location || '', isArabic)}{clinicGroup.clinic.distance ? `, ${clinicGroup.clinic.distance}` : ''}
+                  {clinicGroup.clinic.address || clinicGroup.clinic.location || ''}{clinicGroup.clinic.distance ? `, ${clinicGroup.clinic.distance}` : ''}
                 </Text>
 
                 <View style={styles.clinicPointsContainer}>
@@ -624,12 +623,12 @@ export function CartScreen({ navigation }) {
                   <View style={styles.serviceBadges}>
                     <View style={styles.categoryBadge}>
                       <Text style={styles.categoryBadgeText} numberOfLines={1} ellipsizeMode="tail">
-                        {localizeClinicText(service.type, isArabic)}
+                        {service.type}
                       </Text>
                     </View>
                     <View style={styles.nameBadge}>
                       <Text style={styles.nameBadgeText} numberOfLines={1} ellipsizeMode="tail">
-                        {localizeClinicText(service.serviceGroup, isArabic)}
+                        {service.serviceGroup}
                       </Text>
                     </View>
                   </View>
@@ -645,7 +644,7 @@ export function CartScreen({ navigation }) {
                   />
                   <View style={styles.serviceContent}>
                     <Text style={styles.serviceName} numberOfLines={1} ellipsizeMode="tail">
-                      {localizeClinicText(service.serviceName, isArabic)}
+                      {service.serviceName}
                     </Text>
                     <View style={styles.serviceFooter}>
                       <View style={styles.durationContainer}>
@@ -691,13 +690,13 @@ export function CartScreen({ navigation }) {
                 <View style={[styles.subtotalContainer, { borderTopWidth: 0, paddingVertical: 6 }]}>
                   <Text style={styles.subtotalLabel}>{t('discount') || 'Discount'}</Text>
                   <Text style={[styles.subtotalValue, { color: '#16a34a' }]}>
-                    {`-SAR ${calculateGroupDiscount(clinicGroup).toFixed(2)}`}
+                    {isArabic ? `-${calculateGroupDiscount(clinicGroup).toFixed(2)} ر.س` : `-SAR ${calculateGroupDiscount(clinicGroup).toFixed(2)}`}
                   </Text>
                 </View>
                 <View style={[styles.subtotalContainer, { borderTopWidth: 0, paddingVertical: 6 }]}>
                   <Text style={[styles.subtotalLabel, { fontWeight: '700' }]}>{t('total') || 'Total'}</Text>
                   <Text style={styles.subtotalValue}>
-                    {`SAR ${calculateGroupFinalTotal(clinicGroup).toFixed(2)}`}
+                    {formatCurrency(calculateGroupFinalTotal(clinicGroup))}
                   </Text>
                 </View>
               </>
@@ -743,25 +742,25 @@ export function CartScreen({ navigation }) {
                     </TouchableOpacity>
 
                     <View style={styles.cardHeader}>
-                        <View style={styles.serviceBadges}>
-                          <View style={styles.categoryBadge}>
-                            <Text style={[styles.categoryBadgeText]} numberOfLines={1} ellipsizeMode="tail">
-                              {localizeClinicText(service.type, isArabic)}
-                            </Text>
-                          </View>
-                          <View style={styles.nameBadge}>
-                            <Text style={styles.nameBadgeText} numberOfLines={1} ellipsizeMode="tail">
-                              {localizeClinicText(service.serviceGroup, isArabic)}
-                            </Text>
-                          </View>
+                      <View style={styles.serviceBadges}>
+                        <View style={styles.categoryBadge}>
+                          <Text style={[styles.categoryBadgeText]} numberOfLines={1} ellipsizeMode="tail">
+                            {service.type}
+                          </Text>
                         </View>
+                        <View style={styles.nameBadge}>
+                          <Text style={styles.nameBadgeText} numberOfLines={1} ellipsizeMode="tail">
+                            {service.serviceGroup}
+                          </Text>
+                        </View>
+                      </View>
                     </View>
 
                     <View style={styles.cardBody}>
                       <Image source={service.image} style={styles.serviceImage} />
                       <View style={styles.serviceContent}>
                         <Text style={styles.serviceName} numberOfLines={1} ellipsizeMode="tail">
-                          {localizeClinicText(service.serviceName, isArabic)}
+                          {service.serviceName}
                         </Text>
                         <View style={styles.serviceFooter}>
                           <View style={styles.durationContainer}>
@@ -781,10 +780,10 @@ export function CartScreen({ navigation }) {
                                   {service.price}
                                 </Text>
                                 <Text style={styles.servicePrice}>
-                                  {`SAR ${Number(service.finalPrice).toFixed(2)}`}
+                                  {formatCurrency(service.finalPrice)}
                                 </Text>
                                 <Text style={{ fontSize: 11, fontWeight: '600', color: '#16a34a', marginTop: 2 }}>
-                                  {`-SAR ${Number(service.campaignDiscount).toFixed(2)}`}
+                                  {isArabic ? `-${Number(service.campaignDiscount).toFixed(2)} ر.س` : `-SAR ${Number(service.campaignDiscount).toFixed(2)}`}
                                 </Text>
                               </View>
                             ) : (

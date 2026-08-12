@@ -32,7 +32,11 @@ export const isAppleSignInSupported = (): boolean => appleAuth.isSupported;
 
 export const signInWithApple = async (): Promise<AppleSignInResult> => {
   if (!appleAuth.isSupported) {
-    throw new Error('Sign in with Apple requires iOS 13 or newer');
+    // isSupported is false both below iOS 13 and when the native module is
+    // absent, which is what a JS-only reload after adding the pod looks like.
+    throw new Error(
+      'Sign in with Apple unavailable: needs iOS 13+ and a native rebuild after installing the pod',
+    );
   }
 
   // We deliberately do not generate a nonce here. The native module creates one,

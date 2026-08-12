@@ -60,7 +60,9 @@ const HomeHeader = ({
               onPress={onLocationPress}
               activeOpacity={0.7}
             >
-              {isLocationLoading ? (
+              {/* Only spin when there is nothing to show. A refresh over an
+                  already-known city should not blank out the header. */}
+              {isLocationLoading && !location ? (
                 <>
                   <ActivityIndicator size="small" color={colors.white} />
                   <Text style={styles.locationText} numberOfLines={1}>

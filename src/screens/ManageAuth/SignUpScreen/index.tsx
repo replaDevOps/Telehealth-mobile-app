@@ -31,6 +31,7 @@ import { API } from '@services/api/api-endpoint';
 import { apiClient } from '@services/api/api-client';
 import { Toast } from 'toastify-react-native';
 import { signInWithGoogle, googleStatusCodes } from '@services/firebase/googleAuth';
+import { signInWithApple, appleErrorCodes } from '@services/firebase/appleAuth';
 import { useAuthStore } from '@store';
 import { getMappedErrorMessage } from '@utils';
 import { fcmService } from '../../../services/firebase/fcmService';
@@ -82,6 +83,7 @@ export function SignUpScreen({ navigation }) {
   const [rememberError, setRememberError] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
 
   const phoneNumber = parsePhoneNumberFromString(
     phone,
@@ -244,6 +246,33 @@ export function SignUpScreen({ navigation }) {
       Toast.error(`${t('google_sign_in_failed')} (${rawErrorDetail})`);
     } finally {
       setGoogleLoading(false);
+    }
+  };
+
+  const handleAppleSignUp = async () => {
+    setAppleLoading(true);
+    try {
+      const { identityToken, nonce, fullName, email, user } = await signInWithApple();
+
+      // TODO: replace with the backend exchange once /patient-auth/login-with-apple
+      // exists, mirroring handleGoogleSignUp: post the credential, setAuth(data.user),
+      // initialise FCM, then navigate on data.is_new_user.
+      console.log('✅ [Apple] Firebase uid:', user?.uid);
+      console.log('✅ [Apple] identityToken:', identityToken);
+      console.log('✅ [Apple] nonce (raw, unhashed):', nonce);
+      // Apple sends these only on a user's first ever sign-in - persist them then.
+      console.log('✅ [Apple] fullName:', fullName, '| email:', email);
+
+      Toast.success('Apple sign-up successful');
+    } catch (error: any) {
+      if (error?.code === appleErrorCodes.CANCELED) {
+        return;
+      }
+      console.error('❌ [Apple] Sign-up error:', error);
+      const rawErrorDetail = error?.code || error?.message || 'Unknown Error';
+      Toast.error(`Apple sign-up failed (${rawErrorDetail})`);
+    } finally {
+      setAppleLoading(false);
     }
   };
 
@@ -515,13 +544,19 @@ export function SignUpScreen({ navigation }) {
                 <TouchableOpacity
                   style={[
                     styles.appleButton,
-                    (loading || googleLoading) && { opacity: 0.6 },
+                    (loading || googleLoading || appleLoading) && { opacity: 0.6 },
                   ]}
-                  onPress={() => console.log('Apple Sign In')}
-                  disabled={loading || googleLoading}
+                  onPress={handleAppleSignUp}
+                  disabled={loading || googleLoading || appleLoading}
                 >
-                  <AntDesign name="apple1" size={20} color={colors.white} />
-                  <Text style={styles.appleText}>{t('sign_in_apple')}</Text>
+                  {appleLoading ? (
+                    <ActivityIndicator size="small" color={colors.white} />
+                  ) : (
+                    <>
+                      <AntDesign name="apple1" size={20} color={colors.white} />
+                      <Text style={styles.appleText}>{t('sign_in_apple')}</Text>
+                    </>
+                  )}
                 </TouchableOpacity>
               )}
 

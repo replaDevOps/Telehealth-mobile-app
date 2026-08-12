@@ -46,6 +46,13 @@ async function getFcmToken(): Promise<string | null> {
       return null;
     }
 
+    // iOS refuses getToken() until the device has an APNs registration. This is
+    // a no-op on Android and cheap to re-check, so guard rather than assume.
+    if (Platform.OS === 'ios' && !messaging().isDeviceRegisteredForRemoteMessages) {
+      console.log(`${TAG} Registering device for remote messages (iOS)...`);
+      await messaging().registerDeviceForRemoteMessages();
+    }
+
     console.log(`${TAG} Fetching FCM token from Firebase...`);
     const token = await messaging().getToken();
     console.log(`${TAG} ✅ FCM token retrieved successfully`);

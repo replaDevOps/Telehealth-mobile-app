@@ -63,7 +63,6 @@ const style = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderRadius: mvs(10),
-    paddingRight: mvs(20),
   },
   royaltyContent: {
     padding: mvs(10),
@@ -103,5 +102,9 @@ const style = StyleSheet.create({
   logoContainer: {
     justifyContent: 'center',
     alignItems: 'center',
+    // Inset lives here, not as paddingRight on the LinearGradient: the gradient
+    // does not apply its own padding on the new architecture, so the logo ends
+    // up flush against the card edge and clips.
+    marginRight: mvs(20),
   },
 });

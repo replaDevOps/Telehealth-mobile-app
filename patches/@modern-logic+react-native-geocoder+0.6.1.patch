@@ -1,0 +1,13 @@
+diff --git a/node_modules/@modern-logic/react-native-geocoder/ios/RNGeocoder/RNGeocoder.m b/node_modules/@modern-logic/react-native-geocoder/ios/RNGeocoder/RNGeocoder.m
+index ce64c96..f601bfa 100644
+--- a/node_modules/@modern-logic/react-native-geocoder/ios/RNGeocoder/RNGeocoder.m
++++ b/node_modules/@modern-logic/react-native-geocoder/ios/RNGeocoder/RNGeocoder.m
+@@ -30,7 +30,7 @@ - (NSLocale*) locale {
+ RCT_EXPORT_METHOD(setLanguage:(NSString *)language
+                   callback:(RCTResponseSenderBlock)callback)
+ {
+-  NSLocale *geocoderLocale = [[NSLocale alloc] initWithLocaleIdentifier:[self locale]];
++  NSLocale *geocoderLocale = [[NSLocale alloc] initWithLocaleIdentifier:language];
+   if (geocoderLocale) {
+     self.locale = geocoderLocale;
+   }

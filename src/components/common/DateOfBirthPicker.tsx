@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import DatePicker from 'react-native-date-picker';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Platform } from 'react-native';
+import DateTimePicker, {
+  DateTimePickerEvent,
+} from '@react-native-community/datetimepicker';
 import { useTranslation } from 'react-i18next';
 import { colors } from '../../styles/colors';
 import { mvs } from '../../config/metrices';
@@ -73,6 +75,8 @@ const DateOfBirthPicker: React.FC<Props> = ({ label, value, onChange, errorMessa
   const isArabic = i18n.language?.startsWith('ar');
   const hasError = !!errorMessage;
   const [open, setOpen] = useState(false);
+  // iOS shows the wheel inline, so the value stays uncommitted until confirm.
+  const [tempDate, setTempDate] = useState<Date | null>(null);
 
   const selectedDate = dobToDate(value);
   const monthNames = isArabic ? MONTHS_AR : MONTHS_EN;
@@ -85,6 +89,25 @@ const DateOfBirthPicker: React.FC<Props> = ({ label, value, onChange, errorMessa
   );
   // Default the wheel to ~20 years ago so users aren't scrolling from today.
   const defaultDate = new Date(today.getFullYear() - 20, 0, 1);
+  const initialDate = selectedDate ?? defaultDate;
+
+  const openPicker = () => {
+    setTempDate(initialDate);
+    setOpen(true);
+  };
+
+  // Android renders the platform dialog, which reports confirm/dismiss itself.
+  const handleAndroidChange = (event: DateTimePickerEvent, date?: Date) => {
+    setOpen(false);
+    if (event.type === 'set' && date) {
+      onChange(dateToDob(date));
+    }
+  };
+
+  const handleConfirm = () => {
+    setOpen(false);
+    onChange(dateToDob(tempDate ?? initialDate));
+  };
 
   const displayText = selectedDate
     ? `${selectedDate.getDate()} ${monthNames[selectedDate.getMonth()]} ${selectedDate.getFullYear()}`
@@ -97,30 +120,57 @@ const DateOfBirthPicker: React.FC<Props> = ({ label, value, onChange, errorMessa
       <TouchableOpacity
         activeOpacity={0.8}
         style={[styles.field, hasError && styles.fieldError]}
-        onPress={() => setOpen(true)}
+        onPress={openPicker}
       >
         <Text style={selectedDate ? styles.valueText : styles.placeholderText}>
           {displayText}
         </Text>
       </TouchableOpacity>
 
-      <DatePicker
-        modal
-        open={open}
-        date={selectedDate ?? defaultDate}
-        mode="date"
-        maximumDate={today}
-        minimumDate={minimumDate}
-        locale={isArabic ? 'ar' : 'en'}
-        title={t('select_date_of_birth')}
-        confirmText={t('confirm')}
-        cancelText={t('cancel')}
-        onConfirm={date => {
-          setOpen(false);
-          onChange(dateToDob(date));
-        }}
-        onCancel={() => setOpen(false)}
-      />
+      {Platform.OS === 'android' ? (
+        open && (
+          <DateTimePicker
+            value={initialDate}
+            mode="date"
+            display="spinner"
+            maximumDate={today}
+            minimumDate={minimumDate}
+            onChange={handleAndroidChange}
+          />
+        )
+      ) : (
+        <Modal
+          visible={open}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setOpen(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalCard}>
+              <View style={styles.modalHeader}>
+                <TouchableOpacity onPress={() => setOpen(false)}>
+                  <Text style={styles.modalAction}>{t('cancel')}</Text>
+                </TouchableOpacity>
+                <Text style={styles.modalTitle}>{t('select_date_of_birth')}</Text>
+                <TouchableOpacity onPress={handleConfirm}>
+                  <Text style={[styles.modalAction, styles.modalConfirm]}>
+                    {t('confirm')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <DateTimePicker
+                value={tempDate ?? initialDate}
+                mode="date"
+                display="spinner"
+                maximumDate={today}
+                minimumDate={minimumDate}
+                locale={isArabic ? 'ar' : 'en'}
+                onChange={(_event, date) => date && setTempDate(date)}
+              />
+            </View>
+          </View>
+        </Modal>
+      )}
 
       {hasError && <Text style={styles.errorText}>{errorMessage}</Text>}
     </View>
@@ -161,6 +211,39 @@ const styles = StyleSheet.create({
     color: 'red',
     fontSize: mvs(12),
     marginTop: mvs(4),
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+  },
+  modalCard: {
+    backgroundColor: colors.white,
+    borderTopLeftRadius: mvs(16),
+    borderTopRightRadius: mvs(16),
+    paddingBottom: mvs(16),
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: mvs(16),
+    paddingVertical: mvs(12),
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  modalTitle: {
+    fontSize: mvs(15),
+    fontWeight: '600',
+    color: colors.black,
+  },
+  modalAction: {
+    fontSize: mvs(14),
+    color: colors.secondaryText,
+  },
+  modalConfirm: {
+    color: colors.primary,
+    fontWeight: '600',
   },
 });
 

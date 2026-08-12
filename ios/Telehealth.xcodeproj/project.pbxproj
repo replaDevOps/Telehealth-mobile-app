@@ -32,33 +32,34 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		0DF8415CD2CA44369DD80864 /* HelveticaNeueUltraLight.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueUltraLight.otf; path = ../src/assets/fonts/HelveticaNeueUltraLight.otf; sourceTree = "<group>"; };
-		1059CABDBE974D4F957FBEDF /* HelveticaNeueBold.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueBold.otf; path = ../src/assets/fonts/HelveticaNeueBold.otf; sourceTree = "<group>"; };
+		0DF8415CD2CA44369DD80864 /* HelveticaNeueUltraLight.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueUltraLight.otf; path = ../src/assets/fonts/HelveticaNeueUltraLight.otf; sourceTree = "<group>"; };
+		1059CABDBE974D4F957FBEDF /* HelveticaNeueBold.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueBold.otf; path = ../src/assets/fonts/HelveticaNeueBold.otf; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* Telehealth.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Telehealth.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = Telehealth/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = Telehealth/Info.plist; sourceTree = "<group>"; };
 		13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = PrivacyInfo.xcprivacy; path = Telehealth/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		199CF1B8D4FE408AB6E4EB0A /* HelveticaNeueBoldItalic.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueBoldItalic.otf; path = ../src/assets/fonts/HelveticaNeueBoldItalic.otf; sourceTree = "<group>"; };
-		22FE7976FC7D45898E21C0CA /* HelveticaNeueBlack.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueBlack.otf; path = ../src/assets/fonts/HelveticaNeueBlack.otf; sourceTree = "<group>"; };
+		199CF1B8D4FE408AB6E4EB0A /* HelveticaNeueBoldItalic.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueBoldItalic.otf; path = ../src/assets/fonts/HelveticaNeueBoldItalic.otf; sourceTree = "<group>"; };
+		22FE7976FC7D45898E21C0CA /* HelveticaNeueBlack.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueBlack.otf; path = ../src/assets/fonts/HelveticaNeueBlack.otf; sourceTree = "<group>"; };
 		24ECD6F17B461F262F73BCAA /* Pods_Telehealth.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Telehealth.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		2BEF982D0EA942B7A7447248 /* HelveticaNeueMedium.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueMedium.otf; path = ../src/assets/fonts/HelveticaNeueMedium.otf; sourceTree = "<group>"; };
-		3534D49C0705486CA0DD166C /* HelveticaNeueLightItalic.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueLightItalic.otf; path = ../src/assets/fonts/HelveticaNeueLightItalic.otf; sourceTree = "<group>"; };
-		3D5A63B12F574879A2D16D03 /* HelveticaNeueThin.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueThin.otf; path = ../src/assets/fonts/HelveticaNeueThin.otf; sourceTree = "<group>"; };
-		3FDB99F366B04FB5AF9857E5 /* HelveticaNeueHeavyItalic.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueHeavyItalic.otf; path = ../src/assets/fonts/HelveticaNeueHeavyItalic.otf; sourceTree = "<group>"; };
-		47D479C574A143E1860FBF50 /* HelveticaNeueThinItalic.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueThinItalic.otf; path = ../src/assets/fonts/HelveticaNeueThinItalic.otf; sourceTree = "<group>"; };
+		2BEF982D0EA942B7A7447248 /* HelveticaNeueMedium.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueMedium.otf; path = ../src/assets/fonts/HelveticaNeueMedium.otf; sourceTree = "<group>"; };
+		3534D49C0705486CA0DD166C /* HelveticaNeueLightItalic.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueLightItalic.otf; path = ../src/assets/fonts/HelveticaNeueLightItalic.otf; sourceTree = "<group>"; };
+		3D5A63B12F574879A2D16D03 /* HelveticaNeueThin.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueThin.otf; path = ../src/assets/fonts/HelveticaNeueThin.otf; sourceTree = "<group>"; };
+		3FDB99F366B04FB5AF9857E5 /* HelveticaNeueHeavyItalic.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueHeavyItalic.otf; path = ../src/assets/fonts/HelveticaNeueHeavyItalic.otf; sourceTree = "<group>"; };
+		47D479C574A143E1860FBF50 /* HelveticaNeueThinItalic.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueThinItalic.otf; path = ../src/assets/fonts/HelveticaNeueThinItalic.otf; sourceTree = "<group>"; };
 		4ADFA288B886BD4F6BECF086 /* GoogleService-Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; name = "GoogleService-Info.plist"; path = "Telehealth/GoogleService-Info.plist"; sourceTree = "<group>"; };
+		525F5FFA302CEE1600E59355 /* Telehealth.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = Telehealth.entitlements; path = Telehealth/Telehealth.entitlements; sourceTree = "<group>"; };
 		5E6D756AAD80EE8765E162FC /* Pods-Telehealth.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Telehealth.debug.xcconfig"; path = "Target Support Files/Pods-Telehealth/Pods-Telehealth.debug.xcconfig"; sourceTree = "<group>"; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = Telehealth/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = Telehealth/LaunchScreen.storyboard; sourceTree = "<group>"; };
-		860318F928C948BFBA2EEC8C /* HelveticaNeueLight.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueLight.otf; path = ../src/assets/fonts/HelveticaNeueLight.otf; sourceTree = "<group>"; };
-		A0724F5E9C2D4E4197DE0368 /* HelveticaNeueMediumItalic.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueMediumItalic.otf; path = ../src/assets/fonts/HelveticaNeueMediumItalic.otf; sourceTree = "<group>"; };
-		A80F961E02B54DE285985320 /* HelveticaNeueItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueItalic.ttf; path = ../src/assets/fonts/HelveticaNeueItalic.ttf; sourceTree = "<group>"; };
-		B4C6FBFF1A754AAAB5F61191 /* HelveticaNeueBlackItalic.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueBlackItalic.otf; path = ../src/assets/fonts/HelveticaNeueBlackItalic.otf; sourceTree = "<group>"; };
-		BF62E3BAE4A0442DACBCA43A /* HelveticaNeueHeavy.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueHeavy.otf; path = ../src/assets/fonts/HelveticaNeueHeavy.otf; sourceTree = "<group>"; };
+		860318F928C948BFBA2EEC8C /* HelveticaNeueLight.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueLight.otf; path = ../src/assets/fonts/HelveticaNeueLight.otf; sourceTree = "<group>"; };
+		A0724F5E9C2D4E4197DE0368 /* HelveticaNeueMediumItalic.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueMediumItalic.otf; path = ../src/assets/fonts/HelveticaNeueMediumItalic.otf; sourceTree = "<group>"; };
+		A80F961E02B54DE285985320 /* HelveticaNeueItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueItalic.ttf; path = ../src/assets/fonts/HelveticaNeueItalic.ttf; sourceTree = "<group>"; };
+		B4C6FBFF1A754AAAB5F61191 /* HelveticaNeueBlackItalic.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueBlackItalic.otf; path = ../src/assets/fonts/HelveticaNeueBlackItalic.otf; sourceTree = "<group>"; };
+		BF62E3BAE4A0442DACBCA43A /* HelveticaNeueHeavy.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueHeavy.otf; path = ../src/assets/fonts/HelveticaNeueHeavy.otf; sourceTree = "<group>"; };
 		D10BD3FDF94DD71EFEFD27F9 /* Pods-Telehealth.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Telehealth.release.xcconfig"; path = "Target Support Files/Pods-Telehealth/Pods-Telehealth.release.xcconfig"; sourceTree = "<group>"; };
-		D3C210EECC2A4DFE9FFC6643 /* HelveticaNeueRoman.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueRoman.otf; path = ../src/assets/fonts/HelveticaNeueRoman.otf; sourceTree = "<group>"; };
+		D3C210EECC2A4DFE9FFC6643 /* HelveticaNeueRoman.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueRoman.otf; path = ../src/assets/fonts/HelveticaNeueRoman.otf; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
-		EF7351648A704026B6B5CA5B /* HelveticaNeueUltraLightItalic.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueUltraLightItalic.otf; path = ../src/assets/fonts/HelveticaNeueUltraLightItalic.otf; sourceTree = "<group>"; };
+		EF7351648A704026B6B5CA5B /* HelveticaNeueUltraLightItalic.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = HelveticaNeueUltraLightItalic.otf; path = ../src/assets/fonts/HelveticaNeueUltraLightItalic.otf; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -76,6 +77,7 @@
 		13B07FAE1A68108700A75B9A /* Telehealth */ = {
 			isa = PBXGroup;
 			children = (
+				525F5FFA302CEE1600E59355 /* Telehealth.entitlements */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				761780EC2CA45674006654EE /* AppDelegate.swift */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
@@ -349,7 +351,11 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = Telehealth/Telehealth.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Telehealth/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
@@ -365,6 +371,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.vena.patient;
 				PRODUCT_NAME = Telehealth;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
@@ -377,7 +384,11 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = Telehealth/Telehealth.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
 				INFOPLIST_FILE = Telehealth/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -392,6 +403,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.vena.patient;
 				PRODUCT_NAME = Telehealth;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
 			};

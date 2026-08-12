@@ -13,8 +13,10 @@
   "dependencies": {
     "@d11/react-native-fast-image": "^8.13.0",
     "@hookform/resolvers": "^5.2.2",
+    "@invertase/react-native-apple-authentication": "^2.5.1",
     "@modern-logic/react-native-geocoder": "^0.6.1",
     "@react-native-async-storage/async-storage": "^2.2.0",
+    "@react-native-community/datetimepicker": "^9.1.0",
     "@react-native-community/geolocation": "^3.4.0",
     "@react-native-community/netinfo": "^11.4.1",
     "@react-native-firebase/app": "^23.8.8",
@@ -38,7 +40,6 @@
     "react-native": "0.82.1",
     "react-native-background-timer": "^2.4.1",
     "react-native-blob-util": "^0.24.6",
-    "react-native-date-picker": "^5.0.13",
     "react-native-element-dropdown": "^2.12.4",
     "react-native-fs": "^2.20.0",
     "react-native-html-to-pdf": "^0.12.0",

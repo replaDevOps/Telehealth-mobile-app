@@ -32,6 +32,7 @@ import { useAuthStore } from '@store';
 import { API } from '@services/api/api-endpoint';
 import { fcmService } from '../../../services/firebase/fcmService';
 import { signInWithGoogle, googleStatusCodes } from '../../../services/firebase/googleAuth';
+import { signInWithApple, appleErrorCodes } from '../../../services/firebase/appleAuth';
 import { getMappedErrorMessage } from '@utils';
 
 type TabType = 'email' | 'phone';
@@ -64,6 +65,7 @@ export function SignInScreen({ navigation }) {
   });
 
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
 
   const formattedPhone = useMemo(() => {
     if (!form.phone || typeof form.phone !== 'string') {
@@ -256,6 +258,33 @@ export function SignInScreen({ navigation }) {
       Toast.error(`${t('google_sign_in_failed')} (${rawErrorDetail})`);
     } finally {
       setGoogleLoading(false);
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    setAppleLoading(true);
+    try {
+      const { identityToken, nonce, fullName, email, user } = await signInWithApple();
+
+      // TODO: replace with the backend exchange once /patient-auth/login-with-apple
+      // exists, mirroring handleGoogleSignIn: post the credential, setAuth(data.user),
+      // initialise FCM, then navigate on data.is_new_user.
+      console.log('✅ [Apple] Firebase uid:', user?.uid);
+      console.log('✅ [Apple] identityToken:', identityToken);
+      console.log('✅ [Apple] nonce (raw, unhashed):', nonce);
+      // Apple sends these only on a user's first ever sign-in - persist them then.
+      console.log('✅ [Apple] fullName:', fullName, '| email:', email);
+
+      Toast.success('Apple sign-in successful');
+    } catch (error: any) {
+      if (error?.code === appleErrorCodes.CANCELED) {
+        return;
+      }
+      console.error('❌ [Apple] Sign-in error:', error);
+      const rawErrorDetail = error?.code || error?.message || 'Unknown Error';
+      Toast.error(`Apple sign-in failed (${rawErrorDetail})`);
+    } finally {
+      setAppleLoading(false);
     }
   };
 
@@ -524,13 +553,19 @@ export function SignInScreen({ navigation }) {
                 <TouchableOpacity
                   style={[
                     styles.appleButton,
-                    (meta.loading || googleLoading) && { opacity: 0.6 },
+                    (meta.loading || googleLoading || appleLoading) && { opacity: 0.6 },
                   ]}
-                  onPress={() => console.log('Apple Sign In')}
-                  disabled={meta.loading || googleLoading}
+                  onPress={handleAppleSignIn}
+                  disabled={meta.loading || googleLoading || appleLoading}
                 >
-                  <AntDesign name="apple1" size={20} color={colors.white} />
-                  <Text style={styles.appleText}>{t('sign_in_apple')}</Text>
+                  {appleLoading ? (
+                    <ActivityIndicator size="small" color={colors.white} />
+                  ) : (
+                    <>
+                      <AntDesign name="apple1" size={20} color={colors.white} />
+                      <Text style={styles.appleText}>{t('sign_in_apple')}</Text>
+                    </>
+                  )}
                 </TouchableOpacity>
               )}
 

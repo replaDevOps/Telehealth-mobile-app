@@ -136,7 +136,7 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.black,
     borderRadius: mvs(12),
     paddingVertical: mvs(14),
-    marginTop: mvs(10),
+    marginBottom: mvs(5),
   },
   appleText: {
     color: colors.white,
@@ -168,7 +168,10 @@ export const styles = StyleSheet.create({
     elevation: 4,
   },
   gradientButton: {
-    paddingVertical: mvs(14),
+    // An explicit height, not vertical padding: react-native-linear-gradient
+    // does not measure its children on the new architecture, so padding alone
+    // collapses the button.
+    height: mvs(50),
     justifyContent: 'center',
     alignItems: 'center',
     width: '100%',

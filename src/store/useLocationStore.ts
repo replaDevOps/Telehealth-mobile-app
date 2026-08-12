@@ -55,6 +55,33 @@ const distanceBetween = (a: Coords, b: Coords): number => {
 };
 
 /**
+ * Neither the geolocation module's own `timeout` option nor the native geocoder
+ * can be trusted to always call back on iOS. A single callback that never fires
+ * leaves `isLoading` true and, worse, wedges `inFlightFetch` so every later
+ * caller awaits the same dead promise. These backstops guarantee settlement.
+ */
+const withTimeout = <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> => {
+  let timer: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+  });
+  return Promise.race([promise, timeout]).then(
+    value => {
+      clearTimeout(timer);
+      return value as T;
+    },
+    error => {
+      clearTimeout(timer);
+      throw error;
+    },
+  );
+};
+
+const PERMISSION_TIMEOUT_MS = 10000;
+const POSITION_TIMEOUT_MS = 20000;
+const GEOCODE_TIMEOUT_MS = 15000;
+
+/**
  * Shared in-flight request. Splash, HomeScreen and SelectLocation all call
  * fetchLocation() on mount; without this they would each trigger their own GPS
  * read and geocode. Late callers await the same promise rather than bailing
@@ -101,7 +128,15 @@ const useLocationStore = create<LocationStore>()(
           set({ isLoading: true });
 
           try {
-            const hasPermission = await requestPermission();
+            // iOS does not always invoke either authorization callback when the
+            // status is already determined. If we cannot get an answer, assume
+            // permitted and let getCurrentPosition surface a real denial rather
+            // than stalling here forever.
+            const hasPermission = await withTimeout(
+              requestPermission(),
+              PERMISSION_TIMEOUT_MS,
+              'requestPermission',
+            ).catch(() => true);
             set({ hasPermission });
 
             if (!hasPermission) {
@@ -114,13 +149,17 @@ const useLocationStore = create<LocationStore>()(
               return;
             }
 
-            const position = await new Promise<any>((resolve, reject) => {
-              Geolocation.getCurrentPosition(resolve, reject, {
-                enableHighAccuracy: true,
-                timeout: 15000,
-                maximumAge: 10000,
-              });
-            });
+            const position = await withTimeout(
+              new Promise<any>((resolve, reject) => {
+                Geolocation.getCurrentPosition(resolve, reject, {
+                  enableHighAccuracy: true,
+                  timeout: 15000,
+                  maximumAge: 10000,
+                });
+              }),
+              POSITION_TIMEOUT_MS,
+              'getCurrentPosition',
+            );
 
             const { latitude, longitude } = position.coords;
             const coords: Coords = { lat: latitude, long: longitude };
@@ -137,7 +176,16 @@ const useLocationStore = create<LocationStore>()(
             let nextGeocodedFor = geocodedFor;
 
             if (options.force || !cachedText || !isFresh || !isNearby) {
-              const resolved = await reverseGeocodeCity(latitude, longitude);
+              // A failed or slow lookup must not block the coordinates we
+              // already have, so swallow it and keep the previous label.
+              const resolved = await withTimeout(
+                reverseGeocodeCity(latitude, longitude),
+                GEOCODE_TIMEOUT_MS,
+                'reverseGeocodeCity',
+              ).catch(error => {
+                console.warn('Reverse geocode failed; keeping previous label:', error);
+                return '';
+              });
               if (resolved) {
                 locationText = resolved;
                 nextGeocodedAt = Date.now();

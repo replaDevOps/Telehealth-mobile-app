@@ -1,8 +1,8 @@
-import appleAuth, {
-  AppleError,
-  AppleRequestOperation,
-  AppleRequestScope,
-} from '@invertase/react-native-apple-authentication';
+// Import only the module instance. AppleError/AppleRequestOperation/
+// AppleRequestScope exist solely as ambient TypeScript enums - importing them
+// typechecks but yields undefined at runtime. The real values hang off the
+// instance below.
+import appleAuth from '@invertase/react-native-apple-authentication';
 import {
   getAuth,
   AppleAuthProvider,
@@ -38,8 +38,8 @@ export const signInWithApple = async (): Promise<AppleSignInResult> => {
   // We deliberately do not generate a nonce here. The native module creates one,
   // sends Apple only its SHA-256 hash, and hands back the raw value below.
   const response = await appleAuth.performRequest({
-    requestedOperation: AppleRequestOperation.LOGIN,
-    requestedScopes: [AppleRequestScope.FULL_NAME, AppleRequestScope.EMAIL],
+    requestedOperation: appleAuth.Operation.LOGIN,
+    requestedScopes: [appleAuth.Scope.FULL_NAME, appleAuth.Scope.EMAIL],
   });
 
   const { identityToken, nonce, authorizationCode, email, fullName } = response;
@@ -74,4 +74,5 @@ export const signOutApple = async () => {
   await getAuth().signOut();
 };
 
-export { AppleError as appleErrorCodes };
+/** Real runtime codes (CANCELED === '1001'), unlike the ambient AppleError enum. */
+export const appleErrorCodes = appleAuth.Error;

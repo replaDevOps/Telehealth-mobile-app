@@ -1,0 +1,5 @@
+<resources>
+    <!-- Matches the background of the JS splash in src/screens/Splash/index.tsx
+         so the native launch window hands off to it without a visible change. -->
+    <color name="splash_background">#FFFFFF</color>
+</resources>

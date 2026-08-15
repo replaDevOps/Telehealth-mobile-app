@@ -1,0 +1,9 @@
+<resources>
+    <!-- Android 12+ draws its own splash window and ignores windowBackground.
+         It always shows the launcher icon here, so the most we can do - and all
+         we want - is make the surround match the JS splash background. -->
+    <style name="SplashTheme" parent="AppTheme">
+        <item name="android:windowSplashScreenBackground">@color/splash_background</item>
+    </style>
+
+</resources>

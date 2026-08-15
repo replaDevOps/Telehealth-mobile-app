@@ -6,4 +6,11 @@
         <item name="android:editTextBackground">@drawable/rn_edit_text_material</item>
     </style>
 
+    <!-- Applied to MainActivity so the launch window is already the splash
+         colour instead of a bare white/black flash. MainActivity swaps back to
+         AppTheme in onCreate. Android 12+ overrides this in values-v31. -->
+    <style name="SplashTheme" parent="AppTheme">
+        <item name="android:windowBackground">@color/splash_background</item>
+    </style>
+
 </resources>

@@ -1,0 +1,4 @@
+<resources>
+    <!-- Dark-mode counterpart of the JS splash background. -->
+    <color name="splash_background">#1E1930</color>
+</resources>

@@ -17,7 +17,7 @@ import {
   LogoutSvg,
 } from '@assets/icons';
 import style from './style';
-import { RoyaltyPointsBar } from '@components/molecules';
+import { RoyaltyPointsBar, SignInPrompt } from '@components/molecules';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore, useProfileStore } from '@store';
 import { apiClient } from '../../../services/api/api-client';
@@ -29,6 +29,8 @@ import { getMappedErrorMessage } from '@utils';
 export const SettingScreen = ({ navigation }: { navigation: any }) => {
   const { t, i18n } = useTranslation();
   const { logout, isAuthenticated } = useAuthStore();
+  // No session at all: browsing is allowed, this tab is not.
+  const isSignedOut = !useAuthStore(state => state.auth?.token);
   const { profileData, fetchProfile, refreshProfile } = useProfileStore();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
@@ -151,27 +153,6 @@ export const SettingScreen = ({ navigation }: { navigation: any }) => {
     );
   };
 
-  const handleNotificationsPress = () => {
-    Alert.alert(
-      t('notifications'),
-      t('change_notifications_settings') || 'Do you want to enable notifications?',
-      [
-        { text: t('yes') || 'Yes', onPress: () => Toast.success(t('notifications_enabled') || 'Notifications enabled') },
-        { text: t('no') || 'No', style: 'cancel' },
-      ],
-      { cancelable: true }
-    );
-  };
-
-  const handlePaymentMethodsPress = () => {
-    Alert.alert(
-      t('payment_methods'),
-      t('payment_methods_message') || 'Manage your saved credit and debit cards at checkout.',
-      [{ text: t('okay'), style: 'default' }],
-      { cancelable: true }
-    );
-  };
-
   const handleContactUsPress = () => {
     Alert.alert(
       t('contact_us'),
@@ -213,16 +194,6 @@ export const SettingScreen = ({ navigation }: { navigation: any }) => {
       onPress: handleLanguagePress,
     },
     {
-      icon: (props: any) => <Ionicons name="notifications-outline" size={24} color={colors.black} {...props} />,
-      title: t('notifications'),
-      onPress: handleNotificationsPress,
-    },
-    {
-      icon: (props: any) => <Ionicons name="card-outline" size={24} color={colors.black} {...props} />,
-      title: t('payment_methods'),
-      onPress: handlePaymentMethodsPress,
-    },
-    {
       icon: (props: any) => <Ionicons name="chatbubbles-outline" size={24} color={colors.black} {...props} />,
       title: t('contact_us'),
       onPress: handleContactUsPress,
@@ -253,6 +224,15 @@ export const SettingScreen = ({ navigation }: { navigation: any }) => {
     const isLogout = item.title === t('log_out');
     const isDelete = item.title === t('delete_account');
 
+    const label = (
+      <View style={style.menuLeft}>
+        {typeof Icon === 'function' ? <Icon /> : <Icon width={24} height={24} />}
+        <Text style={[style.menuTitle, isLogout && style.logoutMenuTitle, isDelete && { color: '#EB5757' }]}>
+          {item.title}
+        </Text>
+      </View>
+    );
+
     return (
       <TouchableOpacity
         key={index}
@@ -260,20 +240,22 @@ export const SettingScreen = ({ navigation }: { navigation: any }) => {
         onPress={item.onPress}
         activeOpacity={0.7}
       >
-        <View style={style.menuLeft}>
-          {typeof Icon === 'function' ? (
-            <Icon />
-          ) : (
-            <Icon width={24} height={24} />
-          )}
-          <Text style={[style.menuTitle, isLogout && style.logoutMenuTitle, isDelete && { color: '#EB5757' }]}>
-            {item.title}
-          </Text>
-        </View>
+        {label}
         {isLogout || isDelete ? null : <AntDesign name="right" size={20} />}
       </TouchableOpacity>
     );
   };
+
+  // Profile, rewards, password and account actions are all account-scoped
+  // (/patient-setting/*), so a guest is offered the way in instead.
+  if (isSignedOut) {
+    return (
+      <SafeAreaView style={style.safeArea}>
+        <Header2 title={t('settings')} back={false} />
+        <SignInPrompt description={t('sign_in_for_settings')} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={style.safeArea}>

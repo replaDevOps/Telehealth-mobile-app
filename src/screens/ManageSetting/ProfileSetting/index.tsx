@@ -5,7 +5,6 @@ import {
   Text,
   TouchableOpacity,
   Alert,
-  Switch,
   ActivityIndicator,
 } from 'react-native';
 import { KeyboardAvoidScrollview } from '../../../components/common/keyboard-avoid-scrollview';
@@ -442,19 +441,6 @@ export const ProfileSetting = ({ navigation, route }: { navigation: any; route?:
             ]}
           />
 
-          {/* Mode */}
-          <View style={[styles.sectionHeader, { marginTop: mvs(30) }]}>
-            <Text style={[styles.sectionTitle, i18n.language === 'ar' && { textAlign: 'right' }]}>{t('mode')}</Text>
-          </View>
-          <View style={styles.switchItem}>
-            <Text style={styles.switchLabel}>{t('notification')}</Text>
-            <Switch
-              value={state.notificationEnabled}
-              onValueChange={(value) => dispatch({ notificationEnabled: value })}
-              trackColor={{ false: colors.border, true: colors.primary }}
-              thumbColor={colors.white}
-            />
-          </View>
         </View>
         )}
       </SafeAreaView>

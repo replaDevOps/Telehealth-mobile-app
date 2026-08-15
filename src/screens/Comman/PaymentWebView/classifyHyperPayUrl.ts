@@ -56,3 +56,39 @@ export function classifyHyperPayUrl(
 export function isTerminalUrlKind(kind: HyperPayUrlKind): boolean {
   return kind === 'success' || kind === 'pending' || kind === 'failed';
 }
+
+/**
+ * Whether a WebView navigation means the user actually submitted the payment
+ * form.
+ *
+ * Submitting the HyperPay widget always navigates the WebView away from the
+ * page it was opened on - either to our /result/ endpoint or off to an issuing
+ * bank for 3DS. While it sits on the original page nothing has been sent, so
+ * no charge can exist and leaving is safe.
+ *
+ * Compared on origin + path only: the widget rewrites its own query string as
+ * the user types, and that must not read as a submission. Anything that cannot
+ * be parsed counts as an attempt, because the costly mistake here is treating a
+ * real payment as if it never happened.
+ */
+export function isPaymentAttemptNavigation(
+  url: string,
+  initialUrl: string,
+): boolean {
+  if (!url) return false;
+
+  const lowered = url.trim().toLowerCase();
+  // The WebView reports these while setting up; neither is a submission.
+  if (lowered === 'about:blank' || lowered.startsWith('data:')) return false;
+
+  const origin = originOf(url);
+  const initialOrigin = originOf(initialUrl);
+
+  // An unparseable pair is treated as an attempt rather than risk stranding a
+  // real payment.
+  if (!origin || !initialOrigin) return true;
+
+  if (origin !== initialOrigin) return true;
+
+  return pathOf(url, origin) !== pathOf(initialUrl, initialOrigin);
+}

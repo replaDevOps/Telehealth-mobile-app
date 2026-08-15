@@ -14,7 +14,11 @@ import { useTranslation } from 'react-i18next';
 import { BASE_URL } from '@constants';
 import { colors } from '../../../styles/colors';
 import { styles } from './style';
-import { classifyHyperPayUrl, isTerminalUrlKind } from './classifyHyperPayUrl';
+import {
+  classifyHyperPayUrl,
+  isTerminalUrlKind,
+  isPaymentAttemptNavigation,
+} from './classifyHyperPayUrl';
 
 export function PaymentWebViewScreen({ route, navigation }: any) {
   const { t } = useTranslation();
@@ -22,6 +26,8 @@ export function PaymentWebViewScreen({ route, navigation }: any) {
 
   const [loading, setLoading] = useState(true);
   const handedOffRef = useRef(false);
+  /** Set once the WebView leaves the page the widget opened on. */
+  const attemptedRef = useRef(false);
 
   /**
    * Replaces this screen with the status screen. Guarded because the WebView
@@ -35,6 +41,15 @@ export function PaymentWebViewScreen({ route, navigation }: any) {
 
   const confirmLeave = useCallback(() => {
     if (handedOffRef.current) return;
+
+    // Nothing was ever submitted, so there is no payment to confirm and no
+    // charge to reconcile. Going back quietly is both correct and what the
+    // user expects - the status screen's "Confirming payment" here was pure
+    // alarm over an action they never took.
+    if (!attemptedRef.current) {
+      navigation.goBack();
+      return;
+    }
 
     Alert.alert(
       t('abandon_payment_title'),
@@ -51,7 +66,7 @@ export function PaymentWebViewScreen({ route, navigation }: any) {
       ],
       { cancelable: true },
     );
-  }, [t, handOffToStatus]);
+  }, [t, handOffToStatus, navigation]);
 
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -63,13 +78,17 @@ export function PaymentWebViewScreen({ route, navigation }: any) {
 
   const onNavigationStateChange = useCallback(
     (navState: WebViewNavigation) => {
+      if (isPaymentAttemptNavigation(navState.url, paymentUrl)) {
+        attemptedRef.current = true;
+      }
+
       const kind = classifyHyperPayUrl(navState.url, BASE_URL);
 
       // 'result' is intentionally left alone: loading it is what triggers
       // backend verification and fulfilment.
       if (isTerminalUrlKind(kind)) handOffToStatus();
     },
-    [handOffToStatus],
+    [handOffToStatus, paymentUrl],
   );
 
   return (

@@ -17,6 +17,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 interface HomeHeaderProps {
   location?: string | null; // Can be null if no location available
   isLocationLoading?: boolean;
+  /** Permission was refused - no amount of waiting will produce a location. */
+  isLocationDenied?: boolean;
   country?: string;
   onLocationPress?: () => void;
   onCartPress?: () => void;
@@ -32,6 +34,7 @@ interface HomeHeaderProps {
 const HomeHeader = ({
   location,
   isLocationLoading = false,
+  isLocationDenied = false,
   onLocationPress,
   onCartPress,
   onNotificationPress,
@@ -60,9 +63,10 @@ const HomeHeader = ({
               onPress={onLocationPress}
               activeOpacity={0.7}
             >
-              {/* Only spin when there is nothing to show. A refresh over an
-                  already-known city should not blank out the header. */}
-              {isLocationLoading && !location ? (
+              {/* Only spin when there is nothing to show AND waiting can still
+                  change the answer. Once permission is refused the spinner is a
+                  lie - it would sit there until the position read times out. */}
+              {isLocationLoading && !location && !isLocationDenied ? (
                 <>
                   <ActivityIndicator size="small" color={colors.white} />
                   <Text style={styles.locationText} numberOfLines={1}>
@@ -71,9 +75,16 @@ const HomeHeader = ({
                 </>
               ) : (
                 <>
-                  <Ionicons name="location" size={14} color={colors.white} />
+                  <Ionicons
+                    name={location ? 'location' : 'location-outline'}
+                    size={14}
+                    color={colors.white}
+                  />
+                  {/* No city means no city. This used to fall back to "Riyadh",
+                      which read as a confirmed location the user had never
+                      set. */}
                   <Text style={styles.locationText} numberOfLines={1}>
-                    {location || t('riyadh')}
+                    {location || t('location_unavailable')}
                   </Text>
                   <Ionicons name="chevron-down" size={14} color={colors.white} />
                 </>

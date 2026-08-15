@@ -28,7 +28,12 @@ export const HomeScreen = ({ navigation }) => {
   const { t } = useTranslation();
   const { cartCount } = useCartCount();
   const { notificationCount } = useNotificationCount();
-  const { location, isLoading: isLocationLoading, fetchLocation } = useLocationStore();
+  const {
+    location,
+    isLoading: isLocationLoading,
+    permissionStatus: locationPermissionStatus,
+    fetchLocation,
+  } = useLocationStore();
   const [recommendedClinics, setRecommendedClinics] = useState<Clinic[]>([]);
   const [nearbyClinics, setNearbyClinics] = useState<Clinic[]>([]);
   const [loading, setLoading] = useState(true);
@@ -183,10 +188,23 @@ export const HomeScreen = ({ navigation }) => {
     }
   }, [recordsPerPage]);
 
-  // Request permissions and ensure location fetch is running (in background)
+  // Request permissions, and acquire a position only if we have none at all.
+  //
+  // Ending a consultation or booking an appointment returns here via
+  // replace('EntryPoint') / reset(), which tears down and remounts this screen.
+  // Fetching unconditionally on mount meant every one of those actions kicked
+  // off a fresh location read. A position we already hold is reused; refreshing
+  // it is the user's call, from the Select Location screen.
   useEffect(() => {
     requestPermissions();
-    fetchLocation(); // Runs in background; no-op if already loading
+    if (useLocationStore.getState().location) {
+      // Already have a position: nothing to wait for, so let the initial clinic
+      // fetch below run immediately instead of waiting on a load that will
+      // never start.
+      locationFetchStartedRef.current = true;
+    } else {
+      fetchLocation(); // Runs in background; no-op if already loading
+    }
   }, [fetchLocation]);
 
   // Wait for location to resolve, then make the initial API call
@@ -397,6 +415,7 @@ export const HomeScreen = ({ navigation }) => {
       <HomeHeader
         location={location?.locationText}
         isLocationLoading={isLocationLoading}
+        isLocationDenied={locationPermissionStatus === 'denied'}
         onLocationPress={handleLocationPress}
         onCartPress={handleCartPress}
         onNotificationPress={handleNotificationPress}

@@ -13,7 +13,12 @@ import { Toast } from 'toastify-react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import ClinicAvatar from '@components/common/ClinicAvatar';
 import { Marker_Pin } from '@assets/images';
-import { showLocationSettingsAlert, handleLocationError } from '../../../utils/locationUtils';
+import {
+  showLocationSettingsAlert,
+  handleLocationError,
+  isPermissionDeniedError,
+} from '../../../utils/locationUtils';
+import { LocationPermissionNotice } from '@components/molecules/LocationPermissionNotice';
 
 // Same Android-friendly marker pattern used in SelectLocation: start with
 // tracksViewChanges=true so the child Image is composited into the native
@@ -60,6 +65,9 @@ export const NearbyClinics = ({ navigation }: any) => {
   const [clinics, setClinics] = useState<ClinicApiResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [locationLoading, setLocationLoading] = useState(true);
+  // Terminal state: the map is replaced by a notice pointing at Settings,
+  // because no amount of further waiting can produce a position.
+  const [permissionDenied, setPermissionDenied] = useState(false);
   const [selectedClinic, setSelectedClinic] = useState<ClinicApiResponse | null>(null);
   const [selectedPoint, setSelectedPoint] = useState<{ x: number; y: number } | null>(null);
 
@@ -140,14 +148,10 @@ export const NearbyClinics = ({ navigation }: any) => {
         if (granted === PermissionsAndroid.RESULTS.GRANTED) {
           getCurrentLocation();
         } else {
+          // Refused: show the Settings notice rather than a map centred on a
+          // default region the user never chose.
           setLocationLoading(false);
-          fetchClinics(region.latitude, region.longitude);
-          if (granted === PermissionsAndroid.RESULTS.DENIED) {
-            showLocationSettingsAlert({
-              title: 'Location Permission',
-              message: 'Location access is needed to show nearby clinics. Would you like to open settings to enable it?',
-            });
-          }
+          setPermissionDenied(true);
         }
       } catch (err) {
         console.warn('Permission request error:', err);
@@ -156,10 +160,18 @@ export const NearbyClinics = ({ navigation }: any) => {
         Toast.error('Failed to request location permission');
       }
     } else {
-      // iOS
+      // iOS. requestAuthorization was previously called without callbacks and
+      // getCurrentLocation ran immediately regardless of the answer, so a
+      // refusal was indistinguishable from a grant. Both outcomes are handled
+      // here, and the error path is what stops the endless spinner.
       try {
-        Geolocation.requestAuthorization();
-        getCurrentLocation();
+        Geolocation.requestAuthorization(
+          () => getCurrentLocation(),
+          () => {
+            setLocationLoading(false);
+            setPermissionDenied(true);
+          },
+        );
       } catch (err) {
         console.warn('iOS location error:', err);
         setLocationLoading(false);
@@ -167,6 +179,13 @@ export const NearbyClinics = ({ navigation }: any) => {
       }
     }
   };
+
+  /** Re-checks permission after the user has been to Settings. */
+  const retryLocationPermission = useCallback(() => {
+    setPermissionDenied(false);
+    setLocationLoading(true);
+    requestLocationPermission();
+  }, []);
 
   const getCurrentLocation = () => {
     Geolocation.getCurrentPosition(
@@ -199,6 +218,17 @@ export const NearbyClinics = ({ navigation }: any) => {
       error => {
         console.warn('Error getting location:', error);
         setLocationLoading(false);
+
+        // A denial can also arrive here rather than from the permission
+        // request - notably on iOS, where the authorization callbacks are not
+        // always invoked when the status is already determined.
+        if (isPermissionDeniedError(error)) {
+          setPermissionDenied(true);
+          return;
+        }
+
+        // Anything else (slow GPS, position unavailable) is not terminal, so
+        // the map still opens on the default region.
         fetchClinics(region.latitude, region.longitude);
         handleLocationError(error, {
           title: 'Location Not Available',
@@ -206,7 +236,9 @@ export const NearbyClinics = ({ navigation }: any) => {
           openLocationSettings: true,
         });
       },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+      // Coarse and cache-tolerant: the map opens on a city-level region, so
+      // waiting on a satellite fix only delayed the clinic list.
+      { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 }
     );
   };
 
@@ -361,7 +393,9 @@ export const NearbyClinics = ({ navigation }: any) => {
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <Header2 title={t('nearby_clinic')} />
-      {locationLoading || loading ? (
+      {permissionDenied ? (
+        <LocationPermissionNotice onRetry={retryLocationPermission} />
+      ) : locationLoading || loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#7625D7" />
           <Text style={styles.loadingText}>

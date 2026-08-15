@@ -41,6 +41,15 @@ const LOCATION_ERROR = {
 } as const;
 
 /**
+ * True when a geolocation failure was caused by a denied permission, as opposed
+ * to a slow GPS or an unavailable position. Callers use this to switch from
+ * "still trying" to "the user has to change this in Settings".
+ */
+export const isPermissionDeniedError = (error: {
+  code?: number;
+} | null | undefined): boolean => error?.code === LOCATION_ERROR.PERMISSION_DENIED;
+
+/**
  * Shows an alert offering to open settings when location permission is denied
  * or location services are not active.
  */

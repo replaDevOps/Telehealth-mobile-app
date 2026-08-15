@@ -323,7 +323,9 @@ export const SelectLocation = ({ navigation }: any) => {
           openLocationSettings: true,
         });
       },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+      // Coarse and cache-tolerant: the user drags the pin to refine, so an
+      // immediate approximate centre beats a slow exact one.
+      { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 }
     );
   }, [fetchClinics]);
 
@@ -354,9 +356,23 @@ export const SelectLocation = ({ navigation }: any) => {
         setLocationLoading(false);
       }
     } else {
-      // iOS
-      Geolocation.requestAuthorization();
-      getCurrentLocation();
+      // iOS. requestAuthorization was called without callbacks and
+      // getCurrentLocation ran unconditionally, so a refusal left the "Getting
+      // location..." overlay up until the position read timed out - and
+      // indefinitely when neither callback fired. The map itself stays usable
+      // either way: this screen picks a location by tapping the map, which
+      // needs no permission at all.
+      Geolocation.requestAuthorization(
+        () => getCurrentLocation(),
+        () => {
+          setLocationLoading(false);
+          showLocationSettingsAlert({
+            title: 'Location Permission',
+            message:
+              'Location access is needed to centre the map on you. You can still pick a location by tapping the map. Open settings to enable it?',
+          });
+        },
+      );
     }
   }, [getCurrentLocation]);
 
@@ -393,9 +409,11 @@ export const SelectLocation = ({ navigation }: any) => {
     }, [applyStoreLocationIfAvailable, requestLocationPermission])
   );
 
-  // Trigger store fetch in background so we have location when user opens map
+  // Reaching this screen is the user deliberately choosing to update their
+  // location, so this is the one path that forces a fresh read past the
+  // reuse window. Every automatic caller reuses the stored position.
   useEffect(() => {
-    fetchStoreLocation();
+    fetchStoreLocation({ force: true });
   }, [fetchStoreLocation]);
 
   // Handle region change - keep card anchored while panning/zooming

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   Modal,
   ScrollView,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { AudioSvg, ChatSvg, VedioSvg } from '@assets/icons';
 import { CustomDropdown } from '@components/common/CustomDropdwon';
@@ -56,6 +57,12 @@ interface ConsultationTypeCard {
   Icon: any;
 }
 
+/**
+ * Android has no `onDismiss` on Modal, so the pending navigation is flushed on
+ * a timer there instead. iOS drives it off the real dismiss callback.
+ */
+const SHEET_DISMISS_MS = 400;
+
 export default function ConsultDoctorBottomSheet({
   visible,
   onClose,
@@ -74,6 +81,20 @@ export default function ConsultDoctorBottomSheet({
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const [isLoading, setIsLoading] = useState(false);
   const [checkingProfile, setCheckingProfile] = useState(false);
+
+  // Params for a push that must not happen until this Modal's native window is
+  // actually gone. On iOS, pushing a native-stack screen while the modal window
+  // is still up strands that window above the app, and it swallows every touch
+  // on the screen underneath - the pushed screen renders but nothing is
+  // tappable. Flushing nulls the ref first, so a double flush is a no-op.
+  const pendingNavParamsRef = useRef<any>(null);
+
+  const flushPendingNavigation = useCallback(() => {
+    const params = pendingNavParamsRef.current;
+    if (!params) return;
+    pendingNavParamsRef.current = null;
+    navigation.navigate('ConsultationPayment' as never, params as never);
+  }, [navigation]);
 
   // Dropdown states
   const [serviceType, setServiceType] = useState('');
@@ -447,8 +468,13 @@ export default function ConsultDoctorBottomSheet({
         serviceGroup: apiData?.serviceGroup || selectedGroup.name || serviceGroup,
         service: apiData?.serviceName || selectedService.name || service,
         message: apiData?.message, // Message from API (e.g., "2 doctors are available for this consultation")
-        doctors: apiData, // Pass full API response data
-        // Additional API data for reference
+        // `doctors: apiData` used to pass the whole findDoctors response
+        // through navigation params. React Navigation keeps params in its
+        // serializable navigation state, and pushing a large nested object in
+        // there froze the JS thread - the screen rendered but no handler on
+        // any screen ever ran again, so the whole app stopped responding to
+        // touches. Only primitives the destination actually reads are passed
+        // now; `message` above already carries the availability text.
         consultationPrice: apiData?.consultationPrice,
         servicePrice: apiData?.servicePrice,
         serviceID: apiData?.serviceID,
@@ -456,8 +482,14 @@ export default function ConsultDoctorBottomSheet({
 
       console.log('Navigation params:', navigationParams);
 
-      navigation.navigate('ConsultationPayment', navigationParams);
+      // Queue the push and close the sheet. The navigate itself runs from the
+      // Modal's onDismiss (iOS) once the native window is really gone; Android
+      // has no onDismiss, so it falls back to the timer.
+      pendingNavParamsRef.current = navigationParams;
       onClose();
+      if (Platform.OS !== 'ios') {
+        setTimeout(flushPendingNavigation, SHEET_DISMISS_MS);
+      }
     } catch (error: any) {
       console.error('Error finding doctors:', error);
       const errorMessage =
@@ -472,24 +504,19 @@ export default function ConsultDoctorBottomSheet({
 
   return (
     <>
-      {/* Full Screen Loading Modal */}
+      {/* Exactly ONE native Modal may exist in this flow. The loading state
+          used to be a second <Modal>, which meant setIsLoading(true) dismissed
+          this sheet and presented that one in the same commit. On iOS,
+          presenting a modal while another is dismissing strands a UIWindow
+          above the app that eats every touch - that was the unresponsive
+          ConsultationPayment screen. The spinner is now an overlay INSIDE this
+          modal, so nothing is ever presented and dismissed at once. */}
       <Modal
-        visible={isLoading}
-        transparent
-        animationType="fade"
-        statusBarTranslucent
-      >
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color={colors.white} />
-        </View>
-      </Modal>
-
-      {/* Main Bottom Sheet Modal */}
-      <Modal
-        visible={visible && !isLoading}
+        visible={visible}
         transparent
         animationType="slide"
         onRequestClose={onClose}
+        onDismiss={flushPendingNavigation}
       >
         <View style={styles.overlay}>
           <TouchableOpacity
@@ -643,6 +670,12 @@ export default function ConsultDoctorBottomSheet({
               <View style={styles.bottomSpacing} />
             </ScrollView>
           </View>
+
+          {(isLoading || checkingProfile) && (
+            <View style={styles.loadingOverlay}>
+              <ActivityIndicator size="large" color={colors.white} />
+            </View>
+          )}
         </View>
       </Modal>
     </>
@@ -768,7 +801,11 @@ const styles = StyleSheet.create({
   },
   bottomSpacing: { height: 20 },
   loadingOverlay: {
-    flex: 1,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: '#15002E80',
     justifyContent: 'center',
     alignItems: 'center',

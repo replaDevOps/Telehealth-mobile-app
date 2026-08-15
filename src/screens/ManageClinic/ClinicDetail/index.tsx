@@ -20,6 +20,7 @@ import ConsultDoctorBottomSheet from '@components/molecules/ConsultDoctorBottomS
 import { styles } from './style';
 import { useCart } from '@context/CartContext';
 import { useCartCountContext } from '@context/CartCountContext';
+import { useRequireAuth } from '../../../hooks/useRequireAuth';
 import { useCartCount } from '../../../hooks/useCartCount';
 import { useNotificationCount } from '../../../hooks/useNotificationCount';
 import { useTranslation } from 'react-i18next';
@@ -48,6 +49,7 @@ interface SortOption {
 
 export const ClinicDetailScreen = ({ navigation, route }) => {
   const { t, i18n } = useTranslation();
+  const requireAuth = useRequireAuth();
   const insets = useSafeAreaInsets();
   const { clinic } = route.params;
   const { addToCart, cartItems } = useCart();
@@ -825,8 +827,10 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
   };
 
   const handleConsultPress = () => {
+   
     setShowBottomSheet(true);
   };
+
 
   const handleFilterPress = () => {
     setFilterVisible(true);
@@ -897,6 +901,11 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
   };
 
   const handleChatPress = async () => {
+    // Contacting a clinic opens an authenticated consultation thread.
+    if (!requireAuth(t('sign_in_for_contact'))) {
+      return;
+    }
+
     // Block while detail/description are still loading; sending undefined name
     // and location would create a chat session with empty clinic context.
     if (loading || loadingDescription || !clinicDetail) {
@@ -928,6 +937,12 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
   };
 
   const handleAddToCart = async (service: any, shouldNavigate: boolean = false) => {
+    // The cart lives on the server against the user's account, so this is one
+    // of the three points where browsing stops and an account is needed.
+    if (!requireAuth(t(shouldNavigate ? 'sign_in_for_checkout' : 'sign_in_for_cart'))) {
+      return;
+    }
+
     if (!service || !service.id) {
       Toast.error('Invalid service');
       return;

@@ -33,5 +33,9 @@ module.exports = {
         },
       },
     ],
+    // Reanimated 4 compiles worklets through this plugin (it moved out of
+    // react-native-reanimated into react-native-worklets). It must stay LAST -
+    // it rewrites functions the other plugins have already transformed.
+    'react-native-worklets/plugin',
   ],
 };

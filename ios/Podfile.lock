@@ -2015,6 +2015,63 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
+  - react-native-keyboard-controller (1.21.9):
+    - boost
+    - DoubleConversion
+    - fast_float
+    - fmt
+    - glog
+    - hermes-engine
+    - RCT-Folly
+    - RCT-Folly/Fabric
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - react-native-keyboard-controller/common (= 1.21.9)
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - SocketRocket
+    - Yoga
+  - react-native-keyboard-controller/common (1.21.9):
+    - boost
+    - DoubleConversion
+    - fast_float
+    - fmt
+    - glog
+    - hermes-engine
+    - RCT-Folly
+    - RCT-Folly/Fabric
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - SocketRocket
+    - Yoga
   - react-native-maps (1.27.2):
     - react-native-maps/Maps (= 1.27.2)
   - react-native-maps/Generated (1.27.2):
@@ -2979,6 +3036,98 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
+  - RNReanimated (4.3.4):
+    - boost
+    - DoubleConversion
+    - fast_float
+    - fmt
+    - glog
+    - hermes-engine
+    - RCT-Folly
+    - RCT-Folly/Fabric
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-hermes
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - RNReanimated/apple (= 4.3.4)
+    - RNReanimated/common (= 4.3.4)
+    - RNWorklets
+    - SocketRocket
+    - Yoga
+  - RNReanimated/apple (4.3.4):
+    - boost
+    - DoubleConversion
+    - fast_float
+    - fmt
+    - glog
+    - hermes-engine
+    - RCT-Folly
+    - RCT-Folly/Fabric
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-hermes
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - RNWorklets
+    - SocketRocket
+    - Yoga
+  - RNReanimated/common (4.3.4):
+    - boost
+    - DoubleConversion
+    - fast_float
+    - fmt
+    - glog
+    - hermes-engine
+    - RCT-Folly
+    - RCT-Folly/Fabric
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-hermes
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - RNWorklets
+    - SocketRocket
+    - Yoga
   - RNScreens (4.19.0):
     - boost
     - DoubleConversion
@@ -3275,6 +3424,7 @@ DEPENDENCIES:
   - "react-native-geolocation (from `../node_modules/@react-native-community/geolocation`)"
   - react-native-html-to-pdf (from `../node_modules/react-native-html-to-pdf`)
   - react-native-image-picker (from `../node_modules/react-native-image-picker`)
+  - react-native-keyboard-controller (from `../node_modules/react-native-keyboard-controller`)
   - react-native-maps (from `../node_modules/react-native-maps`)
   - "react-native-netinfo (from `../node_modules/@react-native-community/netinfo`)"
   - react-native-render-html (from `../node_modules/react-native-render-html`)
@@ -3324,6 +3474,7 @@ DEPENDENCIES:
   - "RNFBMessaging (from `../node_modules/@react-native-firebase/messaging`)"
   - RNFS (from `../node_modules/react-native-fs`)
   - "RNGoogleSignin (from `../node_modules/@react-native-google-signin/google-signin`)"
+  - RNReanimated (from `../node_modules/react-native-reanimated`)
   - RNScreens (from `../node_modules/react-native-screens`)
   - RNSVG (from `../node_modules/react-native-svg`)
   - RNVectorIcons (from `../node_modules/react-native-vector-icons`)
@@ -3459,6 +3610,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-html-to-pdf"
   react-native-image-picker:
     :path: "../node_modules/react-native-image-picker"
+  react-native-keyboard-controller:
+    :path: "../node_modules/react-native-keyboard-controller"
   react-native-maps:
     :path: "../node_modules/react-native-maps"
   react-native-netinfo:
@@ -3557,6 +3710,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-fs"
   RNGoogleSignin:
     :path: "../node_modules/@react-native-google-signin/google-signin"
+  RNReanimated:
+    :path: "../node_modules/react-native-reanimated"
   RNScreens:
     :path: "../node_modules/react-native-screens"
   RNSVG:
@@ -3639,6 +3794,7 @@ SPEC CHECKSUMS:
   react-native-geolocation: 49d39b53dfeb6c22ff1ad69e71ac9c7981affdaa
   react-native-html-to-pdf: 7a49e6c58ac5221bcc093027b195f4b214f27a9d
   react-native-image-picker: 6051cfd030121b880a58f1cc0e5e33e9887804e4
+  react-native-keyboard-controller: 5f328d63a149f6b89bf106ee755b64bf04d9d797
   react-native-maps: eaa585c9d9f7e848d835839f18e108a8821ed9aa
   react-native-netinfo: cec9c4e86083cb5b6aba0e0711f563e2fbbff187
   react-native-render-html: 5afc4751f1a98621b3009432ef84c47019dcb2bd
@@ -3689,6 +3845,7 @@ SPEC CHECKSUMS:
   RNFBMessaging: dff0aeb50318ffdd93d4e36f955103b169bdef16
   RNFS: 89de7d7f4c0f6bafa05343c578f61118c8282ed8
   RNGoogleSignin: 32eac25be182674a2838c8bf6908c0296fe3bb5d
+  RNReanimated: 1f1796c7a1f864fc6f1e1f79741335700917fe4b
   RNScreens: d6413aeb1878cdafd3c721e2c5218faf5d5d3b13
   RNSVG: 9d938c987c596bf20a3bd811a6ba41a22107f491
   RNVectorIcons: e355dd0998d6b9020e560922a66614eb9636501b

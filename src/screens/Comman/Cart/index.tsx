@@ -23,6 +23,9 @@ import { useCartCountContext } from '@context/CartCountContext';
 import { styles } from './style';
 import { EmptyContentSvg, SingleLogo } from '@assets/icons';
 import { useTranslation } from 'react-i18next';
+import { useRequireAuth } from '../../../hooks/useRequireAuth';
+import { SignInPrompt } from '@components/molecules';
+import { useAuthStore } from '@store';
 import Geolocation from '@react-native-community/geolocation';
 import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
@@ -31,6 +34,10 @@ import { useFocusEffect } from '@react-navigation/native';
 
 export function CartScreen({ navigation }) {
   const { t, i18n } = useTranslation();
+  const requireAuth = useRequireAuth();
+  // The cart lives on the server against the user's account, so there is
+  // nothing to show - and nothing that would load - without a session.
+  const isSignedOut = !useAuthStore(state => state.auth?.token);
   const isArabic = i18n.language === 'ar' || i18n.language?.startsWith('ar');
   const { removeFromCart, addToCart } = useCart();
   const { triggerRefresh, decrementCartCount, incrementCartCount } = useCartCountContext();
@@ -305,14 +312,17 @@ export function CartScreen({ navigation }) {
   };
 
   useEffect(() => {
+    if (isSignedOut) return;
     requestLocationAndFetchCart();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSignedOut]);
 
   // Refresh cart when screen comes into focus (with deduplication and debouncing)
   useFocusEffect(
     React.useCallback(() => {
       // Debounce focus events - only fetch if location exists and not recently fetched
       const now = Date.now();
+      if (isSignedOut) return;
       if (userLocation && now - lastFetchTimeRef.current > FETCH_CACHE_DURATION) {
         // Small delay to prevent race condition with initial mount
         const timer = setTimeout(() => {
@@ -320,7 +330,7 @@ export function CartScreen({ navigation }) {
         }, 300);
         return () => clearTimeout(timer);
       }
-    }, [userLocation, fetchCartDetails])
+    }, [userLocation, fetchCartDetails, isSignedOut])
   );
 
   // Get suggested services from API response for a specific clinic
@@ -438,6 +448,11 @@ export function CartScreen({ navigation }) {
   };
 
   const handleCheckout = clinicGroup => {
+    // Checkout creates an order against the user's account.
+    if (!requireAuth(t('sign_in_for_checkout'))) {
+      return;
+    }
+
     // Navigate to checkout screen with clinic data
     const checkoutServices = clinicGroup.services.map(service => ({
       service: service,
@@ -523,6 +538,16 @@ export function CartScreen({ navigation }) {
       console.log(`➕ [${requestId}] 🏁 COMPLETE - Total time: ${totalDuration}ms`);
     }
   };
+
+  if (isSignedOut) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="dark-content" />
+        <Header2 title={t('cart')} />
+        <SignInPrompt description={t('sign_in_for_cart_screen')} />
+      </SafeAreaView>
+    );
+  }
 
   // Loading state
   if (loading) {

@@ -9,6 +9,8 @@ import { useTranslation } from 'react-i18next';
 import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
 import { useNotificationStore } from '@store/useNotificationStore';
+import { useAuthStore } from '@store';
+import { SignInPrompt } from '@components/molecules';
 import { isNotificationRead } from '@services/api/notificationService';
 import { Toast } from 'toastify-react-native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -30,6 +32,9 @@ interface Notification {
 export const NotificationScreen = () => {
   const { t } = useTranslation();
   const { refreshNotifications, markAllRead } = useNotificationStore();
+  // Notifications are per-account (/patient-notifications/*); there is nothing
+  // to fetch or show without a session.
+  const isSignedOut = !useAuthStore(state => state.auth?.token);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<number | string | null>(null);
@@ -100,8 +105,10 @@ export const NotificationScreen = () => {
   // Fetch notifications on mount and when screen is focused
   useFocusEffect(
     useCallback(() => {
+      if (isSignedOut) return;
       fetchNotifications();
-    }, [])
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isSignedOut])
   );
 
   // Delete single notification
@@ -255,6 +262,15 @@ export const NotificationScreen = () => {
     }
   };
   console.log('notifications', notifications);
+
+  if (isSignedOut) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Header2 title={t('notifications')} />
+        <SignInPrompt description={t('sign_in_for_notifications')} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>

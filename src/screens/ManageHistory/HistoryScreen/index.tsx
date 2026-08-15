@@ -21,6 +21,8 @@ import type {
   DropdownOption,
 } from '../types/history.types';
 import { ConsultationCard, PaymentCard, HistoryTabs, SearchBar } from '../components';
+import { SignInPrompt } from '@components/molecules';
+import { useAuthStore } from '@store';
 import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
 import { capitalizeWords } from '../utils/format';
@@ -34,6 +36,8 @@ const DROPDOWN_OPTIONS: DropdownOption[] = [
 
 export function HistoryScreen({ navigation }) {
   const { t } = useTranslation();
+  // No session at all: browsing is allowed, this tab is not.
+  const isSignedOut = !useAuthStore(state => state.auth?.token);
   const [activeTab, setActiveTab] = useState<Tab>('consultation');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<PaymentKind | ''>(
@@ -394,13 +398,14 @@ export function HistoryScreen({ navigation }) {
 
   // Fetch consultations when tab changes or search query changes
   useEffect(() => {
+    if (isSignedOut) return;
     console.log('History useEffect triggered by change', { activeTab, searchQuery, selectedType });
     if (activeTab === 'consultation') {
       fetchConsultations(1, false);
     } else if (activeTab === 'payment' && selectedType) {
       fetchPayments(1, false);
     }
-  }, [activeTab, searchQuery, selectedType]);
+  }, [activeTab, searchQuery, selectedType, isSignedOut]);
 
   // Payments are already filtered by selectedType on the backend
   // No need for client-side filtering
@@ -498,6 +503,18 @@ export function HistoryScreen({ navigation }) {
     ),
     [handleNavigateToCardDetails],
   );
+
+  // Every endpoint behind this screen (/history/*) requires a session, so a
+  // guest gets the way in rather than an empty list.
+  if (isSignedOut) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <StatusBar barStyle="dark-content" />
+        <Header2 title={t('history')} back={false} />
+        <SignInPrompt description={t('sign_in_for_history')} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>

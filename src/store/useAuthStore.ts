@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import { useGuestStore } from './useGuestStore';
 
 type Auth = {
   id: string;
@@ -25,6 +26,9 @@ const useAuthStore = create<AuthStore>()(
       auth: null,
       setAuth: (auth: Auth) => {
         set({ isAuthenticated: true, auth });
+        // Every sign-in path (email, phone, Google, Apple, sign-up) lands here,
+        // so this is the one place guest mode needs to be cleared.
+        useGuestStore.getState().endGuestSession();
       },
       logout: () => {
         set({ isAuthenticated: false, auth: null });

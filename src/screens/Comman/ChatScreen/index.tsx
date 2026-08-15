@@ -5,7 +5,8 @@ import React, {
   useMemo,
   useCallback,
 } from 'react';
-import { View, Text, ScrollView, ActivityIndicator, Alert, BackHandler, Platform, Image, TouchableOpacity, Keyboard, useWindowDimensions, KeyboardAvoidingView } from 'react-native';
+import { View, Text, ScrollView, ActivityIndicator, Alert, BackHandler, Image, TouchableOpacity, useWindowDimensions } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ServiceDetailBottomSheet, DeviceDetailBottomSheet } from '@components/molecules';
 import { styles } from './style';
@@ -82,7 +83,6 @@ export function ChatScreen({ navigation, route }) {
       console.log('📞 [ChatScreen] Consultation started, tracking duration');
     }
   }, [isConsultationActive, chatType, consultationID]);
-  const [keyboardOpen, setKeyboardOpen] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [showBottomSheet, setShowBottomSheet] = useState(false);
   const [hasPrescription, setHasPrescription] = useState(false);
@@ -160,18 +160,6 @@ export function ChatScreen({ navigation, route }) {
       setMessages([]);
     }
   }, [consultationID, chatType]);
-
-  // ---------- Keyboard listener: toggle KAV behavior ----------
-  useEffect(() => {
-    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const showListener = Keyboard.addListener(showEvent, () => setKeyboardOpen(true));
-    const hideListener = Keyboard.addListener(hideEvent, () => setKeyboardOpen(false));
-    return () => {
-      showListener.remove();
-      hideListener.remove();
-    };
-  }, []);
 
   // ---------- VenaAI WebSocket (AI chat only) ----------
   useEffect(() => {
@@ -1326,8 +1314,10 @@ export function ChatScreen({ navigation, route }) {
   // ---------- Main Render ----------
   return (
     <View style={[styles.container, screenPadding, chatType === 'ai' && { direction: 'ltr' }]}>
+      {/* keyboard-controller's KAV tracks the keyboard frame directly, so a single
+          static behavior works on both platforms — no keyboardOpen toggling. */}
       <KeyboardAvoidingView
-        behavior={keyboardOpen ? 'padding' : undefined}
+        behavior="padding"
         keyboardVerticalOffset={0}
         style={[{ flex: 1 }, styles.container]}
       >

@@ -181,6 +181,17 @@ export const styles = StyleSheet.create({
     fontSize: mvs(15),
     fontWeight: '700',
   },
+  guestButton: {
+    alignSelf: 'center',
+    marginTop: mvs(18),
+    paddingVertical: mvs(8),
+    paddingHorizontal: mvs(16),
+  },
+  guestButtonText: {
+    fontSize: mvs(14),
+    fontWeight: '700',
+    textDecorationLine: 'underline',
+  },
   footerContainer: {
     alignItems: 'center',
     marginTop: mvs(20),

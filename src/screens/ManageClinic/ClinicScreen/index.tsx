@@ -9,6 +9,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { StyleSheet, ScrollView, ActivityIndicator, View, Text, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import { useLocationStore } from '@store';
 import { useFocusEffect } from '@react-navigation/native';
 import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
@@ -36,6 +37,9 @@ interface Clinic {
 
 export const ClinicScreen = ({ navigation, route }) => {
   const { t } = useTranslation();
+  // Same source of truth the Home tab uses, so both tabs rank clinics by the
+  // user's actual position rather than the server's default ordering.
+  const location = useLocationStore(state => state.location);
   const [searchQuery, setSearchQuery] = useState('');
   const [recommendedClinics, setRecommendedClinics] = useState<Clinic[]>([]);
   const [nearbyClinics, setNearbyClinics] = useState<Clinic[]>([]);
@@ -52,6 +56,9 @@ export const ClinicScreen = ({ navigation, route }) => {
   const currentFilterParamsRef = useRef<FilterParams | null>(null);
   const currentSearchQueryRef = useRef<string>('');
   const lastRequestIdRef = useRef<number>(0);
+  // Tracks the position the list was last fetched for, so a change can trigger
+  // a refetch. Starts undefined to distinguish "never fetched" from "no fix".
+  const fetchedForLocationRef = useRef<{ lat: number; long: number } | null | undefined>(undefined);
 
   // Listen for filter params from FilterScreen
   useFocusEffect(
@@ -103,11 +110,16 @@ export const ClinicScreen = ({ navigation, route }) => {
         setHasMore(true);
       }
 
+      // Read imperatively so this callback stays stable and always sees the
+      // latest fix, including one that lands mid-flight.
+      const coords = useLocationStore.getState().location;
+      fetchedForLocationRef.current = coords ? { lat: coords.lat, long: coords.long } : null;
+
       // Build params object
       const params: any = {
         name: query || '',
-        lat: '',
-        long: '',
+        lat: coords ? String(coords.lat) : '',
+        long: coords ? String(coords.long) : '',
         city: '',
         rating: '',
         businessType: filters?.clinicTypes || '',
@@ -269,6 +281,23 @@ export const ClinicScreen = ({ navigation, route }) => {
       };
     });
   };
+
+  // Refetch when the position changes so the list re-ranks around the user -
+  // parity with the Home tab.
+  useEffect(() => {
+    const prev = fetchedForLocationRef.current;
+
+    // Nothing has been fetched yet; the initial fetch will pick the fix up.
+    if (prev === undefined) return;
+
+    const next = location ? { lat: location.lat, long: location.long } : null;
+    const unchanged =
+      (prev === null && next === null) ||
+      (prev !== null && next !== null && prev.lat === next.lat && prev.long === next.long);
+    if (unchanged) return;
+
+    fetchAllClinics(currentSearchQueryRef.current, currentFilterParamsRef.current, 1, false);
+  }, [location, fetchAllClinics]);
 
   // Refetch when filter params or search query changes
   useEffect(() => {

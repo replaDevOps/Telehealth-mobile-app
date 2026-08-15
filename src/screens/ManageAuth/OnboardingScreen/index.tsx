@@ -19,7 +19,9 @@ export function OnboardingScreen({ navigation }: any) {
     console.log('Next button pressed');
     setCurrentStep(prev => {
       if (prev === onboardingSteps.length - 1) {
-        navigation.replace('SignIn');
+        // Straight into the marketplace - an account is only asked for at the
+        // points that need one.
+        navigation.replace('Main', { screen: 'EntryPoint' });
         return prev;
       }
       return prev + 1;
@@ -36,7 +38,7 @@ export function OnboardingScreen({ navigation }: any) {
         useSkip={true}
         handleSkip={() => {
           console.log('Skip pressed');
-          navigation.replace('Auth', { screen: 'SignIn' });
+          navigation.replace('Main', { screen: 'EntryPoint' });
         }}
       />
 

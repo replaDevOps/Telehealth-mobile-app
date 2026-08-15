@@ -28,7 +28,7 @@ import { useTranslation } from 'react-i18next';
 import { Toast } from 'toastify-react-native';
 import { apiClient } from '@services/api/api-client';
 import { colors } from '../../../styles/colors';
-import { useAuthStore } from '@store';
+import { useAuthStore, useGuestStore } from '@store';
 import { API } from '@services/api/api-endpoint';
 import { fcmService } from '../../../services/firebase/fcmService';
 import { signInWithGoogle, googleStatusCodes } from '../../../services/firebase/googleAuth';
@@ -40,7 +40,13 @@ type TabType = 'email' | 'phone';
 export function SignInScreen({ navigation }) {
   const { t, i18n } = useTranslation();
   const { setAuth } = useAuthStore();
+  const { continueAsGuest } = useGuestStore();
   const isRtl = i18n.language === 'ar';
+
+  const handleContinueAsGuest = () => {
+    continueAsGuest();
+    navigation.replace('Main', { screen: 'EntryPoint' });
+  };
 
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [tab, setTab] = useState<TabType>('email');
@@ -603,6 +609,19 @@ export function SignInScreen({ navigation }) {
                 )}
               </TouchableOpacity>
             </View>
+
+            {/* Browse without an account. The marketplace is fully public;
+                signing in is only required to add to cart, check out, or
+                contact a clinic. */}
+            <TouchableOpacity
+              style={styles.guestButton}
+              onPress={handleContinueAsGuest}
+              disabled={meta.loading || googleLoading || appleLoading}
+            >
+              <Text style={[styles.guestButtonText, { color: linkColor }]}>
+                {t('continue_as_guest')}
+              </Text>
+            </TouchableOpacity>
 
             {/* Footer Text info */}
             <View style={styles.footerContainer}>

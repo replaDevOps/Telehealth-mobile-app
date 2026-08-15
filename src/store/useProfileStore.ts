@@ -15,7 +15,9 @@ export interface ProfileData {
   city?: string | null;
   nationalID?: string;
   loyaltyPoints?: string | number;
-  notificationStatus?: string | null;
+  // The API returns this as a boolean-ish flag and the profile update sends a
+  // real boolean, so it is not the string the type previously claimed.
+  notificationStatus?: string | boolean | null;
   language?: string;
   [key: string]: any;
 }

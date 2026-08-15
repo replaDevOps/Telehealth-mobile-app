@@ -18,6 +18,7 @@ export * from './PaymentMethod';
 export * from './BillingDetailsForm';
 export * from './RoyaltyPointBar';
 export * from './GenericTabs';
+export * from './SignInPrompt';
 export * from './RewardBottomSheet';
 export * from './TierUnlockedModal';
 export { default as ConfirmationModal } from './ConfirmationModal';

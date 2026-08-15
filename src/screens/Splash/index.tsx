@@ -82,10 +82,12 @@ export const SplashScreen: React.FC<Props> = ({ navigation }) => {
         if (!selectedLanguage) {
           Toast.info(t('please_select_language'));
           navigation.replace('Auth', { screen: 'LanguageSelection' });
-        } else if (currentAuth?.token) {
-          navigation.replace('Main', { screen: 'EntryPoint' });
         } else {
-          navigation.replace('Auth', { screen: 'SignIn' });
+          // The marketplace is the default destination whether or not anyone is
+          // signed in. Browsing clinics and services needs no account; signing
+          // in is prompted at the points that do (cart, checkout, contacting a
+          // clinic) and from the History and Settings tabs.
+          navigation.replace('Main', { screen: 'EntryPoint' });
         }
       } catch (error) {
         console.error('Error during navigation check:', error);

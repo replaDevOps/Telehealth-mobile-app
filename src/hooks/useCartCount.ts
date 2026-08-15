@@ -5,9 +5,11 @@ import { API } from '@services/api/api-endpoint';
 import Geolocation from '@react-native-community/geolocation';
 import { Platform, PermissionsAndroid } from 'react-native';
 import { useCartCountContext } from '@context/CartCountContext';
+import { useAuthStore } from '@store';
 
 export const useCartCount = () => {
   const { cartCount: contextCount, setCartCount: setContextCount, refreshTrigger } = useCartCountContext();
+  const token = useAuthStore(state => state.auth?.token);
   const [loading, setLoading] = useState(false);
   const isFetchingRef = useRef(false);
   const lastFetchTimeRef = useRef<number>(0);
@@ -15,6 +17,14 @@ export const useCartCount = () => {
   const LOCATION_CACHE_DURATION = 5 * 60 * 1000; // Cache location for 5 minutes
 
   const fetchCartCount = useCallback(async () => {
+    // /cart/viewCartDetails is authenticated. A guest has no cart, and this
+    // hook runs on every screen focus, so without this it would fire a 401 on
+    // each navigation.
+    if (!token) {
+      setContextCount(0);
+      return;
+    }
+
     // Prevent concurrent calls
     if (isFetchingRef.current) {
       return;
@@ -180,7 +190,7 @@ export const useCartCount = () => {
       setLoading(false);
       isFetchingRef.current = false;
     }
-  }, [setContextCount]);
+  }, [setContextCount, token]);
 
   // Fetch on mount (only once when component mounts)
   useEffect(() => {

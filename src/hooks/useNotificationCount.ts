@@ -2,14 +2,22 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { useNotificationCountContext } from '@context/NotificationCountContext';
 import { useNotificationStore } from '@store/useNotificationStore';
+import { useAuthStore } from '@store';
 
 export const useNotificationCount = () => {
   const { notificationCount: contextCount, setNotificationCount: setContextCount, refreshTrigger } = useNotificationCountContext();
   const { unreadCount, fetchNotifications } = useNotificationStore();
+  const token = useAuthStore(state => state.auth?.token);
   const [loading, setLoading] = useState(false);
   const isFetchingRef = useRef(false);
 
   const fetchNotificationCount = useCallback(async () => {
+    // /patient-notifications/viewAll is authenticated; a guest has none.
+    if (!token) {
+      setContextCount(0);
+      return;
+    }
+
     // Prevent concurrent calls
     if (isFetchingRef.current) {
       return;
@@ -31,7 +39,7 @@ export const useNotificationCount = () => {
       setLoading(false);
       isFetchingRef.current = false;
     }
-  }, [fetchNotifications, setContextCount]);
+  }, [fetchNotifications, setContextCount, token]);
 
   // Sync unreadCount from store to context
   useEffect(() => {

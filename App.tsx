@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { AppState, StatusBar } from 'react-native';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
+import { AppState, StatusBar, View } from 'react-native';
 import AppNavigator from './src/navigation/root-navigation';
 import { setGlobalFont } from './src/utils/overrideText';
 import { CartProvider } from '@context/CartContext';
@@ -94,7 +95,18 @@ const AppContent = () => {
   return (
     <>
       <AppNavigator />
+      {/*
+        useModal={false} is essential, not cosmetic. The library defaults it to
+        true, which renders every toast inside a full-screen transparent
+        <Modal> - a native window above the whole app. A transparent RN Modal
+        does not let touches through to the window beneath it, so for as long
+        as one is presented nothing in the app is tappable, and if its
+        visibility ever sticks the app is frozen to touch while still
+        rendering normally. Rendering inline (high zIndex) has the same
+        appearance and blocks nothing.
+      */}
       <ToastManager
+        useModal={false}
         showProgressBar={false}
         duration={1500}
         isRTL={isRtl}
@@ -108,6 +120,17 @@ const AppContent = () => {
 const App = () => {
   return (
     <SafeAreaProvider>
+      {/* TEMPORARY DIAGNOSTIC - remove once the unresponsive-screen bug is
+          closed. Logs any touch that reaches the React root. Silence here on a
+          tap means a native window sits above the entire app. */}
+      <View
+        style={{ flex: 1 }}
+        onStartShouldSetResponderCapture={() => {
+          console.log('🟢 [Diag] touch REACHED App root');
+          return false;
+        }}
+      >
+      <KeyboardProvider>
         <StatusBar
           backgroundColor="transparent"
           translucent={false}
@@ -122,6 +145,8 @@ const App = () => {
             </CartCountProvider>
           </CartProvider>
         </PaperProvider>
+      </KeyboardProvider>
+      </View>
     </SafeAreaProvider>
   );
 };

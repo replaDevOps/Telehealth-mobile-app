@@ -217,6 +217,33 @@ export const styles = StyleSheet.create({
       alignItems: 'center',
       zIndex: 1000,
     },
+    // Normally the header sits above the overlay layer so it stays tappable.
+    headerLayer: {
+      zIndex: 1001,
+      elevation: 1001,
+      backgroundColor: colors.white,
+    },
+    // While waiting, it drops below the dim overlay instead - otherwise the
+    // opaque white header punches a bright band through the dimmed screen on
+    // iOS. Nothing is lost: the overlay's Cancel button runs handleBackPress,
+    // the same action as the header's back arrow.
+    headerLayerDimmed: {
+      zIndex: 0,
+      elevation: 0,
+    },
+    cancelWaitingButton: {
+      marginTop: mvs(28),
+      paddingVertical: mvs(10),
+      paddingHorizontal: mvs(28),
+      borderRadius: mvs(8),
+      borderWidth: 1,
+      borderColor: colors.white,
+    },
+    cancelWaitingText: {
+      color: colors.white,
+      fontSize: mvs(15),
+      fontWeight: '600',
+    },
     loadingContainer: {
       backgroundColor: colors.white,
       padding: 30,

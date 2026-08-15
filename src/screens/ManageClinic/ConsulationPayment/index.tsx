@@ -1,6 +1,6 @@
 import { Header2 } from '@components/common/Header2';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, ScrollView, Modal, ActivityIndicator, Alert, AppState, AppStateStatus } from 'react-native';
+import { View, Text, ScrollView, Modal, ActivityIndicator, Alert, AppState, AppStateStatus, TouchableOpacity } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { mvs } from '@config/metrices';
 import { colors } from '../../../styles/colors';
@@ -17,6 +17,7 @@ import { pusherService } from '@services/pusher/PusherService';
 import NoResponseModal from '@components/molecules/NoResponseModal';
 import { useAuthStore } from '@store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { hasNoAgentsAvailable } from './resolveAgentAvailability';
 
 export function ConsultationPayment({ navigation, route }) {
   const { t } = useTranslation();
@@ -66,10 +67,9 @@ export function ConsultationPayment({ navigation, route }) {
 
   const consultationType = consultationData.consultationTypeId || 'chat';
 
-  const noDoctorsAvailable = Boolean(
-    (consultationData?.message && consultationData.message.toString().toLowerCase().includes('0 customer support agent')) ||
-    (consultationData?.doctors?.message && consultationData.doctors.message.toLowerCase().includes('0 customer support agent'))
-  );
+  // The nested `doctors` blob is no longer passed through navigation params
+  // (it froze the JS thread), so the top-level message is the only source.
+  const noDoctorsAvailable = hasNoAgentsAvailable(consultationData?.message);
 
   const insets = useSafeAreaInsets();
 
@@ -140,6 +140,9 @@ export function ConsultationPayment({ navigation, route }) {
   };
 
   const handleConnectWithDoctor = async () => {
+    // TEMPORARY DIAGNOSTIC
+    console.log('🔵 [Diag] CONNECT button handler fired');
+
     // Only card payment is implemented
     // if (selectedPayment !== 'credit') {
     //   Alert.alert(
@@ -204,7 +207,7 @@ export function ConsultationPayment({ navigation, route }) {
       console.log('Booking consultation with payload:', payload);
 
       // Call book consultation API
-      const response = await apiClient.post(API.CONSULTATIONS.BOOK_CONSULTATION);
+      const response = await apiClient.post(API.CONSULTATIONS.BOOK_CONSULTATION, payload);
 
       console.log('Book consultation response:', response.data);
 
@@ -448,6 +451,60 @@ export function ConsultationPayment({ navigation, route }) {
     };
   }, [waitingForDoctor, patientID, navigation]);
 
+  // Stop waiting and release the screen. The waiting overlay covers the whole
+  // screen for up to two minutes, so without this the user has no way off the
+  // screen until the timer expires.
+  const stopWaiting = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    if (timerStorageKeyRef.current) {
+      AsyncStorage.removeItem(timerStorageKeyRef.current).catch(() => { });
+      timerStorageKeyRef.current = null;
+    }
+    startTimestampRef.current = null;
+    setWaitingForDoctor(false);
+    setIsTimerReady(false);
+    setTimeLeft(120);
+  }, []);
+
+  // goBack() is a no-op when this screen is the only one on the stack, which
+  // is exactly when being unable to leave hurts most. Fall back to the tabs.
+  const leaveScreen = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.replace('EntryPoint');
+    }
+  }, [navigation]);
+
+  const handleBackPress = useCallback(() => {
+    // TEMPORARY DIAGNOSTIC
+    console.log('🔵 [Diag] BACK handler fired. canGoBack =', navigation.canGoBack());
+    if (!waitingForDoctor) {
+      leaveScreen();
+      return;
+    }
+
+    Alert.alert(
+      t('cancel_request') || 'Cancel request',
+      t('cancel_request_description') ||
+      'You are still waiting for a customer support agent. Leaving now cancels this request.',
+      [
+        { text: t('no') || 'No', style: 'cancel' },
+        {
+          text: t('yes') || 'Yes',
+          style: 'destructive',
+          onPress: () => {
+            stopWaiting();
+            leaveScreen();
+          },
+        },
+      ],
+    );
+  }, [waitingForDoctor, leaveScreen, stopWaiting, t, navigation]);
+
   const handleNoAgentModalClose = useCallback(() => {
     setShowNoResponseModal(false);
     if (timerStorageKeyRef.current) {
@@ -483,8 +540,21 @@ export function ConsultationPayment({ navigation, route }) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Header2 title={getHeaderTitle()} />
+    <SafeAreaView
+      style={styles.container}
+      // TEMPORARY DIAGNOSTIC - remove once the unresponsive-screen bug is
+      // closed. Capture phase fires before any child handler and returns false
+      // so it changes no behaviour; it only answers whether touches reach this
+      // screen's React tree at all. Silence on tap means a native view above
+      // the navigator (a lingering Modal window) is swallowing them.
+      onStartShouldSetResponderCapture={() => {
+        console.log('🔵 [Diag] touch REACHED ConsultationPayment root');
+        return false;
+      }}
+    >
+       <View style={[styles.headerLayer, waitingForDoctor && styles.headerLayerDimmed]}>
+        <Header2 title={getHeaderTitle()} handleBackPress={handleBackPress} />
+      </View>
       <Toast
         message={toast.message}
         type={toast.type}
@@ -574,7 +644,10 @@ export function ConsultationPayment({ navigation, route }) {
 
       {/* Waiting overlay shown after successful booking instead of navigating */}
       {waitingForDoctor && (
-        <View style={styles.loadingOverlay}>
+        // Pulled up by the safe-area inset: this View is a child of
+        // SafeAreaView, so without the offset it stops below the iOS notch
+        // padding and leaves a white strip along the top of the dim.
+        <View style={[styles.loadingOverlay, { top: -insets.top }]}>
           <View style={{ alignItems: 'center' }}>
             <ActivityIndicator size="large" color={colors.primary} />
             <Text style={{ color: "#ffff", marginTop: 20, textAlign: 'center', fontSize: 16, fontWeight: '600' }}>
@@ -584,6 +657,12 @@ export function ConsultationPayment({ navigation, route }) {
             {/* <Text style={{ color: colors.secondaryText, marginTop: 12, fontSize: 14 }}>
               Time Remaining: {Math.floor(timeLeft / 60).toString().padStart(2, '0')}:{(timeLeft % 60).toString().padStart(2, '0')}
             </Text> */}
+            <TouchableOpacity
+              style={styles.cancelWaitingButton}
+              onPress={handleBackPress}
+            >
+              <Text style={styles.cancelWaitingText}>{t('cancel')}</Text>
+            </TouchableOpacity>
           </View>
         </View>
       )}
@@ -629,6 +708,9 @@ export function ConsultationPayment({ navigation, route }) {
           <Text style={styles.loadingText}>{t('searching_for_support')}</Text>
         </View>
       </Modal>
+      {/* Kept above the waiting overlay so the back button stays reachable
+          while a request is in flight. */}
+    
     </SafeAreaView>
   );
 }

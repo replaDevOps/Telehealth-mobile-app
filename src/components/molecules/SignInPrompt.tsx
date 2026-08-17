@@ -6,19 +6,19 @@ import { mvs } from '@config/metrices';
 import { colors } from '../../styles/colors';
 import { SingleLogo } from '@assets/icons';
 
-interface SignInPromptProps {
-  /** Why signing in is needed here, e.g. "to see your consultation history". */
-  description?: string;
-}
-
 /**
- * Shown in place of a tab's contents while browsing as a guest.
+ * Shown in place of a screen's contents while browsing as a guest.
  *
- * History and Settings are backed entirely by authenticated endpoints
- * (/history/* and /patient-setting/*), so there is nothing to render for a
- * guest. Rather than an empty list or a wall of 401s, offer the way in.
+ * Cart, History, Settings and Notifications are backed entirely by
+ * authenticated endpoints, so there is nothing to render for a guest. Opening
+ * one goes straight to the Sign In screen (see useSignInGateOnFocus); this is
+ * what the user lands back on if they decline, and the way back in.
+ *
+ * Deliberately takes no per-screen copy. Four surfaces each explaining their
+ * own reason for needing an account read as four different sign-in walls; one
+ * wording everywhere is the point.
  */
-export const SignInPrompt: React.FC<SignInPromptProps> = ({ description }) => {
+export const SignInPrompt: React.FC = () => {
   const { t } = useTranslation();
   const navigation = useNavigation<any>();
 
@@ -35,8 +35,7 @@ export const SignInPrompt: React.FC<SignInPromptProps> = ({ description }) => {
       <Text style={styles.title}>{t('sign_in_required') || 'Sign in required'}</Text>
 
       <Text style={styles.description}>
-        {description ||
-          t('sign_in_required_description') ||
+        {t('sign_in_required_description') ||
           'Please sign in to continue with this action.'}
       </Text>
 

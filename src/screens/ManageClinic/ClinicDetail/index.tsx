@@ -21,6 +21,7 @@ import { styles } from './style';
 import { useCart } from '@context/CartContext';
 import { useCartCountContext } from '@context/CartCountContext';
 import { useRequireAuth } from '../../../hooks/useRequireAuth';
+import { getMappedErrorMessage } from '@utils';
 import { useCartCount } from '../../../hooks/useCartCount';
 import { useNotificationCount } from '../../../hooks/useNotificationCount';
 import { useTranslation } from 'react-i18next';
@@ -52,7 +53,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
   const requireAuth = useRequireAuth();
   const insets = useSafeAreaInsets();
   const { clinic } = route.params;
-  const { addToCart, cartItems } = useCart();
+  const { addToCart, isInCart } = useCart();
   const { triggerRefresh, incrementCartCount } = useCartCountContext();
   const { cartCount } = useCartCount();
   const { notificationCount } = useNotificationCount();
@@ -66,6 +67,11 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
   const [deviceDetailVisible, setDeviceDetailVisible] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState<any>(null);
   const [showBottomSheet, setShowBottomSheet] = useState(false);
+  // Errors from the cart calls below. While the service sheet is open they
+  // must render inside it: the sheet is a native Modal above the React root,
+  // and toasts render in that root, so a Toast here is drawn behind the sheet
+  // and the user sees nothing.
+  const [serviceSheetError, setServiceSheetError] = useState('');
   const [sortOption, setSortOption] = useState('by_date');
   const [sortedReviews, setSortedReviews] = useState<Review[]>([]);
   const [isFocus, setIsFocus] = useState(false);
@@ -827,7 +833,13 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
   };
 
   const handleConsultPress = () => {
-   
+    // Booking a consultation is an account action. Gate before the sheet opens
+    // rather than inside it: a guest who gets as far as picking a service and
+    // a consultation type only hits a 401 at the end.
+    if (!requireAuth()) {
+      return;
+    }
+
     setShowBottomSheet(true);
   };
 
@@ -902,7 +914,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
 
   const handleChatPress = async () => {
     // Contacting a clinic opens an authenticated consultation thread.
-    if (!requireAuth(t('sign_in_for_contact'))) {
+    if (!requireAuth()) {
       return;
     }
 
@@ -936,10 +948,20 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     }
   };
 
+  /** Inline while the sheet is open, toast otherwise. */
+  const reportCartError = (message: string) => {
+    if (serviceDetailVisible) {
+      setServiceSheetError(message);
+      return;
+    }
+    Toast.error(message);
+  };
+
   const handleAddToCart = async (service: any, shouldNavigate: boolean = false) => {
+    setServiceSheetError('');
     // The cart lives on the server against the user's account, so this is one
     // of the three points where browsing stops and an account is needed.
-    if (!requireAuth(t(shouldNavigate ? 'sign_in_for_checkout' : 'sign_in_for_cart'))) {
+    if (!requireAuth()) {
       return;
     }
 
@@ -957,7 +979,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     // If this is a checkout action and the service is already present in the cart,
     // skip the API call and navigate directly to the cart/checkout screen.
     if (shouldNavigate) {
-      const exists = cartItems.find(i => String(i.service.id) === String(service.id));
+      const exists = isInCart(service.id);
       if (exists) {
         setServiceDetailVisible(false);
         setLoadingAddToCart(false);
@@ -975,7 +997,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       const serviceID = typeof service.id === 'string' ? parseInt(service.id, 10) : service.id;
 
       if (isNaN(serviceID)) {
-        Toast.error('Invalid service ID');
+        reportCartError('Invalid service ID');
         setLoadingAddToCart(false);
         return;
       }
@@ -989,8 +1011,9 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
 
       // Check if API returned success: false (even with 200 status)
       if (response.data?.success === false) {
-        const errorMessage = response.data?.message || 'Failed to add service to cart';
-        Toast.error(errorMessage);
+        reportCartError(
+          getMappedErrorMessage(response.data?.message) || 'Failed to add service to cart',
+        );
         setLoadingAddToCart(false);
         return;
       }
@@ -1012,8 +1035,10 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       addToCart(cartItem);
 
       // Show success message
+      // Close first: a toast raised while the sheet is still up renders behind it.
+      setServiceDetailVisible(false);
       const successMessage = response.data?.message || response.data?.data?.message || 'Service added to cart successfully';
-      Toast.success(successMessage);
+      Toast.success(getMappedErrorMessage(successMessage));
 
       // Optimistically increment cart count for immediate UI update
       incrementCartCount();
@@ -1027,8 +1052,10 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       }
     } catch (error: any) {
 
-      const errorMessage = error?.message || error?.response?.data?.message || 'Failed to add service to cart';
-      Toast.error(errorMessage);
+      reportCartError(
+        getMappedErrorMessage(error?.message || error?.response?.data?.message) ||
+          'Failed to add service to cart',
+      );
     } finally {
       setLoadingAddToCart(false);
       setLoadingCheckout(false);
@@ -1519,8 +1546,13 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       />
 
       <ServiceDetailBottomSheet
+        errorMessage={serviceSheetError}
+        onErrorShown={() => setServiceSheetError('')}
         visible={serviceDetailVisible}
-        onClose={() => setServiceDetailVisible(false)}
+        onClose={() => {
+          setServiceSheetError('');
+          setServiceDetailVisible(false);
+        }}
         service={selectedService}
         onAddToCart={handleAddToCart}
         onCheckout={handleCheckout}

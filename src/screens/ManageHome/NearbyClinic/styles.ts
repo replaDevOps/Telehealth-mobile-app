@@ -7,6 +7,30 @@ export const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
   },
+  // Small pill above the map, so a refresh never hides it. Matches
+  // SelectLocation.
+  loadingOverlay: {
+    position: 'absolute',
+    top: 16,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+    gap: 8,
+  },
+  loadingOverlayText: {
+    fontSize: 13,
+    color: colors.text,
+    fontWeight: '500',
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',

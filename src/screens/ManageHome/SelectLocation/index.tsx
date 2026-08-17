@@ -859,7 +859,7 @@ export const SelectLocation = ({ navigation }: any) => {
       >
         <MapView
           ref={mapRef}
-          provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
+          provider={PROVIDER_GOOGLE}
           style={styles.map}
           region={region}
           onRegionChangeComplete={handleRegionChangeComplete}

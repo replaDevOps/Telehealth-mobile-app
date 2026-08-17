@@ -1,14 +1,23 @@
 import React from 'react';
-import { NavigationContainer, createNavigationContainerRef, CommonActions } from '@react-navigation/native';
+import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RootStackParamList } from './types';
 import { SplashScreen } from '@screens';
 import AuthNavigator from './AuthNavigator';
 import { MainNavigator } from './MainNavigator';
+import { navigationRef } from './navigation-service';
+
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-// Create navigation ref for programmatic navigation
-export const navigationRef = createNavigationContainerRef<RootStackParamList>();
+// The imperative helpers live in navigation-service so that screens can import
+// them without closing a require cycle back through this file. Re-exported here
+// for the call sites that already import them from this path.
+export {
+  navigationRef,
+  resetToHome,
+  returnFromAuth,
+  navigateToProfileSetting,
+} from './navigation-service';
 
 const AppNavigator = () => {
   return (
@@ -26,21 +35,3 @@ const AppNavigator = () => {
 };
 
 export default AppNavigator;
-
-// Helper to navigate to ProfileSetting inside the Setting tab without creating
-// confusing back-stack behavior. Uses the root navigation ref to target the
-// nested navigators: Main -> EntryPoint (tabs) -> Setting -> ProfileSetting
-export function navigateToProfileSetting() {
-  if (!navigationRef || !navigationRef.isReady()) return;
-
-  navigationRef.navigate('Main' as any, {
-    screen: 'EntryPoint',
-    params: {
-      screen: 'Setting',
-      params: {
-        initial: false,
-        screen: 'ProfileSetting',
-      },
-    },
-  } as any);
-}

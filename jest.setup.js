@@ -9,3 +9,12 @@
 jest.mock('react-native-keyboard-controller', () =>
   require('react-native-keyboard-controller/jest'),
 );
+
+/**
+ * The zustand stores persist through AsyncStorage, so importing anything that
+ * reaches @store pulls in its native module. Also the library's own published
+ * mock.
+ */
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
+);

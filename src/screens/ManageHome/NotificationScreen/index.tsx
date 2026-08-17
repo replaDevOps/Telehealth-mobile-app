@@ -11,6 +11,7 @@ import { API } from '@services/api/api-endpoint';
 import { useNotificationStore } from '@store/useNotificationStore';
 import { useAuthStore } from '@store';
 import { SignInPrompt } from '@components/molecules';
+import { useSignInGateOnFocus } from '../../../hooks/useRequireAuth';
 import { isNotificationRead } from '@services/api/notificationService';
 import { Toast } from 'toastify-react-native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -30,6 +31,9 @@ interface Notification {
 }
 
 export const NotificationScreen = () => {
+  // Guests get the Sign In screen rather than a wall: this screen is nothing
+  // but authenticated content.
+  useSignInGateOnFocus();
   const { t } = useTranslation();
   const { refreshNotifications, markAllRead } = useNotificationStore();
   // Notifications are per-account (/patient-notifications/*); there is nothing
@@ -267,7 +271,7 @@ export const NotificationScreen = () => {
     return (
       <SafeAreaView style={styles.container}>
         <Header2 title={t('notifications')} />
-        <SignInPrompt description={t('sign_in_for_notifications')} />
+        <SignInPrompt />
       </SafeAreaView>
     );
   }

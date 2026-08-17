@@ -521,10 +521,14 @@ function RoyaltyPointsSection({
   coinToSar,
   maxRedemptionSAR,
 }: RoyaltyPointsSectionProps) {
+  // `t` arrives as a prop, but formatCurrency below needs the active language
+  // too. Reaching for a bare `i18n` here crashed the screen the moment a valid
+  // redeem value was entered, because nothing in this file ever defined one.
+  const { i18n } = useTranslation();
+  const isArabic = !!i18n.language?.startsWith('ar');
+
   const appliedCoins = Math.max(0, Math.floor(Number(pointsToRedeem) || 0));
   const appliedRedemptionAmount = coinToSar ? appliedCoins * coinToSar : 0;
-  const maxRedeemableCoins = coinToSar && maxRedemptionSAR ? Math.floor(maxRedemptionSAR / coinToSar) : 0;
-  console.log('coinToSar', coinToSar);
   return (
     <View style={styles.royaltySection}>
       <View style={styles.royaltyHeader}>
@@ -556,7 +560,7 @@ function RoyaltyPointsSection({
         />
         {appliedCoins > 0 && (
           <Text style={[styles.royaltySubtext, { marginTop: 6 }] }>
-            {`${t('redemption') || 'Redemption'} ${formatCurrency(appliedRedemptionAmount, i18n.language?.startsWith('ar'))} | ${t('remaining_amount') || 'Remaining Amount'} ${formatCurrency(Math.max(0, (maxRedemptionSAR || 0) - appliedRedemptionAmount), i18n.language?.startsWith('ar'))}`}
+            {`${t('redemption') || 'Redemption'} ${formatCurrency(appliedRedemptionAmount, isArabic)} | ${t('remaining_amount') || 'Remaining Amount'} ${formatCurrency(Math.max(0, (maxRedemptionSAR || 0) - appliedRedemptionAmount), isArabic)}`}
           </Text>
         )}
       </View>

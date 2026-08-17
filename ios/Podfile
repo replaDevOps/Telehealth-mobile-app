@@ -23,6 +23,12 @@ target 'Telehealth' do
   # "'FirebaseAuth/FirebaseAuth-Swift.h' file not found".
   use_frameworks! :linkage => :static
 
+  # react-native-maps dependencies. The Google subspec pulls in the Google Maps
+  # iOS SDK so both platforms render the same Google map instead of iOS falling
+  # back to Apple Maps.
+  rn_maps_path = '../node_modules/react-native-maps'
+  pod 'react-native-maps/Google', :path => rn_maps_path
+
   config = use_native_modules!
 
   use_react_native!(

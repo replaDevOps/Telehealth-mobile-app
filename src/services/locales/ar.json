@@ -496,6 +496,7 @@
   "earn_points": "اكسب {{points}} نقطة ولاء",
   "add_to_cart": "أضف إلى السلة",
   "added_to_cart": "تمت الإضافة إلى السلة",
+  "service_already_in_cart": "هذه الخدمة موجودة بالفعل في السلة",
   "service_added_to_cart": "تمت إضافة الخدمة إلى السلة بنجاح",
   "service_removed_from_cart": "تم إزالة الخدمة من السلة بنجاح",
   "cannot_add_services_from_multiple_clinics": "لا يمكنك إضافة خدمات من عيادات متعددة في نفس الوقت!",
@@ -623,5 +624,9 @@
   "location_unavailable": "الموقع غير متاح",
   "location_permission_required": "إذن الموقع مطلوب",
   "location_permission_message": "يرجى تفعيل إذن الموقع من الإعدادات لعرض العيادات القريبة منك.",
-  "open_settings": "فتح الإعدادات"
+  "open_settings": "فتح الإعدادات",
+  "please_select_consultation_type": "الرجاء اختيار نوع الاستشارة",
+  "please_select_service": "الرجاء اختيار الخدمة",
+  "please_select_service_group": "الرجاء اختيار مجموعة الخدمة",
+  "please_select_service_type": "الرجاء اختيار نوع الخدمة"
 }

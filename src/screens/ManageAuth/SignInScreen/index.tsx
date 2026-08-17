@@ -34,6 +34,7 @@ import { fcmService } from '../../../services/firebase/fcmService';
 import { signInWithGoogle, googleStatusCodes } from '../../../services/firebase/googleAuth';
 import { signInWithApple, appleErrorCodes } from '../../../services/firebase/appleAuth';
 import { getMappedErrorMessage } from '@utils';
+import { returnFromAuth } from '@navigation/navigation-service';
 
 type TabType = 'email' | 'phone';
 
@@ -45,7 +46,10 @@ export function SignInScreen({ navigation }) {
 
   const handleContinueAsGuest = () => {
     continueAsGuest();
-    navigation.replace('Main', { screen: 'EntryPoint' });
+    // Reached both on a cold start and from a guest who was prompted to sign
+    // in mid-browse and declined. The latter should land back where they were,
+    // not on a second copy of Home stacked over the first.
+    returnFromAuth();
   };
 
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
@@ -218,7 +222,7 @@ export function SignInScreen({ navigation }) {
 
       Toast.success(getMappedErrorMessage(data?.message) || t('login_successful'));
       setTimeout(() => {
-        navigation.replace('Main', { screen: 'Home' });
+        returnFromAuth();
       }, 500);
     } catch (error: any) {
       console.log('Login error:', error);
@@ -252,7 +256,7 @@ export function SignInScreen({ navigation }) {
             email: data?.user?.email || '',
           });
         } else {
-          navigation.replace('Main', { screen: 'Home' });
+          returnFromAuth();
         }
       }, 500);
     } catch (error: any) {

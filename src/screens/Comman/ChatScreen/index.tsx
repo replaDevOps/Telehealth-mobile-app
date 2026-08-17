@@ -60,7 +60,7 @@ export function ChatScreen({ navigation, route }) {
   useEffect(() => {
     console.log('📞 [ChatScreen] Route params - consultationID:', route?.params?.consultationID, 'id:', route?.params?.id, 'final consultationID:', consultationID);
   }, []);
-  const { addToCart, cartItems } = useCart();
+  const { addToCart, isInCart } = useCart();
   const { incrementCartCount, triggerRefresh } = useCartCountContext();
 
   // ---------- State ----------
@@ -1121,7 +1121,7 @@ export function ChatScreen({ navigation, route }) {
 
     // If navigating (checkout) and already in cart, skip API call
     if (shouldNavigate) {
-      const exists = cartItems?.find((i: any) => String(i.service.id) === String(service.id));
+      const exists = isInCart(service.id);
       if (exists) {
         setServiceDetailVisible(false);
         navigation.navigate('CartScreen');

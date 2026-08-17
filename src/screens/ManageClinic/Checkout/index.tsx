@@ -88,6 +88,10 @@ export function CheckoutScreen({ route, navigation }) {
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [redeemPoints, setRedeemPoints] = useState('');
+  // The input clamps to what the user can actually spend, so the stored value
+  // never exceeds their balance. This remembers that they asked for more, so
+  // the inline "Insufficient coins" notice still has something to react to.
+  const [attemptedOverBalance, setAttemptedOverBalance] = useState(false);
 
   // Calculate totals
   const calculateSubtotal = () => {
@@ -143,25 +147,31 @@ export function CheckoutScreen({ route, navigation }) {
 
   // Handler to validate points input from UI
   const handlePointsToRedeemChange = (value: string) => {
-    // Normalize to integer coins
-    const coins = Math.max(0, Math.floor(Number(value) || 0));
+    // Digits only. The keyboard is numeric but text can still be pasted, and
+    // anything unparseable used to be silently coerced to 0.
+    const digits = value.replace(/[^0-9]/g, '');
+
+    // An empty field stays empty. Coercing '' to 0 wrote "0" back into a
+    // controlled input, so the field could never be cleared.
+    if (digits === '') {
+      setRedeemPoints('');
+      setAttemptedOverBalance(false);
+      return;
+    }
+
+    const requested = Number(digits);
 
     // Recompute max redeemable coins based on current amounts
     const maxRedemptionSAR = Math.max(0, subtotal - campaignDiscountTotal + tax - discountAmount);
     const maxRedeemableCoinsLocal = Math.floor(maxRedemptionSAR / COIN_TO_SAR);
+    const limit = Math.max(0, Math.min(userLoyaltyPoints, maxRedeemableCoinsLocal));
 
-    if (coins > userLoyaltyPoints) {
-      Toast.error(t('insufficient_coins') || 'You do not have enough coins');
-      return;
-    }
-
-    if (coins > maxRedeemableCoinsLocal) {
-      Toast.error(t('redeem_exceeds_total') || 'Redeem amount exceeds remaining payable total');
-      return;
-    }
-
-    // Accept value (store as string to preserve controlled input behavior)
-    setRedeemPoints(String(coins));
+    // Clamp instead of rejecting. Rejecting fired a toast on every keystroke
+    // past the limit and froze the field at its previous value; the
+    // "Redemption ... | Remaining Amount ..." line under the input already
+    // reports exactly what was applied.
+    setAttemptedOverBalance(requested > userLoyaltyPoints);
+    setRedeemPoints(String(Math.min(requested, limit)));
   };
 
   const handleApplyCoupon = () => {
@@ -386,7 +396,7 @@ export function CheckoutScreen({ route, navigation }) {
         />
 
 
-        {insufficientCoins && (
+        {attemptedOverBalance && (
           <View style={{ marginHorizontal: 20, marginTop: 8 }}>
             <Text style={styles.insufficientText}>{t('insufficient_coins') || 'Insufficient coins'}</Text>
           </View>

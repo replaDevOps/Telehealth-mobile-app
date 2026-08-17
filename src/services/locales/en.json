@@ -499,6 +499,7 @@
   "earn_points": "Earn {{points}} loyalty points",
   "add_to_cart": "Add to Cart",
   "added_to_cart": "Added to Cart",
+  "service_already_in_cart": "This service is already in your cart",
   "service_added_to_cart": "Service added to cart successfully",
   "service_removed_from_cart": "Service removed from cart successfully",
   "cannot_add_services_from_multiple_clinics": "You cannot add services from multiple clinics at the same time!",
@@ -637,5 +638,9 @@
   "location_unavailable": "Location not available",
   "location_permission_required": "Location permission required",
   "location_permission_message": "Turn on your location permission from Settings to see clinics near you.",
-  "open_settings": "Open Settings"
+  "open_settings": "Open Settings",
+  "please_select_consultation_type": "Please select a consultation type",
+  "please_select_service": "Please select a service",
+  "please_select_service_group": "Please select a service group",
+  "please_select_service_type": "Please select a service type"
 }

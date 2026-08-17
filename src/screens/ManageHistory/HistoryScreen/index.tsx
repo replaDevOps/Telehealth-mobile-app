@@ -22,6 +22,7 @@ import type {
 } from '../types/history.types';
 import { ConsultationCard, PaymentCard, HistoryTabs, SearchBar } from '../components';
 import { SignInPrompt } from '@components/molecules';
+import { useSignInGateOnFocus } from '../../../hooks/useRequireAuth';
 import { useAuthStore } from '@store';
 import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
@@ -35,6 +36,9 @@ const DROPDOWN_OPTIONS: DropdownOption[] = [
 ];
 
 export function HistoryScreen({ navigation }) {
+  // Guests get the Sign In screen rather than a wall: this screen is nothing
+  // but authenticated content.
+  useSignInGateOnFocus();
   const { t } = useTranslation();
   // No session at all: browsing is allowed, this tab is not.
   const isSignedOut = !useAuthStore(state => state.auth?.token);
@@ -511,7 +515,7 @@ export function HistoryScreen({ navigation }) {
       <SafeAreaView style={styles.container} edges={['top']}>
         <StatusBar barStyle="dark-content" />
         <Header2 title={t('history')} back={false} />
-        <SignInPrompt description={t('sign_in_for_history')} />
+        <SignInPrompt />
       </SafeAreaView>
     );
   }

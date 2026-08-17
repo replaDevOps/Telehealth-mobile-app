@@ -7,6 +7,13 @@ import i18n from '../services/i18n';
 export const getMappedErrorMessage = (rawMsg: any): string => {
   const t = i18n.t.bind(i18n);
 
+  const safeTranslate = (key: string, fallback: string): string => {
+    if (i18n.exists(key)) {
+      return t(key);
+    }
+    return fallback;
+  };
+
   if (!rawMsg) return t('something_went_wrong');
 
   let msgStr = '';
@@ -97,10 +104,32 @@ export const getMappedErrorMessage = (rawMsg: any): string => {
     return t('invalid_email_or_phone_or_password');
   }
 
+  // Cart duplicates are matched before the auth rules below, and the auth rules
+  // no longer claim a bare "already exist".
+  //
+  // The backend answers a duplicate cart add with a message containing
+  // "already exist", which the unqualified auth rule swallowed - so adding a
+  // service twice reported "Email or Phone number is already registered", a
+  // sentence the API never sent.
+  if (
+    msgLower.includes('cart') &&
+    (msgLower.includes('already') || msgLower.includes('exist'))
+  ) {
+    return safeTranslate(
+      'service_already_in_cart',
+      i18n.language === 'ar'
+        ? 'هذه الخدمة موجودة بالفعل في السلة'
+        : 'This service is already in your cart',
+    );
+  }
+
+  // "already exist" on its own is not evidence of an account collision, so it
+  // only counts alongside something that identifies a user.
   if (
     msgLower.includes('already registered') ||
     msgLower.includes('already_registered') ||
-    msgLower.includes('already exist')
+    (msgLower.includes('already exist') &&
+      /email|phone|account|user|mobile|number/.test(msgLower))
   ) {
     return t('already_registered');
   }
@@ -138,13 +167,6 @@ export const getMappedErrorMessage = (rawMsg: any): string => {
   if (msgLower.includes('different from old password') || msgLower.includes('must be different')) {
     return t('new_password_must_be_different');
   }
-
-  const safeTranslate = (key: string, fallback: string): string => {
-    if (i18n.exists(key)) {
-      return t(key);
-    }
-    return fallback;
-  };
 
   // 5. Pattern Matching for Operations & Feature Toasts
   if (msgLower.includes('password') && (msgLower.includes('changed') || msgLower.includes('updated') || msgLower.includes('reset') || msgLower.includes('success'))) {

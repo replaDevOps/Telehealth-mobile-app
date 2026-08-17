@@ -18,6 +18,7 @@ import AntDesign from 'react-native-vector-icons/AntDesign';
 import { styles } from './style';
 import { mvs } from '@config/metrices';
 import { useTranslation } from 'react-i18next';
+import { setAppLanguage } from '@services/language';
 import { tryCatch } from '@utils';
 import citiesData from '@utils/cities-data.json';
 import { translateCityToArabic } from '../../../utils/cityTranslator';
@@ -244,10 +245,8 @@ export const ProfileSetting = ({ navigation, route }: { navigation: any; route?:
     console.log('🌍 [ProfileSetting] Setting language to:', languageCode, 'from state:', state.language);
     
     try {
-      // Change language synchronously
-      i18n.changeLanguage(languageCode);
-      // Save language preference to AsyncStorage for persistence
-      await AsyncStorage.setItem('selectedLanguage', languageCode);
+      // Changes and persists in one step; see services/language.
+      await setAppLanguage(languageCode);
       // Trigger re-render to update translations
       setLanguageChanged(prev => prev + 1);
       console.log('🌍 [ProfileSetting] Language changed to:', languageCode, 'and saved to storage');

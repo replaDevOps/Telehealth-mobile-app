@@ -18,6 +18,7 @@ import {
 } from '@assets/icons';
 import style from './style';
 import { RoyaltyPointsBar, SignInPrompt } from '@components/molecules';
+import { useSignInGateOnFocus } from '../../../hooks/useRequireAuth';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore, useProfileStore } from '@store';
 import { apiClient } from '../../../services/api/api-client';
@@ -25,8 +26,13 @@ import { API } from '../../../services/api/api-endpoint';
 import { colors } from '../../../styles/colors';
 import { signOutGoogle } from '../../../services/firebase/googleAuth';
 import { getMappedErrorMessage } from '@utils';
+import { resetToHome } from '@navigation/navigation-service';
+import { setAppLanguage } from '@services/language';
 
 export const SettingScreen = ({ navigation }: { navigation: any }) => {
+  // Guests get the Sign In screen rather than a wall: this screen is nothing
+  // but authenticated content.
+  useSignInGateOnFocus();
   const { t, i18n } = useTranslation();
   const { logout, isAuthenticated } = useAuthStore();
   // No session at all: browsing is allowed, this tab is not.
@@ -83,7 +89,9 @@ export const SettingScreen = ({ navigation }: { navigation: any }) => {
 
             useProfileStore.getState().clearProfile();
             logout();
-            navigation.replace('Auth', { screen: 'SignIn' });
+            // Browsing needs no account, so a signed-out user belongs in the
+            // marketplace rather than at a sign-in wall.
+            resetToHome();
           },
         },
       ],
@@ -116,7 +124,9 @@ export const SettingScreen = ({ navigation }: { navigation: any }) => {
                 try { await signOutGoogle(); } catch { }
                 useProfileStore.getState().clearProfile();
                 logout();
-                navigation.replace('Auth', { screen: 'SignIn' });
+                // Same as log out, and more so: there is no account left to
+                // sign back into.
+                resetToHome();
               }, 1000);
             } catch (error: any) {
               const errMsg = error?.response?.data?.message || error?.message || t('failed_to_delete_account');
@@ -138,13 +148,13 @@ export const SettingScreen = ({ navigation }: { navigation: any }) => {
         {
           text: 'English',
           onPress: () => {
-            i18n.changeLanguage('en');
+            setAppLanguage('en');
           },
         },
         {
           text: 'العربية',
           onPress: () => {
-            i18n.changeLanguage('ar');
+            setAppLanguage('ar');
           },
         },
         { text: t('cancel'), style: 'cancel' },
@@ -252,7 +262,7 @@ export const SettingScreen = ({ navigation }: { navigation: any }) => {
     return (
       <SafeAreaView style={style.safeArea}>
         <Header2 title={t('settings')} back={false} />
-        <SignInPrompt description={t('sign_in_for_settings')} />
+        <SignInPrompt />
       </SafeAreaView>
     );
   }

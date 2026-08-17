@@ -35,6 +35,7 @@ import { signInWithApple, appleErrorCodes } from '@services/firebase/appleAuth';
 import { useAuthStore } from '@store';
 import { getMappedErrorMessage } from '@utils';
 import { fcmService } from '../../../services/firebase/fcmService';
+import { returnFromAuth } from '@navigation/navigation-service';
 
 const isValidEmailFormat = (value: string): boolean => {
   if (!value || typeof value !== 'string') return false;
@@ -234,7 +235,7 @@ export function SignUpScreen({ navigation }) {
             email: data?.user?.email || '',
           });
         } else {
-          navigation.replace('Main', { screen: 'Home' });
+          returnFromAuth();
         }
       }, 500);
     } catch (error: any) {

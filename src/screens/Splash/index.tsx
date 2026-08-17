@@ -1,10 +1,9 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, ActivityIndicator, useColorScheme } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { useAuthStore, useProfileStore, useLocationStore } from '@store';
-import i18n from '../../services/i18n';
+import { restoreAppLanguage } from '../../services/language';
 import { fcmService } from '../../services/firebase/fcmService';
 import { useTranslation } from 'react-i18next';
 import { Toast } from 'toastify-react-native';
@@ -33,20 +32,11 @@ export const SplashScreen: React.FC<Props> = ({ navigation }) => {
         return;
       }
       try {
-        const selectedLanguageRaw = await AsyncStorage.getItem('selectedLanguage');
-        // storeData() JSON.stringifies the value, so strip surrounding quotes if present
-        const selectedLanguage = selectedLanguageRaw
-          ? selectedLanguageRaw.replace(/^"|"$/g, '')
-          : null;
-
-        // Initialize i18n with the saved language
-        if (selectedLanguage) {
-          await i18n.changeLanguage(selectedLanguage);
-          console.log('🌍 [SplashScreen] Initialized language:', selectedLanguage);
-        } else {
-          await i18n.changeLanguage('en');
-          console.log('🌍 [SplashScreen] Defaulting to English');
-        }
+        // Applies the stored choice, or leaves i18n on its own default when
+        // there is none. It no longer forces English in the else branch: that
+        // was the line that undid a language the user had actually chosen.
+        const selectedLanguage = await restoreAppLanguage();
+        console.log('🌍 [SplashScreen] Language:', selectedLanguage ?? 'none stored');
 
         // Create a promise that resolves after minimum splash duration (2 seconds for animation)
         const minSplashDuration = new Promise(resolve => setTimeout(resolve, 2000));

@@ -6,6 +6,7 @@ import Geolocation from '@react-native-community/geolocation';
 import { Platform, PermissionsAndroid } from 'react-native';
 import { useCartCountContext } from '@context/CartCountContext';
 import { useAuthStore } from '@store';
+import { useCartStore } from '@store/useCartStore';
 
 export const useCartCount = () => {
   const { cartCount: contextCount, setCartCount: setContextCount, refreshTrigger } = useCartCountContext();
@@ -16,12 +17,43 @@ export const useCartCount = () => {
   const cachedLocationRef = useRef<{ lat: number; long: number; timestamp: number } | null>(null);
   const LOCATION_CACHE_DURATION = 5 * 60 * 1000; // Cache location for 5 minutes
 
+  // The cart response already carries every service ID, so recording them here
+  // costs nothing and gives the persisted "in cart" set its authority: this is
+  // the first thing to run after a relaunch that can confirm or drop the IDs
+  // restored from storage.
+  const applyCartData = useCallback(
+    (cartData: any) => {
+      const ids: Array<string | number> = [];
+      let totalCount = 0;
+
+      if (Array.isArray(cartData)) {
+        cartData.forEach((clinicGroup: any) => {
+          if (clinicGroup?.items && Array.isArray(clinicGroup.items)) {
+            totalCount += clinicGroup.items.length;
+            clinicGroup.items.forEach((item: any) => {
+              if (item?.serviceID !== undefined && item?.serviceID !== null) {
+                ids.push(item.serviceID);
+              }
+            });
+          }
+        });
+      }
+
+      setContextCount(totalCount);
+      useCartStore.getState().syncFromServer(ids);
+    },
+    [setContextCount],
+  );
+
   const fetchCartCount = useCallback(async () => {
     // /cart/viewCartDetails is authenticated. A guest has no cart, and this
     // hook runs on every screen focus, so without this it would fire a 401 on
     // each navigation.
     if (!token) {
       setContextCount(0);
+      // No session means no cart, so the persisted IDs must not keep any
+      // button disabled.
+      useCartStore.getState().syncFromServer([]);
       return;
     }
 
@@ -58,18 +90,9 @@ export const useCartCount = () => {
           });
           
           if (response.data?.success && response.data?.data) {
-            const cartData = response.data.data;
-            let totalCount = 0;
-            if (Array.isArray(cartData)) {
-              cartData.forEach((clinicGroup: any) => {
-                if (clinicGroup.items && Array.isArray(clinicGroup.items)) {
-                  totalCount += clinicGroup.items.length;
-                }
-              });
-            }
-            setContextCount(totalCount);
+            applyCartData(response.data.data);
           } else {
-            setContextCount(0);
+            applyCartData([]);
           }
           return;
         }
@@ -163,21 +186,9 @@ export const useCartCount = () => {
 
 
       if (response.data?.success && response.data?.data) {
-        // Calculate total count of items across all clinic groups
-        const cartData = response.data.data;
-        let totalCount = 0;
-
-        if (Array.isArray(cartData)) {
-          cartData.forEach((clinicGroup: any) => {
-            if (clinicGroup.items && Array.isArray(clinicGroup.items)) {
-              totalCount += clinicGroup.items.length;
-            }
-          });
-        }
-
-        setContextCount(totalCount);
+        applyCartData(response.data.data);
       } else {
-        setContextCount(0);
+        applyCartData([]);
       }
     } catch (error: any) {
       const totalEndTime = Date.now();
@@ -185,12 +196,15 @@ export const useCartCount = () => {
       
       
       
+      // Count only. The persisted service IDs are deliberately left alone: a
+      // failed request is no evidence the cart is empty, and clearing them
+      // would re-enable "Add to Cart" for items that are still in it.
       setContextCount(0);
     } finally {
       setLoading(false);
       isFetchingRef.current = false;
     }
-  }, [setContextCount, token]);
+  }, [setContextCount, token, applyCartData]);
 
   // Fetch on mount (only once when component mounts)
   useEffect(() => {

@@ -10,7 +10,7 @@ import { useNavigation } from '@react-navigation/native';
 import { LanguageSelection } from '@assets/images';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import { storeData } from '../../../utils';
+import { setAppLanguage, normalizeLanguage } from '@services/language';
 
 export function LanguageScreen() {
   const navigation = useNavigation();
@@ -19,7 +19,11 @@ export function LanguageScreen() {
 
   const handleNext = async () => {
     try {
-      await storeData('selectedLanguage', i18n.language);
+      // Next is what commits the choice; the radios above only preview it.
+      // Splash also treats the stored value as "the user has picked a
+      // language", so persisting on tap would let killing the app mid-screen
+      // count as a decision.
+      await setAppLanguage(normalizeLanguage(i18n.language));
       navigation.navigate('Auth', { screen: 'Onboarding' });
     } catch (e) {
       console.error('Failed to persist language to async storage', e);

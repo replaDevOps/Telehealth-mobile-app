@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Modal,
+  Platform,
   TouchableWithoutFeedback,
   Image,
 } from 'react-native';
@@ -20,6 +21,16 @@ import { useNavigation } from '@react-navigation/native';
 import { Toast } from 'toastify-react-native';
 import { checkProfile } from '@utils/checkProfile';
 import { formatCurrency } from '@utils';
+import { useAuthStore } from '@store';
+import { navigateToProfileSetting } from '@navigation/navigation-service';
+import { SheetToast } from './SheetToast';
+
+/**
+ * Android has no `onDismiss` on Modal, so the pending navigation is flushed on
+ * a timer there instead. iOS drives it off the real dismiss callback.
+ * Mirrors ConsultDoctorBottomSheet.
+ */
+const SHEET_DISMISS_MS = 400;
 
 interface Service {
   id: string;
@@ -48,6 +59,17 @@ interface ServiceDetailBottomSheetProps {
   onCheckout: (service: Service) => void;
   loading?: boolean;
   loadingState?: 'none' | 'adding_to_cart' | 'checking_out';
+  /**
+   * Error from the parent's add-to-cart / checkout call, rendered inline.
+   *
+   * The parent used to report these with Toast. This sheet is a native Modal -
+   * a window above the React root - and toasts render inside that root
+   * (ToastManager useModal={false}), so the message was drawn behind the sheet
+   * and the user never saw why the action failed.
+   */
+  errorMessage?: string;
+  /** Clears errorMessage once the in-sheet toast has dismissed itself. */
+  onErrorShown?: () => void;
 }
 
 export const ServiceDetailBottomSheet: React.FC<ServiceDetailBottomSheetProps> = ({
@@ -58,31 +80,86 @@ export const ServiceDetailBottomSheet: React.FC<ServiceDetailBottomSheetProps> =
   onCheckout,
   loading = false,
   loadingState = 'none',
+  errorMessage = '',
+  onErrorShown,
 }) => {
   const { t, i18n } = useTranslation();
-  const { cartItems } = useCart();
+  const { isInCart } = useCart();
   const navigation = useNavigation();
   const [checkingProfileAdd, setCheckingProfileAdd] = useState(false);
   const [checkingProfileCheckout, setCheckingProfileCheckout] = useState(false);
+  const signedOut = !useAuthStore(state => state.auth?.token);
 
-  if (!visible) return null;
+  // Work that must not run until this Modal's native window is really gone.
+  //
+  // Two separate iOS problems, one cause. Navigating while the window is still
+  // up strands it above the app, where it swallows every touch - the pushed
+  // screen renders but nothing on it is tappable. And a toast fired from here
+  // is drawn *behind* the sheet, because toasts render inline in the React
+  // root (ToastManager useModal={false}) and zIndex cannot lift a view across
+  // native windows. Deferring both until after dismissal fixes both.
+  //
+  // Flushing nulls the ref first, so a double flush is a no-op.
+  const pendingActionRef = useRef<(() => void) | null>(null);
 
+  const flushPendingAction = useCallback(() => {
+    const action = pendingActionRef.current;
+    if (!action) return;
+    pendingActionRef.current = null;
+    action();
+  }, []);
 
+  /** Closes the sheet, then runs `action` once it is off screen. */
+  const closeThen = useCallback(
+    (action: () => void) => {
+      pendingActionRef.current = action;
+      onClose();
+      if (Platform.OS !== 'ios') {
+        setTimeout(flushPendingAction, SHEET_DISMISS_MS);
+      }
+    },
+    [onClose, flushPendingAction],
+  );
+
+  // Sends the guest to sign in once the sheet is gone. Returns true when it
+  // took over, so the caller stops.
+  const gateGuest = useCallback((): boolean => {
+    if (!signedOut) return false;
+    closeThen(() => navigation.navigate('Auth' as any, { screen: 'SignIn' }));
+    return true;
+  }, [signedOut, closeThen, navigation]);
+
+  /** Incomplete profile: report and send them to fix it, after dismissal. */
+  const sendToProfileSetting = useCallback(
+    (msg: string) => {
+      closeThen(() => {
+        Toast.error(msg);
+        navigateToProfileSetting();
+      });
+    },
+    [closeThen],
+  );
+
+  // No `if (!visible) return null` here on purpose. Unmounting the component
+  // tears the Modal out rather than dismissing it, so iOS never fires
+  // onDismiss and the queued sign-in push would never flush. The Modal renders
+  // nothing while visible is false, and the content below is already guarded
+  // on `service`, so keeping it mounted costs nothing.
 
   const handleAddToCart = async () => {
     if (isAddDisabled || !service) return;
+    // Before checkProfile, not after: checkProfile hits an authenticated
+    // endpoint, so for a guest it 401s, which surfaced the backend's
+    // "Unauthenticated" toast and then pushed them to ProfileSetting - while
+    // the api-client interceptor logged them out on the way.
+    if (gateGuest()) return;
     try {
       setCheckingProfileAdd(true);
       const result = await checkProfile();
       if (!result.ok) {
-        const msg = result.message || t('please_complete_profile') || 'Please complete your profile before adding to cart';
-        Toast.error(msg);
-        try {
-          const { navigateToProfileSetting } = require('@navigation/root-navigation');
-          navigateToProfileSetting();
-        } catch (e) {
-          navigation.navigate('Setting' as any, { screen: 'ProfileSetting' });
-        }
+        sendToProfileSetting(
+          result.message || t('please_complete_profile') || 'Please complete your profile before adding to cart',
+        );
         return;
       }
     } catch (err) {
@@ -96,18 +173,14 @@ export const ServiceDetailBottomSheet: React.FC<ServiceDetailBottomSheetProps> =
 
   const handleCheckout = async () => {
     if (isCheckoutDisabled || !service) return;
+    if (gateGuest()) return;
     try {
       setCheckingProfileCheckout(true);
       const result = await checkProfile();
       if (!result.ok) {
-        const msg = result.message || t('please_complete_profile') || 'Please complete your profile before checkout';
-        Toast.error(msg);
-        try {
-          const { navigateToProfileSetting } = require('@navigation/root-navigation');
-          navigateToProfileSetting();
-        } catch (e) {
-          navigation.navigate('Setting' as any, { screen: 'ProfileSetting' });
-        }
+        sendToProfileSetting(
+          result.message || t('please_complete_profile') || 'Please complete your profile before checkout',
+        );
         return;
       }
     } catch (err) {
@@ -119,11 +192,13 @@ export const ServiceDetailBottomSheet: React.FC<ServiceDetailBottomSheetProps> =
     onCheckout(service);
   };
 
-  const isInCart = service ? cartItems.some(item => item.service.id === service.id) : false;
+  // Backed by the persisted ID set, so this stays true across a relaunch
+  // instead of re-offering a service that is already in the cart.
+  const serviceIsInCart = service ? isInCart(service.id) : false;
   const isAddingToCart = loadingState === 'adding_to_cart';
   const isCheckingOut = loadingState === 'checking_out';
   const isActionDisabled = loadingState !== 'none';
-  const isAddDisabled = isActionDisabled || checkingProfileAdd || isInCart;
+  const isAddDisabled = isActionDisabled || checkingProfileAdd || serviceIsInCart;
   const isCheckoutDisabled = isActionDisabled || checkingProfileCheckout;
 
   return (
@@ -132,8 +207,13 @@ export const ServiceDetailBottomSheet: React.FC<ServiceDetailBottomSheetProps> =
       transparent
       animationType="slide"
       onRequestClose={onClose}
+      onDismiss={flushPendingAction}
     >
       <View style={styles.modalOverlay}>
+        {/* Looks and behaves like the app toast, but lives in this Modal's
+            window so it is actually visible. See SheetToast. */}
+        <SheetToast message={errorMessage} onHide={() => onErrorShown?.()} />
+
         <TouchableWithoutFeedback onPress={onClose}>
           <View style={styles.backdrop} />
         </TouchableWithoutFeedback>
@@ -257,7 +337,7 @@ export const ServiceDetailBottomSheet: React.FC<ServiceDetailBottomSheetProps> =
                     <ActivityIndicator size="small" color={colors.black} />
                   ) : (
                     <Text style={styles.addToCartText}>
-                      {isInCart ? t('added_to_cart') || 'Added to Cart' : t('add_to_cart')}
+                      {serviceIsInCart ? t('added_to_cart') || 'Added to Cart' : t('add_to_cart')}
                     </Text>
                   )}
                 </TouchableOpacity>

@@ -7,6 +7,7 @@ import { BackSvg, ShopingCartSvg } from '../../assets/icons';
 import { AiLogo, LogoPng } from '../../assets/images';
 import { colors } from '../../styles/colors';
 import { useTranslation } from 'react-i18next';
+import { setAppLanguage, type AppLanguage } from '@services/language';
 import { useNavigation } from '@react-navigation/native';
 import { ActivityIndicator } from 'react-native-paper';
 
@@ -110,7 +111,7 @@ const Header2: React.FC<Header2Props> = ({
 
   const handleLanguageChange = (item: { label: string; value: string }) => {
     setLanguage(item.value);
-    i18n.changeLanguage(item.value);
+    setAppLanguage(item.value as AppLanguage);
   };
 
   const handleOpenLangMenu = () => {

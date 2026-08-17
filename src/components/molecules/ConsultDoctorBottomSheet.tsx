@@ -18,9 +18,12 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
 import { Toast } from 'toastify-react-native';
 import { checkProfile } from '@utils/checkProfile';
-import { formatCurrency } from '@utils';
+import { formatCurrency, getMappedErrorMessage } from '@utils';
 import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
+import useAuthStore from '@store/useAuthStore';
+import { navigateToProfileSetting } from '@navigation/navigation-service';
+import { SheetToast } from './SheetToast';
 
 // navigation typing is intentionally kept loose here because this component
 // needs to navigate across nested navigators (tabs -> setting stack).
@@ -81,20 +84,52 @@ export default function ConsultDoctorBottomSheet({
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const [isLoading, setIsLoading] = useState(false);
   const [checkingProfile, setCheckingProfile] = useState(false);
+  // Every message this sheet raises - validation, load failures, API errors.
+  // Rendered by SheetToast rather than the app's ToastManager; see
+  // handleFindDoctor for why.
+  const [sheetError, setSheetError] = useState('');
 
-  // Params for a push that must not happen until this Modal's native window is
-  // actually gone. On iOS, pushing a native-stack screen while the modal window
-  // is still up strands that window above the app, and it swallows every touch
-  // on the screen underneath - the pushed screen renders but nothing is
-  // tappable. Flushing nulls the ref first, so a double flush is a no-op.
-  const pendingNavParamsRef = useRef<any>(null);
+  // Work that must not run until this Modal's native window is really gone.
+  //
+  // Two iOS problems, one cause. Pushing a native-stack screen while the modal
+  // window is still up strands that window above the app, where it swallows
+  // every touch - the pushed screen renders but nothing is tappable. And a
+  // toast fired from in here is drawn *behind* the sheet, because toasts
+  // render inline in the React root (ToastManager useModal={false}) and zIndex
+  // cannot lift a view across native windows.
+  //
+  // One queue serves every destination. Flushing nulls the ref first, so a
+  // double flush is a no-op.
+  const pendingActionRef = useRef<(() => void) | null>(null);
 
   const flushPendingNavigation = useCallback(() => {
-    const params = pendingNavParamsRef.current;
-    if (!params) return;
-    pendingNavParamsRef.current = null;
-    navigation.navigate('ConsultationPayment' as never, params as never);
-  }, [navigation]);
+    const action = pendingActionRef.current;
+    if (!action) return;
+    pendingActionRef.current = null;
+    action();
+  }, []);
+
+  /** Closes the sheet, then runs `action` once it is off screen. */
+  const closeThen = useCallback(
+    (action: () => void) => {
+      pendingActionRef.current = action;
+      onClose();
+      if (Platform.OS !== 'ios') {
+        setTimeout(flushPendingNavigation, SHEET_DISMISS_MS);
+      }
+    },
+    [onClose, flushPendingNavigation],
+  );
+
+  const signedOut = !useAuthStore(state => state.auth?.token);
+
+  // Sends the guest to sign in once the sheet is gone. Returns true when it
+  // took over, so the caller stops.
+  const gateGuest = useCallback((): boolean => {
+    if (!signedOut) return false;
+    closeThen(() => navigation.navigate('Auth' as never, { screen: 'SignIn' } as never));
+    return true;
+  }, [signedOut, closeThen, navigation]);
 
   // Dropdown states
   const [serviceType, setServiceType] = useState('');
@@ -166,7 +201,7 @@ export default function ConsultDoctorBottomSheet({
       setServiceTypes(Array.isArray(data) ? data : []);
     } catch (error: any) {
       console.error('Error fetching service types:', error);
-      Toast.error(error?.message || 'Failed to load service types');
+      setSheetError(error?.message || 'Failed to load service types');
     } finally {
       setLoadingServiceTypes(false);
     }
@@ -194,7 +229,7 @@ export default function ConsultDoctorBottomSheet({
       setServices([]);
     } catch (error: any) {
       console.error('Error fetching service groups:', error);
-      Toast.error(error?.message || 'Failed to load service groups');
+      setSheetError(error?.message || 'Failed to load service groups');
       setServiceGroups([]);
     } finally {
       setLoadingServiceGroups(false);
@@ -220,7 +255,7 @@ export default function ConsultDoctorBottomSheet({
       setService('');
     } catch (error: any) {
       console.error('Error fetching services:', error);
-      Toast.error(error?.message || 'Failed to load services');
+      setSheetError(error?.message || 'Failed to load services');
       setServices([]);
     } finally {
       setLoadingServices(false);
@@ -252,7 +287,7 @@ export default function ConsultDoctorBottomSheet({
       }
     } catch (error: any) {
       console.error('Error fetching consultation types:', error);
-      Toast.error(error?.message || 'Failed to load consultation types');
+      setSheetError(error?.message || 'Failed to load consultation types');
       setConsultationTypeCards([]);
     } finally {
       setLoadingConsultationTypes(false);
@@ -315,25 +350,39 @@ export default function ConsultDoctorBottomSheet({
     value: String(item.id),
   }));
 
+  // Any change to the selections clears the message, so it never lingers after
+  // the user has already fixed what it was complaining about.
+  useEffect(() => {
+    setSheetError('');
+  }, [serviceType, serviceGroup, service, selectedConsultation]);
+
   const handleFindDoctor = async () => {
-    // Validate required fields
+    // Validation reports inline rather than through Toast.
+    //
+    // Toasts render inline in the React root (ToastManager useModal={false},
+    // which is what stopped them freezing the app). This sheet is a native
+    // Modal - a separate window above that root - and zIndex cannot lift a
+    // view across native windows, so on iOS every one of these messages was
+    // drawn underneath the sheet and the user saw nothing at all.
+    setSheetError('');
+
     if (!selectedConsultation) {
-      Toast.error('Please select a consultation type');
+      setSheetError(t('please_select_consultation_type') || 'Please select a consultation type');
       return;
     }
 
     if (!service) {
-      Toast.error('Please select a service');
+      setSheetError(t('please_select_service') || 'Please select a service');
       return;
     }
 
     if (!serviceGroup) {
-      Toast.error('Please select a service group');
+      setSheetError(t('please_select_service_group') || 'Please select a service group');
       return;
     }
 
     if (!serviceType) {
-      Toast.error('Please select a service type');
+      setSheetError(t('please_select_service_type') || 'Please select a service type');
       return;
     }
 
@@ -342,21 +391,21 @@ export default function ConsultDoctorBottomSheet({
     );
 
     if (!selectedCard) {
-      Toast.error('Please select a consultation type');
+      setSheetError(t('please_select_consultation_type') || 'Please select a consultation type');
       return;
     }
 
     // Get the selected service ID
     const selectedService = services.find(s => String(s.id) === service);
     if (!selectedService) {
-      Toast.error('Invalid service selected');
+      setSheetError(t('please_select_service') || 'Invalid service selected');
       return;
     }
 
     // Get the selected group ID
     const selectedGroup = serviceGroups.find(g => String(g.id) === serviceGroup);
     if (!selectedGroup) {
-      Toast.error('Invalid service group selected');
+      setSheetError(t('please_select_service_group') || 'Invalid service group selected');
       return;
     }
 
@@ -368,6 +417,13 @@ export default function ConsultDoctorBottomSheet({
     };
     const consultationType = consultationTypeMap[selectedCard.id] || 'Chat';
 
+    // Backstop for the guest case. ClinicDetail gates before opening this
+    // sheet, so reaching here signed out means the session expired mid-flow.
+    // Must come before checkProfile, which hits an authenticated endpoint and
+    // would answer a guest with the backend's "Unauthenticated" toast and a
+    // push to ProfileSetting.
+    if (gateGuest()) return;
+
     // Before searching for doctors, ensure profile is complete
     try {
       setCheckingProfile(true);
@@ -375,13 +431,12 @@ export default function ConsultDoctorBottomSheet({
       console.log('Check profile result:', result);
       if (!result.ok) {
         const msg = result.message || t('please_complete_profile') || 'Please complete your profile before finding customer support';
-        Toast.error(msg);
-        try {
-          const { navigateToProfileSetting } = require('@navigation/root-navigation');
+        // Deferred past dismissal: the toast would render behind this sheet on
+        // iOS, and navigating with the window still up strands it above the app.
+        closeThen(() => {
+          Toast.error(msg);
           navigateToProfileSetting();
-        } catch (e) {
-          navigation.navigate('Setting', { screen: 'ProfileSetting' });
-        }
+        });
         return;
       }
     } catch (e) {
@@ -410,7 +465,7 @@ export default function ConsultDoctorBottomSheet({
       // Check for success: false in response
       if (response.data?.success === false) {
         const errorMessage = response.data?.message || 'Failed to find customer support';
-        Toast.error(errorMessage);
+        setSheetError(getMappedErrorMessage(errorMessage));
         setIsLoading(false);
         return;
       }
@@ -485,11 +540,9 @@ export default function ConsultDoctorBottomSheet({
       // Queue the push and close the sheet. The navigate itself runs from the
       // Modal's onDismiss (iOS) once the native window is really gone; Android
       // has no onDismiss, so it falls back to the timer.
-      pendingNavParamsRef.current = navigationParams;
-      onClose();
-      if (Platform.OS !== 'ios') {
-        setTimeout(flushPendingNavigation, SHEET_DISMISS_MS);
-      }
+      closeThen(() =>
+        navigation.navigate('ConsultationPayment' as never, navigationParams as never),
+      );
     } catch (error: any) {
       console.error('Error finding doctors:', error);
       const errorMessage =
@@ -497,7 +550,7 @@ export default function ConsultDoctorBottomSheet({
         error?.data?.message ||
         error?.message ||
         'Failed to find doctors';
-      Toast.error(errorMessage);
+      setSheetError(getMappedErrorMessage(errorMessage));
       setIsLoading(false);
     }
   };
@@ -519,6 +572,13 @@ export default function ConsultDoctorBottomSheet({
         onDismiss={flushPendingNavigation}
       >
         <View style={styles.overlay}>
+          {/* Looks and behaves like the app toast, but lives in this Modal's
+              window so it is actually visible. See SheetToast. */}
+          <SheetToast
+            message={sheetError}
+            onHide={() => setSheetError('')}
+          />
+
           <TouchableOpacity
             style={styles.overlayTouchable}
             activeOpacity={1}
@@ -622,7 +682,7 @@ export default function ConsultDoctorBottomSheet({
                         ]}
                         onPress={() => {
                           if (isDisabled) {
-                            Toast.error(
+                            setSheetError(
                               card.id === 'voice'
                                 ? t('microphone_permission_required') || 'Microphone permission required for audio consultation'
                                 : t('camera_microphone_permission_required') || 'Camera and microphone permissions required for video consultation'

@@ -23,7 +23,7 @@ import { useCartCountContext } from '@context/CartCountContext';
 import { styles } from './style';
 import { EmptyContentSvg, SingleLogo } from '@assets/icons';
 import { useTranslation } from 'react-i18next';
-import { useRequireAuth } from '../../../hooks/useRequireAuth';
+import { useRequireAuth, useSignInGateOnFocus } from '../../../hooks/useRequireAuth';
 import { SignInPrompt } from '@components/molecules';
 import { useAuthStore } from '@store';
 import Geolocation from '@react-native-community/geolocation';
@@ -35,6 +35,9 @@ import { useFocusEffect } from '@react-navigation/native';
 export function CartScreen({ navigation }) {
   const { t, i18n } = useTranslation();
   const requireAuth = useRequireAuth();
+  // Guests get the Sign In screen rather than a wall: this screen is nothing
+  // but authenticated content.
+  useSignInGateOnFocus();
   // The cart lives on the server against the user's account, so there is
   // nothing to show - and nothing that would load - without a session.
   const isSignedOut = !useAuthStore(state => state.auth?.token);
@@ -449,7 +452,7 @@ export function CartScreen({ navigation }) {
 
   const handleCheckout = clinicGroup => {
     // Checkout creates an order against the user's account.
-    if (!requireAuth(t('sign_in_for_checkout'))) {
+    if (!requireAuth()) {
       return;
     }
 
@@ -544,7 +547,7 @@ export function CartScreen({ navigation }) {
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="dark-content" />
         <Header2 title={t('cart')} />
-        <SignInPrompt description={t('sign_in_for_cart_screen')} />
+        <SignInPrompt />
       </SafeAreaView>
     );
   }

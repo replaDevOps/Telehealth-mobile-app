@@ -30,9 +30,6 @@ import { resetToHome } from '@navigation/navigation-service';
 import { setAppLanguage } from '@services/language';
 
 export const SettingScreen = ({ navigation }: { navigation: any }) => {
-  // Guests get the Sign In screen rather than a wall: this screen is nothing
-  // but authenticated content.
-  useSignInGateOnFocus();
   const { t, i18n } = useTranslation();
   const { logout, isAuthenticated } = useAuthStore();
   // No session at all: browsing is allowed, this tab is not.

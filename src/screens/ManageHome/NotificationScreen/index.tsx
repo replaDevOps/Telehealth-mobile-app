@@ -31,9 +31,6 @@ interface Notification {
 }
 
 export const NotificationScreen = () => {
-  // Guests get the Sign In screen rather than a wall: this screen is nothing
-  // but authenticated content.
-  useSignInGateOnFocus();
   const { t } = useTranslation();
   const { refreshNotifications, markAllRead } = useNotificationStore();
   // Notifications are per-account (/patient-notifications/*); there is nothing

@@ -12,6 +12,7 @@ import { ClinicInfo } from '@components/molecules/ClinicInfo';
 import { colors } from '../../../styles/colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useState, useEffect } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { View, ScrollView, TouchableOpacity, Text, ActivityIndicator, Platform, PermissionsAndroid, RefreshControl, Image, KeyboardAvoidingView, Keyboard } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -57,7 +58,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
   const { triggerRefresh, incrementCartCount } = useCartCountContext();
   const { cartCount } = useCartCount();
   const { notificationCount } = useNotificationCount();
-  const [activeTab, setActiveTab] = useState(t('services'));
+  const [activeTab, setActiveTab] = useState('services');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterVisible, setFilterVisible] = useState(false);
   const [selectedService, setSelectedService] = useState<any>(null);
@@ -139,13 +140,27 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     checkMediaPermissions();
   }, [clinicID]);
 
+  useFocusEffect(
+    React.useCallback(() => {
+      // By default always select the first tab ('services') when returning to screen
+      setActiveTab('services');
+
+      if (clinicID && !services.length && !loadingServices) {
+        fetchClinicServices();
+      }
+    }, [clinicID, services.length, loadingServices])
+  );
+
   useEffect(() => {
     // Only fetch when tab is active and data is not already loaded
-    if (activeTab === t('services') && clinicID && !services.length && !loadingServices) {
+    if (activeTab === 'services' && clinicID && !services.length && !loadingServices) {
       fetchClinicServices();
     }
-    if (activeTab === t('reviews') && clinicID && !reviews.length && !loadingReviews) {
+    if (activeTab === 'reviews' && clinicID && !reviews.length && !loadingReviews) {
       fetchClinicReviews();
+    }
+    if (activeTab === 'about' && clinicID && !clinicDescription && !loadingDescription) {
+      fetchClinicDescription();
     }
   }, [activeTab, clinicID]);
 
@@ -169,7 +184,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
 
   // Refetch services from server when search query changes (debounced)
   useEffect(() => {
-    if (activeTab === t('services') && clinicID) {
+    if (activeTab === 'services' && clinicID) {
       const timeoutId = setTimeout(() => {
         // Reset pagination and fetch first page from server to support server-side search
         setServices([]);
@@ -432,8 +447,8 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     // Refresh all data
     await Promise.all([
       fetchClinicDetails(location.lat, location.long, true),
-      activeTab === t('services') ? fetchClinicServices() : Promise.resolve(),
-      activeTab === t('reviews') ? fetchClinicReviews() : Promise.resolve(),
+      activeTab === 'services' ? fetchClinicServices() : Promise.resolve(),
+      activeTab === 'reviews' ? fetchClinicReviews() : Promise.resolve(),
       fetchClinicDescription(),
     ]);
 
@@ -644,7 +659,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     return apiReviews.map((review): Review => {
       return {
         id: review.id.toString(),
-        author: review.user?.name || 'Anonymous',
+        author: review.user?.name || t('anonymous') || 'Anonymous',
         date: review.date || review.created_at?.split('T')[0] || '',
         rating: parseFloat(review.rating) || 0,
         text: review.review || '',
@@ -1297,13 +1312,17 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
 
         {/* Tab Bar */}
         <TabBar
-          tabs={[t('services'), t('reviews'), t('about')]}
+          tabs={[
+            { key: 'services', label: t('services') },
+            { key: 'reviews', label: t('reviews') },
+            { key: 'about', label: t('about') },
+          ]}
           activeTab={activeTab}
           onTabPress={setActiveTab}
         />
 
         {/* Content based on active tab */}
-        {activeTab === t('services') && (
+        {activeTab === 'services' && (
           <View style={styles.servicesContent}>
             {/* All Services Header */}
             <Text style={styles.sectionTitle}>{t('all_services')}</Text>
@@ -1351,7 +1370,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
                         onPress={loadMoreServices}
                         style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, backgroundColor: '#efefef' }}
                       >
-                        <Text style={{ color: '#333' }}>Load More</Text>
+                        <Text style={{ color: '#333' }}>{t('load_more')}</Text>
                       </TouchableOpacity>
                     )}
                   </View>
@@ -1365,7 +1384,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
           </View>
         )}
 
-        {activeTab === t('reviews') && (
+        {activeTab === 'reviews' && (
           <View style={styles.reviewsContent}>
             {/* Reviews Header */}
             <View style={styles.reviewsHeader}>
@@ -1420,7 +1439,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
                         onPress={loadMoreReviews}
                         style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, backgroundColor: '#efefef' }}
                       >
-                        <Text style={{ color: '#333' }}>Load More</Text>
+                        <Text style={{ color: '#333' }}>{t('load_more')}</Text>
                       </TouchableOpacity>
                     )}
                   </View>
@@ -1434,7 +1453,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
           </View>
         )}
 
-        {activeTab === t('about') && (
+        {activeTab === 'about' && (
           <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
             {/* Description Section */}
             <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 12 }}>
@@ -1505,7 +1524,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
                         onPress={loadMoreDevices}
                         style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, backgroundColor: '#efefef' }}
                       >
-                        <Text style={{ color: '#333' }}>Load More</Text>
+                        <Text style={{ color: '#333' }}>{t('load_more')}</Text>
                       </TouchableOpacity>
                     )}
                   </View>
@@ -1513,7 +1532,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
               </View>
             ) : (
               <Text style={{ fontSize: 14, color: colors.secondaryText, textAlign: 'center', paddingVertical: 20 }}>
-                No devices available
+                {t('no_devices_available')}
               </Text>
             )}
           </View>

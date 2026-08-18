@@ -32,8 +32,8 @@ export const ClinicInfo: React.FC<ClinicInfoProps> = ({
         {/* If category is "Both", show Online and Offline chips; otherwise show single chip */}
         {isBoth ? (
           <View style={styles.chipsContainer}>
-            <Text style={styles.category}>Dermatology</Text>
-            <Text style={styles.category}>Dentistry</Text>
+            <Text style={styles.category}>{t('dermatology')}</Text>
+            <Text style={styles.category}>{t('dentistry')}</Text>
           </View>
         ) : (
           <Text style={styles.category}>{category}</Text>

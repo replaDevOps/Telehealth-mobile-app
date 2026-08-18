@@ -79,20 +79,6 @@ export function nextGateState({
  * returning focus is suppressed.
  */
 export const useSignInGateOnFocus = () => {
-  const navigation = useNavigation<any>();
-  const signedOut = !useAuthStore(state => state.auth?.token);
-  const suppressedRef = useRef(false);
-
-  useFocusEffect(
-    useCallback(() => {
-      const { open, suppressed } = nextGateState({
-        signedOut,
-        suppressed: suppressedRef.current,
-      });
-      suppressedRef.current = suppressed;
-      if (open) {
-        openSignIn(navigation);
-      }
-    }, [signedOut, navigation]),
-  );
+  // Auto-redirection on focus is disabled so guest users see <SignInPrompt /> first
+  // and only navigate to Sign In when pressing the "Sign In" button.
 };

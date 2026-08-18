@@ -88,6 +88,8 @@ export function CheckoutScreen({ route, navigation }) {
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [redeemPoints, setRedeemPoints] = useState('');
+  // Tokenise the card at HyperPay so the next checkout can reuse it.
+  const [saveCard, setSaveCard] = useState(false);
   // The input clamps to what the user can actually spend, so the stored value
   // never exceeds their balance. This remembers that they asked for more, so
   // the inline "Insufficient coins" notice still has something to react to.
@@ -222,6 +224,7 @@ export function CheckoutScreen({ route, navigation }) {
       const checkout = await prepareCartCheckout({
         purpose: 'cart',
         redeem_points: appliedCoins,
+        save_card: saveCard,
         ...billing,
         billing_country: billing.billing_country.toUpperCase(),
       });
@@ -387,6 +390,9 @@ export function CheckoutScreen({ route, navigation }) {
           onPointsToRedeemChange={handlePointsToRedeemChange}
           coinToSar={COIN_TO_SAR}
           maxRedemptionSAR={maxRedemptionSAR}
+          showSaveCard={true}
+          saveCard={saveCard}
+          onSaveCardChange={setSaveCard}
         />
 
         <BillingDetailsForm

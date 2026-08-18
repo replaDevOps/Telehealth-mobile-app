@@ -12,6 +12,7 @@ const mockGet = apiClient.get as jest.Mock;
 const payload: PrepareCartPayload = {
   purpose: 'cart',
   redeem_points: 0,
+  save_card: false,
   first_name: 'Ahmed',
   last_name: 'Ali',
   email: 'a@example.com',

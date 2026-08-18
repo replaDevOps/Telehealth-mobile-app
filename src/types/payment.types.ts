@@ -28,6 +28,8 @@ export interface BillingDetails {
 export interface PrepareCartPayload extends BillingDetails {
   purpose: 'cart';
   redeem_points: number;
+  /** Ask HyperPay to tokenise the card so it can be reused next time. */
+  save_card: boolean;
 }
 
 export interface PrepareResponseData {

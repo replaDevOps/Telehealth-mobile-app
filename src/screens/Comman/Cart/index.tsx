@@ -33,6 +33,9 @@ import { Toast } from 'toastify-react-native';
 import { useFocusEffect } from '@react-navigation/native';
 
 export function CartScreen({ navigation }) {
+  // Guests get the Sign In screen rather than a wall: this screen is nothing
+  // but authenticated content.
+  useSignInGateOnFocus();
   const { t, i18n } = useTranslation();
   const requireAuth = useRequireAuth();
   // The cart lives on the server against the user's account, so there is

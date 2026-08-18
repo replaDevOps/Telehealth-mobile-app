@@ -125,6 +125,15 @@ export function PaymentStatusScreen({ route, navigation }: any) {
       const next = resolvePaymentOutcome(data.status, data.fulfillment_status);
       setOutcome(next);
 
+      // The screen only ever renders the mapped outcome, so log the fields it
+      // was mapped from — a "Payment declined" view is otherwise impossible to
+      // trace back to what the server actually said.
+      console.log(
+        `[PaymentStatus] payment ${paymentId}: status=${data.status} ` +
+          `fulfillment=${data.fulfillment_status} amount=${data.amount} ` +
+          `${data.currency} paid_at=${data.paid_at} -> ${next}`,
+      );
+
       // The server owns the amount; this only surfaces a divergence between
       // its calculation and the preview Checkout showed the user.
       if (expectedAmount !== undefined && data.status === 'paid') {
@@ -154,17 +163,26 @@ export function PaymentStatusScreen({ route, navigation }: any) {
       // session. Stop immediately; the payment still settles server-side
       // via the webhook and will appear in history.
       if (error?.status === 401) {
+        console.warn('[PaymentStatus] poll unauthenticated', error?.message);
         settledRef.current = true;
         setOutcome(prev => (prev === 'confirming' ? 'unconfirmed' : prev));
         return;
       }
 
       // Any other failure is a network problem, not a failed payment.
-      console.warn('[PaymentStatus] poll failed', error);
+      console.warn(
+        `[PaymentStatus] poll failed (${error?.status ?? 'no status'})`,
+        error?.message,
+        JSON.stringify(error?.data ?? null),
+      );
     }
 
     if (Date.now() >= deadlineRef.current) {
       settledRef.current = true;
+      console.warn(
+        `[PaymentStatus] payment ${paymentId}: polling timed out after ` +
+          `${POLL_TIMEOUT_MS}ms, last status=${lastStatusRef.current ?? 'none'}`,
+      );
       // Only override while still 'confirming' — a resolved outcome stands.
       setOutcome(prev =>
         prev === 'confirming'

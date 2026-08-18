@@ -17,6 +17,7 @@ import {
   TamaraSvg,
   SingleLogo,
 } from '@assets/icons';
+import { CheckboxWithText } from '@components/common/CheckboxWithText';
 import { colors } from '../../styles/colors';
 import { formatCurrency } from '@utils';
 
@@ -56,6 +57,11 @@ interface PaymentMethodProps {
    */
   variant?: 'full' | 'card-only';
 
+  // Save card (HyperPay tokenisation)
+  showSaveCard?: boolean;
+  saveCard?: boolean;
+  onSaveCardChange?: (save: boolean) => void;
+
   // Royalty points
   showRoyaltyPoints?: boolean;
   royaltyPoints?: number;
@@ -89,6 +95,9 @@ export function PaymentMethod({
   showTitle = true,
   compact = false,
   variant = 'full',
+  showSaveCard = false,
+  saveCard: externalSaveCard,
+  onSaveCardChange,
   showRoyaltyPoints = false,
   royaltyPoints = 0,
   pointsToRedeem: externalPointsToRedeem,
@@ -111,6 +120,7 @@ export function PaymentMethod({
   const [internalExpiryDate, setInternalExpiryDate] = useState('');
   const [internalCvv, setInternalCvv] = useState('');
   const [internalPointsToRedeem, setInternalPointsToRedeem] = useState('');
+  const [internalSaveCard, setInternalSaveCard] = useState(false);
   const [internalCouponCode, setInternalCouponCode] = useState('');
 
   // Payment method options
@@ -156,6 +166,7 @@ export function PaymentMethod({
   const cardNumber = externalCardNumber ?? internalCardNumber;
   const expiryDate = externalExpiryDate ?? internalExpiryDate;
   const cvv = externalCvv ?? internalCvv;
+  const saveCard = externalSaveCard ?? internalSaveCard;
   const pointsToRedeem = externalPointsToRedeem ?? internalPointsToRedeem;
   const couponCode = externalCouponCode ?? internalCouponCode;
 
@@ -269,6 +280,11 @@ export function PaymentMethod({
     [onPointsToRedeemChange, royaltyPoints],
   );
 
+  const handleSaveCardToggle = useCallback(() => {
+    const next = !saveCard;
+    onSaveCardChange?.(next) ?? setInternalSaveCard(next);
+  }, [onSaveCardChange, saveCard]);
+
   const handleCouponCodeChange = useCallback(
     (text: string) => {
       onCouponCodeChange?.(text) ?? setInternalCouponCode(text);
@@ -370,6 +386,15 @@ export function PaymentMethod({
             </View>
           )}
         </>
+      )}
+
+      {/* Save Card — only meaningful for the card flow */}
+      {showSaveCard && (variant === 'card-only' || selectedPayment === 'credit') && (
+        <View style={styles.saveCardSection}>
+          <CheckboxWithText isChecked={saveCard} onToggle={handleSaveCardToggle}>
+            {t('save_this_card')}
+          </CheckboxWithText>
+        </View>
       )}
 
       {/* Coupon Code Section */}
@@ -772,6 +797,11 @@ const styles = StyleSheet.create({
     color: colors.secondaryText,
     letterSpacing: 0.5,
     marginBottom: 12,
+  },
+
+  // Save Card Section
+  saveCardSection: {
+    marginTop: 4,
   },
 
   // Coupon Section

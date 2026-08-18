@@ -36,6 +36,9 @@ const DROPDOWN_OPTIONS: DropdownOption[] = [
 ];
 
 export function HistoryScreen({ navigation }) {
+  // Guests get the Sign In screen rather than a wall: this screen is nothing
+  // but authenticated content.
+  useSignInGateOnFocus();
   const { t } = useTranslation();
   // No session at all: browsing is allowed, this tab is not.
   const isSignedOut = !useAuthStore(state => state.auth?.token);

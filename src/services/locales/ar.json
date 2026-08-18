@@ -604,6 +604,7 @@
   "postcode": "الرمز البريدي",
   "country_code": "الدولة (رمز ISO)",
   "card_mada_visa_master": "بطاقة — مدى / فيزا / ماستركارد",
+  "save_this_card": "احفظ هذه البطاقة",
   "fill_billing_details": "يرجى استكمال بيانات الفوترة",
   "continue_to_payment": "متابعة الدفع",
   "please_login_to_checkout": "يرجى تسجيل الدخول لإتمام الطلب",

@@ -49,7 +49,8 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     flex: 1,
-    marginLeft: 10,
+    // marginStart (not marginLeft) so the gap follows the flipped row in RTL.
+    marginStart: 10,
   },
   text: {
     color: '#595959',

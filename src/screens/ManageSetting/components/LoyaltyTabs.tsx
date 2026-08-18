@@ -32,6 +32,9 @@ export const LoyaltyTabs: React.FC<LoyaltyTabsProps> = ({
         >
           <Text
             style={[styles.tabText, activeTab === key && styles.activeTabText]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.7}
           >
             {label}
           </Text>
@@ -58,7 +61,9 @@ export const styles = StyleSheet.create({
   tab: {
     flex: 1,
     paddingVertical: 10,
+    paddingHorizontal: 4,
     alignItems: 'center',
+    justifyContent: 'center',
     borderRadius: 8,
   },
   activeTab: {
@@ -68,6 +73,7 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: colors.text,
+    textAlign: 'center',
   },
   activeTabText: {
     color: colors.white,

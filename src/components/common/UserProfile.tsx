@@ -10,7 +10,8 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { launchImageLibrary, ImagePickerResponse, Asset } from 'react-native-image-picker';
 import { mvs } from '../../config/metrices';
 import { colors } from '../../styles/colors';
-import { EditSvg, SingleLogo } from '../../assets/icons';
+import { EditSvg } from '../../assets/icons';
+import { SplashIcon } from '@assets/images';
 import { API } from '../../services/api/api-endpoint';
 import { BASE_URL } from '../../constants';
 import { Toast } from 'toastify-react-native';
@@ -168,9 +169,11 @@ const UserProfile: React.FC<UserProfileProps> = ({
             onError={() => setHasLoadError(true)}
           />
         ) : (
-          <View style={[styles.profileImage, { backgroundColor: '#E8DDF7', justifyContent: 'center', alignItems: 'center' }]}>
-            <SingleLogo width={mvs(50)} height={mvs(50)} fill="#7625D7" />
-          </View>
+          <Image 
+            source={SplashIcon} 
+            style={[styles.profileImage]} 
+            resizeMode="cover"
+          />
         )}
 
         {/* Edit / Loading overlay */}

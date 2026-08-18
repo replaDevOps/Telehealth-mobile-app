@@ -29,7 +29,7 @@ export const SignInPrompt: React.FC = () => {
   return (
     <View style={styles.container}>
       <View style={styles.iconCard}>
-        <SingleLogo width={44} height={41} fill={colors.white} />
+        <SingleLogo width={60} height={60} fill={colors.white} />
       </View>
 
       <Text style={styles.title}>{t('sign_in_required') || 'Sign in required'}</Text>

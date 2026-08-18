@@ -79,7 +79,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
           <Ionicons
             name={leftIconName}
             size={mvs(18)}
-            color={isLight ? colors.secondaryText : '#8E8E8E'}
+            color={isLight ? colors.secondaryText : '#C4B5FD'}
             style={styles.leftIcon}
           />
         )}
@@ -92,7 +92,7 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({
             style,
           ]}
           placeholder={placeholder}
-          placeholderTextColor={isLight ? colors.secondaryText : '#8E8E8E'}
+          placeholderTextColor={isLight ? colors.secondaryText : '#B0A8B9'}
           value={value}
           onChangeText={onChangeText}
           secureTextEntry={secureTextEntry && !showPassword} // Toggle visibility

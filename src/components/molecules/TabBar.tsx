@@ -2,10 +2,15 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { colors } from '../../styles/colors';
 
+export interface TabItem {
+  key: string;
+  label: string;
+}
+
 interface TabBarProps {
-  tabs: string[];
+  tabs: (TabItem | string)[];
   activeTab: string;
-  onTabPress: (tab: string) => void;
+  onTabPress: (tabKey: string) => void;
 }
 
 export const TabBar: React.FC<TabBarProps> = ({
@@ -15,20 +20,29 @@ export const TabBar: React.FC<TabBarProps> = ({
 }) => {
   return (
     <View style={styles.tabContainer}>
-      {tabs.map(tab => (
-        <TouchableOpacity
-          key={tab}
-          style={[styles.tab, activeTab === tab && styles.activeTab]}
-          onPress={() => onTabPress(tab)}
-          activeOpacity={0.7}
-        >
-          <Text
-            style={[styles.tabText, activeTab === tab && styles.activeTabText]}
+      {tabs.map(tab => {
+        const key = typeof tab === 'string' ? tab : tab.key;
+        const label = typeof tab === 'string' ? tab : tab.label;
+        const isActive = activeTab === key;
+
+        return (
+          <TouchableOpacity
+            key={key}
+            style={[styles.tab, isActive && styles.activeTab]}
+            onPress={() => onTabPress(key)}
+            activeOpacity={0.7}
           >
-            {tab}
-          </Text>
-        </TouchableOpacity>
-      ))}
+            <Text
+              style={[styles.tabText, isActive && styles.activeTabText]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.7}
+            >
+              {label}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
     </View>
   );
 };
@@ -47,7 +61,7 @@ const styles = StyleSheet.create({
   tab: {
     flex: 1,
     paddingVertical: 10,
-    paddingHorizontal: 20,
+    paddingHorizontal: 4,
     borderRadius: 10,
     backgroundColor: 'transparent',
     alignItems: 'center',
@@ -60,6 +74,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.secondaryText,
     fontWeight: '500',
+    textAlign: 'center',
   },
   activeTabText: {
     color: colors.white,

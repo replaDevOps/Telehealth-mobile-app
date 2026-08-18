@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, ActivityIndicator, useColorScheme } from 'react-native';
+import { View, StyleSheet, Animated, useColorScheme, Image } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { useAuthStore, useProfileStore, useLocationStore } from '@store';
@@ -7,7 +7,9 @@ import { restoreAppLanguage } from '../../services/language';
 import { fcmService } from '../../services/firebase/fcmService';
 import { useTranslation } from 'react-i18next';
 import { Toast } from 'toastify-react-native';
-import { SingleLogo } from '@assets/icons';
+import { SplashBottomIcon, SplashIcon } from '@assets/images';
+
+const AnimatedImage = Animated.createAnimatedComponent(Image);
 
 type SplashScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -18,6 +20,7 @@ type Props = {
 export const SplashScreen: React.FC<Props> = ({ navigation }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.92)).current;
+  const blurAnim = useRef(new Animated.Value(10)).current;
   const hasNavigatedRef = useRef(false);
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
@@ -90,22 +93,25 @@ export const SplashScreen: React.FC<Props> = ({ navigation }) => {
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 1200,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.spring(scaleAnim, {
         toValue: 1,
         friction: 8,
         tension: 40,
-        useNativeDriver: true,
+        useNativeDriver: false,
+      }),
+      Animated.timing(blurAnim, {
+        toValue: 0,
+        duration: 1200,
+        useNativeDriver: false,
       }),
     ]).start();
-  }, [fadeAnim, scaleAnim, navigation]);
-
-  const lockupColor = isDarkMode ? '#FFFFFF' : '#4A148C';
+  }, [fadeAnim, scaleAnim, blurAnim, navigation]);
 
   return (
     <View style={[styles.container, { backgroundColor: isDarkMode ? '#1E1930' : '#FFFFFF' }]}>
-      {/* Centered App Icon Card with Soft Shadow */}
+      {/* Centered App Icon */}
       <Animated.View
         style={[
           styles.iconContainer,
@@ -115,25 +121,31 @@ export const SplashScreen: React.FC<Props> = ({ navigation }) => {
           },
         ]}
       >
-        <View style={styles.iconCard}>
-          <SingleLogo width={68} height={64} fill="#FFFFFF" />
-        </View>
+        <AnimatedImage
+          source={SplashIcon}
+          style={styles.logo}
+          resizeMode="contain"
+          blurRadius={blurAnim}
+        />
       </Animated.View>
 
-      {/* Small Bottom Lockup: فينا VENA */}
-      <Animated.View style={[styles.bottomLockup, { opacity: fadeAnim }]}>
-        <Text style={[styles.arabicText, { color: lockupColor }]}>فينا</Text>
-        <View style={styles.heartWrapper}>
-          <SingleLogo width={16} height={15} fill={lockupColor} />
-        </View>
-        <Text style={[styles.englishText, { color: lockupColor }]}>VENA</Text>
+      {/* Bottom Lockup with blur & scale animation */}
+      <Animated.View
+        style={[
+          styles.bottomLockup,
+          {
+            opacity: fadeAnim,
+            transform: [{ scale: scaleAnim }],
+          },
+        ]}
+      >
+        <AnimatedImage
+          source={SplashBottomIcon}
+          style={styles.bottomIcon}
+          resizeMode="contain"
+          blurRadius={blurAnim}
+        />
       </Animated.View>
-
-      <ActivityIndicator
-        size="small"
-        color="#4A148C"
-        style={styles.loader}
-      />
     </View>
   );
 };
@@ -147,43 +159,28 @@ const styles = StyleSheet.create({
   iconContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  iconCard: {
-    width: 120,
-    height: 120,
-    borderRadius: 34, // ~28% corner radius
-    backgroundColor: '#4A148C',
-    justifyContent: 'center',
-    alignItems: 'center',
     shadowColor: '#4A148C',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.28,
     shadowRadius: 20,
     elevation: 10,
   },
+  logo: {
+    width: 120,
+    height: 120,
+    borderRadius: 34,
+  },
   bottomLockup: {
     position: 'absolute',
     bottom: 54,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  arabicText: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginRight: 6,
-  },
-  heartWrapper: {
-    marginHorizontal: 3,
-  },
-  englishText: {
-    fontSize: 15,
-    fontWeight: '800',
-    letterSpacing: 1.5,
-    marginLeft: 6,
-  },
-  loader: {
-    position: 'absolute',
-    bottom: 100,
+  bottomIcon: {
+    width: 90,
+    height: 40,
   },
 });
+
+
+

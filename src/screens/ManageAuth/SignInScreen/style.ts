@@ -140,7 +140,6 @@ export const styles = StyleSheet.create({
   },
   appleText: {
     color: colors.white,
-    marginLeft: mvs(10),
     fontSize: mvs(15),
     fontWeight: '600',
   },

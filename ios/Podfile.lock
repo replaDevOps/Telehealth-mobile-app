@@ -2170,7 +2170,7 @@ PODS:
     - React-Core
   - react-native-render-html (6.3.4):
     - React-Core
-  - react-native-safe-area-context (5.6.1):
+  - react-native-safe-area-context (5.9.0):
     - boost
     - DoubleConversion
     - fast_float
@@ -2188,8 +2188,8 @@ PODS:
     - React-graphics
     - React-ImageManager
     - React-jsi
-    - react-native-safe-area-context/common (= 5.6.1)
-    - react-native-safe-area-context/fabric (= 5.6.1)
+    - react-native-safe-area-context/common (= 5.9.0)
+    - react-native-safe-area-context/fabric (= 5.9.0)
     - React-NativeModulesApple
     - React-RCTFabric
     - React-renderercss
@@ -2200,7 +2200,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - react-native-safe-area-context/common (5.6.1):
+  - react-native-safe-area-context/common (5.9.0):
     - boost
     - DoubleConversion
     - fast_float
@@ -2228,7 +2228,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - react-native-safe-area-context/fabric (5.6.1):
+  - react-native-safe-area-context/fabric (5.9.0):
     - boost
     - DoubleConversion
     - fast_float
@@ -3163,7 +3163,7 @@ PODS:
     - RNWorklets
     - SocketRocket
     - Yoga
-  - RNScreens (4.19.0):
+  - RNScreens (4.27.0):
     - boost
     - DoubleConversion
     - fast_float
@@ -3190,10 +3190,10 @@ PODS:
     - ReactCodegen
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
-    - RNScreens/common (= 4.19.0)
+    - RNScreens/common (= 4.27.0)
     - SocketRocket
     - Yoga
-  - RNScreens/common (4.19.0):
+  - RNScreens/common (4.27.0):
     - boost
     - DoubleConversion
     - fast_float
@@ -3837,7 +3837,7 @@ SPEC CHECKSUMS:
   react-native-maps: eaa585c9d9f7e848d835839f18e108a8821ed9aa
   react-native-netinfo: cec9c4e86083cb5b6aba0e0711f563e2fbbff187
   react-native-render-html: 5afc4751f1a98621b3009432ef84c47019dcb2bd
-  react-native-safe-area-context: ee1e8e2a7abf737a8d4d9d1a5686a7f2e7466236
+  react-native-safe-area-context: 83261fbfe2f9dc0c7a23c5895b3d9101dd6d7a42
   react-native-webrtc: e8f0ce746353adc2744a2b933645e1aeb41eaa74
   react-native-webview: 565438c513f95a3a6c82d14492d4a3794914d50c
   React-NativeModulesApple: efd0906463c79d9b86197dbcf0d58358dff8c5ed
@@ -3885,7 +3885,7 @@ SPEC CHECKSUMS:
   RNFS: 89de7d7f4c0f6bafa05343c578f61118c8282ed8
   RNGoogleSignin: 32eac25be182674a2838c8bf6908c0296fe3bb5d
   RNReanimated: 1f1796c7a1f864fc6f1e1f79741335700917fe4b
-  RNScreens: d6413aeb1878cdafd3c721e2c5218faf5d5d3b13
+  RNScreens: 0d856aae26b3179745f19c3bd58f16dbd1d9ddd7
   RNSVG: 9d938c987c596bf20a3bd811a6ba41a22107f491
   RNVectorIcons: e355dd0998d6b9020e560922a66614eb9636501b
   RNWorklets: 9ad89e36d3238717592fb91c64a0066462d26741
@@ -3896,6 +3896,6 @@ SPEC CHECKSUMS:
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   Yoga: 526f25666395d30c297d53154398ffd249eaf9e1
 
-PODFILE CHECKSUM: 5e9265979d7dc3ec6b8e0565b078c4ba0f842b63
+PODFILE CHECKSUM: 3486c7c6d8c5796cc167df70f604b30d033f4d77
 
 COCOAPODS: 1.16.2

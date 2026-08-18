@@ -407,7 +407,7 @@ export const FilterScreen = ({ navigation, route }) => {
         {/* Service Group */}
         <FilterSection title={t('service_group')}>
           {loadingGroups ? (
-            <Text style={styles.loadingText}>Loading groups...</Text>
+            <Text style={styles.loadingText}>{t('loading_groups') || 'Loading groups...'}</Text>
           ) : groups.length > 0 ? (
             groups.map((group) => (
           <CheckboxItem
@@ -418,16 +418,16 @@ export const FilterScreen = ({ navigation, route }) => {
           />
             ))
           ) : filters.clinicTypes ? (
-            <Text style={styles.emptyText}>No groups available</Text>
+            <Text style={styles.emptyText}>{t('no_groups_available') || 'No groups available'}</Text>
           ) : (
-            <Text style={styles.emptyText}>Select a clinic type first</Text>
+            <Text style={styles.emptyText}>{t('select_clinic_type_first') || 'Select a clinic type first'}</Text>
           )}
         </FilterSection>
 
         {/* Service Name */}
         <FilterSection title={t('service_name')}>
           {loadingServices ? (
-            <Text style={styles.loadingText}>Loading services...</Text>
+            <Text style={styles.loadingText}>{t('loading_services') || 'Loading services...'}</Text>
           ) : services.length > 0 ? (
             services.map((service) => (
           <CheckboxItem
@@ -438,9 +438,9 @@ export const FilterScreen = ({ navigation, route }) => {
           />
             ))
           ) : Object.keys(filters.serviceGroups).some(key => filters.serviceGroups[Number(key)]) ? (
-            <Text style={styles.emptyText}>No services available</Text>
+            <Text style={styles.emptyText}>{t('no_services_available') || 'No services available'}</Text>
           ) : (
-            <Text style={styles.emptyText}>Select service groups first</Text>
+            <Text style={styles.emptyText}>{t('select_service_group_first') || 'Select service groups first'}</Text>
           )}
         </FilterSection>
 

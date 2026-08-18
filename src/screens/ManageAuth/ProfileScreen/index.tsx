@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { Asset } from 'react-native-image-picker';
@@ -32,6 +32,7 @@ import { useAuthStore } from '@store';
 import { AuthStackParamList } from '../../../navigation/AuthNavigator';
 import parsePhoneNumberFromString, { CountryCode } from 'libphonenumber-js';
 import citiesData from '@utils/cities-data.json';
+import { SplashIcon } from '@assets/images';
 
 type NavProps = StackNavigationProp<AuthStackParamList, 'Profile'>;
 type RouteProps = RouteProp<AuthStackParamList, 'Profile'>;
@@ -204,24 +205,36 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
         });
 
         // Add image — if user picked one use it, otherwise attach the
-        // bundled default avatar so the backend never rejects for missing photo.
-        if (profileImageAsset && profileImageAsset.uri) {
-          const uriParts = profileImageAsset.uri.split('.');
-          const fileExtension = uriParts[uriParts.length - 1] || 'jpg';
-          const fileName = profileImageAsset.fileName || `profile_${Date.now()}.${fileExtension}`;
+        // bundled default splashIcon.png image so the backend receives a default image.
+        const userSelectedUri = profileImageAsset?.uri || (typeof profileImage === 'string' && profileImage.trim() ? profileImage.trim() : null);
+
+        if (userSelectedUri) {
+          const uriParts = userSelectedUri.split('.');
+          const fileExtension = uriParts[uriParts.length - 1]?.split('?')[0] || 'jpg';
+          const fileName = profileImageAsset?.fileName || `profile_${Date.now()}.${fileExtension}`;
           
-          let fileType = profileImageAsset.type || 'image/jpeg';
-          if (!profileImageAsset.type) {
+          let fileType = profileImageAsset?.type || 'image/jpeg';
+          if (!profileImageAsset?.type) {
             const ext = fileExtension.toLowerCase();
             if (ext === 'png') fileType = 'image/png';
             else if (ext === 'jpg' || ext === 'jpeg') fileType = 'image/jpeg';
           }
 
           formData.append('image', {
-            uri: profileImageAsset.uri,
+            uri: userSelectedUri,
             type: fileType,
             name: fileName,
           } as any);
+        } else {
+          // Resolve bundled splashIcon.png asset source and upload as default image
+          const defaultAsset = Image.resolveAssetSource(SplashIcon);
+          if (defaultAsset && defaultAsset.uri) {
+            formData.append('image', {
+              uri: defaultAsset.uri,
+              type: 'image/png',
+              name: 'splashIcon.png',
+            } as any);
+          }
         }
 
         // Get auth token if available
@@ -232,6 +245,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
           method: 'POST',
           body: formData,
           headers: {
+            'Content-Type': 'multipart/form-data',
             ...(token && { 'Authorization': `Bearer ${token}` }),
           },
         });
@@ -312,28 +326,70 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
       const parsedPhoneSkip = parsePhoneNumberFromString(phone, countryCode as CountryCode);
       const fullPhoneSkip = parsedPhoneSkip ? parsedPhoneSkip.format('E.164') : phone.trim();
 
-      // Build payload: fullName, phoneNo and email are required; include other profile fields if provided
-      const payload: any = {
-        fullName: fullName.trim(),
-        phoneNo: fullPhoneSkip,
-        email: email.trim(),
-      };
+      // Build FormData for multipart request so image (user selected or default splashIcon.png) is sent
+      const formData = new FormData();
+      formData.append('fullName', fullName.trim());
+      formData.append('phoneNo', fullPhoneSkip);
+      formData.append('email', email.trim());
+
       if (isSaudi !== null) {
-        payload.nationality = isSaudi ? 'saudi' : 'non_saudi';
+        formData.append('nationality', isSaudi ? 'saudi' : 'non_saudi');
       }
       if (!isSaudi && IdCardNumber?.trim() && IdCardNumber.replace(/[^0-9]/g, '').length === 10) {
-        payload.nationalID = IdCardNumber.trim();
+        formData.append('nationalID', IdCardNumber.trim());
       }
-      if (gender) payload.gender = gender;
+      if (gender) formData.append('gender', gender);
       const skipAge = computeAge(dob);
-      if (skipAge !== null) payload.age = String(skipAge);
-      if (city) payload.city = city;
-      console.log("Skip",payload)
-      const response = await apiClient.post(API.AUTH.SKIP, payload);
+      if (skipAge !== null) formData.append('age', String(skipAge));
+      if (city) formData.append('city', city.trim());
 
-      // API may return success:false with message field — prefer showing field errors
-      const serverMsg = response?.data?.message || '';
-      if (response?.data?.success === false) {
+      // Add image: if user picked an image, attach that; otherwise attach splashIcon.png
+      const userSelectedUri = profileImageAsset?.uri || (typeof profileImage === 'string' && profileImage.trim() ? profileImage.trim() : null);
+
+      if (userSelectedUri) {
+        const uriParts = userSelectedUri.split('.');
+        const fileExtension = uriParts[uriParts.length - 1]?.split('?')[0] || 'jpg';
+        const fileName = profileImageAsset?.fileName || `profile_${Date.now()}.${fileExtension}`;
+        
+        let fileType = profileImageAsset?.type || 'image/jpeg';
+        if (!profileImageAsset?.type) {
+          const ext = fileExtension.toLowerCase();
+          if (ext === 'png') fileType = 'image/png';
+          else if (ext === 'jpg' || ext === 'jpeg') fileType = 'image/jpeg';
+        }
+
+        formData.append('image', {
+          uri: userSelectedUri,
+          type: fileType,
+          name: fileName,
+        } as any);
+      } else {
+        const defaultAsset = Image.resolveAssetSource(SplashIcon);
+        if (defaultAsset && defaultAsset.uri) {
+          formData.append('image', {
+            uri: defaultAsset.uri,
+            type: 'image/png',
+            name: 'splashIcon.png',
+          } as any);
+        }
+      }
+
+      console.log('[ProfileScreen] SKIP payload FormData created with image');
+      const token = useAuthStore.getState().auth?.token;
+      const response = await fetch(`${BASE_URL}${API.AUTH.SKIP}`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
+      });
+
+      const data = await response.json();
+      console.log('Skip API response:', data);
+
+      const serverMsg = data?.message || data?.data?.message || '';
+      if (!response.ok || data?.success === false) {
         const lower = String(serverMsg).toLowerCase();
         if (lower.includes('name') || lower.includes('full name')) {
           setNameError(serverMsg);
@@ -347,15 +403,11 @@ export const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
         return;
       }
 
-      if (response.status >= 200 && response.status < 300) {
-        const msg = response.data?.message || 'Skipped successfully';
-        Toast.success(msg);
-        navigation.navigate('SignIn');
-      } else {
-        const errMsg = response.data?.message || 'Skip failed';
-        Toast.error(errMsg);
-      }
+      const msg = serverMsg || 'Skipped successfully';
+      Toast.success(msg);
+      navigation.navigate('SignIn');
     } catch (err: any) {
+      console.error('Skip error:', err);
       const errMsg = err?.response?.data?.message || err?.message || 'Skip failed';
       const lower = String(errMsg).toLowerCase();
       if (lower.includes('name') || lower.includes('full name')) setNameError(errMsg);

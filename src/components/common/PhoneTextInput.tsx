@@ -214,13 +214,13 @@ const PhoneNumberInput: React.FC<PhoneNumberInputProps> = ({
           defaultValue={value}
           defaultCode={selectedCountryCode as any}
           layout="second"
-          withDarkTheme={false}
+          withDarkTheme={!isLight}
           withShadow={false}
           autoFocus={false}
           disabled={!editable}
           placeholder={activePlaceholder}
           textInputProps={{
-            placeholderTextColor: isLight ? colors.secondaryText : '#8E8E8E',
+            placeholderTextColor: isLight ? colors.secondaryText : '#B0A8B9',
             editable: editable,
             value: value,
           }}

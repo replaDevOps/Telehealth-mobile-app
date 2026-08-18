@@ -643,5 +643,16 @@
   "please_select_service": "Please select a service",
   "please_select_service_group": "Please select a service group",
   "please_select_service_type": "Please select a service type",
-  "apple_sign_in_failed": "Apple Sign-In failed, please try another method"
+  "apple_sign_in_failed": "Apple Sign-In failed, please try another method",
+  "load_more": "Load More",
+  "read_more": "Read more",
+  "no_devices_available": "No devices available",
+  "anonymous": "Anonymous",
+  "loading_groups": "Loading groups...",
+  "no_groups_available": "No groups available",
+  "select_clinic_type_first": "Select a clinic type first",
+  "loading_services": "Loading services...",
+  "no_services_available": "No services available",
+  "select_service_group_first": "Select service groups first",
+  "select_an_option": "Select an option"
 }

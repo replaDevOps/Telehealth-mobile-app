@@ -33,6 +33,9 @@ export const GenericTabs = <T extends string>({
         >
           <Text
             style={[styles.tabText, activeTab === key && styles.activeTabText]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.7}
           >
             {translateLabels ? t(label) : label}
           </Text>
@@ -54,7 +57,9 @@ const styles = StyleSheet.create({
   tab: {
     flex: 1,
     paddingVertical: 10,
+    paddingHorizontal: 4,
     alignItems: 'center',
+    justifyContent: 'center',
     borderRadius: 8,
   },
   activeTab: {
@@ -64,6 +69,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#333333',
+    textAlign: 'center',
   },
   activeTabText: {
     color: '#FFFFFF',

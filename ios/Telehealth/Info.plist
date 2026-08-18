@@ -35,11 +35,10 @@
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-<string>This app requires access to your photo library.</string>
-<key>NSCameraUsageDescription</key>
-<string>This app requires access to your camera.</string>
-
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>GMSApiKey</key>
+	<string>AIzaSyBg2UDWftfUxcnlkEgCxl7Rlw-QgvVTDeI</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSAppTransportSecurity</key>
@@ -49,10 +48,16 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>This app needs access to your location to show nearby clinics on the map.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>This app requires access to your camera.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>This app needs access to your location to show nearby clinics on the map.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>This app needs access to your location to show nearby clinics on the map.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>This app needs access to your location to show nearby clinics on the map.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app requires access to your photo library.</string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UIAppFonts</key>
@@ -107,7 +112,5 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
-	<key>GMSApiKey</key>
-	<string>AIzaSyBg2UDWftfUxcnlkEgCxl7Rlw-QgvVTDeI</string>
 </dict>
 </plist>

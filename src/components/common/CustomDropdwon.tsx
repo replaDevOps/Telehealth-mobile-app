@@ -26,12 +26,13 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
   value,
   onValueChange,
   options,
-  placeholder = 'Select an option',
+  placeholder,
   errorMessage, // ← ADD
 }) => {
   const hasError = !!errorMessage;
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const isRtl = i18n.language === 'ar';
+  const resolvedPlaceholder = placeholder || t('select_an_option') || 'Select an option';
 
   return (
     <View style={[styles.container, containerStyle]}>
@@ -61,7 +62,7 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
         data={options}
         labelField="label"
         valueField="value"
-        placeholder={placeholder}
+        placeholder={resolvedPlaceholder}
         value={value}
         onChange={item => onValueChange(item.value)}
         maxHeight={250}

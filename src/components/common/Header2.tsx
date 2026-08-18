@@ -4,7 +4,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { mvs } from '../../config/metrices';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BackSvg, ShopingCartSvg } from '../../assets/icons';
-import { AiLogo, LogoPng } from '../../assets/images';
+import { AiLogo, LogoPng, LogoDarkPng } from '../../assets/images';
 import { colors } from '../../styles/colors';
 import { useTranslation } from 'react-i18next';
 import { setAppLanguage, type AppLanguage } from '@services/language';
@@ -138,11 +138,8 @@ const Header2: React.FC<Header2Props> = ({
       {showLogoLeft ? (
         <View style={styles.leftLogoContainer}>
           <Image
-            source={LogoPng}
-            style={[
-              styles.leftLogoImage,
-              theme === 'dark' && { tintColor: '#FFFFFF' },
-            ]}
+            source={theme === 'dark' ? LogoDarkPng : LogoPng}
+            style={styles.leftLogoImage}
             resizeMode="contain"
           />
         </View>

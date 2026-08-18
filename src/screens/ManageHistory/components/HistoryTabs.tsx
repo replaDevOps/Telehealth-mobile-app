@@ -32,6 +32,9 @@ export const HistoryTabs: React.FC<HistoryTabsProps> = ({
         >
           <Text
             style={[styles.tabText, activeTab === key && styles.activeTabText]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.7}
           >
             {label}
           </Text>

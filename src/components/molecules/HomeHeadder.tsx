@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Modal,
+  Dimensions,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { colors } from '../../styles/colors';
@@ -13,6 +15,8 @@ import LinearGradient from 'react-native-linear-gradient';
 import { FilterSvg, ShopingCartSvg } from '@assets/icons';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuthStore, useGuestStore } from '@store';
+import { setAppLanguage, type AppLanguage } from '@services/language';
 
 interface HomeHeaderProps {
   location?: string | null; // Can be null if no location available
@@ -29,6 +33,7 @@ interface HomeHeaderProps {
   onSLPress?: () => void;
   cartItemCount?: number;
   notificationCount?: number;
+  isGuest?: boolean;
 }
 
 const HomeHeader = ({
@@ -44,9 +49,62 @@ const HomeHeader = ({
   onSLPress,
   cartItemCount = 0,
   notificationCount = 0,
+  isGuest: isGuestProp,
 }: HomeHeaderProps) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const inset = useSafeAreaInsets();
+
+  const isGuestStoreState = useGuestStore(state => state.isGuest);
+  const token = useAuthStore(state => state.auth?.token);
+
+  // Guest user case: until user makes a proper login (isGuest flag set or token is missing)
+  const isGuestUser = isGuestProp !== undefined ? isGuestProp : (isGuestStoreState || !token);
+
+  const normalizeLang = (lang: string | undefined) => {
+    if (!lang) return 'en';
+    const code = lang.split(/[-_]/)[0];
+    return code === 'ar' ? 'ar' : 'en';
+  };
+
+  const [language, setLanguage] = useState<string>(normalizeLang(i18n.language));
+  const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
+  const langButtonRef = useRef<View>(null);
+  const [menuPos, setMenuPos] = useState({ top: 0, right: 0, width: 120 });
+
+  useEffect(() => {
+    const normalized = normalizeLang(i18n.language);
+    if (normalized !== language) setLanguage(normalized);
+  }, [i18n.language]);
+
+  const langData = [
+    { label: t('english'), value: 'en' },
+    { label: t('arabic'), value: 'ar' },
+  ];
+
+  const handleLanguageChange = (item: { label: string; value: string }) => {
+    setLanguage(item.value);
+    setAppLanguage(item.value as AppLanguage);
+  };
+
+  const handleOpenLangMenu = () => {
+    if (langButtonRef.current) {
+      langButtonRef.current.measureInWindow((x, y, width, height) => {
+        const screenWidth = Dimensions.get('window').width;
+        const top = y + height + 4;
+        const right = screenWidth - (x + width);
+
+        setMenuPos({
+          top: top > 0 ? top : 50,
+          right: Math.max(right, 10),
+          width: Math.max(width, 120),
+        });
+        setIsLangMenuOpen(true);
+      });
+    } else {
+      setIsLangMenuOpen(true);
+    }
+  };
+
   return (
     <LinearGradient
       colors={['#7625D7', '#591CA2', '#3E1371']}
@@ -92,38 +150,111 @@ const HomeHeader = ({
             </TouchableOpacity>
           </View>
 
-          <View style={styles.iconContainer}>
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={onCartPress}
-              activeOpacity={0.7}
-            >
-              <ShopingCartSvg width={18} height={18} />
-              {cartItemCount > 0 && (
-                <View style={[styles.badge,{top: -4, right: -4}]}>
-                  <Text style={styles.badgeText}>{cartItemCount}</Text>
-                </View>
-              )} 
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={onNotificationPress}
-              activeOpacity={0.7}
-            >
-              <View style={styles.notificationIconContainer}>
-                <Ionicons name="notifications-outline" size={20} />
-                {notificationCount > 0 && (
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>
-                      {notificationCount > 99 ? '99+' : notificationCount}
-                    </Text>
+          {isGuestUser ? (
+            <View style={styles.iconContainer}>
+              <TouchableOpacity
+                ref={langButtonRef}
+                style={styles.iconButton}
+                onPress={handleOpenLangMenu}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="globe-outline" size={20} color={colors.primary} />
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.iconContainer}>
+              <TouchableOpacity
+                style={styles.iconButton}
+                onPress={onCartPress}
+                activeOpacity={0.7}
+              >
+                <ShopingCartSvg width={18} height={18} />
+                {cartItemCount > 0 && (
+                  <View style={[styles.badge, { top: -4, right: -4 }]}>
+                    <Text style={styles.badgeText}>{cartItemCount}</Text>
                   </View>
                 )}
-              </View>
-            </TouchableOpacity>
-          </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.iconButton}
+                onPress={onNotificationPress}
+                activeOpacity={0.7}
+              >
+                <View style={styles.notificationIconContainer}>
+                  <Ionicons name="notifications-outline" size={20} />
+                  {notificationCount > 0 && (
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>
+                        {notificationCount > 99 ? '99+' : notificationCount}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
+
+        <Modal
+          transparent
+          visible={isLangMenuOpen}
+          animationType="fade"
+          statusBarTranslucent
+          onRequestClose={() => setIsLangMenuOpen(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            activeOpacity={1}
+            onPress={() => setIsLangMenuOpen(false)}
+          >
+            <View
+              style={[
+                styles.langDropdownCard,
+                {
+                  top: menuPos.top,
+                  right: menuPos.right,
+                  width: menuPos.width,
+                },
+              ]}
+            >
+              {langData.map((item, idx) => {
+                const isSelected = language === item.value;
+                return (
+                  <TouchableOpacity
+                    key={item.value}
+                    activeOpacity={0.7}
+                    style={[
+                      styles.langOptionItem,
+                      idx < langData.length - 1 && styles.langOptionBorder,
+                      isSelected && styles.langOptionSelected,
+                    ]}
+                    onPress={() => {
+                      handleLanguageChange(item);
+                      setIsLangMenuOpen(false);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.langOptionText,
+                        isSelected && styles.langOptionTextSelected,
+                      ]}
+                    >
+                      {item.label}
+                    </Text>
+                    {isSelected && (
+                      <Ionicons
+                        name="checkmark"
+                        size={16}
+                        color={colors.primary}
+                      />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </TouchableOpacity>
+        </Modal>
 
         <View style={styles.searchRow}>
           <View style={styles.searchContainer}>
@@ -260,6 +391,45 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  langDropdownCard: {
+    position: 'absolute',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#EFEFEF',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    elevation: 12,
+  },
+  langOptionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  langOptionBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F5',
+  },
+  langOptionSelected: {
+    backgroundColor: '#F5F3FF',
+  },
+  langOptionText: {
+    fontSize: 14,
+    color: colors.black,
+  },
+  langOptionTextSelected: {
+    color: colors.primary,
+    fontWeight: '600',
   },
 });
 

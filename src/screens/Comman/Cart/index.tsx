@@ -35,9 +35,6 @@ import { useFocusEffect } from '@react-navigation/native';
 export function CartScreen({ navigation }) {
   const { t, i18n } = useTranslation();
   const requireAuth = useRequireAuth();
-  // Guests get the Sign In screen rather than a wall: this screen is nothing
-  // but authenticated content.
-  useSignInGateOnFocus();
   // The cart lives on the server against the user's account, so there is
   // nothing to show - and nothing that would load - without a session.
   const isSignedOut = !useAuthStore(state => state.auth?.token);

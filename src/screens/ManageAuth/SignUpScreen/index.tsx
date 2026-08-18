@@ -20,7 +20,7 @@ import { Header2 } from '../../../components/common/Header2';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import { GoogleSvg } from '../../../assets/icons';
-import { LogoPng, authBgLight, authBgDark } from '../../../assets/images';
+import { LogoPng, LogoDarkPng, authBgLight, authBgDark } from '../../../assets/images';
 import PhoneNumberInput from '../../../components/common/PhoneTextInput';
 import { styles } from './style';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -295,9 +295,9 @@ export function SignUpScreen({ navigation }) {
   const cardBg = isLight ? '#FFFFFF' : '#1A0D36';
   const cardBorder = isLight ? '#E8EBF0' : '#3A2E5B';
   const textCol = isLight ? colors.black : colors.white;
-  const secTextCol = isLight ? colors.secondaryText : '#A8A8A9';
+  const secTextCol = isLight ? colors.secondaryText : '#D1C4E9';
 
-  const linkColor = isLight ? colors.primary : '#B388FF';
+  const linkColor = isLight ? colors.primary : '#C490FF';
   const bgImage = isLight ? authBgLight : authBgDark;
 
   return (
@@ -333,8 +333,8 @@ export function SignUpScreen({ navigation }) {
               {/* Center Logo */}
               <View style={styles.logoContainer}>
                 <Image
-                  source={LogoPng}
-                  style={[styles.logo, theme === 'dark' && { tintColor: '#FFFFFF' }]}
+                  source={theme === 'dark' ? LogoDarkPng : LogoPng}
+                  style={styles.logo}
                   resizeMode="contain"
                 />
               </View>
@@ -382,7 +382,7 @@ export function SignUpScreen({ navigation }) {
                               : '#FFFFFF'
                             : isLight
                             ? '#545A65'
-                            : '#A8A8A9'
+                            : '#C4B5FD'
                         }
                       />
                       <Text
@@ -395,7 +395,7 @@ export function SignUpScreen({ navigation }) {
                                 : '#FFFFFF'
                               : isLight
                               ? '#545A65'
-                              : '#A8A8A9',
+                              : '#C4B5FD',
                           },
                           isActive && styles.activeTabText,
                         ]}
@@ -477,7 +477,7 @@ export function SignUpScreen({ navigation }) {
                         ? linkColor
                         : isLight
                         ? colors.border
-                        : '#5C4E7E'
+                        : '#9E8BCA'
                     }
                   />
                 </TouchableOpacity>
@@ -559,6 +559,7 @@ export function SignUpScreen({ navigation }) {
                 <TouchableOpacity
                   style={[
                     styles.appleButton,
+                    { flexDirection: isRtl ? 'row-reverse' : 'row' },
                     (loading || googleLoading || appleLoading) && { opacity: 0.6 },
                   ]}
                   onPress={handleAppleSignUp}
@@ -569,7 +570,17 @@ export function SignUpScreen({ navigation }) {
                   ) : (
                     <>
                       <AntDesign name="apple1" size={20} color={colors.white} />
-                      <Text style={styles.appleText}>{t('sign_in_apple')}</Text>
+                      <Text
+                        style={[
+                          styles.appleText,
+                          {
+                            marginLeft: isRtl ? 0 : mvs(10),
+                            marginRight: isRtl ? mvs(10) : 0,
+                          },
+                        ]}
+                      >
+                        {t('sign_in_apple')}
+                      </Text>
                     </>
                   )}
                 </TouchableOpacity>

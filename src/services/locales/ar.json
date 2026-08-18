@@ -628,5 +628,6 @@
   "please_select_consultation_type": "الرجاء اختيار نوع الاستشارة",
   "please_select_service": "الرجاء اختيار الخدمة",
   "please_select_service_group": "الرجاء اختيار مجموعة الخدمة",
-  "please_select_service_type": "الرجاء اختيار نوع الخدمة"
+  "please_select_service_type": "الرجاء اختيار نوع الخدمة",
+  "apple_sign_in_failed": "تعذّر التسجيل عبر أبل، جرّب طريقة أخرى"
 }

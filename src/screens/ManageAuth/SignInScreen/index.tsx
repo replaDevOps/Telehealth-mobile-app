@@ -274,25 +274,39 @@ export function SignInScreen({ navigation }) {
   const handleAppleSignIn = async () => {
     setAppleLoading(true);
     try {
-      const { identityToken, nonce, fullName, email, user } = await signInWithApple();
+      const { identityToken, fullName, email } = await signInWithApple();
+      if (!identityToken) throw new Error('No identity token returned from Apple');
 
-      // TODO: replace with the backend exchange once /patient-auth/login-with-apple
-      // exists, mirroring handleGoogleSignIn: post the credential, setAuth(data.user),
-      // initialise FCM, then navigate on data.is_new_user.
-      console.log('✅ [Apple] Firebase uid:', user?.uid);
-      console.log('✅ [Apple] identityToken:', identityToken);
-      console.log('✅ [Apple] nonce (raw, unhashed):', nonce);
-      // Apple sends these only on a user's first ever sign-in - persist them then.
-      console.log('✅ [Apple] fullName:', fullName, '| email:', email);
+      const { data } = await apiClient.post(API.AUTH.LOGIN_APPLE, { identityToken });
+      console.log('✅ [Apple] API response:', JSON.stringify(data, null, 2));
+      setAuth(data?.user);
 
-      Toast.success('Apple sign-in successful');
+      fcmService.initializeFcm().catch(err =>
+        console.warn('[FCM] Token store after Apple login failed:', err),
+      );
+
+      Toast.success(getMappedErrorMessage(data?.message) || t('login_successful'));
+      setTimeout(() => {
+        if (data?.is_new_user) {
+          // Apple returns name and email ONLY on a user's first ever sign-in to
+          // this app, and hides the real address behind a private relay. This is
+          // the one moment they are available, so they seed the profile form
+          // when the backend has nothing better.
+          navigation.replace('Profile', {
+            name: data?.user?.name || data?.user?.fullName || fullName || '',
+            email: data?.user?.email || email || '',
+          });
+        } else {
+          returnFromAuth();
+        }
+      }, 500);
     } catch (error: any) {
       if (error?.code === appleErrorCodes.CANCELED) {
         return;
       }
       console.error('❌ [Apple] Sign-in error:', error);
       const rawErrorDetail = error?.code || error?.message || 'Unknown Error';
-      Toast.error(`Apple sign-in failed (${rawErrorDetail})`);
+      Toast.error(`${t('apple_sign_in_failed')} (${rawErrorDetail})`);
     } finally {
       setAppleLoading(false);
     }

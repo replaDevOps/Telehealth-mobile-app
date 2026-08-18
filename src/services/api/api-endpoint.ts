@@ -35,6 +35,8 @@ export const API = {
     LOGOUT: '/patient-auth/logout',
     // GOOGLE LOGIN / REGISTER
     LOGIN_GOOGLE: '/patient-auth/login-with-google',
+    // APPLE LOGIN / REGISTER. Body: { identityToken }
+    LOGIN_APPLE: '/patient-auth/login-with-apple',
   },
   SETTINGS: {
     VIEW_PROFILE: '/patient-setting/viewProfile',
@@ -42,6 +44,9 @@ export const API = {
     UPDATE_PROFILE_IMAGE: '/patient-setting/updateProfileImage',
     UPDATE_PROFILE: '/patient-setting/updateProfile',
     CHANGE_PASSWORD: '/patient-setting/changePassword',
+    // POST { enable_notification: boolean }. "toogle" is the backend's own
+    // spelling - do not correct it here.
+    NOTIFICATION_TOGGLE: '/patient-setting/notification_toogle',
     DELETE_USER_ACCOUNT: '/patient-setting/deleteUserAccount',
     FAQs: '/patient-setting/faqs',
     LOYALTY_POINTS_DESCRIPTION: '/patient-setting/loyaltyPointsDescription', // GET /loyaltyPointsDescription

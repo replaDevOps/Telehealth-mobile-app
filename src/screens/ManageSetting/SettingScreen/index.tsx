@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, Alert, Modal, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, Alert, Modal, ActivityIndicator, ScrollView, Switch } from 'react-native';
 import UserProfile from '../../../components/common/UserProfile';
 import { Header2 } from '../../../components/common/Header2';
 import AntDesign from 'react-native-vector-icons/AntDesign';
@@ -28,12 +28,13 @@ import { signOutGoogle } from '../../../services/firebase/googleAuth';
 import { getMappedErrorMessage } from '@utils';
 import { resetToHome } from '@navigation/navigation-service';
 import { setAppLanguage } from '@services/language';
+import { isNotificationOn } from './notificationStatus';
 
 export const SettingScreen = ({ navigation }: { navigation: any }) => {
   // Guests get the Sign In screen rather than a wall: this screen is nothing
   // but authenticated content.
   useSignInGateOnFocus();
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { logout, isAuthenticated } = useAuthStore();
   // No session at all: browsing is allowed, this tab is not.
   const isSignedOut = !useAuthStore(state => state.auth?.token);
@@ -140,6 +141,45 @@ export const SettingScreen = ({ navigation }: { navigation: any }) => {
     );
   };
 
+  // Reflects the account's stored notificationStatus, so it survives leaving
+  // and returning to this screen without a local copy going stale.
+  const notificationsEnabled = isNotificationOn(profileData?.notificationStatus);
+  const [togglingNotifications, setTogglingNotifications] = useState(false);
+
+  const handleNotificationsToggle = async (value: boolean) => {
+    if (togglingNotifications) return;
+
+    // Optimistic: the switch should move under the user's finger, not after a
+    // round trip. Rolled back below if the server disagrees.
+    setTogglingNotifications(true);
+    useProfileStore.getState().updateProfile({ notificationStatus: value });
+
+    try {
+      const response = await apiClient.post(API.SETTINGS.NOTIFICATION_TOGGLE, {
+        enable_notification: value,
+      });
+
+      if (response.data?.success === false) {
+        throw new Error(response.data?.message || t('something_went_wrong'));
+      }
+
+      Toast.success(
+        value
+          ? t('notifications_enabled') || 'Notifications enabled'
+          : t('notifications_disabled') || 'Notifications disabled',
+      );
+    } catch (error: any) {
+      // Put the switch back where it was, so it never shows a state the
+      // account is not actually in.
+      useProfileStore.getState().updateProfile({ notificationStatus: !value });
+      const errMsg =
+        error?.response?.data?.message || error?.message || t('something_went_wrong');
+      Toast.error(getMappedErrorMessage(errMsg));
+    } finally {
+      setTogglingNotifications(false);
+    }
+  };
+
   const handleLanguagePress = () => {
     Alert.alert(
       t('language'),
@@ -204,6 +244,14 @@ export const SettingScreen = ({ navigation }: { navigation: any }) => {
       onPress: handleLanguagePress,
     },
     {
+      icon: (props: any) => <Ionicons name="notifications-outline" size={24} color={colors.black} {...props} />,
+      title: t('notifications'),
+      toggle: true,
+      value: notificationsEnabled,
+      onToggle: handleNotificationsToggle,
+      disabled: togglingNotifications,
+    },
+    {
       icon: (props: any) => <Ionicons name="chatbubbles-outline" size={24} color={colors.black} {...props} />,
       title: t('contact_us'),
       onPress: handleContactUsPress,
@@ -242,6 +290,24 @@ export const SettingScreen = ({ navigation }: { navigation: any }) => {
         </Text>
       </View>
     );
+
+    // A toggle row is a plain View: wrapping a Switch in a TouchableOpacity
+    // gives the row two competing press targets, and tapping just beside the
+    // switch would silently flip it.
+    if (item.toggle) {
+      return (
+        <View key={index} style={style.menuItem}>
+          {label}
+          <Switch
+            value={item.value}
+            onValueChange={item.onToggle}
+            disabled={item.disabled}
+            trackColor={{ false: colors.border, true: colors.primary }}
+            thumbColor={colors.white}
+          />
+        </View>
+      );
+    }
 
     return (
       <TouchableOpacity

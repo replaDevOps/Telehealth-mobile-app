@@ -642,5 +642,6 @@
   "please_select_consultation_type": "Please select a consultation type",
   "please_select_service": "Please select a service",
   "please_select_service_group": "Please select a service group",
-  "please_select_service_type": "Please select a service type"
+  "please_select_service_type": "Please select a service type",
+  "apple_sign_in_failed": "Apple Sign-In failed, please try another method"
 }

@@ -567,16 +567,30 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   serviceName: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: colors.text,
-    marginBottom: 12,
+    flex: 1,
     flexShrink: 1,
+    paddingRight: 6,
   },
   serviceFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 8,
+    marginTop: 6,
+    marginBottom: 4,
+  },
+  durationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    flexShrink: 0,
+  },
+  duration: {
+    fontSize: 13,
+    color: colors.secondaryText || '#666666',
   },
   loadingContainer: {
     flex: 1,

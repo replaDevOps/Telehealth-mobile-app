@@ -11,7 +11,7 @@ import {
 import { ClinicInfo } from '@components/molecules/ClinicInfo';
 import { colors } from '../../../styles/colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, ScrollView, TouchableOpacity, Text, ActivityIndicator, Platform, PermissionsAndroid, RefreshControl, Image, KeyboardAvoidingView, Keyboard } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -104,6 +104,10 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
   const [loadingServices, setLoadingServices] = useState(false);
   const [loadingReviews, setLoadingReviews] = useState(false);
   const [loadingDescription, setLoadingDescription] = useState(false);
+  const [servicesFetched, setServicesFetched] = useState(false);
+  const [reviewsFetched, setReviewsFetched] = useState(false);
+  const [descriptionFetched, setDescriptionFetched] = useState(false);
+  const prevSearchQuery = useRef(searchQuery);
   const [loadingDeviceDetail, setLoadingDeviceDetail] = useState(false);
   const [loadingServiceDetail, setLoadingServiceDetail] = useState(false);
   const [loadingAddToCart, setLoadingAddToCart] = useState(false);
@@ -145,24 +149,24 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       // By default always select the first tab ('services') when returning to screen
       setActiveTab('services');
 
-      if (clinicID && !services.length && !loadingServices) {
+      if (clinicID && !servicesFetched && !loadingServices) {
         fetchClinicServices();
       }
-    }, [clinicID, services.length, loadingServices])
+    }, [clinicID, servicesFetched, loadingServices])
   );
 
   useEffect(() => {
     // Only fetch when tab is active and data is not already loaded
-    if (activeTab === 'services' && clinicID && !services.length && !loadingServices) {
+    if (activeTab === 'services' && clinicID && !servicesFetched && !loadingServices) {
       fetchClinicServices();
     }
-    if (activeTab === 'reviews' && clinicID && !reviews.length && !loadingReviews) {
+    if (activeTab === 'reviews' && clinicID && !reviewsFetched && !loadingReviews) {
       fetchClinicReviews();
     }
-    if (activeTab === 'about' && clinicID && !clinicDescription && !loadingDescription) {
+    if (activeTab === 'about' && clinicID && !descriptionFetched && !loadingDescription) {
       fetchClinicDescription();
     }
-  }, [activeTab, clinicID]);
+  }, [activeTab, clinicID, servicesFetched, reviewsFetched, descriptionFetched, loadingServices, loadingReviews, loadingDescription]);
 
   useEffect(() => {
     const keyboardShowListener = Keyboard.addListener('keyboardDidShow', (e: any) => {
@@ -184,7 +188,8 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
 
   // Refetch services from server when search query changes (debounced)
   useEffect(() => {
-    if (activeTab === 'services' && clinicID) {
+    if (activeTab === 'services' && clinicID && prevSearchQuery.current !== searchQuery) {
+      prevSearchQuery.current = searchQuery;
       const timeoutId = setTimeout(() => {
         // Reset pagination and fetch first page from server to support server-side search
         setServices([]);
@@ -288,6 +293,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     } finally {
       setLoadingDescription(false);
       setLoadingDevicesPage(false);
+      setDescriptionFetched(true);
     }
   };
 
@@ -444,6 +450,10 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     setRefreshing(true);
     const location = userLocation || { lat: 24.7136, long: 46.6753 };
 
+    setServicesFetched(false);
+    setReviewsFetched(false);
+    setDescriptionFetched(false);
+
     // Refresh all data
     await Promise.all([
       fetchClinicDetails(location.lat, location.long, true),
@@ -546,6 +556,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     } finally {
       setLoadingServices(false);
       setLoadingServicesPage(false);
+      setServicesFetched(true);
     }
   };
 
@@ -617,6 +628,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
     } finally {
       setLoadingReviews(false);
       setLoadingReviewsPage(false);
+      setReviewsFetched(true);
     }
   };
 
@@ -844,6 +856,7 @@ export const ClinicDetailScreen = ({ navigation, route }) => {
       Toast.error(error.message || 'Failed to fetch filtered services');
     } finally {
       setLoadingServices(false);
+      setServicesFetched(true);
     }
   };
 

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -22,12 +22,50 @@ import {
 
 export function PaymentWebViewScreen({ route, navigation }: any) {
   const { t } = useTranslation();
-  const { paymentUrl, paymentId, expectedAmount } = route?.params ?? {};
+  const {
+    widgetUrl,
+    resultUrl,
+    integrity,
+    brands,
+    paymentUrl,
+    paymentId,
+    expectedAmount,
+  } = route?.params ?? {};
 
   const [loading, setLoading] = useState(true);
+  const webViewRef = useRef<WebView>(null);
   const handedOffRef = useRef(false);
   /** Set once the WebView leaves the page the widget opened on. */
   const attemptedRef = useRef(false);
+
+  const webViewSource = useMemo(() => {
+    if (widgetUrl && resultUrl) {
+      const integrityAttr = integrity
+        ? `integrity="${integrity}" crossorigin="anonymous"`
+        : '';
+      const brandList = (
+        brands && brands.length ? brands : ['MADA', 'VISA', 'MASTER']
+      ).join(' ');
+      const htmlContent = `<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 16px; background-color: #ffffff; color: #111827; }
+    .paymentWidgets { width: 100%; max-width: 100%; margin: 0 auto; }
+    .wpwl-form { margin: 0 auto !important; max-width: 100% !important; }
+  </style>
+  <script>var wpwlOptions = { paymentTarget: "_top" };</script>
+  <script src="${widgetUrl}" ${integrityAttr}></script>
+</head>
+<body>
+  <form action="${resultUrl}" class="paymentWidgets" data-brands="${brandList}"></form>
+</body>
+</html>`;
+      return { html: htmlContent, baseUrl: BASE_URL };
+    }
+    return { uri: paymentUrl || '' };
+  }, [widgetUrl, resultUrl, integrity, brands, paymentUrl]);
 
   /**
    * Replaces this screen with the status screen. Guarded because the WebView
@@ -42,11 +80,8 @@ export function PaymentWebViewScreen({ route, navigation }: any) {
   const confirmLeave = useCallback(() => {
     if (handedOffRef.current) return;
 
-    // Nothing was ever submitted, so there is no payment to confirm and no
-    // charge to reconcile. Going back quietly is both correct and what the
-    // user expects - the status screen's "Confirming payment" here was pure
-    // alarm over an action they never took.
-    if (!attemptedRef.current) {
+    // If nothing was submitted or using inline widget, confirm if user leaves
+    if (!attemptedRef.current && !widgetUrl) {
       navigation.goBack();
       return;
     }
@@ -66,7 +101,7 @@ export function PaymentWebViewScreen({ route, navigation }: any) {
       ],
       { cancelable: true },
     );
-  }, [t, handOffToStatus, navigation]);
+  }, [t, handOffToStatus, navigation, widgetUrl]);
 
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -76,20 +111,78 @@ export function PaymentWebViewScreen({ route, navigation }: any) {
     return () => sub.remove();
   }, [confirmLeave]);
 
+  const checkAndInterceptUrl = useCallback(
+    (url: string) => {
+      if (!url) return false;
+      const lowerUrl = url.toLowerCase();
+      const kind = classifyHyperPayUrl(url, BASE_URL);
+
+      if (
+        isTerminalUrlKind(kind) ||
+        lowerUrl.includes('/payments/hyperpay/success') ||
+        lowerUrl.includes('/payments/hyperpay/pending') ||
+        lowerUrl.includes('/payments/hyperpay/failed') ||
+        lowerUrl.includes('/hyperpay/success') ||
+        lowerUrl.includes('/hyperpay/pending') ||
+        lowerUrl.includes('/hyperpay/failed')
+      ) {
+        handOffToStatus();
+        return true;
+      }
+      return false;
+    },
+    [handOffToStatus],
+  );
+
   const onNavigationStateChange = useCallback(
     (navState: WebViewNavigation) => {
-      if (isPaymentAttemptNavigation(navState.url, paymentUrl)) {
+      if (
+        isPaymentAttemptNavigation(
+          navState.url,
+          paymentUrl || resultUrl || widgetUrl,
+        )
+      ) {
         attemptedRef.current = true;
       }
 
-      const kind = classifyHyperPayUrl(navState.url, BASE_URL);
-
-      // 'result' is intentionally left alone: loading it is what triggers
-      // backend verification and fulfilment.
-      if (isTerminalUrlKind(kind)) handOffToStatus();
+      if (checkAndInterceptUrl(navState.url)) {
+        webViewRef.current?.stopLoading();
+      }
     },
-    [handOffToStatus, paymentUrl],
+    [checkAndInterceptUrl, paymentUrl, resultUrl, widgetUrl],
   );
+
+  const autoSubmitScript = `
+    (function() {
+      try {
+        var text = (document.body && document.body.innerText) || '';
+        if (text.indexOf('Problems in Asynchronous Payment Processing') !== -1 || text.indexOf('session timeout') !== -1) {
+          window.location.href = '${BASE_URL}/api/payments/hyperpay/failed';
+          return;
+        }
+        if (text.indexOf('transaction state') !== -1 || text.indexOf('Select authentication outcome') !== -1) {
+          var select = document.querySelector('select');
+          if (select) {
+            for (var i = 0; i < select.options.length; i++) {
+              var optText = select.options[i].text.toLowerCase();
+              if (optText.indexOf('success') !== -1 || optText.indexOf('approve') !== -1) {
+                select.selectedIndex = i;
+                break;
+              }
+            }
+          }
+          var btn = document.querySelector('input[type="submit"], button[type="submit"], input[value="Pay"], input[value="Submit"]');
+          if (btn) {
+            btn.click();
+          } else {
+            var form = document.querySelector('form');
+            if (form) form.submit();
+          }
+        }
+      } catch(e) {}
+    })();
+    true;
+  `;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -101,36 +194,39 @@ export function PaymentWebViewScreen({ route, navigation }: any) {
         <View style={styles.headerButton} />
       </View>
 
-      <View style={styles.webview}>
-        <WebView
-          source={{ uri: paymentUrl }}
-          // 3DS hands off to arbitrary issuing-bank domains, so navigation
-          // cannot be restricted to known hosts. The origin check inside
-          // classifyHyperPayUrl is what keeps a foreign page from driving
-          // the app into a success state.
-          originWhitelist={['https://*']}
-          javaScriptEnabled
-          domStorageEnabled
-          // Both are required for 3DS to complete.
-          thirdPartyCookiesEnabled
-          sharedCookiesEnabled
-          setSupportMultipleWindows={false}
-          onNavigationStateChange={onNavigationStateChange}
-          onLoadEnd={() => setLoading(false)}
-          onError={handOffToStatus}
-          onHttpError={({ nativeEvent }) => {
-            // Only bail on the initial document failing, not on a sub-resource.
-            if (nativeEvent.url === paymentUrl) handOffToStatus();
-          }}
-          style={styles.webview}
-        />
+      <WebView
+        ref={webViewRef}
+        source={webViewSource}
+        originWhitelist={['*']}
+        javaScriptEnabled
+        domStorageEnabled
+        thirdPartyCookiesEnabled
+        sharedCookiesEnabled
+        setSupportMultipleWindows={false}
+        injectedJavaScript={autoSubmitScript}
+        onShouldStartLoadWithRequest={(request) => {
+          if (checkAndInterceptUrl(request.url)) {
+            return false;
+          }
+          return true;
+        }}
+        onNavigationStateChange={onNavigationStateChange}
+        onLoadEnd={() => {
+          setLoading(false);
+          webViewRef.current?.injectJavaScript(autoSubmitScript);
+        }}
+        onError={handOffToStatus}
+        onHttpError={({ nativeEvent }) => {
+          if (paymentUrl && nativeEvent.url === paymentUrl) handOffToStatus();
+        }}
+        style={styles.webview}
+      />
 
-        {loading && (
-          <View style={styles.loadingOverlay} pointerEvents="none">
-            <ActivityIndicator size="large" color={colors.primary} />
-          </View>
-        )}
-      </View>
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      )}
     </SafeAreaView>
   );
 }

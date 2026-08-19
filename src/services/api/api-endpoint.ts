@@ -85,6 +85,7 @@ export const API = {
     HYPERPAY: {
       PREPARE: '/payments/hyperpay/prepare',
       STATUS: '/payments/hyperpay/status', // GET /status/{paymentId}
+      CARDS: '/payments/hyperpay/cards',
     },
   },
   CONSULTATIONS: {

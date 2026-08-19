@@ -5,3 +5,4 @@ export * from './FAQs';
 export * from './RefundRequest2';
 export * from './RoyaltyPoints';
 export * from './LoyaltyPointsDetails';
+export * from './SavedCardsScreen';

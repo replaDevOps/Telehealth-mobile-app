@@ -114,7 +114,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: colors.white,
     padding: 12,
-
     borderBottomWidth: 1,
     borderColor: '#F0F0F0',
   },
@@ -126,26 +125,30 @@ const styles = StyleSheet.create({
   },
   serviceInfoContainter: {
     flex: 1,
-    marginLeft: 4,
+    marginLeft: 8,
     justifyContent: 'space-between',
   },
   serviceInfo: {
     flex: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    gap: 8,
+    marginBottom: 4,
   },
   serviceTags: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 4,
-    marginBottom: 6,
+    flexShrink: 1,
   },
   tag: {
     backgroundColor: colors.lightGray,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
-    maxWidth: 70,
+    maxWidth: 90,
+    flexShrink: 1,
   },
   TypetagText: {
     fontSize: 11,
@@ -160,18 +163,19 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   serviceName: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
     color: colors.text || '#1A1A1A',
-    marginBottom: 6,
     flex: 1,
     flexShrink: 1,
+    paddingRight: 6,
   },
   serviceFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginLeft: 4,
+    gap: 8,
+    marginTop: 4,
   },
   price: {
     fontSize: 16,
@@ -196,6 +200,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    flexShrink: 0,
   },
   duration: {
     fontSize: 13,
@@ -203,7 +208,7 @@ const styles = StyleSheet.create({
   },
   loyaltyBadge: {},
   loyaltyBadgeText: {
-    marginTop: 8,
+    marginTop: 6,
     fontSize: 12,
     color: '#CC9600',
     fontWeight: '600',

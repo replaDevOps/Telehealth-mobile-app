@@ -27,6 +27,7 @@ import {
   RoyaltyPoints,
   SettingScreen,
   ProfileSetting,
+  SavedCardsScreen,
 } from '@screens/ManageSetting';
 import {
   CardDetails,
@@ -47,7 +48,11 @@ export type MainStackParamList = {
   Refund: { paymentId: string;[key: string]: any };
   CheckoutScreen: undefined;
   PaymentWebView: {
-    paymentUrl: string;
+    paymentUrl?: string;
+    widgetUrl?: string | null;
+    resultUrl?: string | null;
+    integrity?: string | null;
+    brands?: string[];
     paymentId: number | string;
     expectedAmount?: number;
   };
@@ -192,6 +197,7 @@ export const SettingNavigator = () => {
         name="LoyaltyPointsDetails"
         component={LoyaltyPointsDetails}
       />
+      <Stack.Screen name="SavedCardsScreen" component={SavedCardsScreen} />
     </Stack.Navigator>
   );
 };

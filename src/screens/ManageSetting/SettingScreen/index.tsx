@@ -239,6 +239,11 @@ export const SettingScreen = ({ navigation }: { navigation: any }) => {
       onPress: () => navigation.navigate('RefundRequest2'),
     },
     {
+      icon: (props: any) => <Ionicons name="card-outline" size={24} color={colors.black} {...props} />,
+      title: t('payment_methods') || 'Payment Methods',
+      onPress: () => navigation.navigate('SavedCardsScreen'),
+    },
+    {
       icon: (props: any) => <Ionicons name="globe-outline" size={24} color={colors.black} {...props} />,
       title: t('language'),
       onPress: handleLanguagePress,

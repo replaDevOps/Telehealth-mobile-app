@@ -56,6 +56,7 @@ interface PaymentMethodProps {
    * checkout, where card entry happens inside the HyperPay widget.
    */
   variant?: 'full' | 'card-only';
+  hidePaymentOptions?: boolean;
 
   // Save card (HyperPay tokenisation)
   showSaveCard?: boolean;
@@ -95,6 +96,7 @@ export function PaymentMethod({
   showTitle = true,
   compact = false,
   variant = 'full',
+  hidePaymentOptions = false,
   showSaveCard = false,
   saveCard: externalSaveCard,
   onSaveCardChange,
@@ -310,80 +312,84 @@ export function PaymentMethod({
       )}
 
       {/* One-time Payment Section */}
-      <Text style={styles.sectionLabel}>{t('one_time_payment')}</Text>
-
-      {variant === 'card-only' ? (
-        <View style={[styles.paymentOption, styles.paymentOptionSelected]}>
-          <View style={styles.paymentLeft}>
-            <View style={styles.radioOuter}>
-              <View style={styles.radioInner} />
-            </View>
-            <Text style={styles.paymentLabel}>
-              {t('card_mada_visa_master')}
-            </Text>
-          </View>
-          <MastercardSvg />
-        </View>
-      ) : (
+      {!hidePaymentOptions && (
         <>
-          {/* Credit/Debit Card */}
-          <PaymentOption
-            id="credit"
-            label={t('credit_debit_card')}
-            logo={<MastercardSvg />}
-            isSelected={selectedPayment === 'credit'}
-            onSelect={handlePaymentSelect}
-          />
+          <Text style={styles.sectionLabel}>{t('one_time_payment')}</Text>
 
-          {selectedPayment === 'credit' && (
-            <CardDetailsForm
-              cardholderName={cardholderName}
-              cardNumber={cardNumber}
-              expiryDate={expiryDate}
-              cvv={cvv}
-              onCardholderNameChange={handleCardholderNameChange}
-              onCardNumberChange={handleCardNumberChange}
-              onExpiryDateChange={handleExpiryDateChange}
-              onCvvChange={handleCvvChange}
-              t={t}
-            />
-          )}
-
-          {/* Apple Pay */}
-          <PaymentOption
-            id="applepay"
-            label={t('apple_pay')}
-            logo={<ApplePaySvg />}
-            isSelected={selectedPayment === 'applepay'}
-            onSelect={handlePaymentSelect}
-          />
-
-          {/* STC Pay */}
-          <PaymentOption
-            id="stc"
-            label={t('stc_pay')}
-            logo={<StcPaySvg />}
-            isSelected={selectedPayment === 'stc'}
-            onSelect={handlePaymentSelect}
-          />
-
-          {/* Installment Methods */}
-          {installmentMethods.length > 0 && (
-            <View style={styles.installmentSection}>
-              <Text style={styles.installmentLabel}>
-                {t('pay_in_installments')}
-              </Text>
-              {installmentMethods.map(method => (
-                <PaymentOption
-                  key={method.id}
-                  id={method.id}
-                  label={method.label}
-                  logo={method.logo}
-                  isSelected={selectedPayment === method.id}
-                  onSelect={handlePaymentSelect}
-                />
-              ))}
+          {variant === 'card-only' ? (
+            <View style={[styles.paymentOption, styles.paymentOptionSelected]}>
+              <View style={styles.paymentLeft}>
+                <View style={styles.radioOuter}>
+                  <View style={styles.radioInner} />
+                </View>
+                <Text style={styles.paymentLabel}>
+                  {t('card_mada_visa_master')}
+                </Text>
+              </View>
+              <MastercardSvg />
             </View>
+          ) : (
+            <>
+              {/* Credit/Debit Card */}
+              <PaymentOption
+                id="credit"
+                label={t('credit_debit_card')}
+                logo={<MastercardSvg />}
+                isSelected={selectedPayment === 'credit'}
+                onSelect={handlePaymentSelect}
+              />
+
+              {selectedPayment === 'credit' && (
+                <CardDetailsForm
+                  cardholderName={cardholderName}
+                  cardNumber={cardNumber}
+                  expiryDate={expiryDate}
+                  cvv={cvv}
+                  onCardholderNameChange={handleCardholderNameChange}
+                  onCardNumberChange={handleCardNumberChange}
+                  onExpiryDateChange={handleExpiryDateChange}
+                  onCvvChange={handleCvvChange}
+                  t={t}
+                />
+              )}
+
+              {/* Apple Pay */}
+              <PaymentOption
+                id="applepay"
+                label={t('apple_pay')}
+                logo={<ApplePaySvg />}
+                isSelected={selectedPayment === 'applepay'}
+                onSelect={handlePaymentSelect}
+              />
+
+              {/* STC Pay */}
+              <PaymentOption
+                id="stc"
+                label={t('stc_pay')}
+                logo={<StcPaySvg />}
+                isSelected={selectedPayment === 'stc'}
+                onSelect={handlePaymentSelect}
+              />
+
+              {/* Installment Methods */}
+              {installmentMethods.length > 0 && (
+                <View style={styles.installmentSection}>
+                  <Text style={styles.installmentLabel}>
+                    {t('pay_in_installments')}
+                  </Text>
+                  {installmentMethods.map(method => (
+                    <PaymentOption
+                      key={method.id}
+                      id={method.id}
+                      label={method.label}
+                      logo={method.logo}
+                      isSelected={selectedPayment === method.id}
+                      onSelect={handlePaymentSelect}
+                    />
+                  ))}
+                </View>
+              )}
+            </>
           )}
         </>
       )}

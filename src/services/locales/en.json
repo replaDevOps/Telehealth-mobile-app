@@ -579,6 +579,14 @@
   "clear_all_notifications": "Clear All Notifications",
   "are_you_sure_clear_all": "Are you sure you want to clear all notifications?",
   "clear_all": "Clear All",
+  "payment_methods": "Payment Methods",
+  "failed_to_load_saved_cards": "Failed to load saved cards",
+  "no_saved_cards": "No Saved Payment Methods",
+  "no_saved_cards_desc": "Your saved payment cards will appear here after you save them during checkout.",
+  "delete_card_title": "Delete Payment Method",
+  "delete_card_confirm": "Are you sure you want to delete this saved card?",
+  "card_deleted": "Card deleted successfully",
+  "failed_to_delete_card": "Failed to delete card",
   "payment_method_not_available": "Payment Method Not Available",
   "only_card_payment_available": "Only card payment is currently available. Please select card payment to proceed.",
   "invalid_expiry_date": "Invalid Expiry Date",
@@ -655,5 +663,10 @@
   "loading_services": "Loading services...",
   "no_services_available": "No services available",
   "select_service_group_first": "Select service groups first",
-  "select_an_option": "Select an option"
+  "select_an_option": "Select an option",
+  "saved_cards": "Saved Cards",
+  "use_new_card": "Use a new card",
+  "expires": "Expires",
+  "default": "Default",
+  "save_card_for_future": "Save this card for future payments"
 }

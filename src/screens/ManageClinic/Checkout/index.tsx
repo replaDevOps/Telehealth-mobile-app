@@ -1,5 +1,5 @@
 import { Header2 } from '@components/common/Header2';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -15,23 +15,31 @@ import { colors } from '../../../styles/colors';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { styles } from './style';
 import ClinicAvatar from '@components/common/ClinicAvatar';
+import { CheckboxWithText } from '@components/common/CheckboxWithText';
 import {
   PaymentMethod,
   SuccessMessageModal,
-  BillingDetailsForm,
+  SavedCardsSection,
+  InlineHyperPayWidget,
+  InlineHyperPayWidgetRef,
 } from '@components/molecules';
 import { useTranslation } from 'react-i18next';
 import { apiClient } from '@services/api/api-client';
 import { API } from '@services/api/api-endpoint';
-import { prepareCartCheckout } from '@services/payments/hyperpayService';
+import {
+  prepareCartCheckout,
+  getSavedCards,
+  deleteSavedCard,
+} from '@services/payments/hyperpayService';
 import {
   EMPTY_BILLING,
   buildBillingPrefill,
   loadCachedBilling,
   saveCachedBilling,
   validateBilling,
+  splitName,
 } from '@utils/billingDetails';
-import type { BillingDetails } from '../../../types/payment.types';
+import type { BillingDetails, SavedCard, PrepareResponseData } from '../../../types/payment.types';
 import { Toast } from 'toastify-react-native';
 import { useAuthStore, useProfileStore } from '@store';
 
@@ -90,6 +98,40 @@ export function CheckoutScreen({ route, navigation }) {
   const [redeemPoints, setRedeemPoints] = useState('');
   // Tokenise the card at HyperPay so the next checkout can reuse it.
   const [saveCard, setSaveCard] = useState(false);
+  // Saved cards from backend
+  const [savedCards, setSavedCards] = useState<SavedCard[]>([]);
+  const [selectedCardId, setSelectedCardId] = useState<number | null>(null);
+
+  // Fetch saved cards on mount
+  useEffect(() => {
+    let active = true;
+    getSavedCards().then(cards => {
+      if (!active) return;
+      setSavedCards(cards);
+      const defaultCard = cards.find(c => c.is_default);
+      if (defaultCard) {
+        setSelectedCardId(defaultCard.id);
+      } else if (cards.length > 0) {
+        setSelectedCardId(cards[0].id);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleDeleteSavedCard = useCallback(async (cardId: number) => {
+    try {
+      await deleteSavedCard(cardId);
+      setSavedCards(prev => prev.filter(c => c.id !== cardId));
+      if (selectedCardId === cardId) {
+        setSelectedCardId(null);
+      }
+    } catch (e) {
+      console.warn('[Checkout] Failed to delete card:', e);
+    }
+  }, [selectedCardId]);
+
   // The input clamps to what the user can actually spend, so the stored value
   // never exceeds their balance. This remembers that they asked for more, so
   // the inline "Insufficient coins" notice still has something to react to.
@@ -110,19 +152,15 @@ export function CheckoutScreen({ route, navigation }) {
   };
 
   const itemsSubtotal = calculateSubtotal();
-  // Prefer clinic-level group values from the cart payload (the API exposes
-  // campaignDiscount/servicePrice/totalPrice at the clinic group level, not per item).
-  // Fall back to per-item summation when the group values aren't provided.
   const subtotal = groupServicePrice > 0 ? groupServicePrice : itemsSubtotal;
   const campaignDiscountTotal = groupCampaignDiscount > 0
     ? groupCampaignDiscount
     : calculateCampaignDiscount();
-  // groupTotalPrice (post-discount, pre-tax) is informational — totals are recomputed below.
-  void groupTotalPrice;
-  // Apply 15% tax only for non-Saudi users
-  const isNonSaudi = profileData?.nationality && String(profileData.nationality).toLowerCase() === 'non_saudi';
-  const TAX_RATE = isNonSaudi ? 0.15 : 0;
-  // Tax is calculated on the post-campaign-discount subtotal
+  const isSaudi =
+    profileData?.country?.toUpperCase() === 'SA' ||
+    profileData?.country?.toLowerCase() === 'saudi arabia' ||
+    profileData?.nationality?.toLowerCase() === 'saudi';
+  const TAX_RATE = isSaudi ? 0 : 0.15;
   const taxableBase = Math.max(0, subtotal - campaignDiscountTotal);
   const tax = taxableBase * TAX_RATE;
   const discountAmount = subtotal * (discount / 100);
@@ -189,20 +227,61 @@ export function CheckoutScreen({ route, navigation }) {
     }
   };
 
+  const [inlineWidgetData, setInlineWidgetData] = useState<PrepareResponseData | null>(null);
+  const [loadingWidget, setLoadingWidget] = useState(false);
+  const [isCardFormFilled, setIsCardFormFilled] = useState(false);
+  const inlineWidgetRef = useRef<InlineHyperPayWidgetRef>(null);
+
+  // Fetch inline HyperPay COPYandPAY widget for active selection (New Card or Saved Card)
+  const loadInlineWidget = useCallback(async () => {
+    setLoadingWidget(true);
+    try {
+      const { first_name, last_name } = splitName(profileData?.name);
+      const prepareBilling = {
+        first_name: first_name || 'Vena',
+        last_name: last_name || 'Patient',
+        email: profileData?.email || 'patient@example.com',
+        phone: profileData?.phoneNo || '0500000000',
+        billing_street1: 'King Fahd Rd',
+        billing_city: profileData?.city || 'Riyadh',
+        billing_state: profileData?.city || 'Riyadh',
+        billing_country: 'SA',
+        billing_postcode: '12211',
+      };
+
+      const selectedCardObj = savedCards.find(c => c.id === selectedCardId);
+      const preparePayload: PrepareCartPayload = {
+        purpose: 'cart',
+        redeem_points: appliedCoins,
+        ...(selectedCardId !== null
+          ? {
+            saved_card_id: selectedCardId,
+            card_id: selectedCardId,
+            registration_id: selectedCardObj?.registration_id || selectedCardId,
+          }
+          : { save_card: saveCard }),
+        ...prepareBilling,
+      };
+
+      const data = await prepareCartCheckout(preparePayload);
+      setInlineWidgetData(data);
+    } catch (e) {
+      console.warn('[Checkout] Auto-prepare inline widget error:', e);
+    } finally {
+      setLoadingWidget(false);
+    }
+  }, [selectedCardId, savedCards, profileData, appliedCoins, saveCard]);
+
+  useEffect(() => {
+    loadInlineWidget();
+  }, [loadInlineWidget]);
+
   const handleProceedToPayment = async () => {
     const token = useAuthStore.getState().auth?.token;
     if (!token) {
       Toast.error(t('please_login_to_checkout'));
       return;
     }
-
-    const invalid = validateBilling(billing);
-    if (invalid.length > 0) {
-      setInvalidFields(invalid);
-      Toast.error(t('fill_billing_details'));
-      return;
-    }
-    setInvalidFields([]);
 
     if (insufficientCoins) {
       Toast.error(t('insufficient_coins'));
@@ -214,56 +293,23 @@ export function CheckoutScreen({ route, navigation }) {
       return;
     }
 
-    setLoading(true);
-
-    try {
-      await saveCachedBilling(billing);
-
-      // The amount is computed server-side from the cart. `total` on this
-      // screen is a preview only and is deliberately not sent.
-      const checkout = await prepareCartCheckout({
-        purpose: 'cart',
-        redeem_points: appliedCoins,
-        save_card: saveCard,
-        ...billing,
-        billing_country: billing.billing_country.toUpperCase(),
-      });
-
-      setLoading(false);
-      navigation.navigate('PaymentWebView', {
-        paymentUrl: checkout.payment_url,
-        paymentId: checkout.payment_id,
+    // Submit form and navigate immediately to PaymentStatus screen for both New Card and Saved Card
+    if (inlineWidgetData?.payment_id) {
+      if (inlineWidgetRef.current) {
+        inlineWidgetRef.current.submitForm();
+      }
+      navigation.navigate('PaymentStatus', {
+        paymentId: inlineWidgetData.payment_id,
         expectedAmount: total,
       });
-    } catch (error: any) {
-      setLoading(false);
-      console.error('[Checkout] prepare failed', error);
-
-      if (error?.status === 401) {
-        Toast.error(t('session_expired_login_again'));
-        try {
-          await apiClient.post(API.AUTH.LOGOUT);
-        } catch (logoutError) {
-          console.log('Logout API error:', logoutError);
-        } finally {
-          useAuthStore.getState().logout();
-          navigation.replace('Auth', { screen: 'SignIn' });
-        }
-        return;
-      }
-
-      if (error?.status === 422) {
-        Toast.error(error?.message || t('payment_failed_Description'));
-        return;
-      }
-
-      setShowErrorModal(true);
+    } else {
+      loadInlineWidget();
     }
   };
 
   // Group services by clinic
   const groupedServices = services.reduce((acc, item) => {
-   
+
     const clinicId = item.clinic.id;
     if (!acc[clinicId]) {
       acc[clinicId] = {
@@ -318,53 +364,53 @@ export function CheckoutScreen({ route, navigation }) {
             {/* Services from this clinic */}
             {group.services.map(service => (
               <View key={service.id} style={styles.serviceCard}>
-                 <View style={styles.serviceBadges}>
-                      <View style={styles.categoryBadge}>
-                        <Text
-                          style={styles.categoryBadgeText}
-                          numberOfLines={1}
-                          ellipsizeMode="tail"
-                        >
-                          {service.type}
-                        </Text>
-                      </View>
-                      <View style={styles.nameBadge}>
-                        <Text style={styles.nameBadgeText} numberOfLines={1} ellipsizeMode="tail">
-                          {service.serviceGroup}
-                        </Text>
-                      </View>
-                    </View>
-                    <View style={styles.serviceContent}>
-                <View style={styles.serviceLeft}>
-                  <Image source={service.image} style={styles.serviceImage} />
-                  <View style={styles.serviceInfo}>
-                   
-                    <Text style={styles.serviceName} numberOfLines={1}>
-                      {service.serviceName}
+                <View style={styles.serviceBadges}>
+                  <View style={styles.categoryBadge}>
+                    <Text
+                      style={styles.categoryBadgeText}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
+                      {service.type}
                     </Text>
-                    <View style={styles.durationContainer}>
-                      <Ionicons
-                        name="time-outline"
-                        size={18}
-                        color={colors.secondaryText}
-                      />
-                      <Text style={styles.duration}>{service.duration}</Text>
-                    </View>
+                  </View>
+                  <View style={styles.nameBadge}>
+                    <Text style={styles.nameBadgeText} numberOfLines={1} ellipsizeMode="tail">
+                      {service.serviceGroup}
+                    </Text>
                   </View>
                 </View>
-                {Number(service.campaignDiscount || 0) > 0 && service.finalPrice !== undefined && service.finalPrice !== null ? (
-                  <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={[styles.servicePrice, { fontSize: 12, color: '#888', textDecorationLine: 'line-through', fontWeight: '400' }]}>
-                      {service.price}
-                    </Text>
-                    <Text style={styles.servicePrice}>{formatCurrency(service.finalPrice)}</Text>
-                    <Text style={{ fontSize: 11, fontWeight: '600', color: '#16a34a', marginTop: 2 }}>
-                      {isArabic ? `-${Number(service.campaignDiscount).toFixed(2)} ر.س` : `-SAR ${Number(service.campaignDiscount).toFixed(2)}`}
-                    </Text>
+                <View style={styles.serviceContent}>
+                  <View style={styles.serviceLeft}>
+                    <Image source={service.image} style={styles.serviceImage} />
+                    <View style={styles.serviceInfo}>
+
+                      <Text style={styles.serviceName} numberOfLines={1}>
+                        {service.serviceName}
+                      </Text>
+                      <View style={styles.durationContainer}>
+                        <Ionicons
+                          name="time-outline"
+                          size={18}
+                          color={colors.secondaryText}
+                        />
+                        <Text style={styles.duration}>{service.duration}</Text>
+                      </View>
+                    </View>
                   </View>
-                ) : (
-                  <Text style={styles.servicePrice}>{formatCurrency(service.finalPrice || service.rawPrice || service.price)}</Text>
-                )}
+                  {Number(service.campaignDiscount || 0) > 0 && service.finalPrice !== undefined && service.finalPrice !== null ? (
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <Text style={[styles.servicePrice, { fontSize: 12, color: '#888', textDecorationLine: 'line-through', fontWeight: '400' }]}>
+                        {service.price}
+                      </Text>
+                      <Text style={styles.servicePrice}>{formatCurrency(service.finalPrice)}</Text>
+                      <Text style={{ fontSize: 11, fontWeight: '600', color: '#16a34a', marginTop: 2 }}>
+                        {isArabic ? `-${Number(service.campaignDiscount).toFixed(2)} ر.س` : `-SAR ${Number(service.campaignDiscount).toFixed(2)}`}
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text style={styles.servicePrice}>{formatCurrency(service.finalPrice || service.rawPrice || service.price)}</Text>
+                  )}
                 </View>
               </View>
             ))}
@@ -379,9 +425,10 @@ export function CheckoutScreen({ route, navigation }) {
           </View>
         ))}
 
-        {/* Payment Methods Section - Only show card form for credit card */}
+        {/* Royalty Points Section */}
         <PaymentMethod
           variant="card-only"
+          hidePaymentOptions={true}
           showTitle={true}
           compact={true}
           showRoyaltyPoints={true}
@@ -390,16 +437,62 @@ export function CheckoutScreen({ route, navigation }) {
           onPointsToRedeemChange={handlePointsToRedeemChange}
           coinToSar={COIN_TO_SAR}
           maxRedemptionSAR={maxRedemptionSAR}
-          showSaveCard={true}
-          saveCard={saveCard}
-          onSaveCardChange={setSaveCard}
         />
 
-        <BillingDetailsForm
-          value={billing}
-          onChange={setBilling}
-          invalidFields={invalidFields}
+        {/* Saved Cards Selection */}
+        <SavedCardsSection
+          cards={savedCards}
+          selectedCardId={selectedCardId}
+          onSelectCard={setSelectedCardId}
+          saveCard={saveCard}
+          onSaveCardChange={setSaveCard}
+          hideSaveCard={true}
         />
+
+        {/* Inline HyperPay COPYandPAY Widget directly on Checkout screen */}
+        {selectedCardId === null && (
+          <View style={{ marginVertical: 4 }}>
+            {loadingWidget ? (
+              <View style={{ height: 160, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.white, borderRadius: 12, marginHorizontal: 16 }}>
+                <ActivityIndicator size="small" color={colors.primary} />
+                <Text style={{ marginTop: 8, fontSize: 13, color: colors.secondaryText }}>
+                  {t('loading_payment_widget') || 'Loading payment form...'}
+                </Text>
+              </View>
+            ) : inlineWidgetData?.widget_url && inlineWidgetData?.result_url ? (
+              <InlineHyperPayWidget
+                ref={inlineWidgetRef}
+                widgetUrl={inlineWidgetData.widget_url}
+                resultUrl={inlineWidgetData.result_url}
+                integrity={inlineWidgetData.integrity}
+                brands={inlineWidgetData.brands}
+                paymentId={inlineWidgetData.payment_id}
+                expectedAmount={total}
+                onHandOffToStatus={(pid, amt) =>
+                  navigation.replace('PaymentStatus', {
+                    paymentId: pid,
+                    expectedAmount: amt || total,
+                  })
+                }
+                onCardFormFilled={setIsCardFormFilled}
+              />
+            ) : null}
+
+            {/* Save Card Checkbox AFTER the Widget */}
+            {selectedCardId === null && (
+              <View style={{ marginHorizontal: 16, marginTop: 10, marginBottom: 12 }}>
+                <CheckboxWithText
+                  isChecked={saveCard}
+                  onToggle={() => setSaveCard(!saveCard)}
+                >
+                  <Text style={{ fontSize: 14, color: colors.text, fontWeight: '500' }}>
+                    {t('save_card_for_future') || 'Save this card for future payments'}
+                  </Text>
+                </CheckboxWithText>
+              </View>
+            )}
+          </View>
+        )}
 
 
         {attemptedOverBalance && (
@@ -425,7 +518,7 @@ export function CheckoutScreen({ route, navigation }) {
             <Text style={styles.summaryValue}>{formatCurrency(subtotal)}</Text>
           </View>
 
-      
+
 
           <View style={styles.summaryRow}>
             {TAX_RATE > 0 && (
@@ -439,7 +532,7 @@ export function CheckoutScreen({ route, navigation }) {
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>{t('discount')}</Text>
             <Text style={[styles.summaryValue, styles.discountValue]}>
-            {isArabic ? `-${campaignDiscountTotal.toFixed(2)} ر.س` : `-SAR ${campaignDiscountTotal.toFixed(2)}`}
+              {isArabic ? `-${campaignDiscountTotal.toFixed(2)} ر.س` : `-SAR ${campaignDiscountTotal.toFixed(2)}`}
             </Text>
           </View>
 

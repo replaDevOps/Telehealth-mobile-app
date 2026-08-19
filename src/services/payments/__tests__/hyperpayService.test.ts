@@ -66,9 +66,9 @@ describe('prepareCartCheckout', () => {
     });
   });
 
-  it('rejects when payment_url is missing even if success is true', async () => {
+  it('rejects when payment_id is missing even if success is true', async () => {
     mockPost.mockResolvedValue({
-      data: { success: true, data: { payment_id: 11 } },
+      data: { success: true, data: { checkout_id: 'chk_1' } },
     });
 
     await expect(prepareCartCheckout(payload)).rejects.toMatchObject({

@@ -25,20 +25,39 @@ export interface BillingDetails {
   billing_postcode: string;
 }
 
+export interface SavedCard {
+  id: number;
+  brand: string;
+  last_four: string;
+  expiry_month: string;
+  expiry_year: string;
+  is_default: boolean;
+}
+
 export interface PrepareCartPayload extends BillingDetails {
   purpose: 'cart';
   redeem_points: number;
   /** Ask HyperPay to tokenise the card so it can be reused next time. */
-  save_card: boolean;
+  save_card?: boolean;
+  /** Optional saved card ID to charge directly. */
+  saved_card_id?: number;
 }
 
 export interface PrepareResponseData {
   payment_id: number;
   payment_reference: string;
-  checkout_id: string;
-  payment_url: string;
+  checkout_id?: string;
+  payment_url?: string;
   purpose: string;
   expires_at: string;
+  requires_widget?: boolean;
+  widget_url?: string | null;
+  integrity?: string | null;
+  result_url?: string | null;
+  brands?: string[];
+  saved_card?: SavedCard | null;
+  status?: PaymentStatus;
+  fulfillment_status?: FulfillmentStatus;
 }
 
 export interface PaymentStatusData {

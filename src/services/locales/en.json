@@ -668,5 +668,7 @@
   "use_new_card": "Use a new card",
   "expires": "Expires",
   "default": "Default",
-  "save_card_for_future": "Save this card for future payments"
+  "save_card_for_future": "Save this card for future payments",
+  "loading_payment_widget": "Loading payment form..."
 }
+

@@ -55,7 +55,6 @@ export const ClinicScreen = ({ navigation, route }) => {
   // Refs to track current filter params and search query to avoid stale closures
   const currentFilterParamsRef = useRef<FilterParams | null>(null);
   const currentSearchQueryRef = useRef<string>('');
-  const lastRequestIdRef = useRef<number>(0);
   // Tracks the position the list was last fetched for, so a change can trigger
   // a refetch. Starts undefined to distinguish "never fetched" from "no fix".
   const fetchedForLocationRef = useRef<{ lat: number; long: number } | null | undefined>(undefined);
@@ -96,8 +95,6 @@ export const ClinicScreen = ({ navigation, route }) => {
     append: boolean = false,
     showCenterLoader: boolean = true
   ) => {
-    const requestId = ++lastRequestIdRef.current;
-
     try {
       if (append) {
         setLoadingMore(true);
@@ -111,7 +108,7 @@ export const ClinicScreen = ({ navigation, route }) => {
       }
 
       // Read imperatively so this callback stays stable and always sees the
-      // latest fix, including one that lands mid-flight.
+      // latest location fix.
       const coords = useLocationStore.getState().location;
       fetchedForLocationRef.current = coords ? { lat: coords.lat, long: coords.long } : null;
 
@@ -167,28 +164,19 @@ export const ClinicScreen = ({ navigation, route }) => {
         }
       }
 
-      console.log(`[ClinicScreen] Fetching clinics (ReqID: ${requestId}) - Page: ${pageNo}, Filters:`, filters ? 'Yes' : 'No');
-      console.log(params)
+      console.log(`[ClinicScreen] Fetching clinics - Page: ${pageNo}, Filters:`, filters ? 'Yes' : 'No');
+      console.log(params);
       const response = await apiClient.get(API.CLINIC.GET_CLINICS, {
         params: params,
       });
-      // console.log('response', response.data);
       console.log('response', response.data);
-      // Check if this request is still the latest one
-      if (requestId !== lastRequestIdRef.current) {
-        console.log(`[ClinicScreen] Ignoring stale response (ReqID: ${requestId}, Last: ${lastRequestIdRef.current})`);
-        return;
-      }
 
       if (response.data.success && response.data.data) {
         const clinics = transformClinicsData(response.data.data);
         console.log('clinics', clinics);
-        // Check if there's more data using nextPageUrl from backend
-        // Also check if the current page returned fewer items than perPage, which implies end of list
+
         const returnedCount = response.data.data.length;
         const hasNextPageUrl = !!(response.data.nextPageUrl);
-        // If we got 0 items, definitely no more data. 
-        // If we got items but less than perPage, usually means end of list too.
         const hasMoreData = hasNextPageUrl && returnedCount > 0;
 
         setHasMore(hasMoreData);
@@ -196,14 +184,14 @@ export const ClinicScreen = ({ navigation, route }) => {
         if (append) {
           // Append to existing clinics
           setRecommendedClinics(prev => {
-            const newFeatured = clinics.filter(clinic => clinic.isFeatured === true);
+            const newFeatured = clinics.filter(clinic => clinic.isFeatured);
             // Avoid duplicates by checking IDs
             const existingIds = new Set(prev.map(c => c.id));
             const uniqueNew = newFeatured.filter(c => !existingIds.has(c.id));
             return [...prev, ...uniqueNew];
           });
           setNearbyClinics(prev => {
-            const newNearby = clinics.filter(clinic => clinic.isFeatured !== true);
+            const newNearby = clinics.filter(clinic => !clinic.isFeatured);
             // Avoid duplicates
             const existingIds = new Set(prev.map(c => c.id));
             const uniqueNew = newNearby.filter(c => !existingIds.has(c.id));
@@ -211,8 +199,8 @@ export const ClinicScreen = ({ navigation, route }) => {
           });
         } else {
           // Replace existing clinics
-          const featured = clinics.filter(clinic => clinic.isFeatured === true);
-          const nearby = clinics.filter(clinic => clinic.isFeatured !== true);
+          const featured = clinics.filter(clinic => clinic.isFeatured);
+          const nearby = clinics.filter(clinic => !clinic.isFeatured);
           setRecommendedClinics(featured);
           setNearbyClinics(nearby);
         }
@@ -225,10 +213,6 @@ export const ClinicScreen = ({ navigation, route }) => {
         }
       }
     } catch (error: any) {
-      // Check if this request is still the latest one
-      if (requestId !== lastRequestIdRef.current) {
-        return;
-      }
       console.error('Error fetching clinics:', error);
       Toast.error(error.message || 'Failed to fetch clinics');
       if (!append) {
@@ -236,12 +220,9 @@ export const ClinicScreen = ({ navigation, route }) => {
         setNearbyClinics([]);
       }
     } finally {
-      // Only turn off loading if this was the latest request
-      if (requestId === lastRequestIdRef.current) {
-        setLoading(false);
-        setLoadingMore(false);
-        isLoadingMoreRef.current = false;
-      }
+      setLoading(false);
+      setLoadingMore(false);
+      isLoadingMoreRef.current = false;
     }
   }, [recordsPerPage]);
 
@@ -277,7 +258,7 @@ export const ClinicScreen = ({ navigation, route }) => {
         rating: rating,
         location: location,
         image: image,
-        isFeatured: clinic.is_featured === true,
+        isFeatured: !!clinic.is_featured,
       };
     });
   };
@@ -371,10 +352,16 @@ export const ClinicScreen = ({ navigation, route }) => {
     setCurrentPage(1);
     setHasMore(true);
 
-    await fetchAllClinics(searchQuery, filterParams, 1, false, false);
-
-    setRefreshing(false);
-  }, [searchQuery, filterParams, fetchAllClinics]);
+    try {
+      const latestSearchQuery = currentSearchQueryRef.current;
+      const latestFilterParams = currentFilterParamsRef.current;
+      await fetchAllClinics(latestSearchQuery, latestFilterParams, 1, false, false);
+    } catch (err) {
+      console.error('Error refreshing clinic screen:', err);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [fetchAllClinics]);
 
   return (
     <SafeAreaView style={styles.container}>

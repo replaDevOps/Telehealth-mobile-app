@@ -456,7 +456,7 @@ export function CheckoutScreen({ route, navigation }) {
               <View style={{ height: 160, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.white, borderRadius: 12, marginHorizontal: 16 }}>
                 <ActivityIndicator size="small" color={colors.primary} />
                 <Text style={{ marginTop: 8, fontSize: 13, color: colors.secondaryText }}>
-                  {t('loading_payment_widget') || 'Loading payment form...'}
+                  {t('') || 'Loading payment form...'}
                 </Text>
               </View>
             ) : inlineWidgetData?.widget_url && inlineWidgetData?.result_url ? (

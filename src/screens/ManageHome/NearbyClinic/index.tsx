@@ -151,7 +151,7 @@ export const NearbyClinics = ({ navigation }: any) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [locationLoading, permissionStatus, location?.lat, location?.long]);
 
-  const fetchClinics = async (lat: number, long: number, pageNo: number = 1, recordsPerPage: number = 10) => {
+  const fetchClinics = async (lat: number, long: number, recordsPerPage: number = 20) => {
     // Clear old data first
     setClinics([]);
     setSelectedClinic(null);
@@ -159,28 +159,51 @@ export const NearbyClinics = ({ navigation }: any) => {
 
     try {
       setLoading(true);
-      const response = await apiClient.get(API.CLINIC.GET_CLINICS, {
-        params: {
-          name: '',
-          lat: lat.toString(),
-          long: long.toString(),
-          pageNo: pageNo,
-          recordsPerPage: recordsPerPage,
-          sendFrom: 'map',
-        },
-      });
+      let pageNo = 1;
+      let hasMore = true;
+      let allValidClinics: ClinicApiResponse[] = [];
 
-      if (response.data.success && response.data.data) {
-        // Filter clinics that have valid lat/long coordinates
-        const validClinics = response.data.data.filter(
-          (clinic: ClinicApiResponse) =>
-            clinic.details?.lat !== null &&
-            clinic.details?.lat !== undefined &&
-            clinic.details?.long !== null &&
-            clinic.details?.long !== undefined
-        );
-        setClinics(validClinics);
+      while (hasMore) {
+        const response = await apiClient.get(API.CLINIC.GET_CLINICS, {
+          params: {
+            name: '',
+            lat: lat.toString(),
+            long: long.toString(),
+            pageNo: pageNo,
+            recordsPerPage: recordsPerPage,
+          },
+        });
+
+        if (response.data.success && Array.isArray(response.data.data)) {
+          const pageData: ClinicApiResponse[] = response.data.data;
+          const validClinics = pageData.filter(
+            (clinic: ClinicApiResponse) =>
+              clinic.details?.lat !== null &&
+              clinic.details?.lat !== undefined &&
+              clinic.details?.long !== null &&
+              clinic.details?.long !== undefined
+          );
+
+          allValidClinics = [...allValidClinics, ...validClinics];
+
+          const totalRecords = response.data.totalRecords;
+          const nextPageUrl = response.data.nextPageUrl;
+
+          if (
+            nextPageUrl === false ||
+            pageData.length < recordsPerPage ||
+            (totalRecords && pageNo * recordsPerPage >= totalRecords)
+          ) {
+            hasMore = false;
+          } else {
+            pageNo += 1;
+          }
+        } else {
+          hasMore = false;
+        }
       }
+
+      setClinics(allValidClinics);
     } catch (error: any) {
       console.error('Error fetching clinics:', error);
       Toast.error(error.message || 'Failed to fetch clinics');

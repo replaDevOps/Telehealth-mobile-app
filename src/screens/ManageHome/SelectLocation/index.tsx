@@ -97,7 +97,7 @@ export const SelectLocation = ({ navigation }: any) => {
   const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 
   // Fetch clinics when location changes
-  const fetchClinics = useCallback(async (lat: number, lng: number) => {
+  const fetchClinics = useCallback(async (lat: number, lng: number, recordsPerPage: number = 20) => {
     // Clear old clinics and selected clinic first
     setClinics([]);
     setSelectedClinic(null);
@@ -105,29 +105,53 @@ export const SelectLocation = ({ navigation }: any) => {
     setClinicsLoading(true);
 
     try {
-      console.log('Fetching clinics for coordinates:', { lat, lng }); // Debug log
-      const response = await apiClient.get(API.CLINIC.GET_CLINICS, {
-        params: {
-          name: '',
-          lat: lat.toString(),
-          long: lng.toString(),
-          pageNo: 1,
-          recordsPerPage: 20,
-          sendFrom: 'map',
-        },
-      });
-      console.log('Clinics API response:', response.data); // Debug log
+      let pageNo = 1;
+      let hasMore = true;
+      let allValidClinics: ClinicApiResponse[] = [];
 
-      if (response.data.success && response.data.data) {
-        const validClinics = response.data.data.filter(
-          (clinic: ClinicApiResponse) =>
-            clinic.details?.lat !== null &&
-            clinic.details?.lat !== undefined &&
-            clinic.details?.long !== null &&
-            clinic.details?.long !== undefined
-        );
-        setClinics(validClinics);
+      while (hasMore) {
+        console.log('Fetching clinics for coordinates:', { lat, lng, pageNo }); // Debug log
+        const response = await apiClient.get(API.CLINIC.GET_CLINICS, {
+          params: {
+            name: '',
+            lat: lat.toString(),
+            long: lng.toString(),
+            pageNo: pageNo,
+            recordsPerPage: recordsPerPage,
+          },
+        });
+        console.log(`Clinics API response (page ${pageNo}):`, response.data); // Debug log
+
+        if (response.data.success && Array.isArray(response.data.data)) {
+          const pageData: ClinicApiResponse[] = response.data.data;
+          const validClinics = pageData.filter(
+            (clinic: ClinicApiResponse) =>
+              clinic.details?.lat !== null &&
+              clinic.details?.lat !== undefined &&
+              clinic.details?.long !== null &&
+              clinic.details?.long !== undefined
+          );
+
+          allValidClinics = [...allValidClinics, ...validClinics];
+
+          const totalRecords = response.data.totalRecords;
+          const nextPageUrl = response.data.nextPageUrl;
+
+          if (
+            nextPageUrl === false ||
+            pageData.length < recordsPerPage ||
+            (totalRecords && pageNo * recordsPerPage >= totalRecords)
+          ) {
+            hasMore = false;
+          } else {
+            pageNo += 1;
+          }
+        } else {
+          hasMore = false;
+        }
       }
+
+      setClinics(allValidClinics);
     } catch (error: any) {
       console.error('Error fetching clinics:', error);
     } finally {

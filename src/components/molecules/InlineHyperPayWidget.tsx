@@ -122,6 +122,10 @@ export const InlineHyperPayWidget = forwardRef<
       background-color: #ffffff !important;
       font-size: 14px !important;
       text-align: ${isArabic ? 'right' : 'left'} !important;
+      direction: ltr !important;
+      unicode-bidi: isolate !important;
+    }
+    .wpwl-control-cardHolder {
       direction: ${isArabic ? 'rtl' : 'ltr'} !important;
     }
     .wpwl-label {
